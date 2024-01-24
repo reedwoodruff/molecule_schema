@@ -447,10 +447,12 @@ dependencies = [
 name = "generate_schema_macro"
 version = "0.1.0"
 dependencies = [
- "molecule_schema",
- "molecule_types",
+ "generate_schema_macro",
  "proc-macro2",
  "quote",
+ "serde",
+ "serde_json",
+ "serde_types",
  "syn 2.0.39",
 ]
 
@@ -940,7 +942,6 @@ version = "0.1.0"
 dependencies = [
  "im",
  "leptos",
- "molecule_types",
  "serde",
  "uuid",
 ]
@@ -952,13 +953,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.39",
-]
-
-[[package]]
-name = "molecule_types"
-version = "0.1.0"
-dependencies = [
- "uuid",
 ]
 
 [[package]]
@@ -1454,6 +1448,15 @@ dependencies = [
  "percent-encoding",
  "serde",
  "thiserror",
+]
+
+[[package]]
+name = "serde_types"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "uuid",
 ]
 
 [[package]]

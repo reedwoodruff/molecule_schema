@@ -1,0 +1,126 @@
+{
+  "constraint_objects": {
+    "1": {
+      "field_constraints": [
+        {
+          "tag": {
+            "name": "color",
+            "id": 0
+          },
+          "value_type": "String"
+        }
+      ],
+      "operatives": [],
+      "instances": [],
+      "trait_impls": {
+        "0": {
+          "trait_id": 0,
+          "methods": {
+            "0": {
+              "trait_method_id": 0,
+              "fulfillment_path": [
+                {
+                  "Field": 0
+                }
+              ]
+            }
+          }
+        }
+      },
+      "tag": {
+        "name": "Sock",
+        "id": 1
+      }
+    },
+    "2": {
+      "field_constraints": [],
+      "operatives": [
+        900,
+        901
+      ],
+      "instances": [
+        800
+      ],
+      "trait_impls": {},
+      "tag": {
+        "name": "HasColoredObject",
+        "id": 2
+      }
+    },
+    "0": {
+      "field_constraints": [
+        {
+          "tag": {
+            "name": "name",
+            "id": 0
+          },
+          "value_type": "String"
+        },
+        {
+          "tag": {
+            "name": "age",
+            "id": 1
+          },
+          "value_type": {
+            "Option": "U32"
+          }
+        }
+      ],
+      "operatives": [],
+      "instances": [],
+      "trait_impls": {},
+      "tag": {
+        "name": "Person",
+        "id": 0
+      }
+    }
+  },
+  "instance_library": {},
+  "operative_library": {
+    "900": {
+      "TemplateOperative": {
+        "constraint_object_id": 0,
+        "id": 900,
+        "fulfilled_operatives": [],
+        "locked_fields": [
+          {
+            "constraint_tag": {
+              "name": "age",
+              "id": 1
+            },
+            "value_type": {
+              "Option": "U32"
+            },
+            "value": {
+              "Option": {
+                "U32": 99
+              }
+            }
+          }
+        ]
+      }
+    },
+    "901": {
+      "TraitOperative": {
+        "trait_id": 0
+      }
+    }
+  },
+  "traits": {
+    "0": {
+      "tag": {
+        "name": "Color",
+        "id": 0
+      },
+      "methods": [
+        {
+          "tag": {
+            "name": "getColor",
+            "id": 0
+          },
+          "return_type": "String"
+        }
+      ]
+    }
+  }
+}

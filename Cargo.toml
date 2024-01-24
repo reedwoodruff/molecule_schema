@@ -1,7 +1,7 @@
 [workspace]
 members = [
-    "type_map_macro",
-    "molecule_schema",
-    "generate_schema_macro",
-    "molecule_types",
+  "type_map_macro",
+  "molecule_schema",
+  "generate_schema_macro",
+  "serde_types",
 ]
