@@ -448,12 +448,14 @@ name = "generate_schema_macro"
 version = "0.1.0"
 dependencies = [
  "generate_schema_macro",
+ "output_types",
  "proc-macro2",
  "quote",
  "serde",
  "serde_json",
  "serde_types",
  "syn 2.0.39",
+ "uuid",
 ]
 
 [[package]]
@@ -979,6 +981,10 @@ name = "once_cell"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
+
+[[package]]
+name = "output_types"
+version = "0.1.0"
 
 [[package]]
 name = "pad-adapter"

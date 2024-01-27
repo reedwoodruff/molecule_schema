@@ -4,4 +4,5 @@ members = [
   "molecule_schema",
   "generate_schema_macro",
   "serde_types",
+  "output_types",
 ]

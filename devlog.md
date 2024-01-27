@@ -148,3 +148,56 @@ The instantiation and editing methods are where the signals come in handy -- but
   I could foresee environments which want to be read-only and would not make use of the signal architecture. This doesn't seem too pressing, though -- you'd have all of the same functionality with the signal structure, it would just be a question of performance impact. If this becomes an issue then it ought to be relatively simple to make another, non-reactive representation of the data structures to be used in such contexts.
 
 Current complexity: How to represent and handle operative nodes and edges in templates. 
+
+
+## Jan 24, 2024
+Trying to reason through the instantiation process of a given template as it relates to the operatives contained in its infrastructure.
+Currently, I'm thinking there can be two kinds of operatives in a given template's infrastructure.
+1. A trait operative, which can be filled by any structure which implements the required trait.
+2. A template operative, which defines a more constrained set of requirements.
+
+Worth noting here that part of the goal is to be able to fill either of these operative types with user's choice of:
+1. a pre-existing construct, or,
+2. a new construct(s) which is co-created upon instantiation
+
+So a trait operative should be conceptually simpler to determine compatibility. Either your existing construct has the trait or it doesn't. If you're creating a new construct, then it just must implement the trait.
+A template operative will be a bit more involved. The template operative could be a recursively nested tree of template operatives.
+For existing constructs attempting to fulfill the template operative, they would need to be structurally matched against all of the locked elements within the template operative's tree to determine compatibility.
+For new constructs, you need to find all of the operative fields within the template operative's tree and prompt the user to fill them out.
+
+There is some complexity here in that this instantiation process might need to know about the graph environment in order to operate as described.
+In order to co-create a new construct upon instantiation, the TemplateBuilder would need some kind of hook into the graph environment to create the dependencies before fully instantiating the template in question.
+For the case of a pre-existing construct, it could just take the ID of the construct (though for diffing/checking compatibility, you'd need to reach out and check against the construct, which would also require access to the graph environment -- or the instantiator would have to pass in a full copy of the thing manually).
+How to accomplish this in a modular way?
+
+### Other thoughts
+Thinking through the instantiation story -- it seems likely that one would want to be able to instantiate not only pure templates, but also standalone operative templates.
+I've been thinking of operative templates as solely being used as part of the internal structure of higher-level templates, but this is an expansion of that idea.
+This gives a mechanism for specializing a particular template without wrapping it in a new template. For example, take a "computer" template. It may have exposed slots for "operating system", "i/o capabilities", "screen size", etc.
+Instead of making a new template which wraps "computer" in order to make a reusable "Mac", "Windows", or "Linux" construct, you could instead make an operative instance of "Computer" in which the "operating system" slot is locked to the relevant choice.
+The operative instance would live in the operative library. It could then be referenced and instantiated. It also seems useful to be able to implement traits on particular operatives.
+For example, while a generic "Computer" template could not implement "Get_Mac_OS_Version" (or something specific like that), the operative "Mac" construct could implement that trait and then be available to slot into slots which require "Get_Mac_OS_Version".
+This concept extends to instances as well, and represents a shift from thinking of operatives and instances as *only* serving the template objects to instead being important for the graph environment as well.
+This is also a step toward thinking about how real-world/shared-experience things (places, items, people, definitions of concepts, etc.) might be handled.
+I've thought that users could add entries into the instance library for things that they want to share access to, though the exact mechanics of this remain elusive.
+This would allow users to reference that particular instance without being able to directly modify it (modify in this case referring to its internal structure).
+
+### Other other thoughts
+Thinking through how to handle open-ended numbers of operatives. For example, a Sentence template may have a slot for a punctuation mark, and then a slot-like construct for an unlimited amount of words.
+Could take a similar approach to Rust's macro_rules and allow slots to be marked with (*, +, ?) which indicate (0 or more, 1 or more, 0 or 1). I can't remember if "?" is the correct symbol.
+
+
+## Jan 26, 2024
+Stepping back a bit to get a bigger picture. I had an insightful conversation with GPT-4 about conceptualizing the schema system, and I want to try to solidify my thoughts.
+I had been having difficulty separating the concerns of the schema system from the concerns of creating a graph-based superset of written language, but I think things are becoming a bit clearer.
+The schema system's overall goal might be conceptualized as a mechanism for systematically creating what might helpfully be thought of as graph-based Domain Specific Languages (DSLs).
+Each individual schema created using the schema building system is its own DSL, which users might use in a graph environment to build a particular "graph" or "document" in the language.
+So a kind of "assertion-grammar" schema might be created which is intended to capture the meaning assertions which underpin the meaning inherent in our written/oral linear language.
+Using this particular schema, a user could create a document which has a specific meaning corresponding to some linear set of words.
+However, the power of the schema-building system is that there might be many other useful DSLs to be created. For example, you could imagine a person-based schema, where people can keep track of facts about themselves and others. It might have things like "name", "email"... Idk, all sorts of things.
+The power is when you can start combining the schemas. Ideally, since they're built on the same underlying schema-building primitives, you could reference and make assertions about these People schema-objects using the "assertion-grammar" schema-objects.
+What I'm trying to describe is the idea that the schemas and structures within could be incredibly diverse for different domains and use-cases. But this wouldn't stop them from being interoperable (at least that's what I'm hoping -- the specifics aren't nailed down yet).
+So instead of continually pointing to our current system of written language as kind of the de-facto way to think about conveying meaning, it instead just becomes a subset of the infinite ways in which the medium might represent meaning.
+
+And really the idea here is that it shouldn't (or at least needn't) revolve around language at all. It could be easy to overfit to our current language system to the detriment of overall flexibility and future expression.
+I think that it's probably good to keep this goal of interoperability in mind, but the first step will require just getting a single schema to be able to operate with itself XD.
