@@ -1,75 +1,55 @@
-use crate::common::ConstraintTraits;
-use crate::constraint_schema::ConstraintSchema;
-use molecule_types::*;
-
-mod test;
-mod utils;
-
-// enum TemplateConstituent<T> {
-//     Instance(Instance<T>),
-//     Operative,
-// }
-// struct TemplateRepresentation<T> {
-//     pub subgraph: Subgraph<T>,
-// }
-// struct Subgraph<T> {
-//     pub elements: Instance<T>,
-// }
-
-// pub struct TemplateSpecs {}
-
+// // use crate::commonConstraintTraits;
+// use molecule_types::*;
+// use uuid::Uuid;
+//
+// mod test;
+// mod utils;
+//
 // #[derive(Clone)]
-// enum GSO<T, U> {
-//     Instance(InstanceGSO<T, U>),
-//     Operative(OperativeGSO<T, U>),
+// /// Generated Schema Object
+// pub struct InstanceGSO<T>
+// where
+//     T: Clone,
+// {
+//     pub id: Uid,
+//     pub structure_ids: Option<Vec<Uid>>,
+//     pub schema_tag: Uid,
+//     pub required_edges: Vec<EdgeInstance>,
+//     pub optional_edges: Vec<EdgeInstance>,
+//     pub data: T,
 // }
-
-#[derive(Clone)]
-/// Generated Schema Object
-pub struct InstanceGSO<T> {
-    pub id: Uid,
-    pub structure_ids: Option<Vec<Uid>>,
-    pub schema_tag: SchemaTag,
-    pub edge_constraints: Option<u32>,
-    pub edges: Vec<EdgeInstance>,
-    pub data: T,
-}
-#[derive(Clone)]
-pub struct OperativeGSO<T> {
-    pub id: Uid,
-    pub structure_ids: Option<Vec<Uid>>,
-    pub schema_tag: SchemaTag,
-    pub edge_constraints: Option<u32>,
-    pub edges: Vec<EdgeInstance>,
-    pub operative_data: T,
-}
-
-impl<T> GSOCommon for InstanceGSO<T> {
-    fn id(&self) -> &Uid {
-        &self.id
-    }
-    fn structure_ids(&self) -> &Option<Vec<Uid>> {
-        &self.structure_ids
-    }
-    fn schema_tag(&self) -> &SchemaTag {
-        &self.schema_tag
-    }
-    fn edge_constraints(&self) -> &Option<u32> {
-        &self.edge_constraints
-    }
-    fn edges(&self) -> &Vec<EdgeInstance> {
-        &self.edges
-    }
-    // fn data(&self) -> &T {
-    //     &self.data
-    // }
-}
-
-pub trait GSOCommon {
-    fn id(&self) -> &Uid;
-    fn structure_ids(&self) -> &Option<Vec<Uid>>;
-    fn schema_tag(&self) -> &SchemaTag;
-    fn edge_constraints(&self) -> &Option<u32>;
-    fn edges(&self) -> &Vec<EdgeInstance>;
-    // fn data(&self) -> &Self;
-}
+//
+// #[derive(Clone)]
+// pub struct OperativeGSO<T, VT>
+// where
+//     T: Clone,
+//     VT: ConstraintTraits,
+// {
+//     pub id: Uid,
+//     pub structure_ids: Option<Vec<Uid>>,
+//     pub schema_tag: Uid,
+//     pub parent_template_tag: Uid,
+//     pub locked_edges: Option<Vec<FuzzyEdgeDescriptor>>,
+//     pub operative_edges: Vec<EdgeInstance>,
+//     pub locked_data: T,
+//     pub operative_fields: Vec<FieldDescriptor<VT>>,
+// }
+//
+// #[derive(Clone)]
+// pub struct FieldDef<T> {
+//     name: String,
+//     id: Uid,
+//     value: T,
+// }
+// impl<T> FieldDef<T> {
+//     fn new<N>(name: N, value: T) -> Self
+//     where
+//         N: Into<String>,
+//     {
+//         Self {
+//             name: name.into(),
+//             id: Uuid::new_v4().as_u128(),
+//             value,
+//         }
+//     }
+// }

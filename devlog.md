@@ -201,3 +201,16 @@ So instead of continually pointing to our current system of written language as 
 
 And really the idea here is that it shouldn't (or at least needn't) revolve around language at all. It could be easy to overfit to our current language system to the detriment of overall flexibility and future expression.
 I think that it's probably good to keep this goal of interoperability in mind, but the first step will require just getting a single schema to be able to operate with itself XD.
+
+## Jan 29, 2024
+Trying to think of alternative ways to build the schema types without relying on a reference to some kind of graph environment.
+Several places seem like they'd require this:
+- Resolving trait implementations which rely on data resolved in constituents. 
+  I.e. there may be constituents which will need to be initialized before they have the requisite data, so to write a method for the trait implementation, there will need to be some way to retrieve that instantiated constituent.
+  E.g. Struct1 is implementing Trait1, which has a method Method1 which returns a u32. Struct1 has an operative constituent Struct2 which has a field "my_num". There's no way at compile time to reference this my_num field directly from Struct1 -- the operative structure of Struct2 has the knowledge of what that field *will* hold, but it will never be filled until it has been instantiated, at which point it is living in the graph environment and not in the schema.
+- Instantiation -- whether of a particular ConstraintObject or of the requisite constituent elements required to instantiate that ConstraintObject.
+
+Also grappling with the related question of how to create the final types in a relatively agnostic way, or if that is required. In other words, it seems like it might be helpful to build the types in terms of Signals directly from the macro. I'm not really sure what the alternative would be, other than making a parallel Signaled type and providing some kind of Into<> implementation. 
+I just get worried about making the schema macro and the graph environment too coupled. Maybe I shouldn't be, though, as long as the ConstraintSchema remains agnostic.
+
+This feels like it's pushing at the edges of the bigger project picture and I don't know that I have the right answers right now. I might just make a prototype to get something working at a basic level, but I hope to get some insights that make these questions feel like they fit better in to the great whole eventually.
