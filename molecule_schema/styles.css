@@ -1,0 +1,39 @@
+.flex {
+  display: flex;
+}
+.flex-grow {
+  flex-grow: 1;
+}
+.border-black {
+  border: 1px solid black;
+}
+.border-gray {
+  border: 1px solid gray;
+}
+.border-red {
+  border: 1px solid red;
+}
+.tiny-pad {
+  padding: 1px;
+}
+.small-pad {
+  padding: 3px;
+}
+.med-pad {
+  padding: 5px;
+}
+.large-pad {
+  padding: 10px;
+}
+.tiny-margin {
+  marginding: 1px;
+}
+.small-margin {
+  marginding: 3px;
+}
+.med-margin {
+  marginding: 5px;
+}
+.large-margin {
+  marginding: 10px;
+}

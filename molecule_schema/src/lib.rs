@@ -1,5 +1,2 @@
-#![feature(concat_idents)]
-#![feature(lazy_cell)]
-pub mod generated_schema;
-mod prelude;
-mod test;
+pub mod components;
+pub mod utils;

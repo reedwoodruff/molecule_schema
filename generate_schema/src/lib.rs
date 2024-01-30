@@ -77,7 +77,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
             let method_name = syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
             let return_type = get_primitive_type(&method_def.return_type);    
             quote! {
-                fn #method_name(&self) -> &#return_type;
+                fn #method_name(&self) -> std::borrow::Cow<#return_type>;
             }
         });
         quote! {
@@ -87,7 +87,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         }
     });
     let mut element_names = Vec::<syn::Ident>::new();
-    let reference_constraint_schema = constraint_schema_generated.clone();
+    let reference_constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues> = constraint_schema_generated.clone();
 
     let generate_trait_impl_streams = |instantiable: Box::<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>>| -> proc_macro2::TokenStream {
         let instantiable_name = syn::Ident::new(&instantiable.get_tag().name, proc_macro2::Span::call_site());
@@ -112,10 +112,11 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                 let method_name = syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
                 let method_return_type = get_primitive_type(&method_def.return_type);
 
+                let mut prepend_call: proc_macro2::TokenStream = quote!{};
                 let mut last_item_id = instantiable.get_tag().id;
                 let mut last_item_type = instantiable.get_constraint_schema_instantiable_type();
 
-                impl_path.iter().for_each(|path_item| {
+                impl_path.iter().enumerate().for_each(|(path_index, path_item)| {
                     match path_item {
                         serde_types::constraint_schema::TraitMethodImplPath::Field  (field_id) => {
                             match last_item_type {
@@ -123,66 +124,60 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                                     let constraint_object = reference_constraint_schema.constraint_objects.get(&last_item_id).expect("constraint object must exist");
                                     let field_constraint = constraint_object.field_constraints.iter().find(|constraint| &constraint.tag.id == field_id).expect("field must exist");
                                     let field_name = syn::Ident::new(&field_constraint.tag.name, proc_macro2::Span::call_site());
-                                    method_impl_stream = quote!{ &self.#field_name };
+                                    method_impl_stream = quote!{ std::borrow::Cow::Borrowed(&self.#field_name) };
                                 }
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::Instance => {
                                     let instance_ref = reference_constraint_schema.instance_library.get(&last_item_id).expect("instance must exist");
                                     let fulfilled_constraint = instance_ref.data.iter().find(|field| &field.tag.id == field_id).expect("field must exist");
                                     let value = get_primitive_value(&fulfilled_constraint.value);
-                                    method_impl_stream = quote! { #value };
+                                    method_impl_stream = quote! { std::borrow::Cow::Owned(#value) };
                                 }
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::Operative => {
-                                    // Currently hardcoding the value in if it's locked, but this
-                                    // might cause issues with the borrowed return type in the
-                                    // future.
                                     let operative_ref = reference_constraint_schema.operative_library.get(&last_item_id).expect("operative must exist");
                                     let fulfilled_constraint = operative_ref.locked_fields.iter().find(|field| &field.tag.id == field_id);
                                     if let Some(fulfilled_constraint) = fulfilled_constraint {
                                         let value = get_primitive_value(&fulfilled_constraint.value);
-                                        method_impl_stream = quote! { #value };
+                                        method_impl_stream = quote! { std::borrow::Cow::Owned(#value) };
                                     } else {
                                         let constraint_object = reference_constraint_schema.constraint_objects.get(&operative_ref.constraint_object_id).expect("constraint object must exist");
                                         let field_constraint = constraint_object.field_constraints.iter().find(|constraint| &constraint.tag.id == field_id).expect("field must exist");
                                         let field_name = &field_constraint.tag.name;
-                                        // This is wrong. It needs to get the instantiated instance
-                                        // of the operative and get *its* self. This is using the
-                                        // root self which doesn't have the field_name.
-                                        method_impl_stream = quote!{ &self.#field_name };
+                                        method_impl_stream = quote!{ std::borrow::Cow::Borrowed(&#prepend_call.#field_name) };
                                     }
                                 }
                             }; 
                         }
                         serde_types::constraint_schema::TraitMethodImplPath::TraitOperativeConstituent{trait_operative_id, trait_id, trait_method_id} => {
-                            let inner_trait_def = reference_constraint_schema.traits.get(&trait_id).expect("trait must exist");
-                            let inner_method_def = trait_def.methods.iter().find(|method| &method.tag.id == trait_id).expect("method must exist");
-                            let inner_method_name = syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
+                            let inner_trait_def = reference_constraint_schema.traits.get(trait_id).expect("trait must exist");
+                            let inner_method_def = inner_trait_def.methods.iter().find(|method| &method.tag.id == trait_id).expect("method must exist");
+                            let inner_method_name = syn::Ident::new(&inner_method_def.tag.name, proc_macro2::Span::call_site());
 
                             match last_item_type {
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::ConstraintObject => {
                                     let constraint_object = reference_constraint_schema.constraint_objects.get(&last_item_id).expect("constraint object must exist");
-                                    // let field_constraint = constraint_object.field_constraints.iter().find(|constraint| &constraint.tag.id == field_id).expect("field must exist");
                                     let trait_operative = constraint_object.trait_operatives.iter().find(|trait_op| &trait_op.tag.id == trait_operative_id).expect("trait operative must exist");
-                                    // let field_name = &field_constraint.tag.name;
-                                    // method_impl_stream = quote!{ self.#field_name };
+                                    let trait_operative_id = trait_operative.tag.id;
+
+                                    method_impl_stream = quote!{ #graph_environment.get_element(self.get_operative_by_id(#trait_operative_id)).#inner_method_name() };
                                 }
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::Instance => {
-                                    let instance_ref = reference_constraint_schema.instance_library.get(&last_item_id).expect("instance must exist");
-                                    // let fulfilled_constraint = instance_ref.data.iter().find(|field| &field.tag.id == field_id).expect("field must exist");
-                                    // let value = get_primitive_value(&fulfilled_constraint.value);
-                                    // method_impl_stream = quote! { #value };
+                                    // Not sure how to do this yet -- the instances being
+                                    // referenced are in the library and are not GSO's, but rather
+                                    // Instantiable objects. So they don't have real trait impls at
+                                    // this point.
+                                    //
+                                    // let instance_ref = reference_constraint_schema.instance_library.get(&last_item_id).expect("instance must exist");
+                                    //
+                                    // let trait_ref = reference_constraint_schema.traits.get(&trait_id).expect("trait must exist");
+                                    // let trait_method_name = &trait_ref.methods.iter().find(|method| &method.tag.id == trait_method_id).expect("trait method must exist").tag.name;
+                                    // let trait_method_name = syn::Ident::new(trait_method_name, proc_macro2::Span::call_site());
+                                    //
+                                    // method_impl_stream = quote!{ #graph_environment.get_element(self.get_operative_by_id(#trait_operative_id)).#trait_method_name() };
                                 }
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::Operative => {
-                                    let operative_ref = reference_constraint_schema.operative_library.get(&last_item_id).expect("operative must exist");
-                                    // let fulfilled_constraint = operative_ref.locked_fields.iter().find(|field| &field.tag.id == field_id);
-                                    // if let Some(fulfilled_constraint) = fulfilled_constraint {
-                                    //     let value = get_primitive_value(&fulfilled_constraint.value);
-                                    //     method_impl_stream = quote! { #value };
-                                    // } else {
-                                    //     let constraint_object = reference_constraint_schema.constraint_objects.get(&operative_ref.constraint_object_id).expect("constraint object must exist");
-                                    //     let field_constraint = constraint_object.field_constraints.iter().find(|constraint| &constraint.tag.id == field_id).expect("field must exist");
-                                    //     let field_name = &field_constraint.tag.name;
-                                    //     method_impl_stream = quote!{ self.#field_name };
-                                    // }
+                                    // let operative_ref = reference_constraint_schema.operative_library.get(&last_item_id).expect("operative must exist");
+
+                                    method_impl_stream = quote!{ #graph_environment.get_element(#prepend_call.get_operative_by_id(#trait_operative_id)).#inner_method_name() };
                                 }
                             };
 
@@ -192,6 +187,11 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                             last_item_type =  serde_types::constraint_schema::ConstraintSchemaInstantiableType::Instance;
                         }
                         serde_types::constraint_schema::TraitMethodImplPath::LibraryOperativeConstituent(library_operative_constituent_id) => {
+                            if path_index == 0 {
+                                prepend_call = quote! {graph_environment.get_element(&self.get_operative_by_id(&library_operative_constituent_id).expect("constraint object must exist"))};
+                            } else {
+                                prepend_call = quote! {graph_environment.get_element(#prepend_call.get_operative_by_id(library_operative_constituent_id))};
+                            }
                             last_item_id = *library_operative_constituent_id;
                             last_item_type =  serde_types::constraint_schema::ConstraintSchemaInstantiableType::Operative;
                         }
@@ -201,7 +201,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                 });
 
                 quote! {
-                    fn #method_name(&self) -> &#method_return_type {
+                    fn #method_name(&self) -> std::borrow::Cow<#method_return_type> {
                         #method_impl_stream
                     }
                 }

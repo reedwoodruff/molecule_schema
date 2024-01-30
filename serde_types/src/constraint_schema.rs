@@ -53,8 +53,8 @@ pub struct LibraryInstance<TTypes: ConstraintTraits, TValues: ConstraintTraits> 
     // If the instance is of a particular operative
     pub operative_library_id: Uid,
     pub tag: Tag,
-    pub other_edges: Vec<LibraryEdgeInstance>,
-    // fulfilled_edges: Vec<FulfilledEdgeConstraint>,
+    // pub other_edges: Vec<LibraryEdgeInstance>,
+    pub other_edges: Vec<FulfilledOperative>,
     pub fulfilled_operatives: Vec<FulfilledOperative>,
     pub data: Vec<FulfilledFieldConstraint<TTypes, TValues>>,
     pub trait_impls: HashMap<Uid, TraitImpl>,
@@ -287,18 +287,18 @@ pub struct FulfilledFieldConstraint<TTypes: ConstraintTraits, TValues: Constrain
 // }
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FulfilledOperative {
-    operative_id: OperativeVariants,
-    fulfilling_instance_id: Uid,
+    pub operative_id: OperativeVariants,
+    pub fulfilling_instance_id: Uid,
 }
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum LibraryReference {
-    Instance(Uid),
-    Operative(Uid),
-}
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct LibraryEdgeInstance {
-    pub dir: Dir,
-    pub host: LibraryReference,
-    pub target: LibraryReference,
-    pub edge_type: EdgeType,
-}
+// #[derive(Serialize, Deserialize, Clone, Debug)]
+// pub enum LibraryReference {
+//     Instance(Uid),
+//     Operative(Uid),
+// }
+// #[derive(Serialize, Deserialize, Clone, Debug)]
+// pub struct LibraryEdgeInstance {
+//     pub dir: Dir,
+//     pub host: LibraryReference,
+//     pub target: LibraryReference,
+//     pub edge_type: EdgeType,
+// }
