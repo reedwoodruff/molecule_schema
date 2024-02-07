@@ -214,3 +214,23 @@ Also grappling with the related question of how to create the final types in a r
 I just get worried about making the schema macro and the graph environment too coupled. Maybe I shouldn't be, though, as long as the ConstraintSchema remains agnostic.
 
 This feels like it's pushing at the edges of the bigger project picture and I don't know that I have the right answers right now. I might just make a prototype to get something working at a basic level, but I hope to get some insights that make these questions feel like they fit better in to the great whole eventually.
+
+## Feb 5, 2024
+Trying to figure out the best way to create a useable user interface for the schema creator/editor.
+I think it would be useful to have a kind of tree view, where the selected item was at the top, and its constituents spread out below.
+This would facilitate a visual representation of the item in question.
+It would also make the experience of implementing traits much more intuitive, hopefully. The idea being that you would:
+1. select the top level element which you want to implement a trait on
+2. select the method which needs fulfilled
+3. select from the child nodes the specific field which will fulfill the method. You could also select a trait impl on a child node which returns the correct value as a fulfiller.
+4. voila
+Behind the scenes, the path to the field or trait impl could be generated based on the child's position in the tree.
+
+## Feb 7, 2024
+Running into some interesting challenges with implementation details regarding the schema constructor.
+If I allow users to change the types of fields in ConstraintObjects, then this creates a need for a cascading check to see if that field was used in any trait impls.
+Any operatives or instances which had formerly locked a given field with a specific value will have problems if that ConstraintObject field changes out from under them.
+Trying to figure out how to address these kinds of issues. There are going to be many interdependent objects in the schema.
+It's definitely all theoretically possible, it's a matter of making the user experience of editing templates not too frustrating. The major challenge is in dealing with intermediate states and making sure everything converges to a consistent state.
+I think ultimately that it is going to require some robust checking mechanisms -- especially before exporting/finalizing the template. Since a change in one place could have many rippling effects, it would be difficult for the user to make sure that everything is consistent.
+Ideally, you could be doing this kind of checking as the edits happen, and then giving visual feedback as to where attention is needed if the changes have caused cascading misalignmentkkkjkkkk

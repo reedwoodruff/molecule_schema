@@ -51,7 +51,7 @@ pub trait ConstraintSchemaInstantiable {
 pub struct LibraryInstance<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub constraint_object_id: Uid,
     // If the instance is of a particular operative
-    pub operative_library_id: Uid,
+    pub operative_library_id: Option<Uid>,
     pub tag: Tag,
     // pub other_edges: Vec<LibraryEdgeInstance>,
     pub other_edges: Vec<FulfilledOperative>,
@@ -73,7 +73,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
         Some(&self.constraint_object_id)
     }
     fn get_operative_library_id(&self) -> Option<&Uid> {
-        Some(&self.operative_library_id)
+        self.operative_library_id.as_ref()
     }
     fn get_tag(&self) -> &Tag {
         &self.tag
@@ -111,6 +111,8 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LibraryOperative<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub constraint_object_id: Uid,
+    // If the operative is based on another operative
+    pub operative_library_id: Option<Uid>,
     pub tag: Tag,
     pub fulfilled_operatives: Vec<FulfilledOperative>,
     pub locked_fields: Vec<FulfilledFieldConstraint<TTypes, TValues>>,
@@ -247,6 +249,12 @@ pub enum TraitMethodImplPath {
     // Denotes that the current path element has a field with id [Uid] which holds the
     // required information.
     Field(Uid),
+    // Denotes that the current path element implements a trait with the given method
+    // which will return the required information
+    TraitMethod {
+        trait_id: Uid,
+        trait_method_id: Uid,
+    },
     // Denotes jumping to a constituent element in the structure
     InstanceConstituent(Uid),
     LibraryOperativeConstituent(Uid),

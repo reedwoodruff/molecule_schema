@@ -45,3 +45,27 @@
 .half-height {
   height: 45vh;
 }
+
+.small-title {
+  margin: 3px;
+  padding: 0px;
+  font-size: large;
+}
+.tree-node-container {
+  padding: 3px;
+  border-radius: 5px;
+  border: 1px solid #aaa;
+  width: fit-content;
+}
+.container_instance {
+  background-color: lightblue
+}
+.container_library_operative {
+  background-color: lightgreen
+}
+.container_trait_operative {
+  background-color: lightpink
+}
+.container_constraint_object {
+  background-color: lightyellow
+}

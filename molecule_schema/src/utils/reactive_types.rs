@@ -11,6 +11,34 @@ use serde_types::{
     },
 };
 
+pub trait RCSO {
+    fn get_fields(&self) -> Vec<impl Tagged>;
+}
+pub trait Tagged {
+    fn get_tag(&self) -> &RTag;
+}
+
+macro_rules! apply_tagged {
+    ( $($x:ident),* ) => {
+        $(impl Tagged for $x {
+            fn get_tag(&self) -> &RTag {
+               &self.tag
+            }
+        })*
+    };
+    ( $($x:ident<$($t:ident),*>),* ) => {
+        $(impl<$($t: ConstraintTraits),*> Tagged for $x<$($t),*> {
+            fn get_tag(&self) -> &RTag {
+               &self.tag
+            }
+        })*
+    };
+}
+
+apply_tagged!(RConstraintObject<TTypes,TValues>);
+apply_tagged!(RLibraryInstance<TTypes,TValues>);
+apply_tagged!(RLibraryOperative<TTypes,TValues>);
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct RConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub constraint_objects: RwSignal<HashMap<Uid, RConstraintObject<TTypes, TValues>>>,
@@ -90,10 +118,21 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RConstraintSchema
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RTag {
     pub name: RwSignal<String>,
     pub id: RwSignal<Uid>,
+}
+impl RTag {
+    pub fn new<T>(name: T) -> Self
+    where
+        T: Into<String>,
+    {
+        Self {
+            name: RwSignal::new(name.into()),
+            id: RwSignal::new(uuid::Uuid::new_v4().as_u128()),
+        }
+    }
 }
 impl From<Tag> for RTag {
     fn from(value: Tag) -> Self {
@@ -235,12 +274,34 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RConstraintObject
         }
     }
 }
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO
+    for RConstraintObject<TTypes, TValues>
+{
+    fn get_fields(&self) -> Vec<impl Tagged> {
+        self.field_constraints.get()
+    }
+}
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintObject<TTypes, TValues> {
+    pub fn new() -> Self {
+        Self {
+            field_constraints: RwSignal::new(vec![]),
+            library_operatives: RwSignal::new(vec![]),
+            trait_operatives: RwSignal::new(vec![]),
+            instances: RwSignal::new(vec![]),
+            trait_impls: RwSignal::new(HashMap::new()),
+            tag: RTag::new("NewConstraintObject"),
+            _phantom: PhantomData,
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RFieldConstraint<TTypes: ConstraintTraits> {
     pub tag: RTag,
     pub value_type: RwSignal<TTypes>,
 }
+apply_tagged!(RFieldConstraint<TTypes>);
+
 impl<TTypes: ConstraintTraits> From<FieldConstraint<TTypes>> for RFieldConstraint<TTypes> {
     fn from(value: FieldConstraint<TTypes>) -> Self {
         Self {
@@ -258,11 +319,12 @@ impl<TTypes: ConstraintTraits> From<RFieldConstraint<TTypes>> for FieldConstrain
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RTraitOperative {
     pub trait_id: RwSignal<Uid>,
     pub tag: RTag,
 }
+apply_tagged!(RTraitOperative);
 impl From<TraitOperative> for RTraitOperative {
     fn from(value: TraitOperative) -> Self {
         Self {
@@ -287,13 +349,15 @@ pub enum RTraitMethodImplPath {
     // Denotes that the current path element has a field with id [Uid] which holds the
     // required information.
     Field(RwSignal<Uid>),
+    // Denotes that the current path element implements a trait with the given method
+    // which will return the required information
+    TraitMethod {
+        trait_id: RwSignal<Uid>,
+        trait_method_id: RwSignal<Uid>,
+    },
     // Denotes jumping to a constituent element in the structure
     InstanceConstituent(RwSignal<Uid>),
     LibraryOperativeConstituent(RwSignal<Uid>),
-    // Denotes that the current path element has an operative element [Uid1]
-    // which implements a trait of id [Uid2], which has a method of
-    // id [Uid2] which, when invoked,
-    // will return the required information
     TraitOperativeConstituent {
         trait_operative_id: RwSignal<Uid>,
         trait_id: RwSignal<Uid>,
@@ -304,6 +368,13 @@ impl From<TraitMethodImplPath> for RTraitMethodImplPath {
     fn from(value: TraitMethodImplPath) -> Self {
         match value {
             TraitMethodImplPath::Field(val) => RTraitMethodImplPath::Field(RwSignal::new(val)),
+            TraitMethodImplPath::TraitMethod {
+                trait_id,
+                trait_method_id,
+            } => RTraitMethodImplPath::TraitMethod {
+                trait_id: RwSignal::new(trait_id),
+                trait_method_id: RwSignal::new(trait_method_id),
+            },
             TraitMethodImplPath::InstanceConstituent(val) => {
                 RTraitMethodImplPath::InstanceConstituent(RwSignal::new(val))
             }
@@ -326,6 +397,13 @@ impl From<RTraitMethodImplPath> for TraitMethodImplPath {
     fn from(value: RTraitMethodImplPath) -> Self {
         match value {
             RTraitMethodImplPath::Field(val) => TraitMethodImplPath::Field(val.get()),
+            RTraitMethodImplPath::TraitMethod {
+                trait_id,
+                trait_method_id,
+            } => TraitMethodImplPath::TraitMethod {
+                trait_id: trait_id.get(),
+                trait_method_id: trait_method_id.get(),
+            },
             RTraitMethodImplPath::InstanceConstituent(val) => {
                 TraitMethodImplPath::InstanceConstituent(val.get())
             }
@@ -350,7 +428,7 @@ impl From<RTraitMethodImplPath> for TraitMethodImplPath {
 pub struct RLibraryInstance<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub constraint_object_id: RwSignal<Uid>,
     // If the instance is of a particular operative
-    pub operative_library_id: RwSignal<Uid>,
+    pub operative_library_id: RwSignal<Option<Uid>>,
     pub tag: RTag,
     pub other_edges: RwSignal<Vec<RFulfilledOperative>>,
     pub fulfilled_operatives: RwSignal<Vec<RFulfilledOperative>>,
@@ -477,6 +555,26 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryInstance<
         }
     }
 }
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO
+    for RLibraryInstance<TTypes, TValues>
+{
+    fn get_fields(&self) -> Vec<impl Tagged> {
+        self.data.get()
+    }
+}
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryInstance<TTypes, TValues> {
+    pub fn new(constraint_object_id: Uid, operative_library_id: Option<Uid>) -> Self {
+        Self {
+            constraint_object_id: RwSignal::new(constraint_object_id),
+            operative_library_id: RwSignal::new(operative_library_id),
+            tag: RTag::new("NewInstance"),
+            other_edges: RwSignal::new(vec![]),
+            fulfilled_operatives: RwSignal::new(vec![]),
+            data: RwSignal::new(vec![]),
+            trait_impls: RwSignal::new(HashMap::new()),
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RFulfilledOperative {
@@ -534,6 +632,7 @@ pub struct RFulfilledFieldConstraint<TTypes: ConstraintTraits, TValues: Constrai
     pub value_type: RwSignal<TTypes>,
     pub value: RwSignal<TValues>,
 }
+apply_tagged!(RFulfilledFieldConstraint<TTypes,TValues>);
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits>
     From<FulfilledFieldConstraint<TTypes, TValues>> for RFulfilledFieldConstraint<TTypes, TValues>
 {
@@ -561,6 +660,8 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits>
 #[derive(Clone, Debug, PartialEq)]
 pub struct RLibraryOperative<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub constraint_object_id: RwSignal<Uid>,
+    // If the operative is based on another operative
+    pub operative_library_id: RwSignal<Option<Uid>>,
     pub tag: RTag,
     pub fulfilled_operatives: RwSignal<Vec<RFulfilledOperative>>,
     pub locked_fields: RwSignal<Vec<RFulfilledFieldConstraint<TTypes, TValues>>>,
@@ -572,6 +673,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<LibraryOperative<
     fn from(value: LibraryOperative<TTypes, TValues>) -> Self {
         Self {
             constraint_object_id: RwSignal::new(value.constraint_object_id),
+            operative_library_id: RwSignal::new(value.operative_library_id),
             tag: value.tag.into(),
             fulfilled_operatives: RwSignal::new(
                 value
@@ -626,6 +728,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryOperative
     fn from(value: RLibraryOperative<TTypes, TValues>) -> Self {
         Self {
             constraint_object_id: value.constraint_object_id.get(),
+            operative_library_id: value.operative_library_id.get(),
             tag: value.tag.into(),
             fulfilled_operatives: value
                 .fulfilled_operatives
@@ -669,12 +772,32 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryOperative
         }
     }
 }
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO
+    for RLibraryOperative<TTypes, TValues>
+{
+    fn get_fields(&self) -> Vec<impl Tagged> {
+        Vec::<RFieldConstraint<TTypes>>::new()
+    }
+}
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryOperative<TTypes, TValues> {
+    pub fn new(constraint_object_id: Uid, operative_library_id: Option<Uid>) -> Self {
+        Self {
+            constraint_object_id: RwSignal::new(constraint_object_id),
+            operative_library_id: RwSignal::new(operative_library_id),
+            tag: RTag::new("NewLibraryOperative"),
+            fulfilled_operatives: RwSignal::new(vec![]),
+            locked_fields: RwSignal::new(vec![]),
+            trait_impls: RwSignal::new(HashMap::new()),
+        }
+    }
+}
 // Traits --------------------------------------------------------------------
 #[derive(Clone, Debug, PartialEq)]
 pub struct RTraitDef<TTypes: ConstraintTraits> {
     pub tag: RTag,
     pub methods: RwSignal<Vec<RTraitMethodDef<TTypes>>>,
 }
+apply_tagged!(RTraitDef<TTypes>);
 impl<TTypes: ConstraintTraits> From<TraitDef<TTypes>> for RTraitDef<TTypes> {
     fn from(value: TraitDef<TTypes>) -> Self {
         Self {
@@ -710,6 +833,7 @@ pub struct RTraitMethodDef<TTypes: ConstraintTraits> {
     pub tag: RTag,
     pub return_type: RwSignal<TTypes>,
 }
+apply_tagged!(RTraitMethodDef<TTypes>);
 impl<TTypes: ConstraintTraits> From<TraitMethodDef<TTypes>> for RTraitMethodDef<TTypes> {
     fn from(value: TraitMethodDef<TTypes>) -> Self {
         Self {

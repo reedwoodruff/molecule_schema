@@ -14,9 +14,7 @@
           }
         }
       ],
-      "instances": [
-        800
-      ],
+      "instances": [],
       "trait_impls": {},
       "tag": {
         "name": "HasColoredObject",

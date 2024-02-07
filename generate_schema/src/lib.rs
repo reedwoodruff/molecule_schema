@@ -147,6 +147,30 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                                 }
                             }; 
                         }
+                        serde_types::constraint_schema::TraitMethodImplPath::TraitMethod { trait_id, trait_method_id } => {
+                            let inner_trait_def = reference_constraint_schema.traits.get(trait_id).expect("trait must exist");
+                            let inner_method_def = inner_trait_def.methods.iter().find(|method| &method.tag.id == trait_id).expect("method must exist");
+                            let inner_method_name = syn::Ident::new(&inner_method_def.tag.name, proc_macro2::Span::call_site());
+
+                            match last_item_type {
+                                serde_types::constraint_schema::ConstraintSchemaInstantiableType::ConstraintObject => {
+                                    let constraint_object = reference_constraint_schema.constraint_objects.get(&last_item_id).expect("constraint object must exist");
+
+                                    method_impl_stream = quote!{ self.#inner_method_name() };
+                                }
+                                serde_types::constraint_schema::ConstraintSchemaInstantiableType::Instance => {
+                                    // Not sure how to do this yet -- the instances being
+                                    // referenced are in the library and are not GSO's, but rather
+                                    // Instantiable objects. So they don't have real trait impls at
+                                    // this point.
+                                }
+                                serde_types::constraint_schema::ConstraintSchemaInstantiableType::Operative => {
+                                    // let operative_ref = reference_constraint_schema.operative_library.get(&last_item_id).expect("operative must exist");
+
+                                    method_impl_stream = quote!{ #graph_environment.get_element(#prepend_call).#inner_method_name() };
+                                }
+                            }
+                        }
                         serde_types::constraint_schema::TraitMethodImplPath::TraitOperativeConstituent{trait_operative_id, trait_id, trait_method_id} => {
                             let inner_trait_def = reference_constraint_schema.traits.get(trait_id).expect("trait must exist");
                             let inner_method_def = inner_trait_def.methods.iter().find(|method| &method.tag.id == trait_id).expect("method must exist");
@@ -180,8 +204,8 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                                     method_impl_stream = quote!{ #graph_environment.get_element(#prepend_call.get_operative_by_id(#trait_operative_id)).#inner_method_name() };
                                 }
                             };
-
                         }
+
                         serde_types::constraint_schema::TraitMethodImplPath::InstanceConstituent(instance_constituent_id)=> {
                             last_item_id = *instance_constituent_id;
                             last_item_type =  serde_types::constraint_schema::ConstraintSchemaInstantiableType::Instance;
