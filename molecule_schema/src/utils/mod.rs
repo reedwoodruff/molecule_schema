@@ -1,3 +1,4 @@
+use leptos::logging::log;
 use serde_types::{
     constraint_schema::ConstraintSchema,
     primitives::{PrimitiveTypes, PrimitiveValues},
@@ -12,7 +13,8 @@ pub fn export_schema(schema: &RConstraintSchema<PrimitiveTypes, PrimitiveValues>
 
     let converted: ConstraintSchema<PrimitiveTypes, PrimitiveValues> = schema.clone().into();
     let json = serde_json::to_string_pretty(&converted).unwrap();
-    std::fs::write(path, json).expect("Unable to write file");
+    // std::fs::write(path, json).expect("Unable to write file");
+    log! {"{}", json};
 }
 
 pub fn map_to_reactive_types(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) {

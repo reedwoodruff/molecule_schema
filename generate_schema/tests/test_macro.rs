@@ -135,6 +135,7 @@ use serde_json::{from_str, to_string_pretty};
 //         value: TValuesImpl::Option(Box::new(TValuesImpl::U32(99))),
 //     };
 //     let owner_operative = LibraryOperative {
+//         operative_library_id: None,
 //         constraint_object_id: 0,
 //         tag: Tag {
 //             id: 900,

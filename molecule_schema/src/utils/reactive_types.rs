@@ -11,11 +11,15 @@ use serde_types::{
     },
 };
 
-pub trait RCSO {
-    fn get_fields(&self) -> Vec<impl Tagged>;
+pub trait RCSO<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
+    fn get_fields(&self) -> Vec<impl Tagged + FieldInfo<TTypes, TValues>>;
 }
 pub trait Tagged {
     fn get_tag(&self) -> &RTag;
+}
+pub trait FieldInfo<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
+    fn get_value_type(&self) -> TTypes;
+    fn get_value(&self) -> Option<TValues>;
 }
 
 macro_rules! apply_tagged {
@@ -274,10 +278,10 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RConstraintObject
         }
     }
 }
-impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO<TTypes, TValues>
     for RConstraintObject<TTypes, TValues>
 {
-    fn get_fields(&self) -> Vec<impl Tagged> {
+    fn get_fields(&self) -> Vec<impl Tagged + FieldInfo<TTypes, TValues>> {
         self.field_constraints.get()
     }
 }
@@ -299,6 +303,17 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintObject<TTyp
 pub struct RFieldConstraint<TTypes: ConstraintTraits> {
     pub tag: RTag,
     pub value_type: RwSignal<TTypes>,
+}
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> FieldInfo<TTypes, TValues>
+    for RFieldConstraint<TTypes>
+{
+    fn get_value_type(&self) -> TTypes {
+        self.value_type.get()
+    }
+
+    fn get_value(&self) -> Option<TValues> {
+        None
+    }
 }
 apply_tagged!(RFieldConstraint<TTypes>);
 
@@ -555,19 +570,22 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryInstance<
         }
     }
 }
-impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO<TTypes, TValues>
     for RLibraryInstance<TTypes, TValues>
 {
-    fn get_fields(&self) -> Vec<impl Tagged> {
+    fn get_fields(&self) -> Vec<impl Tagged + FieldInfo<TTypes, TValues>> {
         self.data.get()
     }
 }
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryInstance<TTypes, TValues> {
-    pub fn new(constraint_object_id: Uid, operative_library_id: Option<Uid>) -> Self {
+    pub fn new<T>(constraint_object_id: Uid, operative_library_id: Option<Uid>, name: T) -> Self
+    where
+        T: Into<String>,
+    {
         Self {
             constraint_object_id: RwSignal::new(constraint_object_id),
             operative_library_id: RwSignal::new(operative_library_id),
-            tag: RTag::new("NewInstance"),
+            tag: RTag::new(name),
             other_edges: RwSignal::new(vec![]),
             fulfilled_operatives: RwSignal::new(vec![]),
             data: RwSignal::new(vec![]),
@@ -631,6 +649,17 @@ pub struct RFulfilledFieldConstraint<TTypes: ConstraintTraits, TValues: Constrai
     pub tag: RTag,
     pub value_type: RwSignal<TTypes>,
     pub value: RwSignal<TValues>,
+}
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> FieldInfo<TTypes, TValues>
+    for RFulfilledFieldConstraint<TTypes, TValues>
+{
+    fn get_value_type(&self) -> TTypes {
+        self.value_type.get()
+    }
+
+    fn get_value(&self) -> Option<TValues> {
+        Some(self.value.get())
+    }
 }
 apply_tagged!(RFulfilledFieldConstraint<TTypes,TValues>);
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits>
@@ -772,19 +801,22 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryOperative
         }
     }
 }
-impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO<TTypes, TValues>
     for RLibraryOperative<TTypes, TValues>
 {
-    fn get_fields(&self) -> Vec<impl Tagged> {
+    fn get_fields(&self) -> Vec<impl Tagged + FieldInfo<TTypes, TValues>> {
         Vec::<RFieldConstraint<TTypes>>::new()
     }
 }
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryOperative<TTypes, TValues> {
-    pub fn new(constraint_object_id: Uid, operative_library_id: Option<Uid>) -> Self {
+    pub fn new<T>(constraint_object_id: Uid, operative_library_id: Option<Uid>, name: T) -> Self
+    where
+        T: Into<String>,
+    {
         Self {
             constraint_object_id: RwSignal::new(constraint_object_id),
             operative_library_id: RwSignal::new(operative_library_id),
-            tag: RTag::new("NewLibraryOperative"),
+            tag: RTag::new(name),
             fulfilled_operatives: RwSignal::new(vec![]),
             locked_fields: RwSignal::new(vec![]),
             trait_impls: RwSignal::new(HashMap::new()),

@@ -23,7 +23,7 @@ pub mod common;
 pub mod edit_schema_object;
 pub mod tree_view;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum TreeTypes {
     // Trait,
     Instance,
@@ -58,7 +58,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
     let selected_element = RwSignal::new(None);
 
     provide_context(SchemaContext {
-        schema: reactive_schema,
+        schema: reactive_schema.clone(),
         selected_element,
     });
 
@@ -76,74 +76,92 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
     };
 
     view! {
-        // <button on:click=move |_| export_schema(&reactive_schema)>Export Schema</button>
+        <button on:click=move |_| export_schema(&reactive_schema)>Export Schema</button>
         <div class="flex">
             <div class="flex-grow ">
-            <div class="large-margin med-pad border-gray">
-            <h2>Constraint Objects <button on:click=click_new_constraint_object>+</button></h2>
-            <For
-                each=constraint_objects
-                key=move |(id, _child)| id.clone()
-                children=move |(_id, child)| {
-                    let clone = handle_list_item_click.clone();
-                    view!{<RootListItem tag={child.tag} on_click={move |id: Uid| clone(id, TreeTypes::ConstraintObject)}/>}
-                }
-            />
-            </div>
+                <div class="large-margin med-pad border-gray">
+                    <h2>
+                        Constraint Objects <button on:click=click_new_constraint_object>+</button>
+                    </h2>
+                    <For
+                        each=constraint_objects
+                        key=move |(id, _child)| id.clone()
+                        children=move |(_id, child)| {
+                            let clone = handle_list_item_click.clone();
+                            view! {
+                                <RootListItem
+                                    tag=child.tag
+                                    on_click=move |id: Uid| clone(id, TreeTypes::ConstraintObject)
+                                />
+                            }
+                        }
+                    />
 
-            </div>
+                </div>
 
-
-            <div class="flex-grow ">
-            <div class="large-margin med-pad border-gray">
-            <h2>Operatives</h2>
-            <For
-                each=operatives
-                key=move |(id, _child)| id.clone()
-                children=move |(_id, child)| {
-                    let clone = handle_list_item_click2.clone();
-                    view!{<RootListItem tag={child.tag} on_click={move |id: Uid| clone(id, TreeTypes::LibraryOperative)}/>}
-                }
-            />
-            </div>
             </div>
 
             <div class="flex-grow ">
-            <div class="large-margin med-pad border-gray">
-            <h2>Instances</h2>
-            <For
-                each=instances
-                key=move |(id, _child)| id.clone()
-                children=move |(_id, child)| {
-                    let clone = handle_list_item_click3.clone();
-                    view!{<RootListItem tag={child.tag} on_click={move |id:Uid| clone(id, TreeTypes::Instance)}/>}
-                }
-            />
-            </div>
+                <div class="large-margin med-pad border-gray">
+                    <h2>Operatives</h2>
+                    <For
+                        each=operatives
+                        key=move |(id, _child)| id.clone()
+                        children=move |(_id, child)| {
+                            let clone = handle_list_item_click2.clone();
+                            view! {
+                                <RootListItem
+                                    tag=child.tag
+                                    on_click=move |id: Uid| clone(id, TreeTypes::LibraryOperative)
+                                />
+                            }
+                        }
+                    />
+
+                </div>
             </div>
 
-            // <div class="flex-grow ">
-            // <div class="large-margin med-pad half-height border-gray">
-            // <h2>Traits</h2>
-            // <For
-            //     each=traits
-            //     key=move |(id, _child)| id.clone()
-            //     children=move |(_id, child)| {
-            //         let clone = handle_list_item_click4.clone();
-            //         view!{<RootListItem tag={child.tag} on_click={move |id:Uid| clone(id, TopLevelType::Trait)}/>}
-            //     }
-            // />
-            // </div>
-            // </div>
+            <div class="flex-grow ">
+                <div class="large-margin med-pad border-gray">
+                    <h2>Instances</h2>
+                    <For
+                        each=instances
+                        key=move |(id, _child)| id.clone()
+                        children=move |(_id, child)| {
+                            let clone = handle_list_item_click3.clone();
+                            view! {
+                                <RootListItem
+                                    tag=child.tag
+                                    on_click=move |id: Uid| clone(id, TreeTypes::Instance)
+                                />
+                            }
+                        }
+                    />
+
+                </div>
+            </div>
+
+        // <div class="flex-grow ">
+        // <div class="large-margin med-pad half-height border-gray">
+        // <h2>Traits</h2>
+        // <For
+        // each=traits
+        // key=move |(id, _child)| id.clone()
+        // children=move |(_id, child)| {
+        // let clone = handle_list_item_click4.clone();
+        // view!{<RootListItem tag={child.tag} on_click={move |id:Uid| clone(id, TopLevelType::Trait)}/>}
+        // }
+        // />
+        // </div>
+        // </div>
         </div>
-        <Show when=move || {match selected_element.get() {
-            Some(TreeRef(TreeTypes::ConstraintObject, _id_ )) => true,
-            _ => false
-        }}>
-            <EditSchemaObject element = selected_element.get().unwrap()/>
-        </Show>
-        <Show when=move ||selected_element.get().is_some()>
-            <TreeView element = selected_element.get().unwrap()/>
+        <Show when=move || {
+            match selected_element.get() {
+                Some(TreeRef(TreeTypes::ConstraintObject, _id_)) => true,
+                _ => false,
+            }
+        }>
+            <EditSchemaObject element=selected_element.get().unwrap()/>
         </Show>
     }
 }
@@ -168,7 +186,7 @@ where
     });
 
     view! {
-        <div on:click=move|_e| on_click(tag.id.get()) class=class>
+        <div on:click=move |_e| on_click(tag.id.get()) class=class>
             {tag.name}
         </div>
     }
