@@ -1,6 +1,7 @@
 use crate::common::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, marker::PhantomData};
+use strum_macros::Display;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
@@ -10,6 +11,7 @@ pub struct ConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits>
     pub traits: HashMap<Uid, TraitDef<TTypes>>,
 }
 
+#[derive(Display)]
 pub enum ConstraintSchemaInstantiableType {
     ConstraintObject,
     Instance,
@@ -21,9 +23,7 @@ pub trait ConstraintSchemaInstantiable {
     type TValues: ConstraintTraits;
 
     fn get_constraint_schema_instantiable_type(&self) -> ConstraintSchemaInstantiableType;
-    fn get_constraint_object_id(&self) -> Option<&Uid> {
-        None
-    }
+    fn get_constraint_object_id(&self) -> &Uid;
     fn get_operative_library_id(&self) -> Option<&Uid> {
         None
     }
@@ -69,8 +69,8 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
     fn get_constraint_schema_instantiable_type(&self) -> ConstraintSchemaInstantiableType {
         ConstraintSchemaInstantiableType::Instance
     }
-    fn get_constraint_object_id(&self) -> Option<&Uid> {
-        Some(&self.constraint_object_id)
+    fn get_constraint_object_id(&self) -> &Uid {
+        &self.constraint_object_id
     }
     fn get_operative_library_id(&self) -> Option<&Uid> {
         self.operative_library_id.as_ref()
@@ -128,8 +128,8 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
     fn get_constraint_schema_instantiable_type(&self) -> ConstraintSchemaInstantiableType {
         ConstraintSchemaInstantiableType::Operative
     }
-    fn get_constraint_object_id(&self) -> Option<&Uid> {
-        Some(&self.constraint_object_id)
+    fn get_constraint_object_id(&self) -> &Uid {
+        &self.constraint_object_id
     }
     fn get_tag(&self) -> &Tag {
         &self.tag
@@ -196,6 +196,9 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
     type TTypes = TTypes;
     type TValues = TValues;
 
+    fn get_constraint_object_id(&self) -> &Uid {
+        &self.tag.id
+    }
     fn get_constraint_schema_instantiable_type(&self) -> ConstraintSchemaInstantiableType {
         ConstraintSchemaInstantiableType::ConstraintObject
     }

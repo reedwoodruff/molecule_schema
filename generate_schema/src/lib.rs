@@ -13,6 +13,7 @@ use syn::{
 };
 use output_types;
 
+// mod generated_expand_output;
 struct TypeList(Punctuated<Type, Token![,]>);
 
 impl Parse for TypeList {
@@ -50,6 +51,17 @@ fn get_primitive_value(ty: &PrimitiveValues) -> proc_macro2::TokenStream {
         },
     }
 }
+
+fn concat_unique_element(element: Box<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>>) -> String {
+    element.get_tag().name.clone() + &"_".to_string() + &element.get_constraint_schema_instantiable_type().to_string()
+}
+fn get_variant_name(element: Box<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>> ) -> syn::Ident {
+    syn::Ident::new(&concat_unique_element(element), proc_macro2::Span::call_site())
+}
+fn get_variant_builder_name(element: Box<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>> ) -> syn::Ident {
+    syn::Ident::new(&(concat_unique_element(element) + &"Builder".to_string()), proc_macro2::Span::call_site())
+}
+
 #[proc_macro]
 pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
     let graph_environment = syn::parse_macro_input!(input as syn::Expr); 
@@ -77,7 +89,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
             let method_name = syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
             let return_type = get_primitive_type(&method_def.return_type);    
             quote! {
-                fn #method_name(&self) -> std::borrow::Cow<#return_type>;
+                fn #method_name(&self, env: &dyn output_types::GraphEnvironment::<Schema = Schema>) -> std::borrow::Cow<#return_type>;
             }
         });
         quote! {
@@ -86,16 +98,15 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
             }
         }
     });
+
     let mut element_names = Vec::<syn::Ident>::new();
     let reference_constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues> = constraint_schema_generated.clone();
 
     let generate_trait_impl_streams = |instantiable: Box::<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>>| -> proc_macro2::TokenStream {
-        let instantiable_name = syn::Ident::new(&instantiable.get_tag().name, proc_macro2::Span::call_site());
+        let instantiable_name = get_variant_name(instantiable.clone());
         let mut rolling_trait_impl_list = instantiable.get_trait_impls().clone();
-        if let Some(parent_constraint_object_id) = instantiable.get_constraint_object_id() {
-            let parent_constraint_object = reference_constraint_schema.constraint_objects.get(parent_constraint_object_id).expect("Referenced constraint object must exist");
-            rolling_trait_impl_list.extend(parent_constraint_object.get_trait_impls().clone());
-        }
+        let parent_constraint_object = reference_constraint_schema.constraint_objects.get(instantiable.get_constraint_object_id()).expect("Referenced constraint object must exist");
+        rolling_trait_impl_list.extend(parent_constraint_object.get_trait_impls().clone());
         if let Some(parent_library_operative_id) = instantiable.get_operative_library_id() {
             let parent_library_operative = reference_constraint_schema.operative_library.get(parent_library_operative_id).expect("Referenced library operative must exist");
             rolling_trait_impl_list.extend(parent_library_operative.get_trait_impls().clone());
@@ -105,10 +116,14 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
             let trait_def = reference_constraint_schema.traits.get(trait_id).expect("trait must exist");
             let trait_name = syn::Ident::new(&trait_def.tag.name, proc_macro2::Span::call_site());
 
-            let method_impl_streams = method_impls.iter().map(|(trait_id, impl_path)| {
+            let method_impl_streams = method_impls.iter().map(|(method_id, impl_path)| {
                 let mut method_impl_stream = quote! {panic!("No terminating path for impl implementation")};
 
-                let method_def = trait_def.methods.iter().find(|method| &method.tag.id == trait_id).expect("method must exist");
+
+                println!("on trait: {}", trait_id );
+                println!("expected method: {}", method_id );
+                println!("trait_def: {:?}", trait_def);
+                let method_def = trait_def.methods.iter().find(|method| &method.tag.id == method_id).expect("method must exist");
                 let method_name = syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
                 let method_return_type = get_primitive_type(&method_def.return_type);
 
@@ -116,18 +131,20 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                 let mut last_item_id = instantiable.get_tag().id;
                 let mut last_item_type = instantiable.get_constraint_schema_instantiable_type();
 
-                impl_path.iter().enumerate().for_each(|(path_index, path_item)| {
+                for (path_index, path_item) in impl_path.iter().enumerate() {
                     match path_item {
                         serde_types::constraint_schema::TraitMethodImplPath::Field  (field_id) => {
                             match last_item_type {
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::ConstraintObject => {
                                     let constraint_object = reference_constraint_schema.constraint_objects.get(&last_item_id).expect("constraint object must exist");
+                                    println!("expected: {}", field_id);
                                     let field_constraint = constraint_object.field_constraints.iter().find(|constraint| &constraint.tag.id == field_id).expect("field must exist");
                                     let field_name = syn::Ident::new(&field_constraint.tag.name, proc_macro2::Span::call_site());
                                     method_impl_stream = quote!{ std::borrow::Cow::Borrowed(&self.#field_name) };
                                 }
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::Instance => {
                                     let instance_ref = reference_constraint_schema.instance_library.get(&last_item_id).expect("instance must exist");
+                                    println!("expected: {}", field_id);
                                     let fulfilled_constraint = instance_ref.data.iter().find(|field| &field.tag.id == field_id).expect("field must exist");
                                     let value = get_primitive_value(&fulfilled_constraint.value);
                                     method_impl_stream = quote! { std::borrow::Cow::Owned(#value) };
@@ -139,24 +156,30 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                                         let value = get_primitive_value(&fulfilled_constraint.value);
                                         method_impl_stream = quote! { std::borrow::Cow::Owned(#value) };
                                     } else {
+                                        let variant_name = get_variant_name(Box::new(operative_ref));
                                         let constraint_object = reference_constraint_schema.constraint_objects.get(&operative_ref.constraint_object_id).expect("constraint object must exist");
                                         let field_constraint = constraint_object.field_constraints.iter().find(|constraint| &constraint.tag.id == field_id).expect("field must exist");
-                                        let field_name = &field_constraint.tag.name;
-                                        method_impl_stream = quote!{ std::borrow::Cow::Borrowed(&#prepend_call.#field_name) };
+                                        let field_name = syn::Ident::new(&field_constraint.tag.name, proc_macro2::Span::call_site());
+                                        method_impl_stream = quote!{ std::borrow::Cow::Owned(match &#prepend_call {
+                                            // Schema::Person(person) => person.#field_name.clone(),
+                                            Schema::#variant_name(item) => item.#field_name.clone(),
+                                            _ => panic!()
+                                            }) };
                                     }
                                 }
                             }; 
                         }
                         serde_types::constraint_schema::TraitMethodImplPath::TraitMethod { trait_id, trait_method_id } => {
                             let inner_trait_def = reference_constraint_schema.traits.get(trait_id).expect("trait must exist");
-                            let inner_method_def = inner_trait_def.methods.iter().find(|method| &method.tag.id == trait_id).expect("method must exist");
+                            println!("running here!");
+                            let inner_method_def = inner_trait_def.methods.iter().find(|method| &method.tag.id == trait_method_id).expect("method must exist");
                             let inner_method_name = syn::Ident::new(&inner_method_def.tag.name, proc_macro2::Span::call_site());
 
                             match last_item_type {
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::ConstraintObject => {
                                     let constraint_object = reference_constraint_schema.constraint_objects.get(&last_item_id).expect("constraint object must exist");
 
-                                    method_impl_stream = quote!{ self.#inner_method_name() };
+                                    method_impl_stream = quote!{ self.#inner_method_name(graph_environment) };
                                 }
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::Instance => {
                                     // Not sure how to do this yet -- the instances being
@@ -167,41 +190,57 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::Operative => {
                                     // let operative_ref = reference_constraint_schema.operative_library.get(&last_item_id).expect("operative must exist");
 
-                                    method_impl_stream = quote!{ #graph_environment.get_element(#prepend_call).#inner_method_name() };
+                                    method_impl_stream = quote!{ graph_environment.get_element(#prepend_call).expect("element must exist").#inner_method_name() };
                                 }
                             }
                         }
                         serde_types::constraint_schema::TraitMethodImplPath::TraitOperativeConstituent{trait_operative_id, trait_id, trait_method_id} => {
                             let inner_trait_def = reference_constraint_schema.traits.get(trait_id).expect("trait must exist");
-                            let inner_method_def = inner_trait_def.methods.iter().find(|method| &method.tag.id == trait_id).expect("method must exist");
+                            println!("running here too");
+                            let inner_method_def = inner_trait_def.methods.iter().find(|method| &method.tag.id == trait_method_id).expect("method must exist");
                             let inner_method_name = syn::Ident::new(&inner_method_def.tag.name, proc_macro2::Span::call_site());
+                            let variants_which_impl_trait = reference_constraint_schema.constraint_objects.iter().filter(
+                                |(co_id, co)| {
+                                    co.trait_impls.contains_key(trait_id)
+                                }
+                            ).map(|(co_id, co)| {
+                                    get_variant_name(Box::new(co))
+                            }).collect::<Vec<_>>();
 
+                            println!("variants which impl trait: {:?}", variants_which_impl_trait);
                             match last_item_type {
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::ConstraintObject => {
                                     let constraint_object = reference_constraint_schema.constraint_objects.get(&last_item_id).expect("constraint object must exist");
                                     let trait_operative = constraint_object.trait_operatives.iter().find(|trait_op| &trait_op.tag.id == trait_operative_id).expect("trait operative must exist");
                                     let trait_operative_id = trait_operative.tag.id;
 
-                                    method_impl_stream = quote!{ #graph_environment.get_element(self.get_operative_by_id(#trait_operative_id)).#inner_method_name() };
+                                    method_impl_stream = quote!{ match graph_environment.get_element(&self.get_operative_by_id(&#trait_operative_id).expect("operative must exist.")).cloned().expect("element must exist") {
+                                        #(Schema::#variants_which_impl_trait(variant) => {
+                                        let val = variant.#inner_method_name(graph_environment);
+                                        let val = val.into_owned();
+                                        std::borrow::Cow::Owned(val)
+                                        },)*
+                                        _ => panic!(),
+                                        } };
+                                    break;
                                 }
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::Instance => {
-                                    // Not sure how to do this yet -- the instances being
-                                    // referenced are in the library and are not GSO's, but rather
-                                    // Instantiable objects. So they don't have real trait impls at
-                                    // this point.
-                                    //
-                                    // let instance_ref = reference_constraint_schema.instance_library.get(&last_item_id).expect("instance must exist");
-                                    //
-                                    // let trait_ref = reference_constraint_schema.traits.get(&trait_id).expect("trait must exist");
-                                    // let trait_method_name = &trait_ref.methods.iter().find(|method| &method.tag.id == trait_method_id).expect("trait method must exist").tag.name;
-                                    // let trait_method_name = syn::Ident::new(trait_method_name, proc_macro2::Span::call_site());
-                                    //
-                                    // method_impl_stream = quote!{ #graph_environment.get_element(self.get_operative_by_id(#trait_operative_id)).#trait_method_name() };
+                                    break;
+                                    // TODO
                                 }
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::Operative => {
-                                    // let operative_ref = reference_constraint_schema.operative_library.get(&last_item_id).expect("operative must exist");
 
-                                    method_impl_stream = quote!{ #graph_environment.get_element(#prepend_call.get_operative_by_id(#trait_operative_id)).#inner_method_name() };
+                                    method_impl_stream = quote!{ match graph_environment.get_element(
+                                            &#prepend_call.get_operative_by_id(&#trait_operative_id).expect("operative must exist")
+                                        ).cloned().expect("element must exist") {
+                                        #(Schema::#variants_which_impl_trait(variant) => {
+                                        let val = variant.#inner_method_name(graph_environment);
+                                        let val = val.into_owned();
+                                        std::borrow::Cow::Owned(val)
+                                        },)*
+                                            _ => {panic!()}
+                                        }};
+                                    break;
                                 }
                             };
                         }
@@ -212,9 +251,9 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                         }
                         serde_types::constraint_schema::TraitMethodImplPath::LibraryOperativeConstituent(library_operative_constituent_id) => {
                             if path_index == 0 {
-                                prepend_call = quote! {graph_environment.get_element(&self.get_operative_by_id(&library_operative_constituent_id).expect("constraint object must exist"))};
+                                prepend_call = quote! {graph_environment.get_element(&self.get_operative_by_id(&#library_operative_constituent_id).expect("constraint object must exist")).expect("element must exist")};
                             } else {
-                                prepend_call = quote! {graph_environment.get_element(#prepend_call.get_operative_by_id(library_operative_constituent_id))};
+                                prepend_call = quote! {graph_environment.get_element(#prepend_call.get_operative_by_id(&#library_operative_constituent_id)).expect("element must exist")};
                             }
                             last_item_id = *library_operative_constituent_id;
                             last_item_type =  serde_types::constraint_schema::ConstraintSchemaInstantiableType::Operative;
@@ -222,10 +261,10 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                         _ => {}
                     };
 
-                });
+                };
 
                 quote! {
-                    fn #method_name(&self) -> std::borrow::Cow<#method_return_type> {
+                    fn #method_name(&self, graph_environment: &dyn output_types::GraphEnvironment::<Schema = Schema>) -> std::borrow::Cow<#method_return_type> {
                         #method_impl_stream
                     }
                 }
@@ -245,12 +284,11 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         .constraint_objects
         .iter()
         .map(|(id, el)| {
-            let name = el.tag.name.clone();
             let mut field_names = Vec::<syn::Ident>::new();
             let mut field_names_setters = Vec::<syn::Ident>::new();
             let mut field_values = Vec::<proc_macro2::TokenStream>::new();
             let mut initial_values = Vec::<proc_macro2::TokenStream>::new();
-            let struct_name = syn::Ident::new(&name, proc_macro2::Span::call_site());
+            let struct_name = get_variant_name(Box::new(el));
             element_names.push(struct_name.clone());
 
             let library_operatives: Vec<_> = el.library_operatives.iter().map(|op_id| {
@@ -289,6 +327,16 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                 op.tag.id
             }).collect();
 
+            let library_instance_ids  = if let Some(ids) = el.get_fulfilled_operatives() {
+                ids.iter().map(|item| item.fulfilling_instance_id).collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            };
+            let mut all_instance_ids = constraint_schema_generated.constraint_objects.get(&el.get_constraint_object_id()).unwrap().instances.clone();
+            all_instance_ids.extend(library_instance_ids);
+            let all_instance_names = all_instance_ids.iter().map(|item| {let instance = constraint_schema_generated.instance_library.get(&item).unwrap();
+            syn::Ident::new(&instance.tag.name.clone(), proc_macro2::Span::call_site())
+            });
 
             el .field_constraints .iter() .for_each(|field| {
                     let name = syn::Ident::new(&field.tag.name, proc_macro2::Span::call_site());
@@ -306,20 +354,21 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                     field_values.push(field_value.clone());
                 });
 
-            let struct_builder_name = name + "Builder";
-            let struct_builder_name =
-                syn::Ident::new(&struct_builder_name, proc_macro2::Span::call_site());
+            let struct_builder_name = get_variant_builder_name(Box::new(el));
+            // let struct_builder_name =
+            //     syn::Ident::new(&struct_builder_name, proc_macro2::Span::call_site());
 
             let item_trait_stream = generate_trait_impl_streams(Box::new(el));
             let str_rep = item_trait_stream.to_string();
 
             quote! {
-                #[derive(Debug)]
+                #[derive(Debug, Clone)]
                 pub struct #struct_name {
                     #(#field_names: #field_values,)*
                     constraint_schema_id: output_types::Uid,
-                    operatives: HashMap<Uid, Uid>,
                     id: output_types::Uid,
+                    operatives: HashMap<Uid, Uid>,
+                    // instances: HashMap<Uid, Uid>,
                 }
 
                 impl output_types::GSO for #struct_name {
@@ -334,6 +383,9 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                     fn get_constraint_schema_id(&self) -> output_types::Uid {
                         self.constraint_schema_id
                     }
+                    fn get_id(&self) -> output_types::Uid {
+                        self.id
+                    }
                 }
 
                 #item_trait_stream
@@ -344,6 +396,27 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                     #(#field_names: Option<#field_values>,)*
                 }
                 impl #struct_builder_name {
+                    pub fn build(mut self) -> Result<Schema, bool> {
+                        if self.check_completion() == true {
+                            let mut operative_hashmap = HashMap::new();
+                            #(operative_hashmap.insert(#library_operative_ids, self.#library_operative_names.unwrap());)*
+                            #(operative_hashmap.insert(#trait_operative_ids, self.#trait_operative_names.unwrap());)*
+
+                            // let mut instances_hashmap = HashMap::new();
+                            // #(instances_hashmap.insert(#all_instance_ids, #all_instance_names);)*
+
+                            Ok(Schema::#struct_name(#struct_name {
+                                #(#field_names: self.#field_names.unwrap(),)*
+                                id: uuid::Uuid::new_v4().as_u128(), 
+                                constraint_schema_id: #id,
+                                operatives: operative_hashmap,
+                                // instances: instances_hashmap,
+                            }))
+                        } else {
+                            Err(false)
+                        }
+                    }
+
                     pub fn new() -> Self{
                         Self {
                             #(#library_operative_names: None,)*                
@@ -382,21 +455,6 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                         self
                     })*
 
-                    pub fn build(mut self) -> Result<#struct_name, bool> {
-                        if self.check_completion() == true {
-                            let mut operative_hashmap = HashMap::new();
-                            #(operative_hashmap.insert(#library_operative_ids, self.#library_operative_names.unwrap());)*
-                            #(operative_hashmap.insert(#trait_operative_ids, self.#trait_operative_names.unwrap());)*
-                            Ok(#struct_name {
-                                #(#field_names: self.#field_names.unwrap(),)*
-                                id: uuid::Uuid::new_v4().as_u128(), 
-                                constraint_schema_id: #id,
-                                operatives: operative_hashmap,
-                            })
-                        } else {
-                            Err(false)
-                        }
-                    }
                 }
             }
         });
@@ -408,13 +466,14 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
 
         // Implement IsMyTrait for all T that implement MyTrait
         impl<T> IsGraphEnvironment for T where T: output_types::GraphEnvironment {}
+        // let graph_environment = #graph_environment;
         let _check: &dyn IsGraphEnvironment = &#graph_environment;
 
         // const SCHEMA_JSON: &str = #data;
         #(#trait_definition_streams)*
         #(#constraint_objects_streams)*
 
-        #[derive(Debug)]
+        #[derive(Debug, Clone)]
         enum Schema {
             #(#element_names(#element_names) ,)*
         }
@@ -425,6 +484,12 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                 match &self {
                 #(Self::#element_names(item) => item.get_constraint_schema_id(),)*
                 _ => panic!(),
+                }
+            }
+            fn get_id(&self) -> output_types::Uid {
+                match self {
+                    #(Self::#element_names(item) => item.get_id(),)*
+                    _ => panic!(),
                 }
             }
             fn get_operative_by_id(&self, operative_id: &output_types::Uid) -> Option<output_types::Uid> {

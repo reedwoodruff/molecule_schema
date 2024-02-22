@@ -86,13 +86,15 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                     <For
                         each=constraint_objects
                         key=move |(id, _child)| id.clone()
-                        children=move |(_id, child)| {
+                        children=move |(el_id, child)| {
                             let clone = handle_list_item_click.clone();
                             view! {
+                                <div>
                                 <RootListItem
                                     tag=child.tag
                                     on_click=move |id: Uid| clone(id, TreeTypes::ConstraintObject)
                                 />
+                                </div>
                             }
                         }
                     />

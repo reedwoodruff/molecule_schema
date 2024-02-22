@@ -160,40 +160,64 @@ use serde_json::{from_str, to_string_pretty};
 #[test]
 fn test_macro() {
     // let graph_environment =
-    struct SampleGraphEnvironment {};
+    struct SampleGraphEnvironment<TSchema> {
+        created_instances: HashMap<Uid, TSchema>,
+    };
 
-    impl GraphEnvironment for SampleGraphEnvironment {
-        type Schema = Schema;
+    impl<TSchema: output_types::GSO> GraphEnvironment for SampleGraphEnvironment<TSchema> {
+        type Schema = TSchema;
 
-        fn get_element(&self, id: Uid) -> Option<Self::Schema> {
-            None
+        fn get_element(&self, id: &Uid) -> Option<&Self::Schema> {
+            self.created_instances.get(id)
         }
-        fn instantiate_element(&self, element: &Self::Schema) -> Uid {
-            0
+        fn instantiate_element(&mut self, element: Self::Schema) -> Uid {
+            // let id = uuid::Uuid::new_v4().as_u128();
+            let id = element.get_id();
+            self.created_instances.insert(id, element);
+            id
         }
     }
-    let sge_instance = SampleGraphEnvironment {};
+    let mut sge_instance = SampleGraphEnvironment {
+        created_instances: HashMap::new(),
+    };
     generate_concrete_schema!(sge_instance);
     // println!("{:?}", constraint_schema);
     // panic!();
-    let test2 = Sock::initiate_build()
+    let test2 = Sock_ConstraintObject::initiate_build()
         .set_color("blue".to_string())
         .build()
         .unwrap();
-    let test3 = Person::initiate_build()
+    let test3 = Person_ConstraintObject::initiate_build()
         .set_name("blubber".to_string())
         .build()
         .unwrap();
-    let test = HasColoredObject::initiate_build()
-        .set_ownee(test2.id)
-        .set_owner(test3.id)
+    let test = HasColoredObject_ConstraintObject::initiate_build()
+        .set_ownee(test2.get_id())
+        .set_owner(test3.get_id())
         .build()
         .unwrap();
 
+    sge_instance.instantiate_element(test2.clone());
+    sge_instance.instantiate_element(test3.clone());
+    sge_instance.instantiate_element(test.clone());
     println!("{:?}", test);
     println!("{:?}", test2);
     println!("{:?}", test3);
     println!("{:?}", test2.get_constraint_schema_id());
-    println!("{:?}", test2.getColor());
+    println!(
+        "{:?}",
+        match test2 {
+            Schema::Sock_ConstraintObject(sock) => sock.getColor(&sge_instance).into_owned(),
+            _ => panic!(),
+        }
+    );
+    println!(
+        "{:?}",
+        match test {
+            Schema::HasColoredObject_ConstraintObject(item) =>
+                item.getColor(&sge_instance).into_owned(),
+            _ => panic!(),
+        }
+    );
     panic!();
 }

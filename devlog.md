@@ -233,4 +233,35 @@ Any operatives or instances which had formerly locked a given field with a speci
 Trying to figure out how to address these kinds of issues. There are going to be many interdependent objects in the schema.
 It's definitely all theoretically possible, it's a matter of making the user experience of editing templates not too frustrating. The major challenge is in dealing with intermediate states and making sure everything converges to a consistent state.
 I think ultimately that it is going to require some robust checking mechanisms -- especially before exporting/finalizing the template. Since a change in one place could have many rippling effects, it would be difficult for the user to make sure that everything is consistent.
-Ideally, you could be doing this kind of checking as the edits happen, and then giving visual feedback as to where attention is needed if the changes have caused cascading misalignmentkkkjkkkk
+Ideally, you could be doing this kind of checking as the edits happen, and then giving visual feedback as to where attention is needed if the changes have caused cascading misalignment.
+
+## Feb 19, 2024
+Trying to wrap my head around useful next steps. At a relatively stable place conceptually with the schema editor/creator (though there are still some open questions).
+The next big question is regarding how useful it would be to continue with the previous path of creating a macro to generate one large schema enum with methods for instantiation and things.
+Under what circumstances would such a thing be useful? What capabilities ought it to have to be most useful?
+Maybe taking a step back and away from the macro to consider the goals that are trying to be reached.
+The schema creator allows a user to explicitly define a set of rules about what structures are allowed and how they are allowed to interact. It lays the foundation for an environment in which graph constructs can be instantiated according to the rules. 
+The next piece of the ecosystem is regarding how that environment will function. We have the foundation (the schema which defines the rules), but the environment is as of yet undefined.
+There needs to be a way to instantiate and connect graph constructs according to the schema.
+To what end?
+Why build these graphs?
+
+The utility and purpose of the graph environment will depend on the schema type and definition.
+In the long-term, the ideal would be for all schema environments to be able to interoperate at some level, enabling cross-domain assertions.
+But starting out, there will likely need to be domain-specific schemas which capture the domain's details.
+
+It might be difficult to make a general-purpose tool for hosting these graph-environments. The domains/environments could look wildly different.
+This is especially difficult before even really having any concrete examples.
+Maybe it's jumping the gun to attempt to create a general-purpose tool like this, and the effort ought to go into creating a particular useful schema and an environment which accommodates it.
+It would be difficult to do a one-shot attempt at such a schema and have it be correct the first time. The more likely and ideal path is one which allows for iteration and churn in the schema.
+And that speaks to a graph environment which is not over-fit on a given schema. In fact, the more loosely coupled, the better.
+There are multiple layers of churn to consider. There is churn in the schema-defining language itself (in other words, changes in what makes up a schema and what a schema is allowed to define).
+Then there is churn in a given schema definition.
+Ideally, churn in the schema-defining language should be kept to a minimum over long periods of time once it reaches stability. Right now it is still in a state of relative flux. It's funny how I can say in the first sentence of this entry that I'm "at a relatively stable place with [... the schema system]", and also say "it's in a state of relative flux", and have both of those things be accurate and relevant in the contexts in which they were generated. It's relatively stable when compared to where it has been and as compared to the state of shadowy projections from which this project was born. It's relatively in flux as concerning API stability.
+However, the system ought to be designed to operate without concern for flux in the schemas.
+
+Remaining questions regarding the schema system:
+- Accommodation of multiple/unbounded numbers of a given operative (roughly analagous to arrays)
+  - Is it necessary? How to implement it?
+  - Example use case: modeling the written language domain. Paragraphs have a variable number of sentences. Sentences have a variable number of words.
+

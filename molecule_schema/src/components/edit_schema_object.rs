@@ -270,8 +270,8 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
                                 }
                                 TreeTypes::TraitOperative(trait_op) => {
                                     RTraitMethodImplPath::TraitOperativeConstituent {
-                                        trait_method_id: RwSignal::new(item.1),
-                                        trait_operative_id: RwSignal::new(item.1),
+                                        trait_method_id: RwSignal::new(method_id),
+                                        trait_operative_id: RwSignal::new(trait_op.tag.id.get()),
                                         trait_id: RwSignal::new(trait_op.trait_id.get()),
                                     }
                                 }
@@ -377,6 +377,7 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
         <div class="large-margin med-pad border-gray flex">
             <div class="flex-grow margin-right border-right">
                 <button on:click=move |_| ctx.selected_element.set(None)>X</button>
+                <button on:click=move |_| ctx.schema.constraint_objects.update(|prev| {prev.remove(&element.1);})>delete element</button>
                 <br/>
                 <TextInput
                     initial_value=new_operative_name.get()
@@ -604,7 +605,10 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
 
                 </For>
                 <br/>
-                <button on:click=on_click_add_trait_impl disabled=move || !is_trait_impl_complete.get()>
+                <button
+                    on:click=on_click_add_trait_impl
+                    disabled=move || !is_trait_impl_complete.get()
+                >
                     +
                 </button>
 
@@ -612,9 +616,13 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
                     each=trait_impls
                     key=move |(methods, trait_def)| trait_def.tag.id
                     children=move |(methods, trait_def)| {
+                        let trait_id = trait_def.tag.id.get().clone();
                         view! {
                             <div>
-                                trait name: {trait_def.tag.name} <br/> trait methods:
+                                trait name: {trait_def.tag.name}
+                                <br/>
+                                <button on:click=move |_| {active_object.get().trait_impls.update(|prev| {prev.remove(&trait_id.clone());})}>delete impl</button>
+                                <br/> trait methods:
                                 <For
                                     each=methods
                                     key=move |(method_id, path)| *method_id
