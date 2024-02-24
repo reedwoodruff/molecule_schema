@@ -5,7 +5,7 @@ use crate::{
     utils::{
         export_schema,
         reactive_types::{
-            RConstraintObject, RConstraintSchema, RLibraryInstance, RLibraryOperative, RTag,
+            RConstraintSchema, RLibraryInstance, RLibraryOperative, RLibraryTemplate, RTag,
             RTraitOperative,
         },
     },
@@ -51,7 +51,7 @@ struct SchemaContext {
 #[component]
 pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl IntoView {
     let reactive_schema: RConstraintSchema<PrimitiveTypes, PrimitiveValues> = schema.into();
-    let constraint_objects = reactive_schema.constraint_objects;
+    let constraint_objects = reactive_schema.template_library;
     let instances = reactive_schema.instance_library;
     let operatives = reactive_schema.operative_library;
     let traits = reactive_schema.traits;
@@ -70,7 +70,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
 
     let click_new_constraint_object = move |_| {
         constraint_objects.update(|prev| {
-            let new_constraint_object = RConstraintObject::new();
+            let new_constraint_object = RLibraryTemplate::new();
             prev.insert(new_constraint_object.tag.id.get(), new_constraint_object);
         })
     };

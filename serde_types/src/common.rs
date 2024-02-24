@@ -25,6 +25,14 @@ pub struct Tag {
     pub name: String,
     pub id: Uid,
 }
+impl From<Tag> for output_types::Tag {
+    fn from(value: Tag) -> Self {
+        output_types::Tag {
+            id: value.id,
+            name: value.name,
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct FuzzyEdgeDescriptor {

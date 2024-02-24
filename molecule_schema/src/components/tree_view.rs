@@ -70,7 +70,7 @@ where
         TreeRef(TreeTypes::ConstraintObject, id) => {
             let element = move || {
                 ctx.schema
-                    .constraint_objects
+                    .template_library
                     .with(|o| o.get(&id).unwrap().clone())
             };
             let element_tag = element().get_tag().clone();
@@ -122,7 +122,7 @@ where
                 .collect::<Vec<_>>();
             let parent_constraint_object_instances = ctx
                 .schema
-                .constraint_objects
+                .template_library
                 .with(|o| {
                     o.get(&element().constraint_object_id.get())
                         .unwrap()
@@ -169,7 +169,7 @@ where
             };
             let element_tag = element().get_tag().clone();
             let parent_constraint_object = move || {
-                ctx.schema.constraint_objects.with(|o| {
+                ctx.schema.template_library.with(|o| {
                     o.get(&element().constraint_object_id.get())
                         .unwrap()
                         .clone()

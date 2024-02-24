@@ -1,5 +1,38 @@
 {
-  "constraint_objects": {
+  "template_library": {
+    "532890717623": {
+      "field_constraints": [],
+      "library_operatives": [
+        900
+      ],
+      "trait_operatives": [
+        {
+          "trait_id": 12398769123987,
+          "tag": {
+            "name": "ownee",
+            "id": 901
+          }
+        }
+      ],
+      "instances": [],
+      "trait_impls": {
+        "12398769123987": {
+          "985762345157": [
+            {
+              "LibraryOperativeConstituent": 900
+            },
+            {
+              "Field": 234098736293
+            }
+          ]
+        }
+      },
+      "tag": {
+        "name": "HasColoredObject",
+        "id": 532890717623
+      },
+      "_phantom": null
+    },
     "342349875608": {
       "field_constraints": [
         {
@@ -26,46 +59,6 @@
       "tag": {
         "name": "Person",
         "id": 342349875608
-      },
-      "_phantom": null
-    },
-    "532890717623": {
-      "field_constraints": [],
-      "library_operatives": [
-        900
-      ],
-      "trait_operatives": [
-        {
-          "trait_id": 12398769123987,
-          "tag": {
-            "name": "ownee",
-            "id": 901
-          }
-        }
-      ],
-      "instances": [],
-      "trait_impls": {
-        "12398769123987": {
-          "985762345157": [
-            {
-              "TraitOperativeConstituent": {
-                "trait_operative_id": 901,
-                "trait_id": 12398769123987,
-                "trait_method_id": 985762345157
-              }
-            },
-            {
-              "TraitMethod": {
-                "trait_id": 12398769123987,
-                "trait_method_id": 985762345157
-              }
-            }
-          ]
-        }
-      },
-      "tag": {
-        "name": "HasColoredObject",
-        "id": 532890717623
       },
       "_phantom": null
     },
@@ -101,7 +94,7 @@
   "instance_library": {},
   "operative_library": {
     "900": {
-      "constraint_object_id": 342349875608,
+      "template_id": 342349875608,
       "operative_library_id": null,
       "tag": {
         "name": "owner",

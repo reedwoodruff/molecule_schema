@@ -265,3 +265,22 @@ Remaining questions regarding the schema system:
   - Is it necessary? How to implement it?
   - Example use case: modeling the written language domain. Paragraphs have a variable number of sentences. Sentences have a variable number of words.
 
+## Feb 22, 2024
+Still a bit murky how it will be most useful to expose the final generated schema. Maybe it would be best to expose a construct which essentially encapsulates an environment based on that schema.
+For example, it could expose all of the graph functionality you'd need to populate the environment according to the given schema.
+The other option would be to allow the user to bring their own environment, which was kind of what I was planning.
+The benefit of bundling in the environment would be a cleaner interface for the user. The downside would be that they'd be stuck with my novice graph implementation.
+Would this mean making the output types reactive? I could still see a case for applications on the backend wanting access to non-reactive versions of the types.
+And to communicate with these systems, it would be nice to create mappings between reactive versions on the frontend to non-reactive versions.
+
+Specifically, this is coming up because I'm running into the necessity for a way to store and retreive locked fields/values of operative elements (and all fields/values of instances).
+I'm not totally sure how to do this while keeping the separation of concerns I was aiming before.
+If I go the route of encapsulating everything within an environment, then I could store this information efficiently in a map structure and just return the values from there instead of instantiating new versions of them every time an instance or operative is referenced.
+
+It seems like there's some misalignment in the goals. The encapsulated environment lends itself to a dynamic, reactive application. The decoupled environment lends itself to non-reactive types. I'm having trouble really getting a good grasp on the purposes of these different environments and what functionalities would need to be exposed in each.
+
+## Feb 24, 2024
+Trying to decide how important it is to support custom data types in template fields. Right now it's hard-coded to have a few primitive options (Strings, integers, floats, etc.).
+Would it be helpful to allow user-created compound types as a value for a single field? Probably, though it's not terribly clear to me right now how.
+In some sense, that seems to be what having an operative or instance constituent accomplishes -- a way to have an arbitrarily nested data type associated with the construct.
+That thought represents a breakthrough, in some sense. Thinking about the graph as a kind of evolving type. The structure which a path takes between two elements represents a kind of additive contextual edge, providing a new layer of meaning to the snapshot of the path at that time.

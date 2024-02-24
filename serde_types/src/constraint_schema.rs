@@ -1,29 +1,30 @@
 use crate::common::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, marker::PhantomData};
-use strum_macros::Display;
+use strum_macros::{AsRefStr, Display};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
-    pub constraint_objects: HashMap<Uid, ConstraintObject<TTypes, TValues>>,
+    pub template_library: HashMap<Uid, LibraryTemplate<TTypes, TValues>>,
     pub instance_library: HashMap<Uid, LibraryInstance<TTypes, TValues>>,
     pub operative_library: HashMap<Uid, LibraryOperative<TTypes, TValues>>,
     pub traits: HashMap<Uid, TraitDef<TTypes>>,
 }
 
-#[derive(Display)]
+#[derive(Display, AsRefStr)]
 pub enum ConstraintSchemaInstantiableType {
-    ConstraintObject,
+    Template,
     Instance,
     Operative,
 }
 
 pub trait ConstraintSchemaInstantiable {
     type TTypes: ConstraintTraits;
+
     type TValues: ConstraintTraits;
 
     fn get_constraint_schema_instantiable_type(&self) -> ConstraintSchemaInstantiableType;
-    fn get_constraint_object_id(&self) -> &Uid;
+    fn get_template_id(&self) -> &Uid;
     fn get_operative_library_id(&self) -> Option<&Uid> {
         None
     }
@@ -49,7 +50,7 @@ pub trait ConstraintSchemaInstantiable {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LibraryInstance<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
-    pub constraint_object_id: Uid,
+    pub template_id: Uid,
     // If the instance is of a particular operative
     pub operative_library_id: Option<Uid>,
     pub tag: Tag,
@@ -69,8 +70,8 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
     fn get_constraint_schema_instantiable_type(&self) -> ConstraintSchemaInstantiableType {
         ConstraintSchemaInstantiableType::Instance
     }
-    fn get_constraint_object_id(&self) -> &Uid {
-        &self.constraint_object_id
+    fn get_template_id(&self) -> &Uid {
+        &self.template_id
     }
     fn get_operative_library_id(&self) -> Option<&Uid> {
         self.operative_library_id.as_ref()
@@ -110,7 +111,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LibraryOperative<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
-    pub constraint_object_id: Uid,
+    pub template_id: Uid,
     // If the operative is based on another operative
     pub operative_library_id: Option<Uid>,
     pub tag: Tag,
@@ -128,8 +129,8 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
     fn get_constraint_schema_instantiable_type(&self) -> ConstraintSchemaInstantiableType {
         ConstraintSchemaInstantiableType::Operative
     }
-    fn get_constraint_object_id(&self) -> &Uid {
-        &self.constraint_object_id
+    fn get_template_id(&self) -> &Uid {
+        &self.template_id
     }
     fn get_tag(&self) -> &Tag {
         &self.tag
@@ -178,7 +179,7 @@ pub enum OperativeVariants {
 //     operative_fields: Vec<FieldConstraint<TTypes>>,
 // }
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct ConstraintObject<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
+pub struct LibraryTemplate<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub field_constraints: Vec<FieldConstraint<TTypes>>,
     // pub edge_constraints: Vec<FuzzyEdgeDescriptor>,
     // pub constituents: Vec<LibraryReference>,
@@ -191,16 +192,16 @@ pub struct ConstraintObject<TTypes: ConstraintTraits, TValues: ConstraintTraits>
 }
 
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstantiable
-    for ConstraintObject<TTypes, TValues>
+    for LibraryTemplate<TTypes, TValues>
 {
     type TTypes = TTypes;
     type TValues = TValues;
 
-    fn get_constraint_object_id(&self) -> &Uid {
+    fn get_template_id(&self) -> &Uid {
         &self.tag.id
     }
     fn get_constraint_schema_instantiable_type(&self) -> ConstraintSchemaInstantiableType {
-        ConstraintSchemaInstantiableType::ConstraintObject
+        ConstraintSchemaInstantiableType::Template
     }
     fn get_tag(&self) -> &Tag {
         &self.tag

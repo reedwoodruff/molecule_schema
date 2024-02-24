@@ -11,9 +11,24 @@ pub trait GSO {
     type Builder;
 
     fn get_id(&self) -> Uid;
-    fn get_constraint_schema_id(&self) -> Uid;
+    fn get_constraint_schema_tag(&self) -> &ConstraintSchemaTag;
+    // fn get_constraint_schema_id(&self) -> ConstraintSchemaId;
+    fn get_template_id(&self) -> Uid;
     fn initiate_build() -> Self::Builder;
     fn get_operative_by_id(&self, operative_id: &Uid) -> Option<Uid>;
+}
+
+#[derive(Debug, Clone)]
+pub struct Tag {
+    pub id: Uid,
+    pub name: String,
+}
+
+#[derive(Debug, Clone)]
+pub enum ConstraintSchemaTag {
+    Template(Tag),
+    Instance(Tag),
+    Operative(Tag),
 }
 
 // pub trait Schema;

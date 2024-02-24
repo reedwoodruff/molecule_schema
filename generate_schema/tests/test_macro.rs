@@ -183,15 +183,15 @@ fn test_macro() {
     generate_concrete_schema!(sge_instance);
     // println!("{:?}", constraint_schema);
     // panic!();
-    let test2 = Sock_ConstraintObject::initiate_build()
+    let test2 = Sock_Template::initiate_build()
         .set_color("blue".to_string())
         .build()
         .unwrap();
-    let test3 = Person_ConstraintObject::initiate_build()
+    let test3 = owner_Operative::initiate_build()
         .set_name("blubber".to_string())
         .build()
         .unwrap();
-    let test = HasColoredObject_ConstraintObject::initiate_build()
+    let test = HasColoredObject_Template::initiate_build()
         .set_ownee(test2.get_id())
         .set_owner(test3.get_id())
         .build()
@@ -203,19 +203,18 @@ fn test_macro() {
     println!("{:?}", test);
     println!("{:?}", test2);
     println!("{:?}", test3);
-    println!("{:?}", test2.get_constraint_schema_id());
+    println!("{:?}", test2.get_template_id());
     println!(
         "{:?}",
         match test2 {
-            Schema::Sock_ConstraintObject(sock) => sock.getColor(&sge_instance).into_owned(),
+            Schema::Sock_Template(sock) => sock.getColor(&sge_instance).into_owned(),
             _ => panic!(),
         }
     );
     println!(
         "{:?}",
         match test {
-            Schema::HasColoredObject_ConstraintObject(item) =>
-                item.getColor(&sge_instance).into_owned(),
+            Schema::HasColoredObject_Template(item) => item.getColor(&sge_instance).into_owned(),
             _ => panic!(),
         }
     );

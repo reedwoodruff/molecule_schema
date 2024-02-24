@@ -5,8 +5,8 @@ use leptos::*;
 use serde_types::{
     common::{ConstraintTraits, Tag, Uid},
     constraint_schema::{
-        ConstraintObject, ConstraintSchema, FieldConstraint, FulfilledFieldConstraint,
-        FulfilledOperative, LibraryInstance, LibraryOperative, OperativeVariants, TraitDef,
+        ConstraintSchema, FieldConstraint, FulfilledFieldConstraint, FulfilledOperative,
+        LibraryInstance, LibraryOperative, LibraryTemplate, OperativeVariants, TraitDef,
         TraitMethodDef, TraitMethodImplPath, TraitOperative,
     },
 };
@@ -39,13 +39,13 @@ macro_rules! apply_tagged {
     };
 }
 
-apply_tagged!(RConstraintObject<TTypes,TValues>);
+apply_tagged!(RLibraryTemplate<TTypes,TValues>);
 apply_tagged!(RLibraryInstance<TTypes,TValues>);
 apply_tagged!(RLibraryOperative<TTypes,TValues>);
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
-    pub constraint_objects: RwSignal<HashMap<Uid, RConstraintObject<TTypes, TValues>>>,
+    pub template_library: RwSignal<HashMap<Uid, RLibraryTemplate<TTypes, TValues>>>,
     pub instance_library: RwSignal<HashMap<Uid, RLibraryInstance<TTypes, TValues>>>,
     pub operative_library: RwSignal<HashMap<Uid, RLibraryOperative<TTypes, TValues>>>,
     pub traits: RwSignal<HashMap<Uid, RTraitDef<TTypes>>>,
@@ -55,9 +55,9 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<ConstraintSchema<
 {
     fn from(value: ConstraintSchema<TTypes, TValues>) -> Self {
         Self {
-            constraint_objects: RwSignal::new(
+            template_library: RwSignal::new(
                 value
-                    .constraint_objects
+                    .template_library
                     .iter()
                     .map(|(index, item)| (*index, item.clone().into()))
                     .collect(),
@@ -91,8 +91,8 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RConstraintSchema
 {
     fn from(val: RConstraintSchema<TTypes, TValues>) -> Self {
         Self {
-            constraint_objects: val
-                .constraint_objects
+            template_library: val
+                .template_library
                 .get()
                 .iter()
                 .map(|(index, item)| (*index, item.clone().into()))
@@ -157,7 +157,7 @@ impl From<RTag> for Tag {
 
 // Constraint Objects --------------------------------------------------------
 #[derive(Clone, Debug, PartialEq)]
-pub struct RConstraintObject<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
+pub struct RLibraryTemplate<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub field_constraints: RwSignal<Vec<RFieldConstraint<TTypes>>>,
     pub library_operatives: RwSignal<Vec<Uid>>,
     pub trait_operatives: RwSignal<Vec<RTraitOperative>>,
@@ -166,10 +166,10 @@ pub struct RConstraintObject<TTypes: ConstraintTraits, TValues: ConstraintTraits
     pub tag: RTag,
     pub _phantom: PhantomData<TValues>,
 }
-impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<ConstraintObject<TTypes, TValues>>
-    for RConstraintObject<TTypes, TValues>
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<LibraryTemplate<TTypes, TValues>>
+    for RLibraryTemplate<TTypes, TValues>
 {
-    fn from(value: ConstraintObject<TTypes, TValues>) -> Self {
+    fn from(value: LibraryTemplate<TTypes, TValues>) -> Self {
         Self {
             field_constraints: RwSignal::new(
                 value
@@ -224,10 +224,10 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<ConstraintObject<
         }
     }
 }
-impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RConstraintObject<TTypes, TValues>>
-    for ConstraintObject<TTypes, TValues>
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryTemplate<TTypes, TValues>>
+    for LibraryTemplate<TTypes, TValues>
 {
-    fn from(value: RConstraintObject<TTypes, TValues>) -> Self {
+    fn from(value: RLibraryTemplate<TTypes, TValues>) -> Self {
         Self {
             field_constraints: value
                 .field_constraints
@@ -279,13 +279,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RConstraintObject
     }
 }
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO<TTypes, TValues>
-    for RConstraintObject<TTypes, TValues>
+    for RLibraryTemplate<TTypes, TValues>
 {
     fn get_fields(&self) -> Vec<impl Tagged + FieldInfo<TTypes, TValues>> {
         self.field_constraints.get()
     }
 }
-impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintObject<TTypes, TValues> {
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryTemplate<TTypes, TValues> {
     pub fn new() -> Self {
         Self {
             field_constraints: RwSignal::new(vec![]),
@@ -455,7 +455,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<LibraryInstance<T
 {
     fn from(value: LibraryInstance<TTypes, TValues>) -> Self {
         Self {
-            constraint_object_id: RwSignal::new(value.constraint_object_id),
+            constraint_object_id: RwSignal::new(value.template_id),
             operative_library_id: RwSignal::new(value.operative_library_id),
             tag: value.tag.into(),
             other_edges: RwSignal::new(
@@ -518,7 +518,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryInstance<
 {
     fn from(value: RLibraryInstance<TTypes, TValues>) -> Self {
         Self {
-            constraint_object_id: value.constraint_object_id.get(),
+            template_id: value.constraint_object_id.get(),
             operative_library_id: value.operative_library_id.get(),
             tag: value.tag.into(),
             other_edges: value
@@ -701,7 +701,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<LibraryOperative<
 {
     fn from(value: LibraryOperative<TTypes, TValues>) -> Self {
         Self {
-            constraint_object_id: RwSignal::new(value.constraint_object_id),
+            constraint_object_id: RwSignal::new(value.template_id),
             operative_library_id: RwSignal::new(value.operative_library_id),
             tag: value.tag.into(),
             fulfilled_operatives: RwSignal::new(
@@ -756,7 +756,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryOperative
 {
     fn from(value: RLibraryOperative<TTypes, TValues>) -> Self {
         Self {
-            constraint_object_id: value.constraint_object_id.get(),
+            template_id: value.constraint_object_id.get(),
             operative_library_id: value.operative_library_id.get(),
             tag: value.tag.into(),
             fulfilled_operatives: value

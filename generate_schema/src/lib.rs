@@ -52,13 +52,13 @@ fn get_primitive_value(ty: &PrimitiveValues) -> proc_macro2::TokenStream {
     }
 }
 
-fn concat_unique_element(element: Box<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>>) -> String {
+fn concat_unique_element(element: &Box<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>>) -> String {
     element.get_tag().name.clone() + &"_".to_string() + &element.get_constraint_schema_instantiable_type().to_string()
 }
-fn get_variant_name(element: Box<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>> ) -> syn::Ident {
+fn get_variant_name(element: &Box<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>> ) -> syn::Ident {
     syn::Ident::new(&concat_unique_element(element), proc_macro2::Span::call_site())
 }
-fn get_variant_builder_name(element: Box<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>> ) -> syn::Ident {
+fn get_variant_builder_name(element: &Box<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>> ) -> syn::Ident {
     syn::Ident::new(&(concat_unique_element(element) + &"Builder".to_string()), proc_macro2::Span::call_site())
 }
 
@@ -103,10 +103,10 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
     let reference_constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues> = constraint_schema_generated.clone();
 
     let generate_trait_impl_streams = |instantiable: Box::<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>>| -> proc_macro2::TokenStream {
-        let instantiable_name = get_variant_name(instantiable.clone());
+        let instantiable_name = get_variant_name(&instantiable);
         let mut rolling_trait_impl_list = instantiable.get_trait_impls().clone();
-        let parent_constraint_object = reference_constraint_schema.constraint_objects.get(instantiable.get_constraint_object_id()).expect("Referenced constraint object must exist");
-        rolling_trait_impl_list.extend(parent_constraint_object.get_trait_impls().clone());
+        let parent_template = reference_constraint_schema.template_library.get(instantiable.get_template_id()).expect("Referenced constraint object must exist");
+        rolling_trait_impl_list.extend(parent_template.get_trait_impls().clone());
         if let Some(parent_library_operative_id) = instantiable.get_operative_library_id() {
             let parent_library_operative = reference_constraint_schema.operative_library.get(parent_library_operative_id).expect("Referenced library operative must exist");
             rolling_trait_impl_list.extend(parent_library_operative.get_trait_impls().clone());
@@ -135,10 +135,10 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                     match path_item {
                         serde_types::constraint_schema::TraitMethodImplPath::Field  (field_id) => {
                             match last_item_type {
-                                serde_types::constraint_schema::ConstraintSchemaInstantiableType::ConstraintObject => {
-                                    let constraint_object = reference_constraint_schema.constraint_objects.get(&last_item_id).expect("constraint object must exist");
+                                serde_types::constraint_schema::ConstraintSchemaInstantiableType::Template => {
+                                    let template = reference_constraint_schema.template_library.get(&last_item_id).expect("constraint object must exist");
                                     println!("expected: {}", field_id);
-                                    let field_constraint = constraint_object.field_constraints.iter().find(|constraint| &constraint.tag.id == field_id).expect("field must exist");
+                                    let field_constraint = template.field_constraints.iter().find(|constraint| &constraint.tag.id == field_id).expect("field must exist");
                                     let field_name = syn::Ident::new(&field_constraint.tag.name, proc_macro2::Span::call_site());
                                     method_impl_stream = quote!{ std::borrow::Cow::Borrowed(&self.#field_name) };
                                 }
@@ -156,14 +156,21 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                                         let value = get_primitive_value(&fulfilled_constraint.value);
                                         method_impl_stream = quote! { std::borrow::Cow::Owned(#value) };
                                     } else {
-                                        let variant_name = get_variant_name(Box::new(operative_ref));
-                                        let constraint_object = reference_constraint_schema.constraint_objects.get(&operative_ref.constraint_object_id).expect("constraint object must exist");
-                                        let field_constraint = constraint_object.field_constraints.iter().find(|constraint| &constraint.tag.id == field_id).expect("field must exist");
+                                        let variant_name = get_variant_name(&Box::new(operative_ref));
+                                        let variant_name_string = variant_name.to_string();
+                                        let prepend_call_string = prepend_call.to_string();
+                                        let template = reference_constraint_schema.template_library.get(&operative_ref.template_id).expect("constraint object must exist");
+                                        let field_constraint = template.field_constraints.iter().find(|constraint| &constraint.tag.id == field_id).expect("field must exist");
                                         let field_name = syn::Ident::new(&field_constraint.tag.name, proc_macro2::Span::call_site());
                                         method_impl_stream = quote!{ std::borrow::Cow::Owned(match &#prepend_call {
                                             // Schema::Person(person) => person.#field_name.clone(),
                                             Schema::#variant_name(item) => item.#field_name.clone(),
-                                            _ => panic!()
+                                            _ => {
+                                                println!("prepend_call: {:?}", #prepend_call);
+                                                println!("attempted variant_name: {:?}", #variant_name_string);
+                                                panic!("no variant name");
+
+                                            }                                            
                                             }) };
                                     }
                                 }
@@ -176,8 +183,8 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                             let inner_method_name = syn::Ident::new(&inner_method_def.tag.name, proc_macro2::Span::call_site());
 
                             match last_item_type {
-                                serde_types::constraint_schema::ConstraintSchemaInstantiableType::ConstraintObject => {
-                                    let constraint_object = reference_constraint_schema.constraint_objects.get(&last_item_id).expect("constraint object must exist");
+                                serde_types::constraint_schema::ConstraintSchemaInstantiableType::Template => {
+                                    let template = reference_constraint_schema.template_library.get(&last_item_id).expect("constraint object must exist");
 
                                     method_impl_stream = quote!{ self.#inner_method_name(graph_environment) };
                                 }
@@ -199,19 +206,19 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                             println!("running here too");
                             let inner_method_def = inner_trait_def.methods.iter().find(|method| &method.tag.id == trait_method_id).expect("method must exist");
                             let inner_method_name = syn::Ident::new(&inner_method_def.tag.name, proc_macro2::Span::call_site());
-                            let variants_which_impl_trait = reference_constraint_schema.constraint_objects.iter().filter(
+                            let variants_which_impl_trait = reference_constraint_schema.template_library.iter().filter(
                                 |(co_id, co)| {
                                     co.trait_impls.contains_key(trait_id)
                                 }
                             ).map(|(co_id, co)| {
-                                    get_variant_name(Box::new(co))
+                                    get_variant_name(&Box::new(co))
                             }).collect::<Vec<_>>();
 
                             println!("variants which impl trait: {:?}", variants_which_impl_trait);
                             match last_item_type {
-                                serde_types::constraint_schema::ConstraintSchemaInstantiableType::ConstraintObject => {
-                                    let constraint_object = reference_constraint_schema.constraint_objects.get(&last_item_id).expect("constraint object must exist");
-                                    let trait_operative = constraint_object.trait_operatives.iter().find(|trait_op| &trait_op.tag.id == trait_operative_id).expect("trait operative must exist");
+                                serde_types::constraint_schema::ConstraintSchemaInstantiableType::Template => {
+                                    let template = reference_constraint_schema.template_library.get(&last_item_id).expect("constraint object must exist");
+                                    let trait_operative = template.trait_operatives.iter().find(|trait_op| &trait_op.tag.id == trait_operative_id).expect("trait operative must exist");
                                     let trait_operative_id = trait_operative.tag.id;
 
                                     method_impl_stream = quote!{ match graph_environment.get_element(&self.get_operative_by_id(&#trait_operative_id).expect("operative must exist.")).cloned().expect("element must exist") {
@@ -280,184 +287,238 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         }
     };
 
-    let constraint_objects_streams = constraint_schema_generated
-        .constraint_objects
-        .iter()
-        .map(|(id, el)| {
-            let mut field_names = Vec::<syn::Ident>::new();
-            let mut field_names_setters = Vec::<syn::Ident>::new();
-            let mut field_values = Vec::<proc_macro2::TokenStream>::new();
-            let mut initial_values = Vec::<proc_macro2::TokenStream>::new();
-            let struct_name = get_variant_name(Box::new(el));
-            element_names.push(struct_name.clone());
+    let mut generate_objects_streams = |instantiable: Box::<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>>| -> proc_macro2::TokenStream {
+        let mut field_names = Vec::<syn::Ident>::new();
+        let mut field_names_setters = Vec::<syn::Ident>::new();
+        let mut field_values = Vec::<proc_macro2::TokenStream>::new();
+        let mut initial_values = Vec::<proc_macro2::TokenStream>::new();
+        let struct_name = get_variant_name(&instantiable);
+        element_names.push(struct_name.clone());
 
-            let library_operatives: Vec<_> = el.library_operatives.iter().map(|op_id| {
-                reference_constraint_schema.operative_library.get(op_id).expect("Operative Library should contain the operative ID referenced within a template's constituents")
-            }).collect(); 
-            let library_operative_names: Vec<_> = library_operatives.iter().map(|op| {
-                syn::Ident::new(&op.tag.name, proc_macro2::Span::call_site())
-            }).collect();
-            let library_operative_setter_new: Vec<_> = library_operatives.iter().map(|op| {
-                syn::Ident::new(&("set_new_".to_string() + &op.tag.name), proc_macro2::Span::call_site())
-            }).collect();
-            let library_operative_setter_existing: Vec<_> = library_operatives.iter().map(|op| {
-                syn::Ident::new(&("set_".to_string() + &op.tag.name), proc_macro2::Span::call_site())
-            }).collect();
-            let library_operative_ids: Vec<_> = library_operatives.iter().map(|op| {
-                op.tag.id
-            }).collect();
-            let simple_operatives = el.library_operatives.iter().map(|&val| quote! { #val }).collect::<Vec<_>>();
+        let reference_template_id = instantiable.get_template_id();
+        let (constraint_schema_tag_name, constraint_schema_tag_id) = (instantiable.get_tag().name.clone(), instantiable.get_tag().id);
+        let constraint_schema_instantiable_type = instantiable.get_constraint_schema_instantiable_type().as_ref().to_owned();
+        // let constraint_schema_tag = match instantiable.get_constraint_schema_instantiable_type() {
+        //     serde_types::constraint_schema::ConstraintSchemaInstantiableType::Template => {
+        //         output_types::ConstraintSchemaTag::Template(instantiable.get_tag().clone().into())
+        //     }
+        //     serde_types::constraint_schema::ConstraintSchemaInstantiableType::Instance => {
+        //         output_types::ConstraintSchemaTag::Instance(instantiable.get_tag().clone().into())
+        //     }
+        //     serde_types::constraint_schema::ConstraintSchemaInstantiableType::Operative => {
+        //         output_types::ConstraintSchemaTag::Operative(instantiable.get_tag().clone().into())
+        //     }
+        // };
+        let reference_template = reference_constraint_schema.clone().template_library.get(reference_template_id).cloned().expect("instantiable must be based on a constraint object");
 
-            let trait_operatives = &el.trait_operatives;
-            let trait_operative_trait_names = trait_operatives.iter().map(|op| {
-                let trait_id = op.trait_id;
-                let trait_name = &reference_constraint_schema.traits.get(&trait_id).expect("trait must exist").tag.name;
-                trait_name
+        // let fulfilled_ops_as_instance_ids  = if let Some(ids) = reference_constraint_object.get_fulfilled_operatives() {
+        //     ids.iter().map(|item| item.fulfilling_instance_id).collect::<Vec<_>>()
+        // } else {
+        //     Vec::new()
+        // };
+        let mut fulfilled_ops_as_instance_ids = Vec::new();
+        let mut fulfilled_library_ops = Vec::new();
+        let mut fulfilled_trait_ops = Vec::new();
+        if let Some(ids) = reference_template.get_fulfilled_operatives() {
+            ids.iter().for_each(|item| {
+                fulfilled_ops_as_instance_ids.push(item.fulfilling_instance_id);
+                match item.operative_id {
+                    OperativeVariants::LibraryOperative(lib_op_id) => {
+                        fulfilled_library_ops.push(lib_op_id);
+                    }
+                    OperativeVariants::TraitOperative(trait_op_id) => {
+                        fulfilled_trait_ops.push(trait_op_id);
+                    }
+                }
+            })
+        }
+
+        let library_operatives: Vec<_> = reference_template.library_operatives.iter().filter(|op_id| !fulfilled_library_ops.contains(op_id)).map(|op_id| {
+            reference_constraint_schema.operative_library.get(op_id).expect("Operative Library should contain the operative ID referenced within a template's constituents")
+        }).collect(); 
+        let library_operative_names: Vec<_> = library_operatives.iter().map(|op| {
+            syn::Ident::new(&op.tag.name, proc_macro2::Span::call_site())
+        }).collect();
+        let library_operative_setter_new: Vec<_> = library_operatives.iter().map(|op| {
+            syn::Ident::new(&("set_new_".to_string() + &op.tag.name), proc_macro2::Span::call_site())
+        }).collect();
+        let library_operative_setter_existing: Vec<_> = library_operatives.iter().map(|op| {
+            syn::Ident::new(&("set_".to_string() + &op.tag.name), proc_macro2::Span::call_site())
+        }).collect();
+        let library_operative_ids: Vec<_> = library_operatives.iter().map(|op| {
+            op.tag.id
+        }).collect();
+        let simple_operatives = reference_template.library_operatives.iter().map(|&val| quote! { #val }).collect::<Vec<_>>();
+
+        let trait_operatives = &reference_template.trait_operatives.iter().filter(|trait_op| !fulfilled_trait_ops.contains(&trait_op.tag.id)).collect::<Vec<_>>();
+        let trait_operative_trait_names = trait_operatives.iter().map(|op| {
+            let trait_id = op.trait_id;
+            let trait_name = &reference_constraint_schema.traits.get(&trait_id).expect("trait must exist").tag.name;
+            trait_name
+        });
+        let trait_operative_names: Vec<_> = trait_operatives.iter().map(|op| {
+            syn::Ident::new(&op.tag.name, proc_macro2::Span::call_site())
+        }).collect();
+        let trait_operative_setter_new: Vec<_> = trait_operatives.iter().map(|op| {
+            syn::Ident::new(&("set_new_".to_string() + &op.tag.name), proc_macro2::Span::call_site())
+        }).collect();
+        let trait_operative_setter_existing: Vec<_> = trait_operatives.iter().map(|op| {
+            syn::Ident::new(&("set_".to_string() + &op.tag.name), proc_macro2::Span::call_site())
+        }).collect();
+        let trait_operative_ids: Vec<_> = trait_operatives.iter().map(|op| {
+            op.tag.id
+        }).collect();
+
+        let mut all_instance_ids = constraint_schema_generated.template_library.get(&reference_template.get_template_id()).unwrap().instances.clone();
+        all_instance_ids.extend(fulfilled_ops_as_instance_ids);
+        let all_instance_names = all_instance_ids.iter().map(|item| {let instance = constraint_schema_generated.instance_library.get(&item).unwrap();
+        syn::Ident::new(&instance.tag.name.clone(), proc_macro2::Span::call_site())
+        });
+
+        let fulfilled_field_constraints = instantiable.get_fulfilled_fields().cloned().unwrap_or(Vec::<FulfilledFieldConstraint<PrimitiveTypes,PrimitiveValues>>::new());
+        let fulfilled_field_constraint_ids = fulfilled_field_constraints.iter().map(|field| field.tag.id).collect::<Vec<_>>();
+        reference_template.field_constraints.iter().filter(|field| !fulfilled_field_constraint_ids.contains(&field.tag.id)).for_each(|field| {
+                let name = syn::Ident::new(&field.tag.name, proc_macro2::Span::call_site());
+                field_names.push(name.clone());
+                field_names_setters.push(syn::Ident::new(
+                    &("set_".to_string() + &field.tag.name),
+                    proc_macro2::Span::call_site(),
+                ));
+                let field_value = get_primitive_type(&field.value_type);
+                if let PrimitiveTypes::Option(inner) = &field.value_type {
+                    initial_values.push(quote! {Some(None)});
+                } else {
+                    initial_values.push(quote! {None});
+                }
+                field_values.push(field_value.clone());
             });
-            let trait_operative_names: Vec<_> = trait_operatives.iter().map(|op| {
-                syn::Ident::new(&op.tag.name, proc_macro2::Span::call_site())
-            }).collect();
-            let trait_operative_setter_new: Vec<_> = trait_operatives.iter().map(|op| {
-                syn::Ident::new(&("set_new_".to_string() + &op.tag.name), proc_macro2::Span::call_site())
-            }).collect();
-            let trait_operative_setter_existing: Vec<_> = trait_operatives.iter().map(|op| {
-                syn::Ident::new(&("set_".to_string() + &op.tag.name), proc_macro2::Span::call_site())
-            }).collect();
-            let trait_operative_ids: Vec<_> = trait_operatives.iter().map(|op| {
-                op.tag.id
-            }).collect();
 
-            let library_instance_ids  = if let Some(ids) = el.get_fulfilled_operatives() {
-                ids.iter().map(|item| item.fulfilling_instance_id).collect::<Vec<_>>()
-            } else {
-                Vec::new()
-            };
-            let mut all_instance_ids = constraint_schema_generated.constraint_objects.get(&el.get_constraint_object_id()).unwrap().instances.clone();
-            all_instance_ids.extend(library_instance_ids);
-            let all_instance_names = all_instance_ids.iter().map(|item| {let instance = constraint_schema_generated.instance_library.get(&item).unwrap();
-            syn::Ident::new(&instance.tag.name.clone(), proc_macro2::Span::call_site())
-            });
+        let struct_builder_name = get_variant_builder_name(&instantiable);
+        let item_trait_stream = generate_trait_impl_streams(instantiable);
+        // let str_rep = item_trait_stream.to_string();
 
-            el .field_constraints .iter() .for_each(|field| {
-                    let name = syn::Ident::new(&field.tag.name, proc_macro2::Span::call_site());
-                    field_names.push(name.clone());
-                    field_names_setters.push(syn::Ident::new(
-                        &("set_".to_string() + &field.tag.name),
-                        proc_macro2::Span::call_site(),
-                    ));
-                    let field_value = get_primitive_type(&field.value_type);
-                    if let PrimitiveTypes::Option(inner) = &field.value_type {
-                        initial_values.push(quote! {Some(None)});
-                    } else {
-                        initial_values.push(quote! {None});
-                    }
-                    field_values.push(field_value.clone());
-                });
+        quote! {
+            #[derive(Debug, Clone)]
+            pub struct #struct_name {
+                #(#field_names: #field_values,)*
+                template_id: output_types::Uid,
+                constraint_schema_tag: output_types::ConstraintSchemaTag,
+                id: output_types::Uid,
+                operatives: HashMap<Uid, Uid>,
+                // instances: HashMap<Uid, Uid>,
+            }
 
-            let struct_builder_name = get_variant_builder_name(Box::new(el));
-            // let struct_builder_name =
-            //     syn::Ident::new(&struct_builder_name, proc_macro2::Span::call_site());
+            impl output_types::GSO for #struct_name {
+                type Builder = #struct_builder_name;
 
-            let item_trait_stream = generate_trait_impl_streams(Box::new(el));
-            let str_rep = item_trait_stream.to_string();
-
-            quote! {
-                #[derive(Debug, Clone)]
-                pub struct #struct_name {
-                    #(#field_names: #field_values,)*
-                    constraint_schema_id: output_types::Uid,
-                    id: output_types::Uid,
-                    operatives: HashMap<Uid, Uid>,
-                    // instances: HashMap<Uid, Uid>,
+                fn initiate_build() -> #struct_builder_name {
+                    #struct_builder_name::new()
                 }
-
-                impl output_types::GSO for #struct_name {
-                    type Builder = #struct_builder_name;
-
-                    fn initiate_build() -> #struct_builder_name {
-                        #struct_builder_name::new()
-                    }
-                    fn get_operative_by_id(&self, operative_id: &output_types::Uid) -> Option<output_types::Uid> {
-                       self.operatives.get(operative_id).cloned() 
-                    }
-                    fn get_constraint_schema_id(&self) -> output_types::Uid {
-                        self.constraint_schema_id
-                    }
-                    fn get_id(&self) -> output_types::Uid {
-                        self.id
-                    }
+                fn get_operative_by_id(&self, operative_id: &output_types::Uid) -> Option<output_types::Uid> {
+                    self.operatives.get(operative_id).cloned() 
                 }
-
-                #item_trait_stream
-
-                pub struct #struct_builder_name {
-                    #(#library_operative_names: Option<output_types::Uid>,)*
-                    #(#trait_operative_names: Option<output_types::Uid>,)*
-                    #(#field_names: Option<#field_values>,)*
+                fn get_template_id(&self) -> output_types::Uid {
+                    self.template_id
                 }
-                impl #struct_builder_name {
-                    pub fn build(mut self) -> Result<Schema, bool> {
-                        if self.check_completion() == true {
-                            let mut operative_hashmap = HashMap::new();
-                            #(operative_hashmap.insert(#library_operative_ids, self.#library_operative_names.unwrap());)*
-                            #(operative_hashmap.insert(#trait_operative_ids, self.#trait_operative_names.unwrap());)*
-
-                            // let mut instances_hashmap = HashMap::new();
-                            // #(instances_hashmap.insert(#all_instance_ids, #all_instance_names);)*
-
-                            Ok(Schema::#struct_name(#struct_name {
-                                #(#field_names: self.#field_names.unwrap(),)*
-                                id: uuid::Uuid::new_v4().as_u128(), 
-                                constraint_schema_id: #id,
-                                operatives: operative_hashmap,
-                                // instances: instances_hashmap,
-                            }))
-                        } else {
-                            Err(false)
-                        }
-                    }
-
-                    pub fn new() -> Self{
-                        Self {
-                            #(#library_operative_names: None,)*                
-                            #(#trait_operative_names: None,)* 
-                            #(#field_names: #initial_values,)*
-                        }
-                    }
-                    fn check_completion(&self) -> bool {
-                        let mut complete = true;
-                        #(if self.#field_names.is_none() {complete = false;})*
-                        #(if self.#library_operative_names.is_none() {complete = false;})*
-                        #(if self.#trait_operative_names.is_none() {complete = false;})*
-                        return complete
-                    }
-
-                    #(pub fn #field_names_setters(mut self, val: #field_values) -> Self {
-                        self.#field_names = Some(val);
-                        self
-                    })*
-
-                    // #(pub fn #library_operative_setter_new(mut self, val: #library_operative_names) -> Self {
-                    //     self
-                    // })*
-
-                    #(pub fn #library_operative_setter_existing(mut self, val: output_types::Uid) -> Self {
-                        self.#library_operative_names = Some(val);
-                        self
-                    })*
-
-                    // #(pub fn #trait_operative_setter_new(mut self, val: impl #trait_operative_trait_names) -> Self {
-                    //     self
-                    // })*
-
-                    #(pub fn #trait_operative_setter_existing(mut self, val: output_types::Uid) -> Self {
-                        self.#trait_operative_names = Some(val);
-                        self
-                    })*
-
+                fn get_id(&self) -> Uid {
+                    self.id
+                }
+                fn get_constraint_schema_tag(&self) -> &output_types::ConstraintSchemaTag {
+                    &self.constraint_schema_tag
                 }
             }
-        });
+
+            #item_trait_stream
+
+            pub struct #struct_builder_name {
+                #(#library_operative_names: Option<output_types::Uid>,)*
+                #(#trait_operative_names: Option<output_types::Uid>,)*
+                #(#field_names: Option<#field_values>,)*
+            }
+            impl #struct_builder_name {
+                pub fn build(mut self) -> Result<Schema, bool> {
+                    if self.check_completion() == true {
+                        let mut operative_hashmap = HashMap::new();
+                        #(operative_hashmap.insert(#library_operative_ids, self.#library_operative_names.unwrap());)*
+                        #(operative_hashmap.insert(#trait_operative_ids, self.#trait_operative_names.unwrap());)*
+
+                        // let mut instances_hashmap = HashMap::new();
+                        // #(instances_hashmap.insert(#all_instance_ids, #all_instance_names);)*
+
+                        Ok(Schema::#struct_name(#struct_name {
+                            #(#field_names: self.#field_names.unwrap(),)*
+                            id: uuid::Uuid::new_v4().as_u128(), 
+                            constraint_schema_tag: match #constraint_schema_instantiable_type {
+                                // let tag = output_types::Tag {id: #constraint_schema_tag_id, name: #constraint_schema_tag_name.to_string()};
+                                "Template" => 
+                                output_types::ConstraintSchemaTag::Template(output_types::Tag {id: #constraint_schema_tag_id, name: #constraint_schema_tag_name.to_string()}),
+                                "Operative" => 
+                                output_types::ConstraintSchemaTag::Operative(output_types::Tag {id: #constraint_schema_tag_id, name: #constraint_schema_tag_name.to_string()}),
+                                "Instance" => 
+                                output_types::ConstraintSchemaTag::Instance(output_types::Tag {id: #constraint_schema_tag_id, name: #constraint_schema_tag_name.to_string()}),
+                                _ => panic!(),
+                            },
+                            template_id: #reference_template_id,
+                            operatives: operative_hashmap,
+                            // instances: instances_hashmap,
+                        }))
+                    } else {
+                        Err(false)
+                    }
+                }
+
+                pub fn new() -> Self{
+                    Self {
+                        #(#library_operative_names: None,)*                
+                        #(#trait_operative_names: None,)* 
+                        #(#field_names: #initial_values,)*
+                    }
+                }
+                fn check_completion(&self) -> bool {
+                    let mut complete = true;
+                    #(if self.#field_names.is_none() {complete = false;})*
+                    #(if self.#library_operative_names.is_none() {complete = false;})*
+                    #(if self.#trait_operative_names.is_none() {complete = false;})*
+                    return complete
+                }
+
+                #(pub fn #field_names_setters(mut self, val: #field_values) -> Self {
+                    self.#field_names = Some(val);
+                    self
+                })*
+
+                // #(pub fn #library_operative_setter_new(mut self, val: #library_operative_names) -> Self {
+                //     self
+                // })*
+
+                #(pub fn #library_operative_setter_existing(mut self, val: output_types::Uid) -> Self {
+                    self.#library_operative_names = Some(val);
+                    self
+                })*
+
+                // #(pub fn #trait_operative_setter_new(mut self, val: impl #trait_operative_trait_names) -> Self {
+                //     self
+                // })*
+
+                #(pub fn #trait_operative_setter_existing(mut self, val: output_types::Uid) -> Self {
+                    self.#trait_operative_names = Some(val);
+                    self
+                })*
+
+            }
+        }
+    };
+
+    let template_streams = constraint_schema_generated.template_library.iter().map(|(_id, el)| {
+        generate_objects_streams(Box::new(el))
+    }).collect::<Vec<_>>();
+    let operative_streams = constraint_schema_generated.operative_library.iter().map(|(_id, el)| {
+        generate_objects_streams(Box::new(el))
+    }).collect::<Vec<_>>();
+    let instance_streams = constraint_schema_generated.instance_library.iter().map(|(_id, el)| {
+        generate_objects_streams(Box::new(el))
+    })
+    .collect::<Vec<_>>();
 
     quote! {
         use output_types::GSO;
@@ -471,7 +532,9 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
 
         // const SCHEMA_JSON: &str = #data;
         #(#trait_definition_streams)*
-        #(#constraint_objects_streams)*
+        #(#template_streams)*
+        #(#operative_streams)*
+        #(#instance_streams)*
 
         #[derive(Debug, Clone)]
         enum Schema {
@@ -480,13 +543,19 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         impl output_types::GSO for Schema {
             type Builder = ();
 
-            fn get_constraint_schema_id(&self) -> output_types::Uid {
+            fn get_constraint_schema_tag(&self) -> &output_types::ConstraintSchemaTag {
                 match &self {
-                #(Self::#element_names(item) => item.get_constraint_schema_id(),)*
+                #(Self::#element_names(item) => item.get_constraint_schema_tag(),)*
                 _ => panic!(),
                 }
             }
             fn get_id(&self) -> output_types::Uid {
+                match self {
+                    #(Self::#element_names(item) => item.get_id(),)*
+                    _ => panic!(),
+                }
+            }
+            fn get_template_id(&self) -> output_types::Uid {
                 match self {
                     #(Self::#element_names(item) => item.get_id(),)*
                     _ => panic!(),

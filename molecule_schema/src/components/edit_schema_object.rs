@@ -31,7 +31,7 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
 
     let active_object = create_memo(move |_| {
         ctx.schema
-            .constraint_objects
+            .template_library
             .with(|co| co.get(&element.1).cloned())
             .unwrap()
     });
@@ -377,7 +377,7 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
         <div class="large-margin med-pad border-gray flex">
             <div class="flex-grow margin-right border-right">
                 <button on:click=move |_| ctx.selected_element.set(None)>X</button>
-                <button on:click=move |_| ctx.schema.constraint_objects.update(|prev| {prev.remove(&element.1);})>delete element</button>
+                <button on:click=move |_| ctx.schema.template_library.update(|prev| {prev.remove(&element.1);})>delete element</button>
                 <br/>
                 <TextInput
                     initial_value=new_operative_name.get()

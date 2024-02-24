@@ -1,5 +1,5 @@
 {
-  "constraint_objects": {
+  "template_library": {
     "2": {
       "field_constraints": [],
       "library_operatives": [
@@ -84,7 +84,7 @@
   "instance_library": {},
   "operative_library": {
     "900": {
-      "constraint_object_id": 0,
+      "template_id": 0,
       "tag": {
         "name": "owner",
         "id": 900
