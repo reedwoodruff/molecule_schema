@@ -6,6 +6,7 @@ use serde_types::{
 
 use self::reactive_types::RConstraintSchema;
 
+pub mod reactive_item;
 pub mod reactive_types;
 
 pub fn export_schema(schema: &RConstraintSchema<PrimitiveTypes, PrimitiveValues>) {

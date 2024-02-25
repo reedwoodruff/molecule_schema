@@ -20,6 +20,7 @@ use serde_types::{
 use self::tree_view::TreeRef;
 
 pub mod common;
+pub mod configure_schema_object;
 pub mod edit_schema_object;
 pub mod tree_view;
 
@@ -164,6 +165,14 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
             }
         }>
             <EditSchemaObject element=selected_element.get().unwrap()/>
+        </Show>
+        <Show when=move || {
+            match selected_element.get() {
+                Some(TreeRef(TreeTypes::LibraryOperative, _id_)) => true,
+                _ => false,
+            }
+        }>
+            <configure_schema_object::edit_operative::EditOperative element=selected_element.get().unwrap()/>
         </Show>
     }
 }

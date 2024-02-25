@@ -123,11 +123,7 @@ where
             let parent_constraint_object_instances = ctx
                 .schema
                 .template_library
-                .with(|o| {
-                    o.get(&element().constraint_object_id.get())
-                        .unwrap()
-                        .instances
-                })
+                .with(|o| o.get(&element().template_id.get()).unwrap().instances)
                 .get();
 
             let traits_impled = element()
@@ -169,11 +165,9 @@ where
             };
             let element_tag = element().get_tag().clone();
             let parent_constraint_object = move || {
-                ctx.schema.template_library.with(|o| {
-                    o.get(&element().constraint_object_id.get())
-                        .unwrap()
-                        .clone()
-                })
+                ctx.schema
+                    .template_library
+                    .with(|o| o.get(&element().template_id.get()).unwrap().clone())
             };
 
             let fields = parent_constraint_object()

@@ -35,7 +35,7 @@ macro_rules! apply_tagged {
             fn get_tag(&self) -> &RTag {
                &self.tag
             }
-        })*
+        }),*
     };
 }
 
@@ -441,7 +441,7 @@ impl From<RTraitMethodImplPath> for TraitMethodImplPath {
 // Instance --------------------------------------------------------
 #[derive(Clone, Debug, PartialEq)]
 pub struct RLibraryInstance<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
-    pub constraint_object_id: RwSignal<Uid>,
+    pub template_id: RwSignal<Uid>,
     // If the instance is of a particular operative
     pub operative_library_id: RwSignal<Option<Uid>>,
     pub tag: RTag,
@@ -455,7 +455,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<LibraryInstance<T
 {
     fn from(value: LibraryInstance<TTypes, TValues>) -> Self {
         Self {
-            constraint_object_id: RwSignal::new(value.template_id),
+            template_id: RwSignal::new(value.template_id),
             operative_library_id: RwSignal::new(value.operative_library_id),
             tag: value.tag.into(),
             other_edges: RwSignal::new(
@@ -518,7 +518,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryInstance<
 {
     fn from(value: RLibraryInstance<TTypes, TValues>) -> Self {
         Self {
-            template_id: value.constraint_object_id.get(),
+            template_id: value.template_id.get(),
             operative_library_id: value.operative_library_id.get(),
             tag: value.tag.into(),
             other_edges: value
@@ -578,12 +578,12 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO<TTypes, TValues>
     }
 }
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryInstance<TTypes, TValues> {
-    pub fn new<T>(constraint_object_id: Uid, operative_library_id: Option<Uid>, name: T) -> Self
+    pub fn new<T>(template_id: Uid, operative_library_id: Option<Uid>, name: T) -> Self
     where
         T: Into<String>,
     {
         Self {
-            constraint_object_id: RwSignal::new(constraint_object_id),
+            template_id: RwSignal::new(template_id),
             operative_library_id: RwSignal::new(operative_library_id),
             tag: RTag::new(name),
             other_edges: RwSignal::new(vec![]),
@@ -688,9 +688,9 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits>
 // Operatives -------------------------------------------------------------------------------
 #[derive(Clone, Debug, PartialEq)]
 pub struct RLibraryOperative<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
-    pub constraint_object_id: RwSignal<Uid>,
+    pub template_id: RwSignal<Uid>,
     // If the operative is based on another operative
-    pub operative_library_id: RwSignal<Option<Uid>>,
+    pub parent_operative_id: RwSignal<Option<Uid>>,
     pub tag: RTag,
     pub fulfilled_operatives: RwSignal<Vec<RFulfilledOperative>>,
     pub locked_fields: RwSignal<Vec<RFulfilledFieldConstraint<TTypes, TValues>>>,
@@ -701,8 +701,8 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<LibraryOperative<
 {
     fn from(value: LibraryOperative<TTypes, TValues>) -> Self {
         Self {
-            constraint_object_id: RwSignal::new(value.template_id),
-            operative_library_id: RwSignal::new(value.operative_library_id),
+            template_id: RwSignal::new(value.template_id),
+            parent_operative_id: RwSignal::new(value.operative_library_id),
             tag: value.tag.into(),
             fulfilled_operatives: RwSignal::new(
                 value
@@ -756,8 +756,8 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryOperative
 {
     fn from(value: RLibraryOperative<TTypes, TValues>) -> Self {
         Self {
-            template_id: value.constraint_object_id.get(),
-            operative_library_id: value.operative_library_id.get(),
+            template_id: value.template_id.get(),
+            operative_library_id: value.parent_operative_id.get(),
             tag: value.tag.into(),
             fulfilled_operatives: value
                 .fulfilled_operatives
@@ -809,13 +809,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO<TTypes, TValues>
     }
 }
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryOperative<TTypes, TValues> {
-    pub fn new<T>(constraint_object_id: Uid, operative_library_id: Option<Uid>, name: T) -> Self
+    pub fn new<T>(template_id: Uid, operative_library_id: Option<Uid>, name: T) -> Self
     where
         T: Into<String>,
     {
         Self {
-            constraint_object_id: RwSignal::new(constraint_object_id),
-            operative_library_id: RwSignal::new(operative_library_id),
+            template_id: RwSignal::new(template_id),
+            parent_operative_id: RwSignal::new(operative_library_id),
             tag: RTag::new(name),
             fulfilled_operatives: RwSignal::new(vec![]),
             locked_fields: RwSignal::new(vec![]),
