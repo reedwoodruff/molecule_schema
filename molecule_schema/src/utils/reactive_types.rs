@@ -443,10 +443,11 @@ impl From<RTraitMethodImplPath> for TraitMethodImplPath {
 pub struct RLibraryInstance<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub template_id: RwSignal<Uid>,
     // If the instance is of a particular operative
-    pub operative_library_id: RwSignal<Option<Uid>>,
+    pub parent_operative_id: RwSignal<Option<Uid>>,
     pub tag: RTag,
     pub other_edges: RwSignal<Vec<RFulfilledOperative>>,
-    pub fulfilled_operatives: RwSignal<Vec<RFulfilledOperative>>,
+    pub fulfilled_library_operatives: RwSignal<Vec<RFulfilledOperative>>,
+    pub fulfilled_trait_operatives: RwSignal<Vec<RFulfilledOperative>>,
     pub data: RwSignal<Vec<RFulfilledFieldConstraint<TTypes, TValues>>>,
     pub trait_impls: RwSignal<HashMap<Uid, RTraitImpl>>,
 }
@@ -456,7 +457,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<LibraryInstance<T
     fn from(value: LibraryInstance<TTypes, TValues>) -> Self {
         Self {
             template_id: RwSignal::new(value.template_id),
-            operative_library_id: RwSignal::new(value.operative_library_id),
+            parent_operative_id: RwSignal::new(value.parent_operative_id),
             tag: value.tag.into(),
             other_edges: RwSignal::new(
                 value
@@ -466,9 +467,17 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<LibraryInstance<T
                     .map(|edge| edge.into())
                     .collect(),
             ),
-            fulfilled_operatives: RwSignal::new(
+            fulfilled_library_operatives: RwSignal::new(
                 value
-                    .fulfilled_operatives
+                    .fulfilled_library_operatives
+                    .iter()
+                    .cloned()
+                    .map(|operative| operative.into())
+                    .collect(),
+            ),
+            fulfilled_trait_operatives: RwSignal::new(
+                value
+                    .fulfilled_trait_operatives
                     .iter()
                     .cloned()
                     .map(|operative| operative.into())
@@ -519,7 +528,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryInstance<
     fn from(value: RLibraryInstance<TTypes, TValues>) -> Self {
         Self {
             template_id: value.template_id.get(),
-            operative_library_id: value.operative_library_id.get(),
+            parent_operative_id: value.parent_operative_id.get(),
             tag: value.tag.into(),
             other_edges: value
                 .other_edges
@@ -528,8 +537,15 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryInstance<
                 .cloned()
                 .map(|edge| edge.into())
                 .collect(),
-            fulfilled_operatives: value
-                .fulfilled_operatives
+            fulfilled_library_operatives: value
+                .fulfilled_library_operatives
+                .get()
+                .iter()
+                .cloned()
+                .map(|operative| operative.into())
+                .collect(),
+            fulfilled_trait_operatives: value
+                .fulfilled_library_operatives
                 .get()
                 .iter()
                 .cloned()
@@ -584,10 +600,11 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryInstance<TType
     {
         Self {
             template_id: RwSignal::new(template_id),
-            operative_library_id: RwSignal::new(operative_library_id),
+            parent_operative_id: RwSignal::new(operative_library_id),
             tag: RTag::new(name),
             other_edges: RwSignal::new(vec![]),
-            fulfilled_operatives: RwSignal::new(vec![]),
+            fulfilled_library_operatives: RwSignal::new(vec![]),
+            fulfilled_trait_operatives: RwSignal::new(vec![]),
             data: RwSignal::new(vec![]),
             trait_impls: RwSignal::new(HashMap::new()),
         }
@@ -596,7 +613,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryInstance<TType
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RFulfilledOperative {
-    pub operative_id: RwSignal<ROperativeVariants>,
+    pub operative_id: RwSignal<Uid>,
     pub fulfilling_instance_id: RwSignal<Uid>,
 }
 impl From<FulfilledOperative> for RFulfilledOperative {
@@ -616,33 +633,33 @@ impl From<RFulfilledOperative> for FulfilledOperative {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum ROperativeVariants {
-    LibraryOperative(RwSignal<Uid>),
-    TraitOperative(RwSignal<Uid>),
-}
-impl From<OperativeVariants> for ROperativeVariants {
-    fn from(value: OperativeVariants) -> Self {
-        match value {
-            OperativeVariants::TraitOperative(val) => {
-                ROperativeVariants::TraitOperative(RwSignal::new(val))
-            }
-            OperativeVariants::LibraryOperative(val) => {
-                ROperativeVariants::LibraryOperative(RwSignal::new(val))
-            }
-        }
-    }
-}
-impl From<ROperativeVariants> for OperativeVariants {
-    fn from(value: ROperativeVariants) -> Self {
-        match value {
-            ROperativeVariants::TraitOperative(val) => OperativeVariants::TraitOperative(val.get()),
-            ROperativeVariants::LibraryOperative(val) => {
-                OperativeVariants::LibraryOperative(val.get())
-            }
-        }
-    }
-}
+// #[derive(Clone, Debug, PartialEq)]
+// pub enum ROperativeVariants {
+//     LibraryOperative(RwSignal<Uid>),
+//     TraitOperative(RwSignal<Uid>),
+// }
+// impl From<OperativeVariants> for ROperativeVariants {
+//     fn from(value: OperativeVariants) -> Self {
+//         match value {
+//             OperativeVariants::TraitOperative(val) => {
+//                 ROperativeVariants::TraitOperative(RwSignal::new(val))
+//             }
+//             OperativeVariants::LibraryOperative(val) => {
+//                 ROperativeVariants::LibraryOperative(RwSignal::new(val))
+//             }
+//         }
+//     }
+// }
+// impl From<ROperativeVariants> for OperativeVariants {
+//     fn from(value: ROperativeVariants) -> Self {
+//         match value {
+//             ROperativeVariants::TraitOperative(val) => OperativeVariants::TraitOperative(val.get()),
+//             ROperativeVariants::LibraryOperative(val) => {
+//                 OperativeVariants::LibraryOperative(val.get())
+//             }
+//         }
+//     }
+// }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RFulfilledFieldConstraint<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
@@ -692,7 +709,8 @@ pub struct RLibraryOperative<TTypes: ConstraintTraits, TValues: ConstraintTraits
     // If the operative is based on another operative
     pub parent_operative_id: RwSignal<Option<Uid>>,
     pub tag: RTag,
-    pub fulfilled_operatives: RwSignal<Vec<RFulfilledOperative>>,
+    pub fulfilled_library_operatives: RwSignal<Vec<RFulfilledOperative>>,
+    pub fulfilled_trait_operatives: RwSignal<Vec<RFulfilledOperative>>,
     pub locked_fields: RwSignal<Vec<RFulfilledFieldConstraint<TTypes, TValues>>>,
     pub trait_impls: RwSignal<HashMap<Uid, RTraitImpl>>,
 }
@@ -702,11 +720,19 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<LibraryOperative<
     fn from(value: LibraryOperative<TTypes, TValues>) -> Self {
         Self {
             template_id: RwSignal::new(value.template_id),
-            parent_operative_id: RwSignal::new(value.operative_library_id),
+            parent_operative_id: RwSignal::new(value.parent_operative_id),
             tag: value.tag.into(),
-            fulfilled_operatives: RwSignal::new(
+            fulfilled_library_operatives: RwSignal::new(
                 value
-                    .fulfilled_operatives
+                    .fulfilled_library_operatives
+                    .iter()
+                    .cloned()
+                    .map(|item| item.into())
+                    .collect(),
+            ),
+            fulfilled_trait_operatives: RwSignal::new(
+                value
+                    .fulfilled_trait_operatives
                     .iter()
                     .cloned()
                     .map(|item| item.into())
@@ -757,10 +783,17 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RLibraryOperative
     fn from(value: RLibraryOperative<TTypes, TValues>) -> Self {
         Self {
             template_id: value.template_id.get(),
-            operative_library_id: value.parent_operative_id.get(),
+            parent_operative_id: value.parent_operative_id.get(),
             tag: value.tag.into(),
-            fulfilled_operatives: value
-                .fulfilled_operatives
+            fulfilled_library_operatives: value
+                .fulfilled_library_operatives
+                .get()
+                .iter()
+                .cloned()
+                .map(|item| item.into())
+                .collect(),
+            fulfilled_trait_operatives: value
+                .fulfilled_trait_operatives
                 .get()
                 .iter()
                 .cloned()
@@ -817,7 +850,8 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryOperative<TTyp
             template_id: RwSignal::new(template_id),
             parent_operative_id: RwSignal::new(operative_library_id),
             tag: RTag::new(name),
-            fulfilled_operatives: RwSignal::new(vec![]),
+            fulfilled_library_operatives: RwSignal::new(vec![]),
+            fulfilled_trait_operatives: RwSignal::new(vec![]),
             locked_fields: RwSignal::new(vec![]),
             trait_impls: RwSignal::new(HashMap::new()),
         }

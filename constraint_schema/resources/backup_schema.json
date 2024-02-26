@@ -89,7 +89,8 @@
         "name": "owner",
         "id": 900
       },
-      "fulfilled_operatives": [],
+      "fulfilled_library_operatives": [],
+      "fulfilled_trait_operatives": [],
       "locked_fields": [
         {
           "tag": {

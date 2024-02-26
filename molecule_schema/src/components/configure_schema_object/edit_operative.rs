@@ -14,16 +14,16 @@ use crate::{
             select_input::{SelectInput, SelectInputOptional},
             text_input::TextInput,
         },
-        tree_view::{TreeNodeDataSelectionType, TreeView},
+        tree_view_revamp::{TreeNodeDataSelectionType, TreeView},
         SchemaContext, TreeTypes,
     },
     utils::reactive_types::{
-        RFieldConstraint, RLibraryInstance, RLibraryOperative, ROperativeVariants, RTag,
-        RTraitMethodImplPath, RTraitOperative,
+        RFieldConstraint, RLibraryInstance, RLibraryOperative, RTag, RTraitMethodImplPath,
+        RTraitOperative,
     },
 };
 
-use super::super::tree_view::TreeRef;
+use super::super::tree_view_revamp::TreeRef;
 
 #[component]
 pub fn EditOperative(element: TreeRef) -> impl IntoView {
@@ -57,7 +57,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                 .schema
                 .operative_library
                 .with(|ops| ops.get(&parent_op_id).unwrap().clone());
-            fulfilled_operatives.extend(parent_op.fulfilled_operatives.get());
+            fulfilled_operatives.extend(parent_op.fulfilled_library_operatives.get());
             fulfilled_fields.extend(parent_op.locked_fields.get());
             next_parent_operative = parent_op.parent_operative_id.get();
         }
@@ -74,7 +74,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             .chain(
                 active_object
                     .get()
-                    .fulfilled_operatives
+                    .fulfilled_library_operatives
                     .get()
                     .iter()
                     .map(|fulf_op| fulf_op.fulfilling_instance_id.get()),
@@ -98,18 +98,10 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             .filter(|op_id| {
                 !active_object
                     .get()
-                    .fulfilled_operatives
+                    .fulfilled_library_operatives
                     .get()
                     .iter()
-                    .filter_map(|fulf_op| {
-                        if let ROperativeVariants::LibraryOperative(lib_op_id) =
-                            fulf_op.operative_id.get()
-                        {
-                            Some(lib_op_id.get())
-                        } else {
-                            None
-                        }
-                    })
+                    .map(|fulf_op| fulf_op.operative_id.get())
                     .collect::<Vec<_>>()
                     .contains(op_id)
             })
@@ -133,18 +125,10 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             .filter(|op| {
                 !active_object
                     .get()
-                    .fulfilled_operatives
+                    .fulfilled_trait_operatives
                     .get()
                     .iter()
-                    .filter_map(|fulf_op| {
-                        if let ROperativeVariants::TraitOperative(trait_op_id) =
-                            fulf_op.operative_id.get()
-                        {
-                            Some(trait_op_id.get())
-                        } else {
-                            None
-                        }
-                    })
+                    .map(|fulf_op| fulf_op.operative_id.get())
                     .collect::<Vec<_>>()
                     .contains(&op.trait_id.get())
             })
@@ -235,7 +219,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                 if entry.1 == data_type {
                     let mut new_path: Vec<RTraitMethodImplPath> = path
                         .iter()
-                        .filter(|item| item.0 != TreeTypes::ConstraintObject)
+                        .filter(|item| item.0 != TreeTypes::Template)
                         .map(|item| {
                             let new_trait_method_impl_path_item = match item.0.clone() {
                                 TreeTypes::Instance => {

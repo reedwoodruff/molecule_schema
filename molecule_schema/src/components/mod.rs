@@ -1,7 +1,7 @@
 use std::{fmt::Display, rc::Rc};
 
 use crate::{
-    components::{edit_schema_object::EditSchemaObject, tree_view::TreeView},
+    components::{edit_schema_object::EditSchemaObject, tree_view_revamp::TreeView},
     utils::{
         export_schema,
         reactive_types::{
@@ -17,18 +17,19 @@ use serde_types::{
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 
-use self::tree_view::TreeRef;
+use self::tree_view_revamp::TreeRef;
 
 pub mod common;
 pub mod configure_schema_object;
 pub mod edit_schema_object;
 pub mod tree_view;
+pub mod tree_view_revamp;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum TreeTypes {
     // Trait,
     Instance,
-    ConstraintObject,
+    Template,
     LibraryOperative,
     TraitOperative(RTraitOperative),
 }
@@ -36,7 +37,7 @@ impl Display for TreeTypes {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             TreeTypes::Instance => write!(f, "instance"),
-            TreeTypes::ConstraintObject => write!(f, "constraint_object"),
+            TreeTypes::Template => write!(f, "constraint_object"),
             TreeTypes::LibraryOperative => write!(f, "library_operative"),
             TreeTypes::TraitOperative(_) => write!(f, "trait_operative"),
         }
@@ -93,7 +94,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                                 <div>
                                 <RootListItem
                                     tag=child.tag
-                                    on_click=move |id: Uid| clone(id, TreeTypes::ConstraintObject)
+                                    on_click=move |id: Uid| clone(id, TreeTypes::Template)
                                 />
                                 </div>
                             }
@@ -160,7 +161,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
         </div>
         <Show when=move || {
             match selected_element.get() {
-                Some(TreeRef(TreeTypes::ConstraintObject, _id_)) => true,
+                Some(TreeRef(TreeTypes::Template, _id_)) => true,
                 _ => false,
             }
         }>

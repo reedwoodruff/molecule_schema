@@ -14,7 +14,7 @@ use crate::{
             select_input::{SelectInput, SelectInputOptional},
             text_input::TextInput,
         },
-        tree_view::{TreeNodeDataSelectionType, TreeView},
+        tree_view_revamp::{TreeNodeDataSelectionType, TreeView},
         SchemaContext, TreeTypes,
     },
     utils::reactive_types::{
@@ -23,7 +23,7 @@ use crate::{
     },
 };
 
-use super::tree_view::TreeRef;
+use super::tree_view_revamp::TreeRef;
 
 #[component]
 pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
@@ -257,7 +257,7 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
                 if entry.1 == data_type {
                     let mut new_path: Vec<RTraitMethodImplPath> = path
                         .iter()
-                        .filter(|item| item.0 != TreeTypes::ConstraintObject)
+                        .filter(|item| item.0 != TreeTypes::Template)
                         .map(|item| {
                             let new_trait_method_impl_path_item = match item.0.clone() {
                                 TreeTypes::Instance => {

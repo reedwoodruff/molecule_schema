@@ -3,6 +3,7 @@ use proc_macro2::TokenTree;
 use quote::quote;
 use serde_types::common::*;
 use serde_types::constraint_schema::*;
+use serde_types::constraint_schema_item::ConstraintSchemaInstantiable;
 use serde_types::primitives::*;
 use syn::{
     parse::{Parse, ParseStream},
@@ -104,13 +105,15 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
 
     let generate_trait_impl_streams = |instantiable: Box::<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>>| -> proc_macro2::TokenStream {
         let instantiable_name = get_variant_name(&instantiable);
-        let mut rolling_trait_impl_list = instantiable.get_trait_impls().clone();
-        let parent_template = reference_constraint_schema.template_library.get(instantiable.get_template_id()).expect("Referenced constraint object must exist");
-        rolling_trait_impl_list.extend(parent_template.get_trait_impls().clone());
-        if let Some(parent_library_operative_id) = instantiable.get_operative_library_id() {
-            let parent_library_operative = reference_constraint_schema.operative_library.get(parent_library_operative_id).expect("Referenced library operative must exist");
-            rolling_trait_impl_list.extend(parent_library_operative.get_trait_impls().clone());
-        }
+        // let mut rolling_trait_impl_list = instantiable.get_trait_impls().clone();
+        // let parent_template = reference_constraint_schema.template_library.get(instantiable.get_template_id()).expect("Referenced constraint object must exist");
+        // rolling_trait_impl_list.extend(parent_template.get_trait_impls().clone());
+        // if let Some(parent_library_operative_id) = instantiable.get_operative_library_id() {
+        //     let parent_library_operative = reference_constraint_schema.operative_library.get(parent_library_operative_id).expect("Referenced library operative must exist");
+        //     rolling_trait_impl_list.extend(parent_library_operative.get_trait_impls().clone());
+        // }
+        let mut rolling_trait_impl_list = instantiable.get_local_trait_impls().clone();
+        rolling_trait_impl_list.extend(instantiable.get_ancestors_trait_impls(&reference_constraint_schema));
 
         let trait_streams = rolling_trait_impl_list.iter().map(|(trait_id, method_impls)| {
             let trait_def = reference_constraint_schema.traits.get(trait_id).expect("trait must exist");
@@ -311,31 +314,27 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         // };
         let reference_template = reference_constraint_schema.clone().template_library.get(reference_template_id).cloned().expect("instantiable must be based on a constraint object");
 
-        // let fulfilled_ops_as_instance_ids  = if let Some(ids) = reference_constraint_object.get_fulfilled_operatives() {
-        //     ids.iter().map(|item| item.fulfilling_instance_id).collect::<Vec<_>>()
-        // } else {
-        //     Vec::new()
-        // };
-        let mut fulfilled_ops_as_instance_ids = Vec::new();
-        let mut fulfilled_library_ops = Vec::new();
-        let mut fulfilled_trait_ops = Vec::new();
-        if let Some(ids) = reference_template.get_fulfilled_operatives() {
-            ids.iter().for_each(|item| {
-                fulfilled_ops_as_instance_ids.push(item.fulfilling_instance_id);
-                match item.operative_id {
-                    OperativeVariants::LibraryOperative(lib_op_id) => {
-                        fulfilled_library_ops.push(lib_op_id);
-                    }
-                    OperativeVariants::TraitOperative(trait_op_id) => {
-                        fulfilled_trait_ops.push(trait_op_id);
-                    }
-                }
-            })
-        }
+        // let mut fulfilled_ops_as_instance_ids = Vec::new();
+        // let mut fulfilled_library_ops = Vec::new();
+        // let mut fulfilled_trait_ops = Vec::new();
+        // if let Some(ids) = reference_template.get_fulfilled_library_operatives() {
+        //     ids.iter().for_each(|item| {
+        //         fulfilled_ops_as_instance_ids.push(item.fulfilling_instance_id);
+        //         match item.operative_id {
+        //             OperativeVariants::LibraryOperative(lib_op_id) => {
+        //                 fulfilled_library_ops.push(lib_op_id);
+        //             }
+        //             OperativeVariants::TraitOperative(trait_op_id) => {
+        //                 fulfilled_trait_ops.push(trait_op_id);
+        //             }
+        //         }
+        //     })
+        // }
 
-        let library_operatives: Vec<_> = reference_template.library_operatives.iter().filter(|op_id| !fulfilled_library_ops.contains(op_id)).map(|op_id| {
-            reference_constraint_schema.operative_library.get(op_id).expect("Operative Library should contain the operative ID referenced within a template's constituents")
-        }).collect(); 
+        // let library_operatives: Vec<_> = reference_template.library_operatives.iter().filter(|op_id| !fulfilled_library_ops.contains(op_id)).map(|op_id| {
+        //     reference_constraint_schema.operative_library.get(op_id).expect("Operative Library should contain the operative ID referenced within a template's constituents")
+        // }).collect(); 
+        let library_operatives = instantiable.get_all_unfulfilled_library_operatives(&reference_constraint_schema);
         let library_operative_names: Vec<_> = library_operatives.iter().map(|op| {
             syn::Ident::new(&op.tag.name, proc_macro2::Span::call_site())
         }).collect();
@@ -350,7 +349,8 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         }).collect();
         let simple_operatives = reference_template.library_operatives.iter().map(|&val| quote! { #val }).collect::<Vec<_>>();
 
-        let trait_operatives = &reference_template.trait_operatives.iter().filter(|trait_op| !fulfilled_trait_ops.contains(&trait_op.tag.id)).collect::<Vec<_>>();
+        // let trait_operatives = &reference_template.trait_operatives.iter().filter(|trait_op| !fulfilled_trait_ops.contains(&trait_op.tag.id)).collect::<Vec<_>>();
+        let trait_operatives = instantiable.get_all_unfulfilled_trait_operatives(&reference_constraint_schema);
         let trait_operative_trait_names = trait_operatives.iter().map(|op| {
             let trait_id = op.trait_id;
             let trait_name = &reference_constraint_schema.traits.get(&trait_id).expect("trait must exist").tag.name;
@@ -369,15 +369,19 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
             op.tag.id
         }).collect();
 
-        let mut all_instance_ids = constraint_schema_generated.template_library.get(&reference_template.get_template_id()).unwrap().instances.clone();
-        all_instance_ids.extend(fulfilled_ops_as_instance_ids);
-        let all_instance_names = all_instance_ids.iter().map(|item| {let instance = constraint_schema_generated.instance_library.get(&item).unwrap();
-        syn::Ident::new(&instance.tag.name.clone(), proc_macro2::Span::call_site())
+        // let mut all_instance_ids = constraint_schema_generated.template_library.get(&reference_template.get_template_id()).unwrap().instances.clone();
+        // all_instance_ids.extend(fulfilled_ops_as_instance_ids);
+        let all_instances = instantiable.get_all_constituent_instances(&constraint_schema_generated);
+        let all_instance_names = all_instances.iter().map(|item| {
+            syn::Ident::new(&item.tag.name.clone(), proc_macro2::Span::call_site())
         });
 
-        let fulfilled_field_constraints = instantiable.get_fulfilled_fields().cloned().unwrap_or(Vec::<FulfilledFieldConstraint<PrimitiveTypes,PrimitiveValues>>::new());
-        let fulfilled_field_constraint_ids = fulfilled_field_constraints.iter().map(|field| field.tag.id).collect::<Vec<_>>();
-        reference_template.field_constraints.iter().filter(|field| !fulfilled_field_constraint_ids.contains(&field.tag.id)).for_each(|field| {
+        // let fulfilled_field_constraints = instantiable.get_fulfilled_fields().cloned().unwrap_or(Vec::<FulfilledFieldConstraint<PrimitiveTypes,PrimitiveValues>>::new());
+        // let fulfilled_field_constraints = instantiable.get_local_fulfilled_fields().unwrap_or(&Vec::<FulfilledFieldConstraint<PrimitiveTypes,PrimitiveValues>>::new());
+        // let fulfilled_field_constraint_ids = fulfilled_field_constraints.iter().map(|field| field.tag.id).collect::<Vec<_>>();
+        // reference_template.field_constraints.iter().filter(|field| !fulfilled_field_constraint_ids.contains(&field.tag.id)).for_each(|field| {
+        println!("unfulfilled_fields: {:?}", instantiable.get_all_unfulfilled_fields(&reference_constraint_schema));
+        instantiable.get_all_unfulfilled_fields(&reference_constraint_schema).iter().for_each(|field| {
                 let name = syn::Ident::new(&field.tag.name, proc_macro2::Span::call_site());
                 field_names.push(name.clone());
                 field_names_setters.push(syn::Ident::new(
