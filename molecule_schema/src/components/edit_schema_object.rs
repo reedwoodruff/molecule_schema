@@ -1,12 +1,11 @@
 use std::{collections::HashMap, rc::Rc};
 
-use leptos::{ev::submit, logging::log, *};
+use leptos::{logging::log, *};
 use serde_types::{
     common::Uid,
-    constraint_schema::TraitOperative,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
-use web_sys::SubmitEvent;
+
 
 use crate::{
     components::{
@@ -109,8 +108,8 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
             .iter()
             .map(|(trait_id, trait_methods)| {
                 (
-                    trait_methods.clone(),
-                    ctx.schema.traits.get().get(&trait_id).cloned().unwrap(),
+                    *trait_methods,
+                    ctx.schema.traits.get().get(trait_id).cloned().unwrap(),
                 )
             })
             .collect::<Vec<_>>()
@@ -150,7 +149,7 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
     });
 
     let add_instance_id = RwSignal::new(None);
-    let add_instance_id_clone = add_instance_id.clone();
+    let _add_instance_id_clone = add_instance_id;
 
     let on_click_add_instance = move |_| {
         if let Some(instance_id) = add_instance_id.get() {
@@ -259,7 +258,8 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
                         .iter()
                         .filter(|item| item.0 != TreeTypes::Template)
                         .map(|item| {
-                            let new_trait_method_impl_path_item = match item.0.clone() {
+                            
+                            match item.0.clone() {
                                 TreeTypes::Instance => {
                                     RTraitMethodImplPath::InstanceConstituent(RwSignal::new(item.1))
                                 }
@@ -279,8 +279,7 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
                                     log!("strange path item");
                                     RTraitMethodImplPath::Field(RwSignal::new(item.1))
                                 }
-                            };
-                            new_trait_method_impl_path_item
+                            }
                         })
                         .collect();
                     match last_item {
@@ -304,8 +303,7 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
                 } else {
                     log!("incorrect data type");
                 }
-            } else {
-            }
+            } 
         },
     );
 
@@ -377,7 +375,14 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
         <div class="large-margin med-pad border-gray flex">
             <div class="flex-grow margin-right border-right">
                 <button on:click=move |_| ctx.selected_element.set(None)>X</button>
-                <button on:click=move |_| ctx.schema.template_library.update(|prev| {prev.remove(&element.1);})>delete element</button>
+                <button on:click=move |_| {
+                    ctx
+                        .schema
+                        .template_library
+                        .update(|prev| {
+                            prev.remove(&element.1);
+                        })
+                }>delete element</button>
                 <br/>
                 <TextInput
                     initial_value=new_operative_name.get()
@@ -467,7 +472,7 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
                 />
                 <button
                     on:click=on_click_add_instance
-                    disabled=move || add_instance_id.get() == None
+                    disabled=move || add_instance_id.get().is_none()
                 >
                     +
                 </button>
@@ -496,7 +501,7 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
                 />
                 <button
                     on:click=on_click_add_operative
-                    disabled=move || add_operative_id.get() == None
+                    disabled=move || add_operative_id.get().is_none()
                 >
                     +
                 </button>
@@ -534,13 +539,13 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
 
                 <button
                     on:click=on_click_add_trait_operative
-                    disabled=move || add_trait_operative_id.get() == None
+                    disabled=move || add_trait_operative_id.get().is_none()
                 >
                     +
                 </button>
                 <For
                     each=constituent_trait_operatives
-                    key=move |(trait_operative, trait_def)| trait_operative.tag.id
+                    key=move |(trait_operative, _trait_def)| trait_operative.tag.id
                     children=move |(trait_operative, trait_def)| {
                         view! {
                             <div>
@@ -614,18 +619,23 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
 
                 <For
                     each=trait_impls
-                    key=move |(methods, trait_def)| trait_def.tag.id
+                    key=move |(_methods, trait_def)| trait_def.tag.id
                     children=move |(methods, trait_def)| {
-                        let trait_id = trait_def.tag.id.get().clone();
+                        let trait_id = trait_def.tag.id.get();
                         view! {
                             <div>
-                                trait name: {trait_def.tag.name}
-                                <br/>
-                                <button on:click=move |_| {active_object.get().trait_impls.update(|prev| {prev.remove(&trait_id.clone());})}>delete impl</button>
-                                <br/> trait methods:
+                                trait name: {trait_def.tag.name} <br/>
+                                <button on:click=move |_| {
+                                    active_object
+                                        .get()
+                                        .trait_impls
+                                        .update(|prev| {
+                                            prev.remove(&trait_id.clone());
+                                        })
+                                }>delete impl</button> <br/> trait methods:
                                 <For
                                     each=methods
-                                    key=move |(method_id, path)| *method_id
+                                    key=move |(method_id, _path)| *method_id
                                     children=move |(method_id, path)| {
                                         let method_def = trait_def
                                             .methods
@@ -639,20 +649,19 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
                                             .iter()
                                             .map(|path_item| {
                                                 match path_item {
-                                                    RTraitMethodImplPath::Field(item) => "Field".to_string(),
-                                                    RTraitMethodImplPath::InstanceConstituent(item) => {
+                                                    RTraitMethodImplPath::Field(_item) => "Field".to_string(),
+                                                    RTraitMethodImplPath::InstanceConstituent(_item) => {
                                                         "Instance".to_string()
                                                     }
-                                                    RTraitMethodImplPath::LibraryOperativeConstituent(item) => {
+                                                    RTraitMethodImplPath::LibraryOperativeConstituent(_item) => {
                                                         "LibraryOperative".to_string()
                                                     }
-                                                    RTraitMethodImplPath::TraitOperativeConstituent {
-                                                        trait_operative_id,
-                                                        ..
-                                                    } => "TraitOperative".to_string(),
+                                                    RTraitMethodImplPath::TraitOperativeConstituent { .. } => {
+                                                        "TraitOperative".to_string()
+                                                    }
                                                     RTraitMethodImplPath::TraitMethod {
-                                                        trait_method_id,
-                                                        trait_id,
+                                                        trait_method_id: _,
+                                                        trait_id: _,
                                                     } => "TraitMethod".to_string(),
                                                 }
                                             })

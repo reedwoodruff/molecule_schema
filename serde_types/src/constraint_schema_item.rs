@@ -105,7 +105,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
     }
     fn get_ancestors_trait_impls(
         &self,
-        schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
+        _schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> HashMap<Uid, TraitImpl> {
         HashMap::new()
     }
@@ -115,14 +115,14 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
 
     fn get_ancestors_fulfilled_library_operatives(
         &self,
-        schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
+        _schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> Vec<FulfilledOperative> {
         Vec::new()
     }
 
     fn get_all_unfulfilled_library_operatives_ids(
         &self,
-        schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
+        _schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> Vec<Uid> {
         self.library_operatives.clone()
     }
@@ -133,14 +133,14 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
 
     fn get_ancestors_fulfilled_trait_operatives(
         &self,
-        schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
+        _schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> Vec<FulfilledOperative> {
         Vec::new()
     }
 
     fn get_all_unfulfilled_trait_operatives(
         &self,
-        schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
+        _schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> Vec<TraitOperative> {
         self.trait_operatives.clone()
     }
@@ -153,21 +153,21 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
 
     fn get_ancestors_fulfilled_fields(
         &self,
-        schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
+        _schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> Vec<FulfilledFieldConstraint<Self::TTypes, Self::TValues>> {
         Vec::new()
     }
 
     fn get_all_unfulfilled_fields(
         &self,
-        schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
+        _schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> Vec<FieldConstraint<Self::TTypes>> {
         self.field_constraints.clone()
     }
 
     fn get_all_constituent_instance_ids(
         &self,
-        schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
+        _schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> Vec<Uid> {
         self.instances.clone()
     }
@@ -205,6 +205,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
             ancestor_trait_impls.extend(parent.get_local_trait_impls().to_owned());
             maybe_next_parent = parent.parent_operative_id;
         }
+        let template_traits_impled = schema
+            .template_library
+            .get(&self.template_id)
+            .unwrap()
+            .trait_impls
+            .clone();
+        ancestor_trait_impls.extend(template_traits_impled);
         ancestor_trait_impls
     }
     fn get_local_fulfilled_library_operatives(&self) -> Option<&Vec<FulfilledOperative>> {
@@ -236,7 +243,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
         let fulfilled_op_ids = self
             .get_local_fulfilled_library_operatives()
             .cloned()
-            .unwrap_or_else(|| Vec::new())
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .map(|op| op.operative_id)
             .collect::<Vec<_>>();
@@ -246,14 +253,12 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
             .map(|op| op.operative_id)
             .collect::<Vec<_>>();
 
-        let final_unfulfilled_ids = potentially_unfulfilled_op_ids
+        potentially_unfulfilled_op_ids
             .into_iter()
             .filter(|op_id| {
                 !fulfilled_op_ids.contains(op_id) && !ancestor_fulfilled.contains(op_id)
             })
-            .collect::<Vec<_>>();
-
-        final_unfulfilled_ids
+            .collect::<Vec<_>>()
     }
 
     fn get_local_fulfilled_trait_operatives(&self) -> Option<&Vec<FulfilledOperative>> {
@@ -285,7 +290,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
         let fulfilled_op_ids = self
             .get_local_fulfilled_trait_operatives()
             .cloned()
-            .unwrap_or_else(|| Vec::new())
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .map(|op| op.operative_id)
             .collect::<Vec<_>>();
@@ -295,15 +300,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
             .map(|op| op.operative_id)
             .collect::<Vec<_>>();
 
-        let final_unfulfilled_trait_ops = potentially_unfulfilled_trait_ops
+        potentially_unfulfilled_trait_ops
             .into_iter()
             .filter(|trait_op| {
                 let trait_op_id = &trait_op.tag.id;
                 !fulfilled_op_ids.contains(trait_op_id) && !ancestor_fulfilled.contains(trait_op_id)
             })
-            .collect::<Vec<_>>();
-
-        final_unfulfilled_trait_ops
+            .collect::<Vec<_>>()
     }
 
     fn get_local_fulfilled_fields(
@@ -337,7 +340,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
         let fulfilled_field_ids = self
             .get_local_fulfilled_fields()
             .cloned()
-            .unwrap_or_else(|| Vec::new())
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .map(|field| field.tag.id)
             .collect::<Vec<_>>();
@@ -347,15 +350,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
             .map(|field| field.tag.id)
             .collect::<Vec<_>>();
 
-        let final_unfulfilled_fields = potentially_unfulfilled_fields
+        potentially_unfulfilled_fields
             .into_iter()
             .filter(|field| {
                 let field_id = &field.tag.id;
                 !fulfilled_field_ids.contains(field_id) && !ancestor_fulfilled.contains(field_id)
             })
-            .collect::<Vec<_>>();
-
-        final_unfulfilled_fields
+            .collect::<Vec<_>>()
     }
 
     fn get_all_constituent_instance_ids(
@@ -367,7 +368,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
         let lib_op_instance_ids = self
             .get_local_fulfilled_library_operatives()
             .cloned()
-            .unwrap_or_else(|| Vec::new())
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .chain(self.get_ancestors_fulfilled_library_operatives(schema))
             .map(|op| op.operative_id)
@@ -375,7 +376,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
         let trait_op_instance_ids = self
             .get_local_fulfilled_trait_operatives()
             .cloned()
-            .unwrap_or_else(|| Vec::new())
+            .unwrap_or_else(Vec::new)
             .iter()
             .chain(self.get_ancestors_fulfilled_trait_operatives(schema).iter())
             .map(|op| op.operative_id)
@@ -419,6 +420,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
             ancestor_trait_impls.extend(parent.get_local_trait_impls().to_owned());
             maybe_next_parent = parent.parent_operative_id;
         }
+        let template_traits_impled = schema
+            .template_library
+            .get(&self.template_id)
+            .unwrap()
+            .trait_impls
+            .clone();
+        ancestor_trait_impls.extend(template_traits_impled);
         ancestor_trait_impls
     }
     fn get_local_fulfilled_library_operatives(&self) -> Option<&Vec<FulfilledOperative>> {
@@ -450,7 +458,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
         let fulfilled_op_ids = self
             .get_local_fulfilled_library_operatives()
             .cloned()
-            .unwrap_or_else(|| Vec::new())
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .map(|op| op.operative_id)
             .collect::<Vec<_>>();
@@ -460,14 +468,12 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
             .map(|op| op.operative_id)
             .collect::<Vec<_>>();
 
-        let final_unfulfilled_ids = potentially_unfulfilled_op_ids
+        potentially_unfulfilled_op_ids
             .into_iter()
             .filter(|op_id| {
                 !fulfilled_op_ids.contains(op_id) && !ancestor_fulfilled.contains(op_id)
             })
-            .collect::<Vec<_>>();
-
-        final_unfulfilled_ids
+            .collect::<Vec<_>>()
     }
 
     fn get_local_fulfilled_trait_operatives(&self) -> Option<&Vec<FulfilledOperative>> {
@@ -499,7 +505,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
         let fulfilled_op_ids = self
             .get_local_fulfilled_trait_operatives()
             .cloned()
-            .unwrap_or_else(|| Vec::new())
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .map(|op| op.operative_id)
             .collect::<Vec<_>>();
@@ -509,15 +515,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
             .map(|op| op.operative_id)
             .collect::<Vec<_>>();
 
-        let final_unfulfilled_trait_ops = potentially_unfulfilled_trait_ops
+        potentially_unfulfilled_trait_ops
             .into_iter()
             .filter(|trait_op| {
                 let trait_op_id = &trait_op.tag.id;
                 !fulfilled_op_ids.contains(trait_op_id) && !ancestor_fulfilled.contains(trait_op_id)
             })
-            .collect::<Vec<_>>();
-
-        final_unfulfilled_trait_ops
+            .collect::<Vec<_>>()
     }
 
     fn get_local_fulfilled_fields(
@@ -551,7 +555,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
         let fulfilled_field_ids = self
             .get_local_fulfilled_fields()
             .cloned()
-            .unwrap_or_else(|| Vec::new())
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .map(|field| field.tag.id)
             .collect::<Vec<_>>();
@@ -561,15 +565,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
             .map(|field| field.tag.id)
             .collect::<Vec<_>>();
 
-        let final_unfulfilled_fields = potentially_unfulfilled_fields
+        potentially_unfulfilled_fields
             .into_iter()
             .filter(|field| {
                 let field_id = &field.tag.id;
                 !fulfilled_field_ids.contains(field_id) && !ancestor_fulfilled.contains(field_id)
             })
-            .collect::<Vec<_>>();
-
-        final_unfulfilled_fields
+            .collect::<Vec<_>>()
     }
 
     fn get_all_constituent_instance_ids(
@@ -581,7 +583,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
         let lib_op_instance_ids = self
             .get_local_fulfilled_library_operatives()
             .cloned()
-            .unwrap_or_else(|| Vec::new())
+            .unwrap_or_else(Vec::new)
             .into_iter()
             .chain(self.get_ancestors_fulfilled_library_operatives(schema))
             .map(|op| op.operative_id)
@@ -589,7 +591,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
         let trait_op_instance_ids = self
             .get_local_fulfilled_trait_operatives()
             .cloned()
-            .unwrap_or_else(|| Vec::new())
+            .unwrap_or_else(Vec::new)
             .iter()
             .chain(self.get_ancestors_fulfilled_trait_operatives(schema).iter())
             .map(|op| op.operative_id)

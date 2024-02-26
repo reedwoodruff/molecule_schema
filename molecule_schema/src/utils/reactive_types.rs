@@ -1,13 +1,13 @@
 use std::{collections::HashMap, marker::PhantomData};
 
 use leptos::signal_prelude::*;
-use leptos::*;
+
 use serde_types::{
     common::{ConstraintTraits, Tag, Uid},
     constraint_schema::{
         ConstraintSchema, FieldConstraint, FulfilledFieldConstraint, FulfilledOperative,
-        LibraryInstance, LibraryOperative, LibraryTemplate, OperativeVariants, TraitDef,
-        TraitMethodDef, TraitMethodImplPath, TraitOperative,
+        LibraryInstance, LibraryOperative, LibraryTemplate, TraitDef, TraitMethodDef,
+        TraitMethodImplPath, TraitOperative,
     },
 };
 
@@ -285,6 +285,14 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO<TTypes, TValues>
         self.field_constraints.get()
     }
 }
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> Default
+    for RLibraryTemplate<TTypes, TValues>
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryTemplate<TTypes, TValues> {
     pub fn new() -> Self {
         Self {
@@ -330,6 +338,18 @@ impl<TTypes: ConstraintTraits> From<RFieldConstraint<TTypes>> for FieldConstrain
         Self {
             tag: value.tag.into(),
             value_type: value.value_type.get(),
+        }
+    }
+}
+impl<TTypes: ConstraintTraits> RFieldConstraint<TTypes> {
+    pub fn fulfill<TValues: ConstraintTraits>(
+        &self,
+        value: TValues,
+    ) -> RFulfilledFieldConstraint<TTypes, TValues> {
+        RFulfilledFieldConstraint {
+            tag: self.tag.clone().into(),
+            value_type: self.value_type.clone(),
+            value: RwSignal::new(value),
         }
     }
 }
@@ -619,7 +639,7 @@ pub struct RFulfilledOperative {
 impl From<FulfilledOperative> for RFulfilledOperative {
     fn from(value: FulfilledOperative) -> Self {
         Self {
-            operative_id: RwSignal::new(value.operative_id.into()),
+            operative_id: RwSignal::new(value.operative_id),
             fulfilling_instance_id: RwSignal::new(value.fulfilling_instance_id),
         }
     }
@@ -627,7 +647,7 @@ impl From<FulfilledOperative> for RFulfilledOperative {
 impl From<RFulfilledOperative> for FulfilledOperative {
     fn from(value: RFulfilledOperative) -> Self {
         Self {
-            operative_id: value.operative_id.get().into(),
+            operative_id: value.operative_id.get(),
             fulfilling_instance_id: value.fulfilling_instance_id.get(),
         }
     }
@@ -698,6 +718,20 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits>
             tag: value.tag.into(),
             value_type: value.value_type.get(),
             value: value.value.get(),
+        }
+    }
+}
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits>
+    RFulfilledFieldConstraint<TTypes, TValues>
+{
+    pub fn new<T>(name: T, value_type: TTypes, value: TValues) -> Self
+    where
+        T: Into<String>,
+    {
+        Self {
+            tag: RTag::new(name),
+            value_type: RwSignal::new(value_type),
+            value: RwSignal::new(value),
         }
     }
 }

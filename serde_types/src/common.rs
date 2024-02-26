@@ -44,6 +44,12 @@ pub struct FuzzyEdgeDescriptor {
     edge_type: Option<EdgeType>,
 }
 
+impl Default for FuzzyEdgeDescriptor {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FuzzyEdgeDescriptor {
     pub fn new() -> Self {
         Self {

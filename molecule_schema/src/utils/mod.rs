@@ -10,7 +10,7 @@ pub mod reactive_item;
 pub mod reactive_types;
 
 pub fn export_schema(schema: &RConstraintSchema<PrimitiveTypes, PrimitiveValues>) {
-    let path = std::path::Path::new("../../../constraint_schema/resources/schema.json");
+    let _path = std::path::Path::new("../../../constraint_schema/resources/schema.json");
 
     let converted: ConstraintSchema<PrimitiveTypes, PrimitiveValues> = schema.clone().into();
     let json = serde_json::to_string_pretty(&converted).unwrap();
@@ -18,6 +18,6 @@ pub fn export_schema(schema: &RConstraintSchema<PrimitiveTypes, PrimitiveValues>
     log! {"{}", json};
 }
 
-pub fn map_to_reactive_types(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) {
+pub fn map_to_reactive_types(_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) {
     // let reactive_
 }

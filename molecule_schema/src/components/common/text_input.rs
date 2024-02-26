@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use leptos::*;
-use web_sys::{MouseEvent, SubmitEvent};
+use web_sys::{SubmitEvent};
 
 #[component]
 pub fn TextInput<F>(
@@ -12,7 +12,7 @@ pub fn TextInput<F>(
 where
     F: Fn(String) + 'static,
 {
-    let name_signal = RwSignal::<String>::new(initial_value.into());
+    let name_signal = RwSignal::<String>::new(initial_value);
 
     let on_save = Rc::new(on_save);
     // let save = Rc::new(move || {
@@ -32,7 +32,7 @@ where
         <form on:submit=submit_form>
             <input value=name_signal on:input=move |e| name_signal.set(event_target_value(&e))/>
             <Show when=move || {
-                show_save_button.is_some_and(|ssb| ssb == true)
+                show_save_button.is_some_and(|ssb| ssb)
             }>
 
                 {

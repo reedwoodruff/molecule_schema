@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, rc::Rc};
+use std::{rc::Rc};
 
 use leptos::*;
 use serde_types::{
@@ -10,7 +10,6 @@ use crate::utils::{
     reactive_item::RConstraintSchemaItem,
     reactive_types::{
         FieldInfo, RConstraintSchema, RFieldConstraint, RTag, RTraitDef, RTraitOperative, Tagged,
-        RCSO,
     },
 };
 
@@ -75,12 +74,10 @@ fn get_tree_node_info<TTypes: ConstraintTraits, TValues: ConstraintTraits>(
         .collect::<Vec<_>>();
     let mut traits_impled = item.get_local_trait_impls();
     traits_impled.extend(item.get_ancestors_trait_impls(schema));
-    let traits_impled = traits_impled
-        .iter()
-        .map(|(id, _)| {
+    let traits_impled = traits_impled.keys().map(|id| {
             schema
                 .traits
-                .with(|trait_items| trait_items.get(&id).unwrap().clone())
+                .with(|trait_items| trait_items.get(id).unwrap().clone())
         })
         .collect();
 
@@ -121,7 +118,7 @@ where
             let element = move || {
                 ctx.schema
                     .template_library
-                    .with(|o| o.get(&id).unwrap().clone())
+                    .with(|o| o.get(id).unwrap().clone())
             };
             get_tree_node_info(TreeTypes::Template, element(), &ctx.schema)
         }
@@ -129,7 +126,7 @@ where
             let element = move || {
                 ctx.schema
                     .instance_library
-                    .with(|o| o.get(&id).unwrap().clone())
+                    .with(|o| o.get(id).unwrap().clone())
             };
             get_tree_node_info(TreeTypes::Instance, element(), &ctx.schema)
         }
@@ -137,13 +134,13 @@ where
             let element = move || {
                 ctx.schema
                     .operative_library
-                    .with(|o| o.get(&id).unwrap().clone())
+                    .with(|o| o.get(id).unwrap().clone())
             };
             get_tree_node_info(TreeTypes::LibraryOperative, element(), &ctx.schema)
         }
 
         TreeRef(TreeTypes::TraitOperative(trait_op), id) => {
-            let element = move || ctx.schema.traits.with(|el| el.get(&id).unwrap().clone());
+            let element = move || ctx.schema.traits.with(|el| el.get(id).unwrap().clone());
 
             TreeNodeInfo {
                 top_level_type: TreeTypes::TraitOperative(trait_op.clone()),

@@ -55,7 +55,20 @@ impl Display for PrimitiveTypes {
             PrimitiveTypes::U32 => write!(f, "u32"),
             PrimitiveTypes::F32 => write!(f, "f32"),
             PrimitiveTypes::Bool => write!(f, "bool"),
-            PrimitiveTypes::Option(val) => write!(f, "option({})", val.to_string()),
+            PrimitiveTypes::Option(val) => write!(f, "option({})", val),
+        }
+    }
+}
+impl Display for PrimitiveValues {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PrimitiveValues::Char(val) => write!(f, "{}", val.to_string()),
+            PrimitiveValues::I32(val) => write!(f, "{}", val.to_string(),),
+            PrimitiveValues::String(val) => write!(f, "{}", val),
+            PrimitiveValues::U32(val) => write!(f, "{}", val.to_string()),
+            PrimitiveValues::F32(val) => write!(f, "{}", val.to_string()),
+            PrimitiveValues::Bool(val) => write!(f, "{}", val.to_string()),
+            PrimitiveValues::Option(val) => write!(f, "option({})", val.to_string()),
         }
     }
 }

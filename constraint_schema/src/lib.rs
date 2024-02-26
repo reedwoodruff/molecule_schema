@@ -5,10 +5,10 @@ use serde_types::{
 };
 
 #[proc_macro]
-pub fn constraint_schema(input: TokenStream) -> proc_macro::TokenStream {
+pub fn constraint_schema(_input: TokenStream) -> proc_macro::TokenStream {
     let data = std::fs::read_to_string("constraint_schema/resources/schema.json");
     let data = data.expect("schema json must be present");
-    let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
+    let _constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
         serde_json::from_str::<ConstraintSchema<PrimitiveTypes, PrimitiveValues>>(&data)
             .expect("json should be formatted correctly");
 

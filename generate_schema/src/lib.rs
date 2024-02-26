@@ -1,18 +1,15 @@
 use proc_macro::TokenStream;
-use proc_macro2::TokenTree;
+
 use quote::quote;
-use serde_types::common::*;
+
 use serde_types::constraint_schema::*;
 use serde_types::constraint_schema_item::ConstraintSchemaInstantiable;
 use serde_types::primitives::*;
 use syn::{
     parse::{Parse, ParseStream},
-    parse_macro_input,
-    punctuated::Punctuated,
-    token::Comma,
-    Data, DeriveInput, Fields, Result as SynResult, Token, Type,
+    punctuated::Punctuated, Result as SynResult, Token, Type,
 };
-use output_types;
+
 
 // mod generated_expand_output;
 struct TypeList(Punctuated<Type, Token![,]>);
@@ -54,13 +51,13 @@ fn get_primitive_value(ty: &PrimitiveValues) -> proc_macro2::TokenStream {
 }
 
 fn concat_unique_element(element: &Box<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>>) -> String {
-    element.get_tag().name.clone() + &"_".to_string() + &element.get_constraint_schema_instantiable_type().to_string()
+    element.get_tag().name.clone() + "_" + element.get_constraint_schema_instantiable_type().as_ref()
 }
 fn get_variant_name(element: &Box<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>> ) -> syn::Ident {
     syn::Ident::new(&concat_unique_element(element), proc_macro2::Span::call_site())
 }
 fn get_variant_builder_name(element: &Box<&dyn ConstraintSchemaInstantiable<TTypes = PrimitiveTypes, TValues = PrimitiveValues>> ) -> syn::Ident {
-    syn::Ident::new(&(concat_unique_element(element) + &"Builder".to_string()), proc_macro2::Span::call_site())
+    syn::Ident::new(&(concat_unique_element(element) + "Builder"), proc_macro2::Span::call_site())
 }
 
 #[proc_macro]
@@ -161,7 +158,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                                     } else {
                                         let variant_name = get_variant_name(&Box::new(operative_ref));
                                         let variant_name_string = variant_name.to_string();
-                                        let prepend_call_string = prepend_call.to_string();
+                                        let _prepend_call_string = prepend_call.to_string();
                                         let template = reference_constraint_schema.template_library.get(&operative_ref.template_id).expect("constraint object must exist");
                                         let field_constraint = template.field_constraints.iter().find(|constraint| &constraint.tag.id == field_id).expect("field must exist");
                                         let field_name = syn::Ident::new(&field_constraint.tag.name, proc_macro2::Span::call_site());
@@ -187,7 +184,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
 
                             match last_item_type {
                                 serde_types::constraint_schema::ConstraintSchemaInstantiableType::Template => {
-                                    let template = reference_constraint_schema.template_library.get(&last_item_id).expect("constraint object must exist");
+                                    let _template = reference_constraint_schema.template_library.get(&last_item_id).expect("constraint object must exist");
 
                                     method_impl_stream = quote!{ self.#inner_method_name(graph_environment) };
                                 }
@@ -210,10 +207,10 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                             let inner_method_def = inner_trait_def.methods.iter().find(|method| &method.tag.id == trait_method_id).expect("method must exist");
                             let inner_method_name = syn::Ident::new(&inner_method_def.tag.name, proc_macro2::Span::call_site());
                             let variants_which_impl_trait = reference_constraint_schema.template_library.iter().filter(
-                                |(co_id, co)| {
+                                |(_co_id, co)| {
                                     co.trait_impls.contains_key(trait_id)
                                 }
-                            ).map(|(co_id, co)| {
+                            ).map(|(_co_id, co)| {
                                     get_variant_name(&Box::new(co))
                             }).collect::<Vec<_>>();
 
@@ -338,7 +335,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         let library_operative_names: Vec<_> = library_operatives.iter().map(|op| {
             syn::Ident::new(&op.tag.name, proc_macro2::Span::call_site())
         }).collect();
-        let library_operative_setter_new: Vec<_> = library_operatives.iter().map(|op| {
+        let _library_operative_setter_new: Vec<_> = library_operatives.iter().map(|op| {
             syn::Ident::new(&("set_new_".to_string() + &op.tag.name), proc_macro2::Span::call_site())
         }).collect();
         let library_operative_setter_existing: Vec<_> = library_operatives.iter().map(|op| {
@@ -347,11 +344,11 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         let library_operative_ids: Vec<_> = library_operatives.iter().map(|op| {
             op.tag.id
         }).collect();
-        let simple_operatives = reference_template.library_operatives.iter().map(|&val| quote! { #val }).collect::<Vec<_>>();
+        let _simple_operatives = reference_template.library_operatives.iter().map(|&val| quote! { #val }).collect::<Vec<_>>();
 
         // let trait_operatives = &reference_template.trait_operatives.iter().filter(|trait_op| !fulfilled_trait_ops.contains(&trait_op.tag.id)).collect::<Vec<_>>();
         let trait_operatives = instantiable.get_all_unfulfilled_trait_operatives(&reference_constraint_schema);
-        let trait_operative_trait_names = trait_operatives.iter().map(|op| {
+        let _trait_operative_trait_names = trait_operatives.iter().map(|op| {
             let trait_id = op.trait_id;
             let trait_name = &reference_constraint_schema.traits.get(&trait_id).expect("trait must exist").tag.name;
             trait_name
@@ -359,7 +356,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         let trait_operative_names: Vec<_> = trait_operatives.iter().map(|op| {
             syn::Ident::new(&op.tag.name, proc_macro2::Span::call_site())
         }).collect();
-        let trait_operative_setter_new: Vec<_> = trait_operatives.iter().map(|op| {
+        let _trait_operative_setter_new: Vec<_> = trait_operatives.iter().map(|op| {
             syn::Ident::new(&("set_new_".to_string() + &op.tag.name), proc_macro2::Span::call_site())
         }).collect();
         let trait_operative_setter_existing: Vec<_> = trait_operatives.iter().map(|op| {
@@ -372,7 +369,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         // let mut all_instance_ids = constraint_schema_generated.template_library.get(&reference_template.get_template_id()).unwrap().instances.clone();
         // all_instance_ids.extend(fulfilled_ops_as_instance_ids);
         let all_instances = instantiable.get_all_constituent_instances(&constraint_schema_generated);
-        let all_instance_names = all_instances.iter().map(|item| {
+        let _all_instance_names = all_instances.iter().map(|item| {
             syn::Ident::new(&item.tag.name.clone(), proc_macro2::Span::call_site())
         });
 
@@ -389,7 +386,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                     proc_macro2::Span::call_site(),
                 ));
                 let field_value = get_primitive_type(&field.value_type);
-                if let PrimitiveTypes::Option(inner) = &field.value_type {
+                if let PrimitiveTypes::Option(_inner) = &field.value_type {
                     initial_values.push(quote! {Some(None)});
                 } else {
                     initial_values.push(quote! {None});
@@ -513,13 +510,13 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         }
     };
 
-    let template_streams = constraint_schema_generated.template_library.iter().map(|(_id, el)| {
+    let template_streams = constraint_schema_generated.template_library.values().map(|el| {
         generate_objects_streams(Box::new(el))
     }).collect::<Vec<_>>();
-    let operative_streams = constraint_schema_generated.operative_library.iter().map(|(_id, el)| {
+    let operative_streams = constraint_schema_generated.operative_library.values().map(|el| {
         generate_objects_streams(Box::new(el))
     }).collect::<Vec<_>>();
-    let instance_streams = constraint_schema_generated.instance_library.iter().map(|(_id, el)| {
+    let instance_streams = constraint_schema_generated.instance_library.values().map(|el| {
         generate_objects_streams(Box::new(el))
     })
     .collect::<Vec<_>>();

@@ -1,7 +1,7 @@
-use std::{collections::HashMap, fmt::Display, rc::Rc};
+use std::{collections::HashMap, rc::Rc};
 
 use leptos::{logging::log, *};
-use web_sys::MouseEvent;
+
 
 #[component]
 pub fn SelectInput<K, V, F, I>(
@@ -93,11 +93,7 @@ where
 
     let cur_value = move || {
         if let Some(val) = value.get() {
-            if let Some(val) = map.clone().get(&val) {
-                Some(val.clone())
-            } else {
-                None
-            }
+            map.clone().get(&val).cloned()
         } else {
             None
         }

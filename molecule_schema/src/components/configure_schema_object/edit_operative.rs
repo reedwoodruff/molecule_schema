@@ -1,25 +1,20 @@
 use std::{collections::HashMap, rc::Rc};
 
-use leptos::{ev::submit, logging::log, *};
+use leptos::{logging::log, *};
 use serde_types::{
     common::Uid,
-    constraint_schema::TraitOperative,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
-use web_sys::SubmitEvent;
 
 use crate::{
     components::{
-        common::{
-            select_input::{SelectInput, SelectInputOptional},
-            text_input::TextInput,
-        },
+        common::{select_input::SelectInputOptional, text_input::TextInput},
         tree_view_revamp::{TreeNodeDataSelectionType, TreeView},
         SchemaContext, TreeTypes,
     },
-    utils::reactive_types::{
-        RFieldConstraint, RLibraryInstance, RLibraryOperative, RTag, RTraitMethodImplPath,
-        RTraitOperative,
+    utils::{
+        reactive_item::RConstraintSchemaItem,
+        reactive_types::{RLibraryInstance, RLibraryOperative, RTraitMethodImplPath},
     },
 };
 
@@ -35,6 +30,8 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             .with(|operatives| operatives.get(&element.1).cloned())
             .unwrap()
     });
+    let schema_clone = ctx.schema.clone();
+    let schema_clone_2 = ctx.schema.clone();
     let associated_template = create_memo(move |_| {
         ctx.schema
             .template_library
@@ -47,8 +44,20 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
     });
 
     let all_field_constraints = move || associated_template.get().field_constraints.get();
+    let unfulfilled_field_constraints = create_memo(move |_| {
+        active_object
+            .get()
+            .get_all_unfulfilled_fields(&schema_clone)
+    });
+    let local_fulfilled_field_constraints =
+        create_memo(move |_| active_object.get().get_local_fulfilled_fields());
+    let ancestors_fulfilled_field_constraints = create_memo(move |_| {
+        active_object
+            .get()
+            .get_ancestors_fulfilled_fields(&schema_clone_2)
+    });
 
-    let parent_ops_info = create_memo(move |_| {
+    let _parent_ops_info = create_memo(move |_| {
         let mut fulfilled_operatives = Vec::new();
         let mut fulfilled_fields = Vec::new();
         let mut next_parent_operative = active_object.get().parent_operative_id.get();
@@ -155,8 +164,8 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             .chain(&associated_template.get().trait_impls.get().clone())
             .map(|(trait_id, trait_methods)| {
                 (
-                    trait_methods.clone(),
-                    ctx.schema.traits.get().get(&trait_id).cloned().unwrap(),
+                    *trait_methods,
+                    ctx.schema.traits.get().get(trait_id).cloned().unwrap(),
                 )
             })
             .collect::<Vec<_>>()
@@ -167,8 +176,8 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
 
     let on_click_create_operative = move |_| {
         let new_operative = RLibraryOperative::<PrimitiveTypes, PrimitiveValues>::new(
-            element.1,
-            None,
+            associated_template.get().tag.id.get(),
+            Some(active_object.get().tag.id.get()),
             new_operative_name.get(),
         );
         ctx.schema.operative_library.update(|lib| {
@@ -177,8 +186,8 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
     };
     let on_click_create_instance = move |_| {
         let new_instance = RLibraryInstance::<PrimitiveTypes, PrimitiveValues>::new(
-            element.1,
-            None,
+            associated_template.get().tag.id.get(),
+            Some(active_object.get().tag.id.get()),
             new_instance_name.get(),
         );
         ctx.schema.instance_library.update(|lib| {
@@ -220,29 +229,26 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                     let mut new_path: Vec<RTraitMethodImplPath> = path
                         .iter()
                         .filter(|item| item.0 != TreeTypes::Template)
-                        .map(|item| {
-                            let new_trait_method_impl_path_item = match item.0.clone() {
-                                TreeTypes::Instance => {
-                                    RTraitMethodImplPath::InstanceConstituent(RwSignal::new(item.1))
+                        .map(|item| match item.0.clone() {
+                            TreeTypes::Instance => {
+                                RTraitMethodImplPath::InstanceConstituent(RwSignal::new(item.1))
+                            }
+                            TreeTypes::LibraryOperative => {
+                                RTraitMethodImplPath::LibraryOperativeConstituent(RwSignal::new(
+                                    item.1,
+                                ))
+                            }
+                            TreeTypes::TraitOperative(trait_op) => {
+                                RTraitMethodImplPath::TraitOperativeConstituent {
+                                    trait_method_id: RwSignal::new(method_id),
+                                    trait_operative_id: RwSignal::new(trait_op.tag.id.get()),
+                                    trait_id: RwSignal::new(trait_op.trait_id.get()),
                                 }
-                                TreeTypes::LibraryOperative => {
-                                    RTraitMethodImplPath::LibraryOperativeConstituent(
-                                        RwSignal::new(item.1),
-                                    )
-                                }
-                                TreeTypes::TraitOperative(trait_op) => {
-                                    RTraitMethodImplPath::TraitOperativeConstituent {
-                                        trait_method_id: RwSignal::new(method_id),
-                                        trait_operative_id: RwSignal::new(trait_op.tag.id.get()),
-                                        trait_id: RwSignal::new(trait_op.trait_id.get()),
-                                    }
-                                }
-                                _ => {
-                                    log!("strange path item");
-                                    RTraitMethodImplPath::Field(RwSignal::new(item.1))
-                                }
-                            };
-                            new_trait_method_impl_path_item
+                            }
+                            _ => {
+                                log!("strange path item");
+                                RTraitMethodImplPath::Field(RwSignal::new(item.1))
+                            }
                         })
                         .collect();
                     match last_item {
@@ -266,7 +272,6 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                 } else {
                     log!("incorrect data type");
                 }
-            } else {
             }
         },
     );
@@ -339,7 +344,14 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
         <div class="large-margin med-pad border-gray flex">
             <div class="flex-grow margin-right border-right">
                 <button on:click=move |_| ctx.selected_element.set(None)>X</button>
-                <button on:click=move |_| ctx.schema.template_library.update(|prev| {prev.remove(&element.1);})>delete element</button>
+                <button on:click=move |_| {
+                    ctx
+                        .schema
+                        .template_library
+                        .update(|prev| {
+                            prev.remove(&element.1);
+                        })
+                }>delete element</button>
                 <br/>
                 <TextInput
                     initial_value=new_operative_name.get()
@@ -379,9 +391,91 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             </div>
 
             <div class="flex-grow margin-right border-right">
-                <h4>Fields </h4>
-                <For each=all_field_constraints key=move |item| item.tag.id let:item>
-                    <div>{item.tag.name}</div>
+                <h4>Fields</h4>
+                <For
+                    each=ancestors_fulfilled_field_constraints
+                    key=move |item| item.tag.id
+                    let:item
+                >
+                    <div>{item.tag.name} (locked above)</div>
+                </For>
+                <For each=local_fulfilled_field_constraints key=move |item| item.tag.id let:item>
+                    <div>
+                        {item.tag.name} : {move || item.value.get().to_string()} (locked)
+                        <button on:click=move |_| {
+                            active_object
+                                .get()
+                                .locked_fields
+                                .update(|prev| {
+                                    let index = prev
+                                        .iter()
+                                        .position(|prev_item| {
+                                            prev_item.tag.id.get() == item.tag.id.get()
+                                        })
+                                        .unwrap();
+                                    prev.remove(index);
+                                })
+                        }>unlock</button>
+                    </div>
+                </For>
+                <For each=unfulfilled_field_constraints key=move |item| item.tag.id let:item>
+                    <div>
+                        {item.tag.name}
+                        {move || {
+                            let initiated_locking = RwSignal::new(false);
+                            let value = RwSignal::new("".to_string());
+                            let item_clone = item.clone();
+                            let on_click_lock = Callback::new(move |_| {
+                                let new_val = match item.value_type.get() {
+                                    PrimitiveTypes::I32 => {
+                                        PrimitiveValues::I32(value.get().parse().unwrap())
+                                    }
+                                    PrimitiveTypes::U32 => {
+                                        PrimitiveValues::U32(value.get().parse().unwrap())
+                                    }
+                                    PrimitiveTypes::F32 => {
+                                        PrimitiveValues::F32(value.get().parse().unwrap())
+                                    }
+                                    PrimitiveTypes::String => {
+                                        PrimitiveValues::String(value.get().parse().unwrap())
+                                    }
+                                    PrimitiveTypes::Bool => {
+                                        PrimitiveValues::Bool(value.get().parse().unwrap())
+                                    }
+                                    PrimitiveTypes::Char => {
+                                        PrimitiveValues::Char(value.get().parse().unwrap())
+                                    }
+                                    PrimitiveTypes::Option(_) => todo!(),
+                                };
+                                active_object
+                                    .get()
+                                    .locked_fields
+                                    .update(|prev| {
+                                        prev.push(item_clone.fulfill(new_val));
+                                    });
+                            });
+                            view! {
+                                <Show when=move || !initiated_locking.get()>
+                                    <button on:click=move |_| {
+                                        initiated_locking.set(true)
+                                    }>Start Lock</button>
+                                </Show>
+                                <Show when=initiated_locking>
+                                    <TextInput
+                                        initial_value=""
+                                        on_save=move |new_val| {
+                                            value.set(new_val.into());
+                                        }
+                                    />
+                                    <button on:click=on_click_lock>Lock</button>
+                                    <button on:click=move |_| {
+                                        initiated_locking.set(false)
+                                    }>Cancel</button>
+                                </Show>
+                            }
+                        }}
+
+                    </div>
 
                 </For>
             </div>
@@ -396,11 +490,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                     each=constituent_instances
                     key=move |item| item.tag.id
                     children=move |item| {
-                        view! {
-                            <div>
-                                {item.tag.name} <br/>
-                            </div>
-                        }
+                        view! { <div>{item.tag.name} <br/></div> }
                     }
                 />
 
@@ -412,11 +502,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                     each=constituent_library_operatives
                     key=move |item| item.tag.id
                     children=move |item| {
-                        view! {
-                            <div>
-                                {item.tag.name} <br/>
-                            </div>
-                        }
+                        view! { <div>{item.tag.name} <br/></div> }
                     }
                 />
 
@@ -426,7 +512,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                 <br/>
                 <For
                     each=constituent_trait_operatives
-                    key=move |(trait_operative, trait_def)| trait_operative.tag.id
+                    key=move |(trait_operative, _trait_def)| trait_operative.tag.id
                     children=move |(trait_operative, trait_def)| {
                         view! {
                             <div>
@@ -497,18 +583,23 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
 
                 <For
                     each=trait_impls
-                    key=move |(methods, trait_def)| trait_def.tag.id
+                    key=move |(_methods, trait_def)| trait_def.tag.id
                     children=move |(methods, trait_def)| {
-                        let trait_id = trait_def.tag.id.get().clone();
+                        let trait_id = trait_def.tag.id.get();
                         view! {
                             <div>
-                                trait name: {trait_def.tag.name}
-                                <br/>
-                                <button on:click=move |_| {active_object.get().trait_impls.update(|prev| {prev.remove(&trait_id.clone());})}>delete impl</button>
-                                <br/> trait methods:
+                                trait name: {trait_def.tag.name} <br/>
+                                <button on:click=move |_| {
+                                    active_object
+                                        .get()
+                                        .trait_impls
+                                        .update(|prev| {
+                                            prev.remove(&trait_id.clone());
+                                        })
+                                }>delete impl</button> <br/> trait methods:
                                 <For
                                     each=methods
-                                    key=move |(method_id, path)| *method_id
+                                    key=move |(method_id, _path)| *method_id
                                     children=move |(method_id, path)| {
                                         let method_def = trait_def
                                             .methods
@@ -522,20 +613,19 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                             .iter()
                                             .map(|path_item| {
                                                 match path_item {
-                                                    RTraitMethodImplPath::Field(item) => "Field".to_string(),
-                                                    RTraitMethodImplPath::InstanceConstituent(item) => {
+                                                    RTraitMethodImplPath::Field(_item) => "Field".to_string(),
+                                                    RTraitMethodImplPath::InstanceConstituent(_item) => {
                                                         "Instance".to_string()
                                                     }
-                                                    RTraitMethodImplPath::LibraryOperativeConstituent(item) => {
+                                                    RTraitMethodImplPath::LibraryOperativeConstituent(_item) => {
                                                         "LibraryOperative".to_string()
                                                     }
-                                                    RTraitMethodImplPath::TraitOperativeConstituent {
-                                                        trait_operative_id,
-                                                        ..
-                                                    } => "TraitOperative".to_string(),
+                                                    RTraitMethodImplPath::TraitOperativeConstituent { .. } => {
+                                                        "TraitOperative".to_string()
+                                                    }
                                                     RTraitMethodImplPath::TraitMethod {
-                                                        trait_method_id,
-                                                        trait_id,
+                                                        trait_method_id: _,
+                                                        trait_id: _,
                                                     } => "TraitMethod".to_string(),
                                                 }
                                             })

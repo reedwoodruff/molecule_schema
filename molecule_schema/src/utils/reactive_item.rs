@@ -88,7 +88,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
     type TTypes = TTypes;
     type TValues = TValues;
     fn get_template_id(&self) -> Uid {
-        <Self as Tagged>::get_tag(&self).id.get()
+        <Self as Tagged>::get_tag(self).id.get()
     }
 
     fn get_parent_operative_id(&self) -> Option<Uid> {
@@ -101,14 +101,14 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
 
     fn get_ancestors_fulfilled_library_operatives(
         &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
+        _schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> Vec<RFulfilledOperative> {
         Vec::new()
     }
 
     fn get_all_unfulfilled_library_operatives_ids(
         &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
+        _schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> Vec<Uid> {
         self.library_operatives.get()
     }
@@ -119,14 +119,14 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
 
     fn get_ancestors_fulfilled_trait_operatives(
         &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
+        _schema: &RConstraintSchema<TTypes, TValues>,
     ) -> Vec<RFulfilledOperative> {
         Vec::new()
     }
 
     fn get_all_unfulfilled_trait_operatives(
         &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
+        _schema: &RConstraintSchema<TTypes, TValues>,
     ) -> Vec<RTraitOperative> {
         self.trait_operatives.get()
     }
@@ -137,21 +137,21 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
 
     fn get_ancestors_fulfilled_fields(
         &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
+        _schema: &RConstraintSchema<TTypes, TValues>,
     ) -> Vec<RFulfilledFieldConstraint<TTypes, TValues>> {
         Vec::new()
     }
 
     fn get_all_unfulfilled_fields(
         &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
+        _schema: &RConstraintSchema<TTypes, TValues>,
     ) -> Vec<RFieldConstraint<TTypes>> {
         self.field_constraints.get()
     }
 
     fn get_all_constituent_instance_ids(
         &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
+        _schema: &RConstraintSchema<TTypes, TValues>,
     ) -> Vec<Uid> {
         self.instances.get()
     }
@@ -162,7 +162,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
 
     fn get_ancestors_trait_impls(
         &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
+        _schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> HashMap<Uid, RTraitImpl> {
         HashMap::new()
     }
@@ -198,6 +198,17 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                 maybe_next_parent = parent.parent_operative_id.get();
             });
         }
+        let template_traits_impled = schema
+            .template_library
+            .with(|templates| {
+                templates
+                    .get(&self.template_id.get())
+                    .unwrap()
+                    .trait_impls
+                    .get()
+            })
+            .clone();
+        ancestor_trait_impls.extend(template_traits_impled);
         ancestor_trait_impls
     }
 
@@ -240,14 +251,12 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
             .map(|op| op.operative_id.get())
             .collect::<Vec<_>>();
 
-        let final_unfulfilled_ids = potentially_unfulfilled_op_ids
+        potentially_unfulfilled_op_ids
             .into_iter()
             .filter(|op_id| {
                 !fulfilled_op_ids.contains(op_id) && !ancestor_fulfilled.contains(op_id)
             })
-            .collect::<Vec<_>>();
-
-        final_unfulfilled_ids
+            .collect::<Vec<_>>()
     }
 
     fn get_local_fulfilled_trait_operatives(&self) -> Vec<RFulfilledOperative> {
@@ -289,15 +298,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
             .map(|op| op.operative_id.get())
             .collect::<Vec<_>>();
 
-        let final_unfulfilled_trait_ops = potentially_unfulfilled_trait_ops
+        potentially_unfulfilled_trait_ops
             .into_iter()
             .filter(|trait_op| {
                 let trait_op_id = &trait_op.tag.id.get();
                 !fulfilled_op_ids.contains(trait_op_id) && !ancestor_fulfilled.contains(trait_op_id)
             })
-            .collect::<Vec<_>>();
-
-        final_unfulfilled_trait_ops
+            .collect::<Vec<_>>()
     }
 
     fn get_local_fulfilled_fields(&self) -> Vec<RFulfilledFieldConstraint<TTypes, TValues>> {
@@ -339,15 +346,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
             .map(|field| field.tag.id.get())
             .collect::<Vec<_>>();
 
-        let final_unfulfilled_fields = potentially_unfulfilled_fields
+        potentially_unfulfilled_fields
             .into_iter()
             .filter(|field| {
                 let field_id = &field.tag.id.get();
                 !fulfilled_field_ids.contains(field_id) && !ancestor_fulfilled.contains(field_id)
             })
-            .collect::<Vec<_>>();
-
-        final_unfulfilled_fields
+            .collect::<Vec<_>>()
     }
 
     fn get_all_constituent_instance_ids(
@@ -429,14 +434,12 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
             .map(|op| op.operative_id.get())
             .collect::<Vec<_>>();
 
-        let final_unfulfilled_ids = potentially_unfulfilled_op_ids
+        potentially_unfulfilled_op_ids
             .into_iter()
             .filter(|op_id| {
                 !fulfilled_op_ids.contains(op_id) && !ancestor_fulfilled.contains(op_id)
             })
-            .collect::<Vec<_>>();
-
-        final_unfulfilled_ids
+            .collect::<Vec<_>>()
     }
 
     fn get_local_fulfilled_trait_operatives(&self) -> Vec<RFulfilledOperative> {
@@ -478,15 +481,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
             .map(|op| op.operative_id.get())
             .collect::<Vec<_>>();
 
-        let final_unfulfilled_trait_ops = potentially_unfulfilled_trait_ops
+        potentially_unfulfilled_trait_ops
             .into_iter()
             .filter(|trait_op| {
                 let trait_op_id = &trait_op.tag.id.get();
                 !fulfilled_op_ids.contains(trait_op_id) && !ancestor_fulfilled.contains(trait_op_id)
             })
-            .collect::<Vec<_>>();
-
-        final_unfulfilled_trait_ops
+            .collect::<Vec<_>>()
     }
 
     fn get_local_fulfilled_fields(&self) -> Vec<RFulfilledFieldConstraint<TTypes, TValues>> {
@@ -528,15 +529,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
             .map(|field| field.tag.id.get())
             .collect::<Vec<_>>();
 
-        let final_unfulfilled_fields = potentially_unfulfilled_fields
+        potentially_unfulfilled_fields
             .into_iter()
             .filter(|field| {
                 let field_id = &field.tag.id.get();
                 !fulfilled_field_ids.contains(field_id) && !ancestor_fulfilled.contains(field_id)
             })
-            .collect::<Vec<_>>();
-
-        final_unfulfilled_fields
+            .collect::<Vec<_>>()
     }
 
     fn get_all_constituent_instance_ids(
@@ -582,6 +581,17 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                 maybe_next_parent = parent.parent_operative_id.get();
             });
         }
+        let template_traits_impled = schema
+            .template_library
+            .with(|templates| {
+                templates
+                    .get(&self.template_id.get())
+                    .unwrap()
+                    .trait_impls
+                    .get()
+            })
+            .clone();
+        ancestor_trait_impls.extend(template_traits_impled);
         ancestor_trait_impls
     }
 }
@@ -596,9 +606,9 @@ pub enum RItem<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> Tagged for RItem<TTypes, TValues> {
     fn get_tag(&self) -> &RTag {
         match self {
-            Self::Template(item) => <Self as Tagged>::get_tag(self),
-            Self::LibraryOperative(item) => <Self as Tagged>::get_tag(self),
-            Self::Instance(item) => <Self as Tagged>::get_tag(self),
+            Self::Template(_item) => <Self as Tagged>::get_tag(self),
+            Self::LibraryOperative(_item) => <Self as Tagged>::get_tag(self),
+            Self::Instance(_item) => <Self as Tagged>::get_tag(self),
         }
     }
 }

@@ -1,16 +1,16 @@
 use std::{fmt::Display, rc::Rc};
 
 use crate::{
-    components::{edit_schema_object::EditSchemaObject, tree_view_revamp::TreeView},
+    components::{edit_schema_object::EditSchemaObject},
     utils::{
         export_schema,
         reactive_types::{
-            RConstraintSchema, RLibraryInstance, RLibraryOperative, RLibraryTemplate, RTag,
+            RConstraintSchema, RLibraryTemplate, RTag,
             RTraitOperative,
         },
     },
 };
-use leptos::{logging::log, *};
+use leptos::{*};
 use serde_types::{
     common::Uid,
     constraint_schema::ConstraintSchema,
@@ -56,7 +56,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
     let constraint_objects = reactive_schema.template_library;
     let instances = reactive_schema.instance_library;
     let operatives = reactive_schema.operative_library;
-    let traits = reactive_schema.traits;
+    let _traits = reactive_schema.traits;
     let selected_element = RwSignal::new(None);
 
     provide_context(SchemaContext {
@@ -68,7 +68,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
         Rc::new(move |id: Uid, source: TreeTypes| selected_element.set(Some(TreeRef(source, id))));
     let handle_list_item_click2 = handle_list_item_click.clone();
     let handle_list_item_click3 = handle_list_item_click.clone();
-    let handle_list_item_click4 = handle_list_item_click.clone();
+    let _handle_list_item_click4 = handle_list_item_click.clone();
 
     let click_new_constraint_object = move |_| {
         constraint_objects.update(|prev| {
@@ -87,15 +87,15 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                     </h2>
                     <For
                         each=constraint_objects
-                        key=move |(id, _child)| id.clone()
-                        children=move |(el_id, child)| {
+                        key=move |(id, _child)| *id
+                        children=move |(_el_id, child)| {
                             let clone = handle_list_item_click.clone();
                             view! {
                                 <div>
-                                <RootListItem
-                                    tag=child.tag
-                                    on_click=move |id: Uid| clone(id, TreeTypes::Template)
-                                />
+                                    <RootListItem
+                                        tag=child.tag
+                                        on_click=move |id: Uid| clone(id, TreeTypes::Template)
+                                    />
                                 </div>
                             }
                         }
@@ -110,7 +110,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                     <h2>Operatives</h2>
                     <For
                         each=operatives
-                        key=move |(id, _child)| id.clone()
+                        key=move |(id, _child)| *id
                         children=move |(_id, child)| {
                             let clone = handle_list_item_click2.clone();
                             view! {
@@ -130,7 +130,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                     <h2>Instances</h2>
                     <For
                         each=instances
-                        key=move |(id, _child)| id.clone()
+                        key=move |(id, _child)| *id
                         children=move |(_id, child)| {
                             let clone = handle_list_item_click3.clone();
                             view! {
@@ -173,7 +173,9 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                 _ => false,
             }
         }>
-            <configure_schema_object::edit_operative::EditOperative element=selected_element.get().unwrap()/>
+            <configure_schema_object::edit_operative::EditOperative element=selected_element
+                .get()
+                .unwrap()></configure_schema_object::edit_operative::EditOperative>
         </Show>
     }
 }
@@ -189,7 +191,7 @@ where
         if ctx
             .selected_element
             .get()
-            .is_some_and(|TreeRef(top_level_type, id)| id == tag.id.get())
+            .is_some_and(|TreeRef(_top_level_type, id)| id == tag.id.get())
         {
             "border-red"
         } else {
