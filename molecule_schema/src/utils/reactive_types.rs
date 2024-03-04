@@ -614,13 +614,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO<TTypes, TValues>
     }
 }
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryInstance<TTypes, TValues> {
-    pub fn new<T>(template_id: Uid, operative_library_id: Option<Uid>, name: T) -> Self
+    pub fn new<T>(template_id: Uid, parent_operative_id: Option<Uid>, name: T) -> Self
     where
         T: Into<String>,
     {
         Self {
             template_id: RwSignal::new(template_id),
-            parent_operative_id: RwSignal::new(operative_library_id),
+            parent_operative_id: RwSignal::new(parent_operative_id),
             tag: RTag::new(name),
             other_edges: RwSignal::new(vec![]),
             fulfilled_library_operatives: RwSignal::new(vec![]),
@@ -649,6 +649,14 @@ impl From<RFulfilledOperative> for FulfilledOperative {
         Self {
             operative_id: value.operative_id.get(),
             fulfilling_instance_id: value.fulfilling_instance_id.get(),
+        }
+    }
+}
+impl RFulfilledOperative {
+    pub fn new(operative_id: Uid, fulfilling_instance_id: Uid) -> Self {
+        Self {
+            operative_id: RwSignal::new(operative_id),
+            fulfilling_instance_id: RwSignal::new(fulfilling_instance_id),
         }
     }
 }
@@ -876,13 +884,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RCSO<TTypes, TValues>
     }
 }
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryOperative<TTypes, TValues> {
-    pub fn new<T>(template_id: Uid, operative_library_id: Option<Uid>, name: T) -> Self
+    pub fn new<T>(template_id: Uid, parent_operative_id: Option<Uid>, name: T) -> Self
     where
         T: Into<String>,
     {
         Self {
             template_id: RwSignal::new(template_id),
-            parent_operative_id: RwSignal::new(operative_library_id),
+            parent_operative_id: RwSignal::new(parent_operative_id),
             tag: RTag::new(name),
             fulfilled_library_operatives: RwSignal::new(vec![]),
             fulfilled_trait_operatives: RwSignal::new(vec![]),

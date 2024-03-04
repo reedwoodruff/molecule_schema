@@ -1,6 +1,6 @@
-use std::{rc::Rc};
+use std::rc::Rc;
 
-use leptos::*;
+use leptos::{logging::log, *};
 use serde_types::{
     common::{ConstraintTraits, Uid},
     primitives::PrimitiveTypes,
@@ -74,7 +74,9 @@ fn get_tree_node_info<TTypes: ConstraintTraits, TValues: ConstraintTraits>(
         .collect::<Vec<_>>();
     let mut traits_impled = item.get_local_trait_impls();
     traits_impled.extend(item.get_ancestors_trait_impls(schema));
-    let traits_impled = traits_impled.keys().map(|id| {
+    let traits_impled = traits_impled
+        .keys()
+        .map(|id| {
             schema
                 .traits
                 .with(|trait_items| trait_items.get(id).unwrap().clone())

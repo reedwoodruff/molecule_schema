@@ -284,3 +284,27 @@ Trying to decide how important it is to support custom data types in template fi
 Would it be helpful to allow user-created compound types as a value for a single field? Probably, though it's not terribly clear to me right now how.
 In some sense, that seems to be what having an operative or instance constituent accomplishes -- a way to have an arbitrarily nested data type associated with the construct.
 That thought represents a breakthrough, in some sense. Thinking about the graph as a kind of evolving type. The structure which a path takes between two elements represents a kind of additive contextual edge, providing a new layer of meaning to the snapshot of the path at that time.
+
+## Feb 27, 2024
+Rules for instances to fulfill an operative slot (A):
+- The instance is directly an instance of the operative A.
+- The instance is an instance of an operative (B) which contains operative A in its ancestors. This would mean that the operative B might be more specialized than operative A, but upholds the contract which operative A represents.
+
+A question arises regarding whether and how to support the following situation:
+There exists a template A
+An operative B is made from template A, and several fields or constituents are locked in the operative.
+An instance C is made from template A. The instance is manually set to fulfill all of the same locked fields and constituents as operative B.
+So at this point, instance C is in some sense compatible with operative B even though B does not exist in C's ancestors. They share a common root template A, and just happen in this moment to share matching data for all required locked specifications.
+The question really breaks out into two separate situations:
+1. The schema building process
+2. The graph building process in an environment based on a fixed schema.
+
+It seems important to support some semblance of this functionality in situation 2. Say for example that you have a template "Fireperson" which requires a red-haired person for a particular operative slot. Your schema exposes a "RedHairedPerson" which is an operative based on the template "Person", in which the hair field is locked to red.
+During the course of using the graph environment, a Person "Bob" is created based on just the "Person" template. Bob's hair happens to be red. When creating a new "FirePerson", it seems like the user should be able to fill in the FirePerson's "RedHairedPerson" slot with Bob, even though Bob was not instantiated based on that specialized operative, but rather with the generic "Person" template, because the contract in question is fulfilled.
+This brings up concerns regarding changes to elements in such situations. Since there is no contract that a "Person" *must* have red hair, a user could go in and change Bob to have brown hair, and then there would be a conflict with the newly created FirePerson since Bob no longer fulfills its operative contract.
+Maybe there could be a process where by slotting an instance into an operative slot which it happens to fulfill at the moment, it could essentially subscribe itself to the operative contract in question? So once Bob was used in a FirePerson (or at least *while* he is being used in a FirePerson), then his instance is actually an instance of a RedHairedPerson instead of just a Person. So users would not be able to change his hair.
+
+In situation 1, the question is less pronounced in the sense that once you have a schema that correctly fulfills all of its contracts (regardless of ancestor heirarchy), then once you export that schema you can never change the library instances. But if you take into account the schema-editing process, then you have the exact same problem as in the scenario just discussed. In order to make sure that your schema is consistent at the end, you'd have to have some mechanism in place to make sure that instances being used to fulfill particular operative contracts can't change out from under you.
+Related to this is the opposite problem. Instead of the instance changing out from under the contract, there exists the possibility while editing a schema to have the *contract* change out from under the instance.
+
+This is mostly a usability concern -- as far as correctness of the system, you could just force users to manually create and assign the exact operative contract required. But that would be a pretty big UI drag I think.

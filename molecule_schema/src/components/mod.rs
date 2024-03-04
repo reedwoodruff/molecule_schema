@@ -1,16 +1,13 @@
 use std::{fmt::Display, rc::Rc};
 
 use crate::{
-    components::{edit_schema_object::EditSchemaObject},
+    components::configure_schema_object::edit_template::EditTemplate,
     utils::{
         export_schema,
-        reactive_types::{
-            RConstraintSchema, RLibraryTemplate, RTag,
-            RTraitOperative,
-        },
+        reactive_types::{RConstraintSchema, RLibraryTemplate, RTag, RTraitOperative},
     },
 };
-use leptos::{*};
+use leptos::{logging::log, *};
 use serde_types::{
     common::Uid,
     constraint_schema::ConstraintSchema,
@@ -21,7 +18,6 @@ use self::tree_view_revamp::TreeRef;
 
 pub mod common;
 pub mod configure_schema_object;
-pub mod edit_schema_object;
 pub mod tree_view;
 pub mod tree_view_revamp;
 
@@ -82,9 +78,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
         <div class="flex">
             <div class="flex-grow ">
                 <div class="large-margin med-pad border-gray">
-                    <h2>
-                        Constraint Objects <button on:click=click_new_constraint_object>+</button>
-                    </h2>
+                    <h2>Templates <button on:click=click_new_constraint_object>+</button></h2>
                     <For
                         each=constraint_objects
                         key=move |(id, _child)| *id
@@ -165,7 +159,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                 _ => false,
             }
         }>
-            <EditSchemaObject element=selected_element.get().unwrap()/>
+            <EditTemplate element=selected_element.get().unwrap()/>
         </Show>
         <Show when=move || {
             match selected_element.get() {

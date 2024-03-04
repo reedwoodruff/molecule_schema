@@ -6,14 +6,13 @@ use serde_types::{
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 
-
 use crate::{
     components::{
         common::{
             select_input::{SelectInput, SelectInputOptional},
             text_input::TextInput,
         },
-        tree_view_revamp::{TreeNodeDataSelectionType, TreeView},
+        tree_view_revamp::{TreeNodeDataSelectionType, TreeRef, TreeView},
         SchemaContext, TreeTypes,
     },
     utils::reactive_types::{
@@ -22,10 +21,8 @@ use crate::{
     },
 };
 
-use super::tree_view_revamp::TreeRef;
-
 #[component]
-pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
+pub fn EditTemplate(element: TreeRef) -> impl IntoView {
     let ctx = use_context::<SchemaContext>().unwrap();
 
     let active_object = create_memo(move |_| {
@@ -153,7 +150,10 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
 
     let on_click_add_instance = move |_| {
         if let Some(instance_id) = add_instance_id.get() {
-            println!("{}", instance_id);
+            active_object
+                .get()
+                .instances
+                .update(|prev| prev.push(instance_id));
         }
     };
     // let derived_instance_selection = Signal::derive(move || add_instance_id.get().unwrap_or(0));
@@ -257,28 +257,25 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
                     let mut new_path: Vec<RTraitMethodImplPath> = path
                         .iter()
                         .filter(|item| item.0 != TreeTypes::Template)
-                        .map(|item| {
-                            
-                            match item.0.clone() {
-                                TreeTypes::Instance => {
-                                    RTraitMethodImplPath::InstanceConstituent(RwSignal::new(item.1))
+                        .map(|item| match item.0.clone() {
+                            TreeTypes::Instance => {
+                                RTraitMethodImplPath::InstanceConstituent(RwSignal::new(item.1))
+                            }
+                            TreeTypes::LibraryOperative => {
+                                RTraitMethodImplPath::LibraryOperativeConstituent(RwSignal::new(
+                                    item.1,
+                                ))
+                            }
+                            TreeTypes::TraitOperative(trait_op) => {
+                                RTraitMethodImplPath::TraitOperativeConstituent {
+                                    trait_method_id: RwSignal::new(method_id),
+                                    trait_operative_id: RwSignal::new(trait_op.tag.id.get()),
+                                    trait_id: RwSignal::new(trait_op.trait_id.get()),
                                 }
-                                TreeTypes::LibraryOperative => {
-                                    RTraitMethodImplPath::LibraryOperativeConstituent(
-                                        RwSignal::new(item.1),
-                                    )
-                                }
-                                TreeTypes::TraitOperative(trait_op) => {
-                                    RTraitMethodImplPath::TraitOperativeConstituent {
-                                        trait_method_id: RwSignal::new(method_id),
-                                        trait_operative_id: RwSignal::new(trait_op.tag.id.get()),
-                                        trait_id: RwSignal::new(trait_op.trait_id.get()),
-                                    }
-                                }
-                                _ => {
-                                    log!("strange path item");
-                                    RTraitMethodImplPath::Field(RwSignal::new(item.1))
-                                }
+                            }
+                            _ => {
+                                log!("strange path item");
+                                RTraitMethodImplPath::Field(RwSignal::new(item.1))
                             }
                         })
                         .collect();
@@ -303,7 +300,7 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
                 } else {
                     log!("incorrect data type");
                 }
-            } 
+            }
         },
     );
 
@@ -376,8 +373,7 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
             <div class="flex-grow margin-right border-right">
                 <button on:click=move |_| ctx.selected_element.set(None)>X</button>
                 <button on:click=move |_| {
-                    ctx
-                        .schema
+                    ctx.schema
                         .template_library
                         .update(|prev| {
                             prev.remove(&element.1);
@@ -624,7 +620,7 @@ pub fn EditSchemaObject(element: TreeRef) -> impl IntoView {
                         let trait_id = trait_def.tag.id.get();
                         view! {
                             <div>
-                                trait name: {trait_def.tag.name} <br/>
+                                trait name: {trait_def.tag.name}
                                 <button on:click=move |_| {
                                     active_object
                                         .get()

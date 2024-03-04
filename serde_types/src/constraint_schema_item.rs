@@ -70,7 +70,33 @@ pub trait ConstraintSchemaInstantiable {
     fn get_all_constituent_instance_ids(
         &self,
         schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<Uid>;
+    ) -> Vec<Uid> {
+        let parent_template = schema
+            .template_library
+            .get(&self.get_template_id())
+            .unwrap();
+        let mut template_instance_ids = parent_template.instances.clone();
+        let lib_op_instance_ids = self
+            .get_local_fulfilled_library_operatives()
+            .cloned()
+            .unwrap_or_else(Vec::new)
+            .into_iter()
+            .chain(self.get_ancestors_fulfilled_library_operatives(schema))
+            .map(|op| op.fulfilling_instance_id)
+            .collect::<Vec<_>>();
+        let trait_op_instance_ids = self
+            .get_local_fulfilled_trait_operatives()
+            .cloned()
+            .unwrap_or_else(Vec::new)
+            .iter()
+            .chain(self.get_ancestors_fulfilled_trait_operatives(schema).iter())
+            .map(|op| op.fulfilling_instance_id)
+            .collect::<Vec<_>>();
+
+        template_instance_ids.extend(lib_op_instance_ids);
+        template_instance_ids.extend(trait_op_instance_ids);
+        template_instance_ids
+    }
     fn get_all_constituent_instances<'a>(
         &'a self,
         schema: &'a ConstraintSchema<Self::TTypes, Self::TValues>,
@@ -163,13 +189,6 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
         _schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> Vec<FieldConstraint<Self::TTypes>> {
         self.field_constraints.clone()
-    }
-
-    fn get_all_constituent_instance_ids(
-        &self,
-        _schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<Uid> {
-        self.instances.clone()
     }
 }
 
@@ -358,34 +377,6 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
             })
             .collect::<Vec<_>>()
     }
-
-    fn get_all_constituent_instance_ids(
-        &self,
-        schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<Uid> {
-        let parent_template = schema.template_library.get(&self.template_id).unwrap();
-        let mut template_instance_ids = parent_template.instances.clone();
-        let lib_op_instance_ids = self
-            .get_local_fulfilled_library_operatives()
-            .cloned()
-            .unwrap_or_else(Vec::new)
-            .into_iter()
-            .chain(self.get_ancestors_fulfilled_library_operatives(schema))
-            .map(|op| op.operative_id)
-            .collect::<Vec<_>>();
-        let trait_op_instance_ids = self
-            .get_local_fulfilled_trait_operatives()
-            .cloned()
-            .unwrap_or_else(Vec::new)
-            .iter()
-            .chain(self.get_ancestors_fulfilled_trait_operatives(schema).iter())
-            .map(|op| op.operative_id)
-            .collect::<Vec<_>>();
-
-        template_instance_ids.extend(lib_op_instance_ids);
-        template_instance_ids.extend(trait_op_instance_ids);
-        template_instance_ids
-    }
 }
 
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstantiable
@@ -572,33 +563,5 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaInstan
                 !fulfilled_field_ids.contains(field_id) && !ancestor_fulfilled.contains(field_id)
             })
             .collect::<Vec<_>>()
-    }
-
-    fn get_all_constituent_instance_ids(
-        &self,
-        schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<Uid> {
-        let parent_template = schema.template_library.get(&self.template_id).unwrap();
-        let mut template_instance_ids = parent_template.instances.clone();
-        let lib_op_instance_ids = self
-            .get_local_fulfilled_library_operatives()
-            .cloned()
-            .unwrap_or_else(Vec::new)
-            .into_iter()
-            .chain(self.get_ancestors_fulfilled_library_operatives(schema))
-            .map(|op| op.operative_id)
-            .collect::<Vec<_>>();
-        let trait_op_instance_ids = self
-            .get_local_fulfilled_trait_operatives()
-            .cloned()
-            .unwrap_or_else(Vec::new)
-            .iter()
-            .chain(self.get_ancestors_fulfilled_trait_operatives(schema).iter())
-            .map(|op| op.operative_id)
-            .collect::<Vec<_>>();
-
-        template_instance_ids.extend(lib_op_instance_ids);
-        template_instance_ids.extend(trait_op_instance_ids);
-        template_instance_ids
     }
 }

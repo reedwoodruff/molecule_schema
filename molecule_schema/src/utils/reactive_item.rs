@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use leptos::*;
+use leptos::{logging::log, *};
 use serde_types::common::{ConstraintTraits, Uid};
 
 use super::reactive_types::{
@@ -13,7 +13,52 @@ pub trait RConstraintSchemaItem: Tagged + PartialEq {
     type TTypes: ConstraintTraits;
 
     type TValues: ConstraintTraits;
-
+    /// Determine if a given library operative or template exists in an item's ancestry
+    fn check_ancestry(
+        &self,
+        ancestor_id: &Uid,
+        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
+    ) -> bool {
+        if &self.get_tag().id.get() == ancestor_id {
+            log!("self is ancestor");
+            return true;
+        } else if &schema.template_library.with(|templates| {
+            templates
+                .get(&self.get_template_id())
+                .expect("template must exist")
+                .get_tag()
+                .id
+                .get()
+        }) == ancestor_id
+        {
+            return true;
+        } else {
+            let mut next_ancestor = self.get_parent_operative_id();
+            while let Some(ancestor_id) = next_ancestor {
+                if schema.operative_library.with(|ops| {
+                    let ancestor = ops.get(&ancestor_id).expect("operative must exist");
+                    next_ancestor = ancestor.get_parent_operative_id();
+                    ancestor.tag.id.get()
+                }) == ancestor_id
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+    fn check_trait_ancestry(
+        &self,
+        trait_id: &Uid,
+        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
+    ) -> bool {
+        if self.get_local_trait_impls().contains_key(trait_id) {
+            return true;
+        } else {
+            self.get_ancestors_trait_impls(schema)
+                .contains_key(trait_id)
+        }
+    }
     fn get_template_id(&self) -> Uid;
     fn get_parent_operative_id(&self) -> Option<Uid>;
     fn get_local_trait_impls(&self) -> HashMap<Uid, RTraitImpl>;
@@ -66,19 +111,27 @@ pub trait RConstraintSchemaItem: Tagged + PartialEq {
     fn get_all_constituent_instance_ids(
         &self,
         schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<Uid>;
-    fn get_all_constituent_instances(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RLibraryInstance<Self::TTypes, Self::TValues>> {
-        self.get_all_constituent_instance_ids(schema)
+    ) -> Vec<Uid> {
+        let parent_template = schema
+            .template_library
+            .with(|templates| templates.get(&self.get_template_id()).unwrap().clone());
+        let mut template_instance_ids = parent_template.instances.get();
+        let lib_op_instance_ids = self
+            .get_local_fulfilled_library_operatives()
+            .into_iter()
+            .chain(self.get_ancestors_fulfilled_library_operatives(schema))
+            .map(|op| op.fulfilling_instance_id.get())
+            .collect::<Vec<_>>();
+        let trait_op_instance_ids = self
+            .get_local_fulfilled_trait_operatives()
             .iter()
-            .map(|instance_id| {
-                schema
-                    .instance_library
-                    .with(|instances| instances.get(instance_id).unwrap().clone())
-            })
-            .collect()
+            .chain(self.get_ancestors_fulfilled_trait_operatives(schema).iter())
+            .map(|op| op.fulfilling_instance_id.get())
+            .collect::<Vec<_>>();
+
+        template_instance_ids.extend(lib_op_instance_ids);
+        template_instance_ids.extend(trait_op_instance_ids);
+        template_instance_ids
     }
 }
 
@@ -147,13 +200,6 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
         _schema: &RConstraintSchema<TTypes, TValues>,
     ) -> Vec<RFieldConstraint<TTypes>> {
         self.field_constraints.get()
-    }
-
-    fn get_all_constituent_instance_ids(
-        &self,
-        _schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<Uid> {
-        self.instances.get()
     }
 
     fn get_local_trait_impls(&self) -> HashMap<Uid, RTraitImpl> {
@@ -354,32 +400,6 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
             })
             .collect::<Vec<_>>()
     }
-
-    fn get_all_constituent_instance_ids(
-        &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<Uid> {
-        let parent_template = schema
-            .template_library
-            .with(|templates| templates.get(&self.template_id.get()).unwrap().clone());
-        let mut template_instance_ids = parent_template.instances.get();
-        let lib_op_instance_ids = self
-            .get_local_fulfilled_library_operatives()
-            .into_iter()
-            .chain(self.get_ancestors_fulfilled_library_operatives(schema))
-            .map(|op| op.operative_id.get())
-            .collect::<Vec<_>>();
-        let trait_op_instance_ids = self
-            .get_local_fulfilled_trait_operatives()
-            .iter()
-            .chain(self.get_ancestors_fulfilled_trait_operatives(schema).iter())
-            .map(|op| op.operative_id.get())
-            .collect::<Vec<_>>();
-
-        template_instance_ids.extend(lib_op_instance_ids);
-        template_instance_ids.extend(trait_op_instance_ids);
-        template_instance_ids
-    }
 }
 
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
@@ -536,32 +556,6 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                 !fulfilled_field_ids.contains(field_id) && !ancestor_fulfilled.contains(field_id)
             })
             .collect::<Vec<_>>()
-    }
-
-    fn get_all_constituent_instance_ids(
-        &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<Uid> {
-        let parent_template = schema
-            .template_library
-            .with(|templates| templates.get(&self.template_id.get()).unwrap().clone());
-        let mut template_instance_ids = parent_template.instances.get();
-        let lib_op_instance_ids = self
-            .get_local_fulfilled_library_operatives()
-            .into_iter()
-            .chain(self.get_ancestors_fulfilled_library_operatives(schema))
-            .map(|op| op.operative_id.get())
-            .collect::<Vec<_>>();
-        let trait_op_instance_ids = self
-            .get_local_fulfilled_trait_operatives()
-            .iter()
-            .chain(self.get_ancestors_fulfilled_trait_operatives(schema).iter())
-            .map(|op| op.operative_id.get())
-            .collect::<Vec<_>>();
-
-        template_instance_ids.extend(lib_op_instance_ids);
-        template_instance_ids.extend(trait_op_instance_ids);
-        template_instance_ids
     }
 
     fn get_local_trait_impls(&self) -> HashMap<Uid, RTraitImpl> {
