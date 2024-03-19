@@ -6,8 +6,10 @@ use serde_types::{
 
 use self::reactive_types::RConstraintSchema;
 
+pub mod operative_digest;
 pub mod reactive_item;
 pub mod reactive_types;
+pub mod trait_impl_digest;
 
 pub fn export_schema(schema: &RConstraintSchema<PrimitiveTypes, PrimitiveValues>) {
     let _path = std::path::Path::new("../../../constraint_schema/resources/schema.json");

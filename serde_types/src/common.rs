@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub enum Dir {
@@ -30,6 +31,17 @@ impl From<Tag> for output_types::Tag {
         output_types::Tag {
             id: value.id,
             name: value.name,
+        }
+    }
+}
+impl Tag {
+    pub fn new<T>(name: T) -> Self
+    where
+        T: Into<String>,
+    {
+        Self {
+            name: name.into(),
+            id: Uuid::new_v4().as_u128(),
         }
     }
 }

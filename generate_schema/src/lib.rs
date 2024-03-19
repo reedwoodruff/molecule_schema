@@ -177,7 +177,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                             }; 
                         }
                         serde_types::constraint_schema::TraitMethodImplPath::TraitMethod { trait_id, trait_method_id } => {
-                            let inner_trait_def = reference_constraint_schema.traits.get(trait_id).expect("trait must exist");
+                            let inner_trait_def = reference_constraint_schema.traits.get(&trait_id).expect("trait must exist");
                             println!("running here!");
                             let inner_method_def = inner_trait_def.methods.iter().find(|method| &method.tag.id == trait_method_id).expect("method must exist");
                             let inner_method_name = syn::Ident::new(&inner_method_def.tag.name, proc_macro2::Span::call_site());

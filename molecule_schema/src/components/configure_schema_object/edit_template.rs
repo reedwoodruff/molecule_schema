@@ -203,7 +203,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         if let Some(trait_operative_id) = add_trait_operative_id.get() {
             println!("{}", trait_operative_id);
             let new_trait_op = RTraitOperative {
-                trait_id: RwSignal::new(trait_operative_id),
+                trait_ids: RwSignal::new(trait_operative_id),
                 tag: RTag::new(new_trait_operative_name.get()),
             };
             active_object
@@ -270,7 +270,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                 RTraitMethodImplPath::TraitOperativeConstituent {
                                     trait_method_id: RwSignal::new(method_id),
                                     trait_operative_id: RwSignal::new(trait_op.tag.id.get()),
-                                    trait_id: RwSignal::new(trait_op.trait_id.get()),
+                                    trait_id: RwSignal::new(trait_op.trait_ids.get()),
                                 }
                             }
                             _ => {

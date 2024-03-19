@@ -1,138 +1,34 @@
+use leptos::*;
 use std::collections::HashMap;
 
-use leptos::{logging::log, *};
 use serde_types::common::{ConstraintTraits, Uid};
 
-use super::reactive_types::{
-    RConstraintSchema, RFieldConstraint, RFulfilledFieldConstraint, RFulfilledOperative,
-    RLibraryInstance, RLibraryOperative, RLibraryTemplate, RTag, RTraitImpl, RTraitOperative,
-    Tagged,
+use super::{
+    operative_digest::{ROperativeDigest, ROperativeSlotDigest, RRelatedInstance},
+    reactive_types::{
+        RConstraintSchema, RLibraryOperative, RLibraryTemplate, RSlottedInstances, RTag,
+        RTraitImpl, Tagged,
+    },
+    trait_impl_digest::{RRelatedTraitImpl, RTraitImplDigest},
 };
 
 pub trait RConstraintSchemaItem: Tagged + PartialEq {
     type TTypes: ConstraintTraits;
 
     type TValues: ConstraintTraits;
-    /// Determine if a given library operative or template exists in an item's ancestry
-    fn check_ancestry(
-        &self,
-        ancestor_id: &Uid,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> bool {
-        if &self.get_tag().id.get() == ancestor_id {
-            log!("self is ancestor");
-            return true;
-        } else if &schema.template_library.with(|templates| {
-            templates
-                .get(&self.get_template_id())
-                .expect("template must exist")
-                .get_tag()
-                .id
-                .get()
-        }) == ancestor_id
-        {
-            return true;
-        } else {
-            let mut next_ancestor = self.get_parent_operative_id();
-            while let Some(ancestor_id) = next_ancestor {
-                if schema.operative_library.with(|ops| {
-                    let ancestor = ops.get(&ancestor_id).expect("operative must exist");
-                    next_ancestor = ancestor.get_parent_operative_id();
-                    ancestor.tag.id.get()
-                }) == ancestor_id
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-    fn check_trait_ancestry(
-        &self,
-        trait_id: &Uid,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> bool {
-        if self.get_local_trait_impls().contains_key(trait_id) {
-            return true;
-        } else {
-            self.get_ancestors_trait_impls(schema)
-                .contains_key(trait_id)
-        }
-    }
+
     fn get_template_id(&self) -> Uid;
     fn get_parent_operative_id(&self) -> Option<Uid>;
-    fn get_local_trait_impls(&self) -> HashMap<Uid, RTraitImpl>;
-    fn get_ancestors_trait_impls(
+    fn get_local_trait_impls(&self) -> RwSignal<HashMap<Uid, RTraitImpl>>;
+    fn get_local_slotted_instances(&self) -> Option<RwSignal<HashMap<Uid, RSlottedInstances>>>;
+    fn get_trait_impl_digest(
         &self,
         schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> HashMap<Uid, RTraitImpl>;
-    fn get_local_fulfilled_library_operatives(&self) -> Vec<RFulfilledOperative>;
-    fn get_ancestors_fulfilled_library_operatives(
+    ) -> RTraitImplDigest;
+    fn get_operative_digest(
         &self,
         schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RFulfilledOperative>;
-    fn get_all_unfulfilled_library_operatives_ids(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<Uid>;
-    fn get_all_unfulfilled_library_operatives(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RLibraryOperative<Self::TTypes, Self::TValues>> {
-        self.get_all_unfulfilled_library_operatives_ids(schema)
-            .iter()
-            .map(|op_id| {
-                schema
-                    .operative_library
-                    .with(|ops| ops.get(op_id).unwrap().clone())
-            })
-            .collect()
-    }
-    fn get_local_fulfilled_trait_operatives(&self) -> Vec<RFulfilledOperative>;
-    fn get_ancestors_fulfilled_trait_operatives(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RFulfilledOperative>;
-    fn get_all_unfulfilled_trait_operatives(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RTraitOperative>;
-    fn get_local_fulfilled_fields(
-        &self,
-    ) -> Vec<RFulfilledFieldConstraint<Self::TTypes, Self::TValues>>;
-    fn get_ancestors_fulfilled_fields(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RFulfilledFieldConstraint<Self::TTypes, Self::TValues>>;
-    fn get_all_unfulfilled_fields(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RFieldConstraint<Self::TTypes>>;
-    fn get_all_constituent_instance_ids(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<Uid> {
-        let parent_template = schema
-            .template_library
-            .with(|templates| templates.get(&self.get_template_id()).unwrap().clone());
-        let mut template_instance_ids = parent_template.instances.get();
-        let lib_op_instance_ids = self
-            .get_local_fulfilled_library_operatives()
-            .into_iter()
-            .chain(self.get_ancestors_fulfilled_library_operatives(schema))
-            .map(|op| op.fulfilling_instance_id.get())
-            .collect::<Vec<_>>();
-        let trait_op_instance_ids = self
-            .get_local_fulfilled_trait_operatives()
-            .iter()
-            .chain(self.get_ancestors_fulfilled_trait_operatives(schema).iter())
-            .map(|op| op.fulfilling_instance_id.get())
-            .collect::<Vec<_>>();
-
-        template_instance_ids.extend(lib_op_instance_ids);
-        template_instance_ids.extend(trait_op_instance_ids);
-        template_instance_ids
-    }
+    ) -> ROperativeDigest;
 }
 
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
@@ -141,76 +37,57 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
     type TTypes = TTypes;
     type TValues = TValues;
     fn get_template_id(&self) -> Uid {
-        <Self as Tagged>::get_tag(self).id.get()
+        self.get_tag().id.get()
     }
-
     fn get_parent_operative_id(&self) -> Option<Uid> {
         None
     }
-
-    fn get_local_fulfilled_library_operatives(&self) -> Vec<RFulfilledOperative> {
-        Vec::new()
+    fn get_local_trait_impls(&self) -> RwSignal<HashMap<Uid, RTraitImpl>> {
+        self.trait_impls
     }
-
-    fn get_ancestors_fulfilled_library_operatives(
+    fn get_local_slotted_instances(&self) -> Option<RwSignal<HashMap<Uid, RSlottedInstances>>> {
+        None
+    }
+    fn get_operative_digest(
         &self,
-        _schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RFulfilledOperative> {
-        Vec::new()
+        schema: &RConstraintSchema<TTypes, TValues>,
+    ) -> ROperativeDigest {
+        let slot_digest_hashmap = self.operative_slots.with(|operative_slot| {
+            operative_slot
+                .iter()
+                .map(|(slot_id, op_slot)| {
+                    (
+                        *slot_id,
+                        ROperativeSlotDigest {
+                            slot: op_slot.clone(),
+                            related_instances: vec![],
+                        },
+                    )
+                })
+                .collect()
+        });
+        ROperativeDigest {
+            operative_slots: slot_digest_hashmap,
+        }
     }
-
-    fn get_all_unfulfilled_library_operatives_ids(
+    fn get_trait_impl_digest(
         &self,
-        _schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<Uid> {
-        self.library_operatives.get()
-    }
-
-    fn get_local_fulfilled_trait_operatives(&self) -> Vec<RFulfilledOperative> {
-        Vec::new()
-    }
-
-    fn get_ancestors_fulfilled_trait_operatives(
-        &self,
-        _schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RFulfilledOperative> {
-        Vec::new()
-    }
-
-    fn get_all_unfulfilled_trait_operatives(
-        &self,
-        _schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RTraitOperative> {
-        self.trait_operatives.get()
-    }
-
-    fn get_local_fulfilled_fields(&self) -> Vec<RFulfilledFieldConstraint<TTypes, TValues>> {
-        Vec::new()
-    }
-
-    fn get_ancestors_fulfilled_fields(
-        &self,
-        _schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RFulfilledFieldConstraint<TTypes, TValues>> {
-        Vec::new()
-    }
-
-    fn get_all_unfulfilled_fields(
-        &self,
-        _schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RFieldConstraint<TTypes>> {
-        self.field_constraints.get()
-    }
-
-    fn get_local_trait_impls(&self) -> HashMap<Uid, RTraitImpl> {
-        self.trait_impls.get()
-    }
-
-    fn get_ancestors_trait_impls(
-        &self,
-        _schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> HashMap<Uid, RTraitImpl> {
-        HashMap::new()
+        schema: &RConstraintSchema<TTypes, TValues>,
+    ) -> RTraitImplDigest {
+        RTraitImplDigest(self.trait_impls.with(|trait_impls| {
+            trait_impls
+                .iter()
+                .map(|(trait_id, trait_impl)| {
+                    (
+                        *trait_id,
+                        RRelatedTraitImpl {
+                            trait_impl: trait_impl.clone(),
+                            hosting_element_id: self.get_tag().id.get(),
+                        },
+                    )
+                })
+                .collect()
+        }))
     }
 }
 
@@ -220,527 +97,111 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
     type TTypes = TTypes;
     type TValues = TValues;
     fn get_template_id(&self) -> Uid {
-        self.template_id.get()
+        self.get_tag().id.get()
     }
-
     fn get_parent_operative_id(&self) -> Option<Uid> {
         self.parent_operative_id.get()
     }
-
-    fn get_local_trait_impls(&self) -> HashMap<Uid, RTraitImpl> {
-        self.trait_impls.get()
+    fn get_local_trait_impls(&self) -> RwSignal<HashMap<Uid, RTraitImpl>> {
+        self.trait_impls
     }
+    fn get_local_slotted_instances(&self) -> Option<RwSignal<HashMap<Uid, RSlottedInstances>>> {
+        Some(self.slotted_instances)
+    }
+    fn get_operative_digest<'a>(
+        &'a self,
+        schema: &'a RConstraintSchema<Self::TTypes, TValues>,
+    ) -> ROperativeDigest {
+        let related_template = schema.template_library.with(|template_library| {
+            template_library
+                .get(&self.get_template_id())
+                .unwrap()
+                .clone()
+        });
+        let mut aggregate_instances = HashMap::new();
 
-    fn get_ancestors_trait_impls(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> HashMap<Uid, RTraitImpl> {
-        let mut maybe_next_parent = self.parent_operative_id.get();
-        let mut ancestor_trait_impls = HashMap::new();
-        while let Some(next_parent) = maybe_next_parent {
-            schema.operative_library.with(|ops| {
-                let parent = ops.get(&next_parent).unwrap();
-                ancestor_trait_impls.extend(parent.get_local_trait_impls());
-                maybe_next_parent = parent.parent_operative_id.get();
-            });
+        // by setting the first parent id to the current operative's id, we can avoid special
+        // casing this element
+        let mut next_parent_id = Some(self.tag.id.get());
+        while let Some(parent_id) = next_parent_id {
+            let parent_operative = schema
+                .operative_library
+                .with(|operative_library| operative_library.get(&parent_id).unwrap().clone());
+            parent_operative
+                .slotted_instances
+                .with(|parent_slotted_instances| {
+                    for (slot_id, slotted_instances) in parent_slotted_instances.iter() {
+                        let related_instances = slotted_instances.fulfilling_instance_ids.with(
+                            |fulfilling_instance_ids| {
+                                fulfilling_instance_ids
+                                    .iter()
+                                    .map(|instance_id| RRelatedInstance {
+                                        instance_id: *instance_id,
+                                        hosting_element_id: parent_id,
+                                    })
+                                    .collect::<Vec<_>>()
+                            },
+                        );
+                        aggregate_instances
+                            .entry(*slot_id)
+                            .or_insert_with(|| vec![])
+                            .extend(related_instances);
+                    }
+                });
+            next_parent_id = parent_operative.parent_operative_id.get();
         }
-        let template_traits_impled = schema
-            .template_library
-            .with(|templates| {
-                templates
-                    .get(&self.template_id.get())
-                    .unwrap()
-                    .trait_impls
-                    .get()
-            })
-            .clone();
-        ancestor_trait_impls.extend(template_traits_impled);
-        ancestor_trait_impls
+
+        let operative_slots = related_template.operative_slots.with(|operative_slots| {
+            operative_slots
+                .iter()
+                .map(|(slot_id, op_slot)| {
+                    (
+                        *slot_id,
+                        ROperativeSlotDigest {
+                            slot: op_slot.clone(),
+                            related_instances: aggregate_instances
+                                .get(slot_id)
+                                .cloned()
+                                .unwrap_or_else(|| vec![]),
+                        },
+                    )
+                })
+                .collect()
+        });
+
+        ROperativeDigest { operative_slots }
     }
 
-    fn get_local_fulfilled_library_operatives(&self) -> Vec<RFulfilledOperative> {
-        self.fulfilled_library_operatives.get()
-    }
-
-    fn get_ancestors_fulfilled_library_operatives(
+    fn get_trait_impl_digest(
         &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RFulfilledOperative> {
-        let mut maybe_next_parent = self.parent_operative_id.get();
-        let mut ancestor_fulfilled = Vec::new();
-        while let Some(next_parent) = maybe_next_parent {
-            schema.operative_library.with(|ops| {
-                let parent = ops.get(&next_parent).unwrap();
-                ancestor_fulfilled.extend(parent.get_local_fulfilled_library_operatives());
-                maybe_next_parent = parent.parent_operative_id.get();
-            });
+        schema: &RConstraintSchema<Self::TTypes, TValues>,
+    ) -> RTraitImplDigest {
+        let mut next_parent_id = Some(self.tag.id.get());
+        let mut aggregate_trait_impls = HashMap::new();
+
+        while let Some(parent_id) = next_parent_id {
+            let parent_operative = schema
+                .operative_library
+                .with(|operative_library| operative_library.get(&parent_id).unwrap().clone());
+            aggregate_trait_impls.extend(parent_operative.get_local_trait_impls().with(
+                |local_trait_impls| {
+                    local_trait_impls
+                        .iter()
+                        .map(|(trait_id, trait_impl)| {
+                            (
+                                *trait_id,
+                                RRelatedTraitImpl {
+                                    trait_impl: trait_impl.clone(),
+                                    hosting_element_id: self.get_tag().id.get(),
+                                },
+                            )
+                        })
+                        .collect::<HashMap<_, _>>()
+                },
+            ));
+            next_parent_id = parent_operative.parent_operative_id.get();
         }
-        ancestor_fulfilled
-    }
 
-    fn get_all_unfulfilled_library_operatives_ids(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<Uid> {
-        let parent_template = schema
-            .template_library
-            .with(|templates| templates.get(&self.template_id.get()).unwrap().clone());
-        let potentially_unfulfilled_op_ids = parent_template.library_operatives.get();
-        let fulfilled_op_ids = self
-            .get_local_fulfilled_library_operatives()
-            .iter()
-            .map(|op| op.operative_id.get())
-            .collect::<Vec<_>>();
-        let ancestor_fulfilled = self
-            .get_ancestors_fulfilled_library_operatives(schema)
-            .iter()
-            .map(|op| op.operative_id.get())
-            .collect::<Vec<_>>();
-
-        potentially_unfulfilled_op_ids
-            .into_iter()
-            .filter(|op_id| {
-                !fulfilled_op_ids.contains(op_id) && !ancestor_fulfilled.contains(op_id)
-            })
-            .collect::<Vec<_>>()
-    }
-
-    fn get_local_fulfilled_trait_operatives(&self) -> Vec<RFulfilledOperative> {
-        self.fulfilled_trait_operatives.get()
-    }
-
-    fn get_ancestors_fulfilled_trait_operatives(
-        &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RFulfilledOperative> {
-        let mut maybe_next_parent = self.parent_operative_id.get();
-        let mut ancestor_fulfilled = Vec::new();
-        while let Some(next_parent) = maybe_next_parent {
-            schema.operative_library.with(|ops| {
-                let parent = ops.get(&next_parent).unwrap();
-                ancestor_fulfilled.extend(parent.get_local_fulfilled_trait_operatives());
-                maybe_next_parent = parent.parent_operative_id.get();
-            });
-        }
-        ancestor_fulfilled
-    }
-
-    fn get_all_unfulfilled_trait_operatives(
-        &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RTraitOperative> {
-        let parent_template = schema
-            .template_library
-            .with(|templates| templates.get(&self.template_id.get()).unwrap().clone());
-        let potentially_unfulfilled_trait_ops = parent_template.trait_operatives.get();
-        let fulfilled_op_ids = self
-            .get_local_fulfilled_trait_operatives()
-            .iter()
-            .map(|op| op.operative_id.get())
-            .collect::<Vec<_>>();
-        let ancestor_fulfilled = self
-            .get_ancestors_fulfilled_trait_operatives(schema)
-            .iter()
-            .map(|op| op.operative_id.get())
-            .collect::<Vec<_>>();
-
-        potentially_unfulfilled_trait_ops
-            .into_iter()
-            .filter(|trait_op| {
-                let trait_op_id = &trait_op.tag.id.get();
-                !fulfilled_op_ids.contains(trait_op_id) && !ancestor_fulfilled.contains(trait_op_id)
-            })
-            .collect::<Vec<_>>()
-    }
-
-    fn get_local_fulfilled_fields(&self) -> Vec<RFulfilledFieldConstraint<TTypes, TValues>> {
-        self.locked_fields.get()
-    }
-
-    fn get_ancestors_fulfilled_fields(
-        &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RFulfilledFieldConstraint<TTypes, TValues>> {
-        let mut maybe_next_parent = self.parent_operative_id.get();
-        let mut ancestor_fulfilled = Vec::new();
-        while let Some(next_parent) = maybe_next_parent {
-            schema.operative_library.with(|ops| {
-                let parent = ops.get(&next_parent).unwrap();
-                ancestor_fulfilled.extend(parent.get_local_fulfilled_fields());
-                maybe_next_parent = parent.parent_operative_id.get();
-            });
-        }
-        ancestor_fulfilled
-    }
-
-    fn get_all_unfulfilled_fields(
-        &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RFieldConstraint<TTypes>> {
-        let parent_template = schema
-            .template_library
-            .with(|templates| templates.get(&self.template_id.get()).unwrap().clone());
-        let potentially_unfulfilled_fields = parent_template.field_constraints.get();
-        let fulfilled_field_ids = self
-            .get_local_fulfilled_fields()
-            .iter()
-            .map(|field| field.tag.id.get())
-            .collect::<Vec<_>>();
-        let ancestor_fulfilled = self
-            .get_ancestors_fulfilled_fields(schema)
-            .iter()
-            .map(|field| field.tag.id.get())
-            .collect::<Vec<_>>();
-
-        potentially_unfulfilled_fields
-            .into_iter()
-            .filter(|field| {
-                let field_id = &field.tag.id.get();
-                !fulfilled_field_ids.contains(field_id) && !ancestor_fulfilled.contains(field_id)
-            })
-            .collect::<Vec<_>>()
-    }
-}
-
-impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
-    for RLibraryInstance<TTypes, TValues>
-{
-    type TTypes = TTypes;
-    type TValues = TValues;
-    fn get_template_id(&self) -> Uid {
-        self.template_id.get()
-    }
-
-    fn get_parent_operative_id(&self) -> Option<Uid> {
-        self.parent_operative_id.get()
-    }
-
-    fn get_local_fulfilled_library_operatives(&self) -> Vec<RFulfilledOperative> {
-        self.fulfilled_library_operatives.get()
-    }
-
-    fn get_ancestors_fulfilled_library_operatives(
-        &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RFulfilledOperative> {
-        let mut maybe_next_parent = self.parent_operative_id.get();
-        let mut ancestor_fulfilled = Vec::new();
-        while let Some(next_parent) = maybe_next_parent {
-            schema.operative_library.with(|ops| {
-                let parent = ops.get(&next_parent).unwrap();
-                ancestor_fulfilled.extend(parent.get_local_fulfilled_library_operatives());
-                maybe_next_parent = parent.parent_operative_id.get();
-            });
-        }
-        ancestor_fulfilled
-    }
-
-    fn get_all_unfulfilled_library_operatives_ids(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<Uid> {
-        let parent_template = schema
-            .template_library
-            .with(|templates| templates.get(&self.template_id.get()).unwrap().clone());
-        let potentially_unfulfilled_op_ids = parent_template.library_operatives.get();
-        let fulfilled_op_ids = self
-            .get_local_fulfilled_library_operatives()
-            .iter()
-            .map(|op| op.operative_id.get())
-            .collect::<Vec<_>>();
-        let ancestor_fulfilled = self
-            .get_ancestors_fulfilled_library_operatives(schema)
-            .iter()
-            .map(|op| op.operative_id.get())
-            .collect::<Vec<_>>();
-
-        potentially_unfulfilled_op_ids
-            .into_iter()
-            .filter(|op_id| {
-                !fulfilled_op_ids.contains(op_id) && !ancestor_fulfilled.contains(op_id)
-            })
-            .collect::<Vec<_>>()
-    }
-
-    fn get_local_fulfilled_trait_operatives(&self) -> Vec<RFulfilledOperative> {
-        Vec::new()
-    }
-
-    fn get_ancestors_fulfilled_trait_operatives(
-        &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RFulfilledOperative> {
-        let mut maybe_next_parent = self.parent_operative_id.get();
-        let mut ancestor_fulfilled = Vec::new();
-        while let Some(next_parent) = maybe_next_parent {
-            schema.operative_library.with(|ops| {
-                let parent = ops.get(&next_parent).unwrap();
-                ancestor_fulfilled.extend(parent.get_local_fulfilled_trait_operatives());
-                maybe_next_parent = parent.parent_operative_id.get();
-            });
-        }
-        ancestor_fulfilled
-    }
-
-    fn get_all_unfulfilled_trait_operatives(
-        &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RTraitOperative> {
-        let parent_template = schema
-            .template_library
-            .with(|templates| templates.get(&self.template_id.get()).unwrap().clone());
-        let potentially_unfulfilled_trait_ops = parent_template.trait_operatives.get();
-        let fulfilled_op_ids = self
-            .get_local_fulfilled_trait_operatives()
-            .iter()
-            .map(|op| op.operative_id.get())
-            .collect::<Vec<_>>();
-        let ancestor_fulfilled = self
-            .get_ancestors_fulfilled_trait_operatives(schema)
-            .iter()
-            .map(|op| op.operative_id.get())
-            .collect::<Vec<_>>();
-
-        potentially_unfulfilled_trait_ops
-            .into_iter()
-            .filter(|trait_op| {
-                let trait_op_id = &trait_op.tag.id.get();
-                !fulfilled_op_ids.contains(trait_op_id) && !ancestor_fulfilled.contains(trait_op_id)
-            })
-            .collect::<Vec<_>>()
-    }
-
-    fn get_local_fulfilled_fields(&self) -> Vec<RFulfilledFieldConstraint<TTypes, TValues>> {
-        self.data.get()
-    }
-
-    fn get_ancestors_fulfilled_fields(
-        &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RFulfilledFieldConstraint<TTypes, TValues>> {
-        let mut maybe_next_parent = self.parent_operative_id.get();
-        let mut ancestor_fulfilled = Vec::new();
-        while let Some(next_parent) = maybe_next_parent {
-            schema.operative_library.with(|ops| {
-                let parent = ops.get(&next_parent).unwrap();
-                ancestor_fulfilled.extend(parent.get_local_fulfilled_fields());
-                maybe_next_parent = parent.parent_operative_id.get();
-            });
-        }
-        ancestor_fulfilled
-    }
-
-    fn get_all_unfulfilled_fields(
-        &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> Vec<RFieldConstraint<TTypes>> {
-        let parent_template = schema
-            .template_library
-            .with(|templates| templates.get(&self.template_id.get()).unwrap().clone());
-        let potentially_unfulfilled_fields = parent_template.field_constraints.get();
-        let fulfilled_field_ids = self
-            .get_local_fulfilled_fields()
-            .iter()
-            .map(|field| field.tag.id.get())
-            .collect::<Vec<_>>();
-        let ancestor_fulfilled = self
-            .get_ancestors_fulfilled_fields(schema)
-            .iter()
-            .map(|field| field.tag.id.get())
-            .collect::<Vec<_>>();
-
-        potentially_unfulfilled_fields
-            .into_iter()
-            .filter(|field| {
-                let field_id = &field.tag.id.get();
-                !fulfilled_field_ids.contains(field_id) && !ancestor_fulfilled.contains(field_id)
-            })
-            .collect::<Vec<_>>()
-    }
-
-    fn get_local_trait_impls(&self) -> HashMap<Uid, RTraitImpl> {
-        self.trait_impls.get()
-    }
-
-    fn get_ancestors_trait_impls(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> HashMap<Uid, RTraitImpl> {
-        let mut maybe_next_parent = self.parent_operative_id.get();
-        let mut ancestor_trait_impls = HashMap::new();
-        while let Some(next_parent) = maybe_next_parent {
-            schema.operative_library.with(|ops| {
-                let parent = ops.get(&next_parent).unwrap();
-                ancestor_trait_impls.extend(parent.get_local_trait_impls());
-                maybe_next_parent = parent.parent_operative_id.get();
-            });
-        }
-        let template_traits_impled = schema
-            .template_library
-            .with(|templates| {
-                templates
-                    .get(&self.template_id.get())
-                    .unwrap()
-                    .trait_impls
-                    .get()
-            })
-            .clone();
-        ancestor_trait_impls.extend(template_traits_impled);
-        ancestor_trait_impls
-    }
-}
-
-#[derive(PartialEq)]
-pub enum RItem<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
-    Template(RLibraryTemplate<TTypes, TValues>),
-    LibraryOperative(RLibraryOperative<TTypes, TValues>),
-    Instance(RLibraryInstance<TTypes, TValues>),
-}
-
-impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> Tagged for RItem<TTypes, TValues> {
-    fn get_tag(&self) -> &RTag {
-        match self {
-            Self::Template(_item) => <Self as Tagged>::get_tag(self),
-            Self::LibraryOperative(_item) => <Self as Tagged>::get_tag(self),
-            Self::Instance(_item) => <Self as Tagged>::get_tag(self),
-        }
-    }
-}
-
-impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
-    for RItem<TTypes, TValues>
-{
-    type TTypes = TTypes;
-
-    type TValues = TValues;
-
-    fn get_template_id(&self) -> Uid {
-        match self {
-            Self::Template(item) => item.get_template_id(),
-            Self::LibraryOperative(item) => item.get_template_id(),
-            Self::Instance(item) => item.get_template_id(),
-        }
-    }
-
-    fn get_parent_operative_id(&self) -> Option<Uid> {
-        match self {
-            Self::Template(item) => item.get_parent_operative_id(),
-            Self::LibraryOperative(item) => item.get_parent_operative_id(),
-            Self::Instance(item) => item.get_parent_operative_id(),
-        }
-    }
-
-    fn get_local_trait_impls(&self) -> HashMap<Uid, RTraitImpl> {
-        match self {
-            Self::Template(item) => item.get_local_trait_impls(),
-            Self::LibraryOperative(item) => item.get_local_trait_impls(),
-            Self::Instance(item) => item.get_local_trait_impls(),
-        }
-    }
-
-    fn get_ancestors_trait_impls(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> HashMap<Uid, RTraitImpl> {
-        match self {
-            Self::Template(item) => item.get_ancestors_trait_impls(schema),
-            Self::LibraryOperative(item) => item.get_ancestors_trait_impls(schema),
-            Self::Instance(item) => item.get_ancestors_trait_impls(schema),
-        }
-    }
-
-    fn get_local_fulfilled_library_operatives(&self) -> Vec<RFulfilledOperative> {
-        match self {
-            Self::Template(item) => item.get_local_fulfilled_library_operatives(),
-            Self::LibraryOperative(item) => item.get_local_fulfilled_library_operatives(),
-            Self::Instance(item) => item.get_local_fulfilled_library_operatives(),
-        }
-    }
-
-    fn get_ancestors_fulfilled_library_operatives(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RFulfilledOperative> {
-        match self {
-            Self::Template(item) => item.get_ancestors_fulfilled_library_operatives(schema),
-            Self::LibraryOperative(item) => item.get_ancestors_fulfilled_library_operatives(schema),
-            Self::Instance(item) => item.get_ancestors_fulfilled_library_operatives(schema),
-        }
-    }
-
-    fn get_all_unfulfilled_library_operatives_ids(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<Uid> {
-        match self {
-            Self::Template(item) => item.get_all_unfulfilled_library_operatives_ids(schema),
-            Self::LibraryOperative(item) => item.get_all_unfulfilled_library_operatives_ids(schema),
-            Self::Instance(item) => item.get_all_unfulfilled_library_operatives_ids(schema),
-        }
-    }
-
-    fn get_local_fulfilled_trait_operatives(&self) -> Vec<RFulfilledOperative> {
-        todo!()
-    }
-
-    fn get_ancestors_fulfilled_trait_operatives(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RFulfilledOperative> {
-        match self {
-            Self::Template(item) => item.get_ancestors_fulfilled_trait_operatives(schema),
-            Self::LibraryOperative(item) => item.get_ancestors_fulfilled_trait_operatives(schema),
-            Self::Instance(item) => item.get_ancestors_fulfilled_trait_operatives(schema),
-        }
-    }
-
-    fn get_all_unfulfilled_trait_operatives(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RTraitOperative> {
-        match self {
-            Self::Template(item) => item.get_all_unfulfilled_trait_operatives(schema),
-            Self::LibraryOperative(item) => item.get_all_unfulfilled_trait_operatives(schema),
-            Self::Instance(item) => item.get_all_unfulfilled_trait_operatives(schema),
-        }
-    }
-
-    fn get_local_fulfilled_fields(
-        &self,
-    ) -> Vec<RFulfilledFieldConstraint<Self::TTypes, Self::TValues>> {
-        todo!()
-    }
-
-    fn get_ancestors_fulfilled_fields(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RFulfilledFieldConstraint<Self::TTypes, Self::TValues>> {
-        match self {
-            Self::Template(item) => item.get_ancestors_fulfilled_fields(schema),
-            Self::LibraryOperative(item) => item.get_ancestors_fulfilled_fields(schema),
-            Self::Instance(item) => item.get_ancestors_fulfilled_fields(schema),
-        }
-    }
-
-    fn get_all_unfulfilled_fields(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<RFieldConstraint<Self::TTypes>> {
-        match self {
-            Self::Template(item) => item.get_all_unfulfilled_fields(schema),
-            Self::LibraryOperative(item) => item.get_all_unfulfilled_fields(schema),
-            Self::Instance(item) => item.get_all_unfulfilled_fields(schema),
-        }
-    }
-
-    fn get_all_constituent_instance_ids(
-        &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Vec<Uid> {
-        match self {
-            Self::Template(item) => item.get_all_constituent_instance_ids(schema),
-            Self::LibraryOperative(item) => item.get_all_constituent_instance_ids(schema),
-            Self::Instance(item) => item.get_all_constituent_instance_ids(schema),
-        }
+        RTraitImplDigest(aggregate_trait_impls)
     }
 }

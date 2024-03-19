@@ -1,3 +1,4 @@
+cargo-features = ["codegen-backend"]
 [workspace]
 members = [
   "constraint_schema",
@@ -6,3 +7,7 @@ members = [
   "serde_types",
   "output_types",
 ]
+
+[profile.dev]
+debug = 0
+codegen-backend = "cranelift"

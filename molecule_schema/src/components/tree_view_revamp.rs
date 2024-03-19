@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{collections::HashMap, rc::Rc};
 
 use leptos::{logging::log, *};
 use serde_types::{
@@ -7,6 +7,7 @@ use serde_types::{
 };
 
 use crate::utils::{
+    operative_digest::ROperativeDigest,
     reactive_item::RConstraintSchemaItem,
     reactive_types::{
         FieldInfo, RConstraintSchema, RFieldConstraint, RTag, RTraitDef, RTraitOperative, Tagged,
@@ -46,9 +47,8 @@ struct TreeNodeInfo<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     tag: RTag,
     fields: Vec<FieldInfoStruct<TTypes, TValues>>,
     trait_impls: Vec<RTraitDef<TTypes>>,
-    instance_constituents: Vec<Uid>,
-    library_operative_constituents: Vec<Uid>,
-    trait_operative_constituents: Vec<RTraitOperative>,
+    operative_digest: ROperativeDigest,
+    template_level_instances: Vec<Uid>, // instance_constituents: Vec<Uid>,
 }
 
 fn get_tree_node_info<TTypes: ConstraintTraits, TValues: ConstraintTraits>(
@@ -63,7 +63,7 @@ fn get_tree_node_info<TTypes: ConstraintTraits, TValues: ConstraintTraits>(
     let fields = parent_template
         .field_constraints
         .get()
-        .iter()
+        .values()
         .map(|field| FieldInfoStruct {
             tag: field.get_tag().clone(),
             value_type: <RFieldConstraint<TTypes> as FieldInfo<TTypes, TValues>>::get_value_type(
@@ -72,29 +72,37 @@ fn get_tree_node_info<TTypes: ConstraintTraits, TValues: ConstraintTraits>(
             value: field.get_value(),
         })
         .collect::<Vec<_>>();
-    let mut traits_impled = item.get_local_trait_impls();
-    traits_impled.extend(item.get_ancestors_trait_impls(schema));
-    let traits_impled = traits_impled
+    let traits_impled_ids = item
+        .get_trait_impl_digest(schema)
+        .0
         .keys()
+        .cloned()
+        .collect::<Vec<_>>();
+    let traits_impled_defs = traits_impled_ids
+        .iter()
         .map(|id| {
             schema
                 .traits
-                .with(|trait_items| trait_items.get(id).unwrap().clone())
+                .with(|trait_items| trait_items.get(&id).unwrap().clone())
         })
         .collect();
 
-    let instance_constituents = item.get_all_constituent_instance_ids(schema);
-    let library_operative_constituents = item.get_all_unfulfilled_library_operatives_ids(schema);
-    let trait_operative_constituents = item.get_all_unfulfilled_trait_operatives(schema);
+    let operative_digest = item.get_operative_digest(schema);
+    let template_level_instances = parent_template.instances.get();
+    // let instance_constituents = item.get_all_constituent_instance_ids(schema);
+    // let library_operative_constituents = item.get_all_unfulfilled_library_operatives_ids(schema);
+    // let trait_operative_constituents = item.get_all_unfulfilled_trait_operatives(schema);
 
     TreeNodeInfo {
         top_level_type: tree_type,
         tag: element_tag,
         fields,
-        trait_impls: traits_impled,
-        instance_constituents,
-        library_operative_constituents,
-        trait_operative_constituents,
+        trait_impls: traits_impled_defs,
+        operative_digest,
+        template_level_instances,
+        // instance_constituents,
+        // library_operative_constituents,
+        // trait_operative_constituents,
     }
 }
 #[component]
@@ -149,9 +157,12 @@ where
                 tag: trait_op.tag.clone(),
                 fields: vec![],
                 trait_impls: vec![element()],
-                instance_constituents: vec![],
-                library_operative_constituents: vec![],
-                trait_operative_constituents: vec![],
+                template_level_instances: vec![],
+                operative_digest: ROperativeDigest {
+                    operative_slots: HashMap::new(),
+                }, // instance_constituents: vec![],
+                   // library_operative_constituents: vec![],
+                   // trait_operative_constituents: vec![],
             }
         }
     });
@@ -202,7 +213,7 @@ where
                             implements trait: {item.tag.name} <br/>
                             <For
                                 each=move || item.methods.get()
-                                key=move |method_item| method_item.tag.id.get()
+                                key=move |(method_item_id, _method_item)| method_item_id.clone()
                                 let:method_item
                             >
 
@@ -212,15 +223,15 @@ where
                                     let on_click_closure = move |_| on_click_tree_data(
                                         TreeNodeDataSelectionType::TraitMethod {
                                             trait_id: item.tag.id.get(),
-                                            method_id: method_item.tag.id.get(),
+                                            method_id: method_item.0,
                                         },
-                                        method_item.return_type.get(),
+                                        method_item.1.return_type.get(),
                                         new_path.clone(),
                                     );
                                     view! {
                                         <div on:click=on_click_closure>
-                                            {method_item.tag.name} :
-                                            {move || method_item.return_type.get().to_string()}
+                                            {method_item.1.tag.name} :
+                                            {move || method_item.1.return_type.get().to_string()}
                                         </div>
                                     }
                                 }
@@ -234,7 +245,7 @@ where
         </div>
         <div class="flex">
             <For
-                each=move || tree_element.get().instance_constituents
+                each=move || tree_element.get().template_level_instances
                 key=move |&item| item
                 let:child
             >
@@ -254,49 +265,61 @@ where
 
             </For>
             <For
-                each=move || tree_element.get().library_operative_constituents
-                key=move |&item| item
-                let:child
+                each=move || tree_element.get().operative_digest.operative_slots
+                key=move |(slot_id, _slot)| slot_id.clone()
+                let:slot_info
             >
-
-                {
-                    let on_click_tree_data_2 = on_click_tree_data_2.clone();
-                    view! {
-                        <div>
-                            <TreeNode
-                                on_click_tree_data=on_click_tree_data_2
-                                element=TreeRef(TreeTypes::LibraryOperative, child)
-                                path=new_path_2.clone()
-                            />
-                        </div>
-                    }
-                }
-
+            {
+            let on_click_tree_data_2 = on_click_tree_data_2.clone();
+            view!{
+            <div></div>
+            }
+            }
             </For>
-            <For
-                each=move || tree_element.get().trait_operative_constituents
-                key=move |item| item.trait_id
-                let:child
-            >
-
-                {
-                    let on_click_tree_data_3 = on_click_tree_data_3.clone();
-                    view! {
-                        <div>
-                            <TreeNode
-                                on_click_tree_data=on_click_tree_data_3
-                                element=TreeRef(
-                                    TreeTypes::TraitOperative(child.clone()),
-                                    child.trait_id.get(),
-                                )
-
-                                path=new_path_3.clone()
-                            />
-                        </div>
-                    }
-                }
-
-            </For>
+            // <For
+            //     each=move || tree_element.get().library_operative_constituents
+            //     key=move |&item| item
+            //     let:child
+            // >
+            //
+            //     {
+            //         let on_click_tree_data_2 = on_click_tree_data_2.clone();
+            //         view! {
+            //             <div>
+            //                 <TreeNode
+            //                     on_click_tree_data=on_click_tree_data_2
+            //                     element=TreeRef(TreeTypes::LibraryOperative, child)
+            //                     path=new_path_2.clone()
+            //                 />
+            //             </div>
+            //         }
+            //     }
+            //
+            // </For>
+            // <For
+            //     each=move || tree_element.get().trait_operative_constituents
+            //     key=move |item| item.tag.id.get()
+            //     let:child
+            // >
+            //
+            //     {
+            //         let on_click_tree_data_3 = on_click_tree_data_3.clone();
+            //         view! {
+            //             <div>
+            //                 <TreeNode
+            //                     on_click_tree_data=on_click_tree_data_3
+            //                     element=TreeRef(
+            //                         TreeTypes::TraitOperative(child.clone()),
+            //                         child.tag.id.get(),
+            //                     )
+            //
+            //                     path=new_path_3.clone()
+            //                 />
+            //             </div>
+            //         }
+            //     }
+            //
+            // </For>
         </div>
     }
 }

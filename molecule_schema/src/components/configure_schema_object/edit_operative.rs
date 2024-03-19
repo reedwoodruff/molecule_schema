@@ -16,9 +16,7 @@ use crate::{
     },
     utils::{
         reactive_item::RConstraintSchemaItem,
-        reactive_types::{
-            RFulfilledOperative, RLibraryInstance, RLibraryOperative, RTraitMethodImplPath,
-        },
+        reactive_types::{RLibraryOperative, RSlottedInstances, RTraitMethodImplPath},
     },
 };
 
@@ -130,7 +128,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                     .fulfilled_library_operatives
                     .get()
                     .iter()
-                    .map(|fulf_op| fulf_op.fulfilling_instance_id.get()),
+                    .map(|fulf_op| fulf_op.fulfilling_instance_ids.get()),
             )
             .chain(
                 active_object
@@ -138,7 +136,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                     .fulfilled_trait_operatives
                     .get()
                     .iter()
-                    .map(|fulf_op| fulf_op.fulfilling_instance_id.get()),
+                    .map(|fulf_op| fulf_op.fulfilling_instance_ids.get()),
             )
             .map(|instance_id| {
                 schema_clone_13
@@ -189,7 +187,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                         .clone()
                         .traits
                         .get()
-                        .get(&trait_operative.trait_id.get())
+                        .get(&trait_operative.trait_ids.get())
                         .cloned()
                         .unwrap(),
                 )
@@ -295,7 +293,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                 RTraitMethodImplPath::TraitOperativeConstituent {
                                     trait_method_id: RwSignal::new(method_id),
                                     trait_operative_id: RwSignal::new(trait_op.tag.id.get()),
-                                    trait_id: RwSignal::new(trait_op.trait_id.get()),
+                                    trait_id: RwSignal::new(trait_op.trait_ids.get()),
                                 }
                             }
                             _ => {
@@ -445,14 +443,14 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                 <h4>Fields</h4>
                 <For
                     each=ancestors_fulfilled_field_constraints
-                    key=move |item| item.tag.id
+                    key=move |item| item.field_constraint_id.id
                     let:item
                 >
-                    <div>{item.tag.name} (locked above)</div>
+                    <div>{item.field_constraint_id.name} (locked above)</div>
                 </For>
-                <For each=local_fulfilled_field_constraints key=move |item| item.tag.id let:item>
+                <For each=local_fulfilled_field_constraints key=move |item| item.field_constraint_id.id let:item>
                     <div>
-                        {item.tag.name} : {move || item.value.get().to_string()} (locked)
+                        {item.field_constraint_id.name} : {move || item.value.get().to_string()} (locked)
                         <button on:click=move |_| {
                             active_object
                                 .get()
@@ -461,7 +459,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                     let index = prev
                                         .iter()
                                         .position(|prev_item| {
-                                            prev_item.tag.id.get() == item.tag.id.get()
+                                            prev_item.field_constraint_id.id.get() == item.field_constraint_id.id.get()
                                         })
                                         .unwrap();
                                     prev.remove(index);
@@ -543,7 +541,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                 .fulfilled_library_operatives
                                 .update(|prev| {
                                     prev.retain(|prev_item| {
-                                        prev_item.fulfilling_instance_id.get() != item.tag.id.get()
+                                        prev_item.fulfilling_instance_ids.get() != item.tag.id.get()
                                     });
                                 });
                             active_object
@@ -551,7 +549,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                 .fulfilled_trait_operatives
                                 .update(|prev| {
                                     prev.retain(|prev_item| {
-                                        prev_item.fulfilling_instance_id.get() != item.tag.id.get()
+                                        prev_item.fulfilling_instance_ids.get() != item.tag.id.get()
                                     });
                                 });
                         };
@@ -602,7 +600,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                         let selected_instance = RwSignal::new(None);
                         let on_click_lock = move |_| {
                             if let Some(selected_item) = selected_instance.get() {
-                                let new_fulfilled_op = RFulfilledOperative::new(
+                                let new_fulfilled_op = RSlottedInstances::new(
                                     constituent_library_op.tag.id.get(),
                                     selected_item,
                                 );
@@ -656,7 +654,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                         let selected_instance = RwSignal::new(None);
                         let on_click_lock = move |_| {
                             if let Some(selected_item) = selected_instance.get() {
-                                let new_fulfilled_op = RFulfilledOperative::new(
+                                let new_fulfilled_op = RSlottedInstances::new(
                                     trait_operative.tag.id.get(),
                                     selected_item,
                                 );
