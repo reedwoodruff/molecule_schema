@@ -308,3 +308,18 @@ In situation 1, the question is less pronounced in the sense that once you have 
 Related to this is the opposite problem. Instead of the instance changing out from under the contract, there exists the possibility while editing a schema to have the *contract* change out from under the instance.
 
 This is mostly a usability concern -- as far as correctness of the system, you could just force users to manually create and assign the exact operative contract required. But that would be a pretty big UI drag I think.
+
+
+## March 19, 2024
+Confronted with the question: how much of a functional programming language should be implemented into the schema system?
+With the addition of operative slots having variable numbers of elements, there needs to be some more expressive way of propagating trait implementations through the constituent structure.
+Previously, you could select a field or trait impl of some constituent operative and be sure that there would be exactly 1 instance from which to extract the information required.
+
+Longer term, it seems like it would be very valuable to be able to express some kind of map or filter operation on the elements of a given operative slot.
+But this would require creating a whole syntax for mapping over the structure -- some way to: 
+1. express the operations which would be performed on the elements,
+2. perform arithmetic to combine or otherwise manipulate the results of the operations,
+3. massage the results into the correct shape to fulfill the expected trait contract.
+
+This seems difficult. I'm searching for a stopgap solution in the meantime.
+Maybe it would be best to only allow trait propagation through 1:1 operative slots for now.

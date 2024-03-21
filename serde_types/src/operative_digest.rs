@@ -32,7 +32,8 @@ impl<'a> OperativeDigest<'a> {
 impl<'a> OperativeSlotDigest<'a> {
     pub fn get_fulfillment_status(&self) -> bool {
         match self.slot.bounds {
-            crate::constraint_schema::SlotBounds::Unbounded => true,
+            // crate::constraint_schema::SlotBounds::Unbounded => true,
+            crate::constraint_schema::SlotBounds::Single => self.related_instances.len() == 1,
             crate::constraint_schema::SlotBounds::LowerBound(lower_bound) => {
                 self.related_instances.len() >= lower_bound
             }

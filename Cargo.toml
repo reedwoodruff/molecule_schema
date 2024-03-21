@@ -1,13 +1,15 @@
-cargo-features = ["codegen-backend"]
+# cargo-features = ["codegen-backend"]
 [workspace]
+resolver = "2"
 members = [
   "constraint_schema",
   "molecule_schema",
-  "generate_schema",
+  # "generate_schema",
   "serde_types",
   "output_types",
 ]
 
-[profile.dev]
-debug = 0
-codegen-backend = "cranelift"
+
+# [profile.dev]
+# debug = 0
+# codegen-backend = "cranelift"

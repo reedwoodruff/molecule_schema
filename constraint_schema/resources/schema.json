@@ -1,125 +1,8 @@
 {
   "template_library": {
-    "532890717623": {
-      "field_constraints": [],
-      "library_operatives": [
-        900
-      ],
-      "trait_operatives": [
-        {
-          "trait_id": 12398769123987,
-          "tag": {
-            "name": "ownee",
-            "id": 901
-          }
-        }
-      ],
-      "instances": [],
-      "trait_impls": {
-        "12398769123987": {
-          "985762345157": [
-            {
-              "LibraryOperativeConstituent": 900
-            },
-            {
-              "Field": 234098736293
-            }
-          ]
-        }
-      },
-      "tag": {
-        "name": "HasColoredObject",
-        "id": 532890717623
-      },
-      "_phantom": null
-    },
-    "342349875608": {
-      "field_constraints": [
-        {
-          "tag": {
-            "name": "name",
-            "id": 234098736293
-          },
-          "value_type": "String"
-        },
-        {
-          "tag": {
-            "name": "age",
-            "id": 1875689283856
-          },
-          "value_type": {
-            "Option": "U32"
-          }
-        }
-      ],
-      "library_operatives": [],
-      "trait_operatives": [],
-      "instances": [],
-      "trait_impls": {},
-      "tag": {
-        "name": "Person",
-        "id": 342349875608
-      },
-      "_phantom": null
-    },
-    "30569035832764": {
-      "field_constraints": [
-        {
-          "tag": {
-            "name": "color",
-            "id": 4329876098
-          },
-          "value_type": "String"
-        }
-      ],
-      "library_operatives": [],
-      "trait_operatives": [],
-      "instances": [],
-      "trait_impls": {
-        "12398769123987": {
-          "985762345157": [
-            {
-              "Field": 4329876098
-            }
-          ]
-        }
-      },
-      "tag": {
-        "name": "Sock",
-        "id": 30569035832764
-      },
-      "_phantom": null
-    }
   },
   "instance_library": {},
   "operative_library": {
-    "900": {
-      "template_id": 342349875608,
-      "operative_library_id": null,
-      "tag": {
-        "name": "owner",
-        "id": 900
-      },
-      "fulfilled_library_operatives": [],
-      "fulfilled_trait_operatives": [],
-      "locked_fields": [
-        {
-          "tag": {
-            "name": "age",
-            "id": 1875689283856
-          },
-          "value_type": {
-            "Option": "U32"
-          },
-          "value": {
-            "Option": {
-              "U32": 99
-            }
-          }
-        }
-      ],
-      "trait_impls": {}
-    }
   },
   "traits": {
     "12398769123987": {
@@ -127,15 +10,31 @@
         "name": "Color",
         "id": 12398769123987
       },
-      "methods": [
-        {
+      "methods": {
+       "985762345157": {
           "tag": {
             "name": "getColor",
             "id": 985762345157
           },
           "return_type": "String"
         }
-      ]
     }
+    },
+    "23409817235987234": {
+      "tag": {
+        "name": "Sized",
+        "id": 23409817235987234
+      },
+      "methods": {
+        "1238497293847":{
+          "tag": {
+            "name": "get_size",
+            "id": 1238497293847
+          },
+          "return_type": "Int"
+        }
+    }
+    }
+
   }
 }

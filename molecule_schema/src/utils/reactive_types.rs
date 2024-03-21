@@ -1,4 +1,5 @@
 use std::{collections::HashMap, marker::PhantomData};
+use strum_macros::{Display, EnumIter, EnumString};
 
 use leptos::signal_prelude::*;
 
@@ -121,7 +122,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RConstraintSchema
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Default)]
 pub struct RTag {
     pub name: RwSignal<String>,
     pub id: RwSignal<Uid>,
@@ -297,43 +298,62 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLibraryTemplate<TType
         }
     }
 }
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ROperativeSlot {
     pub tag: RTag,
     pub operative_descriptor: ROperativeVariants,
     pub bounds: RwSignal<RSlotBounds>,
 }
+impl ROperativeSlot {
+    pub fn new(operative_id: ROperativeVariants, name: &str) -> Self {
+        Self {
+            tag: RTag::new(name),
+            operative_descriptor: operative_id,
+            bounds: RwSignal::new(RSlotBounds::default()),
+        }
+    }
+}
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default, EnumIter, Display, EnumString)]
 pub enum RSlotBounds {
-    Unbounded,
-    LowerBound(usize),
-    UpperBound(usize),
-    Range(usize, usize),
-    LowerBoundOrZero(usize),
-    RangeOrZero(usize, usize),
+    // Unbounded,
+    #[default]
+    Single,
+    LowerBound(RwSignal<usize>),
+    UpperBound(RwSignal<usize>),
+    Range(RwSignal<usize>, RwSignal<usize>),
+    LowerBoundOrZero(RwSignal<usize>),
+    RangeOrZero(RwSignal<usize>, RwSignal<usize>),
 }
 impl From<SlotBounds> for RSlotBounds {
     fn from(value: SlotBounds) -> Self {
         match value {
-            SlotBounds::Unbounded => RSlotBounds::Unbounded,
-            SlotBounds::LowerBound(val) => RSlotBounds::LowerBound(val),
-            SlotBounds::UpperBound(val) => RSlotBounds::UpperBound(val),
-            SlotBounds::Range(lower, upper) => RSlotBounds::Range(lower, upper),
-            SlotBounds::LowerBoundOrZero(val) => RSlotBounds::LowerBoundOrZero(val),
-            SlotBounds::RangeOrZero(lower, upper) => RSlotBounds::RangeOrZero(lower, upper),
+            // SlotBounds::Unbounded => RSlotBounds::Unbounded,
+            SlotBounds::Single => RSlotBounds::Single,
+            SlotBounds::LowerBound(val) => RSlotBounds::LowerBound(RwSignal::new(val)),
+            SlotBounds::UpperBound(val) => RSlotBounds::UpperBound(RwSignal::new(val)),
+            SlotBounds::Range(lower, upper) => {
+                RSlotBounds::Range(RwSignal::new(lower), RwSignal::new(upper))
+            }
+            SlotBounds::LowerBoundOrZero(val) => RSlotBounds::LowerBoundOrZero(RwSignal::new(val)),
+            SlotBounds::RangeOrZero(lower, upper) => {
+                RSlotBounds::RangeOrZero(RwSignal::new(lower), RwSignal::new(upper))
+            }
         }
     }
 }
 impl From<RSlotBounds> for SlotBounds {
     fn from(value: RSlotBounds) -> Self {
         match value {
-            RSlotBounds::Unbounded => SlotBounds::Unbounded,
-            RSlotBounds::LowerBound(val) => SlotBounds::LowerBound(val),
-            RSlotBounds::UpperBound(val) => SlotBounds::UpperBound(val),
-            RSlotBounds::Range(lower, upper) => SlotBounds::Range(lower, upper),
-            RSlotBounds::LowerBoundOrZero(val) => SlotBounds::LowerBoundOrZero(val),
-            RSlotBounds::RangeOrZero(lower, upper) => SlotBounds::RangeOrZero(lower, upper),
+            // RSlotBounds::Unbounded => SlotBounds::Unbounded,
+            RSlotBounds::Single => SlotBounds::Single,
+            RSlotBounds::LowerBound(val) => SlotBounds::LowerBound(val.get()),
+            RSlotBounds::UpperBound(val) => SlotBounds::UpperBound(val.get()),
+            RSlotBounds::Range(lower, upper) => SlotBounds::Range(lower.get(), upper.get()),
+            RSlotBounds::LowerBoundOrZero(val) => SlotBounds::LowerBoundOrZero(val.get()),
+            RSlotBounds::RangeOrZero(lower, upper) => {
+                SlotBounds::RangeOrZero(lower.get(), upper.get())
+            }
         }
     }
 }
@@ -357,7 +377,7 @@ impl From<ROperativeSlot> for OperativeSlot {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, EnumIter, EnumString, Hash)]
 pub enum ROperativeVariants {
     LibraryOperative(RwSignal<Uid>),
     TraitOperative(RTraitOperative),
@@ -427,13 +447,14 @@ impl<TTypes: ConstraintTraits> RFieldConstraint<TTypes> {
         value: TValues,
     ) -> RFulfilledFieldConstraint<TValues> {
         RFulfilledFieldConstraint {
+            field_constraint_name: RwSignal::new(self.tag.name.get()),
             field_constraint_id: RwSignal::new(self.tag.id.get()),
             value: RwSignal::new(value),
         }
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash, Default)]
 pub struct RTraitOperative {
     pub trait_ids: RwSignal<Vec<Uid>>,
     pub tag: RTag,
@@ -572,9 +593,10 @@ impl RSlottedInstances {
 //     }
 // }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RFulfilledFieldConstraint<TValues: ConstraintTraits> {
     pub field_constraint_id: RwSignal<Uid>,
+    pub field_constraint_name: RwSignal<String>,
     pub value: RwSignal<TValues>,
 }
 // impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> FieldInfo<TTypes, TValues>
@@ -593,6 +615,7 @@ impl<TValues: ConstraintTraits> From<FulfilledFieldConstraint<TValues>>
 {
     fn from(value: FulfilledFieldConstraint<TValues>) -> Self {
         Self {
+            field_constraint_name: RwSignal::new(value.field_constraint_name),
             field_constraint_id: value.field_constraint_id.into(),
             value: RwSignal::new(value.value),
         }
@@ -603,14 +626,16 @@ impl<TValues: ConstraintTraits> From<RFulfilledFieldConstraint<TValues>>
 {
     fn from(value: RFulfilledFieldConstraint<TValues>) -> Self {
         Self {
+            field_constraint_name: value.field_constraint_name.get(),
             field_constraint_id: value.field_constraint_id.get(),
             value: value.value.get(),
         }
     }
 }
 impl<TValues: ConstraintTraits> RFulfilledFieldConstraint<TValues> {
-    pub fn new(field_constraint_id: Uid, value: TValues) -> Self {
+    pub fn new(field_constraint_id: Uid, name: &str, value: TValues) -> Self {
         Self {
+            field_constraint_name: RwSignal::new(name.to_string()),
             field_constraint_id: RwSignal::new(field_constraint_id),
             value: RwSignal::new(value),
         }

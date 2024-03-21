@@ -1,7 +1,6 @@
 use crate::common::*;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, marker::PhantomData};
-use strum_macros::{AsRefStr, Display};
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
@@ -9,12 +8,6 @@ pub struct ConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits>
     pub instance_library: HashMap<Uid, LibraryOperative<TTypes, TValues>>,
     pub operative_library: HashMap<Uid, LibraryOperative<TTypes, TValues>>,
     pub traits: HashMap<Uid, TraitDef<TTypes>>,
-}
-
-#[derive(Display, AsRefStr)]
-pub enum ConstraintSchemaInstantiableType {
-    Template,
-    Operative,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -48,7 +41,8 @@ pub struct OperativeSlot {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum SlotBounds {
-    Unbounded,
+    // Unbounded,
+    Single,
     LowerBound(usize),
     UpperBound(usize),
     Range(usize, usize),
@@ -101,6 +95,7 @@ pub struct FieldConstraint<TTypes: ConstraintTraits> {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FulfilledFieldConstraint<TValues: ConstraintTraits> {
+    pub field_constraint_name: String,
     pub field_constraint_id: Uid,
     pub value: TValues,
 }

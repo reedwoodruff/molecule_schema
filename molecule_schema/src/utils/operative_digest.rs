@@ -13,12 +13,12 @@ pub struct ROperativeDigest {
     pub operative_slots: HashMap<Uid, ROperativeSlotDigest>,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ROperativeSlotDigest {
     pub slot: ROperativeSlot,
     pub related_instances: Vec<RRelatedInstance>,
 }
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RRelatedInstance {
     pub instance_id: Uid,
     pub hosting_element_id: Uid,
@@ -36,12 +36,15 @@ impl ROperativeSlotDigest {
     pub fn get_fulfillment_status(&self) -> bool {
         let len = self.related_instances.len();
         match self.slot.bounds.get() {
-            RSlotBounds::Unbounded => true,
-            RSlotBounds::LowerBound(lower_bound) => len >= lower_bound,
-            RSlotBounds::UpperBound(upper_bound) => len <= upper_bound,
-            RSlotBounds::Range(lower, upper) => lower <= len && len <= upper,
-            RSlotBounds::LowerBoundOrZero(lower_bound) => len == 0 || len >= lower_bound,
-            RSlotBounds::RangeOrZero(lower, upper) => len == 0 || (lower <= len && len <= upper),
+            // RSlotBounds::Unbounded => true,
+            RSlotBounds::Single => len == 1,
+            RSlotBounds::LowerBound(lower_bound) => len >= lower_bound.get(),
+            RSlotBounds::UpperBound(upper_bound) => len <= upper_bound.get(),
+            RSlotBounds::Range(lower, upper) => lower.get() <= len && len <= upper.get(),
+            RSlotBounds::LowerBoundOrZero(lower_bound) => len == 0 || len >= lower_bound.get(),
+            RSlotBounds::RangeOrZero(lower, upper) => {
+                len == 0 || (lower.get() <= len && len <= upper.get())
+            }
         }
     }
 }

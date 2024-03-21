@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use crate::{
     common::{ConstraintTraits, Tag, Uid},
     constraint_schema::{
-        ConstraintSchema, ConstraintSchemaInstantiableType, FieldConstraint,
-        FulfilledFieldConstraint, LibraryOperative, LibraryTemplate, SlottedInstances, TraitImpl,
-        TraitOperative,
+        ConstraintSchema, FieldConstraint, FulfilledFieldConstraint, LibraryOperative,
+        LibraryTemplate, SlottedInstances, TraitImpl, TraitOperative,
     },
+    locked_field_digest::{LockedFieldDigest, LockedFieldsDigest},
     operative_digest::{OperativeDigest, OperativeSlotDigest, RelatedInstance},
     trait_impl_digest::{RelatedTraitImpl, TraitImplDigest},
 };
@@ -19,6 +19,9 @@ pub trait ConstraintSchemaItem {
     fn get_tag(&self) -> &Tag;
     fn get_local_trait_impls(&self) -> &HashMap<Uid, TraitImpl>;
     fn get_local_slotted_instances(&self) -> Option<&HashMap<Uid, SlottedInstances>>;
+    fn get_local_locked_fields(
+        &self,
+    ) -> Option<&HashMap<Uid, FulfilledFieldConstraint<Self::TValues>>>;
     fn get_trait_impl_digest<'a>(
         &'a self,
         schema: &'a ConstraintSchema<Self::TTypes, Self::TValues>,
@@ -27,6 +30,10 @@ pub trait ConstraintSchemaItem {
         &'a self,
         schema: &'a ConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> OperativeDigest;
+    fn get_locked_fields_digest<'a>(
+        &'a self,
+        schema: &'a ConstraintSchema<Self::TTypes, Self::TValues>,
+    ) -> Option<LockedFieldsDigest<Self::TValues>>;
 }
 
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
@@ -47,6 +54,11 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
         &self.trait_impls
     }
     fn get_local_slotted_instances(&self) -> Option<&HashMap<Uid, SlottedInstances>> {
+        None
+    }
+    fn get_local_locked_fields(
+        &self,
+    ) -> Option<&HashMap<Uid, FulfilledFieldConstraint<Self::TValues>>> {
         None
     }
     fn get_operative_digest(&self, schema: &ConstraintSchema<TTypes, TValues>) -> OperativeDigest {
@@ -85,6 +97,12 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
                 .collect(),
         )
     }
+    fn get_locked_fields_digest<'a>(
+        &'a self,
+        schema: &'a ConstraintSchema<TTypes, TValues>,
+    ) -> Option<LockedFieldsDigest<TValues>> {
+        None
+    }
 }
 
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
@@ -93,7 +111,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
     type TTypes = TTypes;
     type TValues = TValues;
     fn get_template_id(&self) -> &Uid {
-        &self.get_tag().id
+        &self.template_id
     }
     fn get_parent_operative_id(&self) -> Option<&Uid> {
         self.parent_operative_id.as_ref()
@@ -107,6 +125,11 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
     fn get_local_slotted_instances(&self) -> Option<&HashMap<Uid, SlottedInstances>> {
         Some(&self.slotted_instances)
     }
+    fn get_local_locked_fields(
+        &self,
+    ) -> Option<&HashMap<Uid, FulfilledFieldConstraint<Self::TValues>>> {
+        Some(&self.locked_fields)
+    }
     fn get_operative_digest<'a>(
         &'a self,
         schema: &'a ConstraintSchema<Self::TTypes, TValues>,
@@ -118,7 +141,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
         // casing this element
         let mut next_parent_id = Some(self.tag.id);
         while let Some(parent_id) = next_parent_id {
-            let parent_operative = schema.operative_library.get(&parent_id).unwrap();
+            // let parent_operative = schema.operative_library.get(&parent_id).unwrap();
+            let parent_operative =
+                if let Some(parent_operative) = schema.operative_library.get(&parent_id) {
+                    parent_operative
+                } else {
+                    schema.instance_library.get(&parent_id).unwrap()
+                };
             for (slot_id, slotted_instances) in &parent_operative.slotted_instances {
                 aggregate_instances
                     .entry(*slot_id)
@@ -166,7 +195,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
         let mut aggregate_trait_impls = HashMap::new();
 
         while let Some(parent_id) = next_parent_id {
-            let parent_operative = schema.operative_library.get(&parent_id).unwrap();
+            // let parent_operative = schema.operative_library.get(&parent_id).unwrap();
+            let parent_operative =
+                if let Some(parent_operative) = schema.operative_library.get(&parent_id) {
+                    parent_operative
+                } else {
+                    schema.instance_library.get(&parent_id).unwrap()
+                };
             aggregate_trait_impls.extend(
                 parent_operative
                     .get_local_trait_impls()
@@ -186,5 +221,40 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
         }
 
         TraitImplDigest(aggregate_trait_impls)
+    }
+    fn get_locked_fields_digest<'a>(
+        &'a self,
+        schema: &'a ConstraintSchema<Self::TTypes, Self::TValues>,
+    ) -> Option<LockedFieldsDigest<Self::TValues>> {
+        let mut next_parent_id = Some(self.tag.id);
+        let mut aggregate_locked_fields = HashMap::new();
+
+        while let Some(parent_id) = next_parent_id {
+            // let parent_operative = schema.operative_library.get(&parent_id).unwrap();
+            let parent_operative =
+                if let Some(parent_operative) = schema.operative_library.get(&parent_id) {
+                    parent_operative
+                } else {
+                    schema.instance_library.get(&parent_id).unwrap()
+                };
+            if let Some(new_locked_fields) = parent_operative.get_local_locked_fields() {
+                aggregate_locked_fields.extend(
+                    new_locked_fields
+                        .iter()
+                        .map(|(field_id, field_constraint)| {
+                            (
+                                *field_id,
+                                LockedFieldDigest {
+                                    fulfilled_field: field_constraint.clone(),
+                                    hosting_element_id: parent_id,
+                                },
+                            )
+                        })
+                        .collect::<HashMap<_, _>>(),
+                );
+            }
+            next_parent_id = parent_operative.parent_operative_id;
+        }
+        Some(LockedFieldsDigest(aggregate_locked_fields))
     }
 }

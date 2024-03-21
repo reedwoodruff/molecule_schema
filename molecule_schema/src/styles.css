@@ -69,15 +69,24 @@
 .bg-light-green {
   background-color: lightgreen;
 }
+.container_slot_unfulfilled {
+  background-color: lightgray
+}
+.container_slot_fulfilled {
+  background-color: lightgreen
+}
 .container_instance {
   background-color: lightblue
 }
 .container_library_operative {
-  background-color: lightgreen
+  background-color: lightcyan
 }
 .container_trait_operative {
   background-color: lightpink
 }
 .container_constraint_object {
   background-color: lightyellow
+}
+.width-100 {
+  width: 100%;
 }

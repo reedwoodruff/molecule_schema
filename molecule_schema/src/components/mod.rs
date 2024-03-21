@@ -14,12 +14,11 @@ use serde_types::{
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 
-use self::tree_view_revamp::TreeRef;
+use self::tree_view::TreeRef;
 
 pub mod common;
 pub mod configure_schema_object;
 pub mod tree_view;
-pub mod tree_view_revamp;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum TreeTypes {

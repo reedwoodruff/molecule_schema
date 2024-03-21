@@ -5,19 +5,21 @@ use serde_types::{
     common::Uid,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
+use web_sys::MouseEvent;
 
 use crate::{
     components::{
         common::{
-            select_input::{SelectInput, SelectInputOptional},
+            select_input::{SelectInput, SelectInputEnum, SelectInputOptional},
             text_input::TextInput,
+            text_input_2::{NumberInput2, TextInput2},
         },
-        tree_view_revamp::{TreeNodeDataSelectionType, TreeRef, TreeView},
+        tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
         SchemaContext, TreeTypes,
     },
     utils::reactive_types::{
-        RFieldConstraint, RLibraryInstance, RLibraryOperative, RTag, RTraitMethodImplPath,
-        RTraitOperative,
+        RFieldConstraint, RLibraryOperative, ROperativeSlot, ROperativeVariants, RSlotBounds, RTag,
+        RTraitMethodImplPath, RTraitOperative,
     },
 };
 
@@ -32,7 +34,15 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             .unwrap()
     });
 
-    let field_constraints = move || active_object.get().field_constraints.get();
+    let field_constraints = move || {
+        active_object
+            .get()
+            .field_constraints
+            .get()
+            .values()
+            .cloned()
+            .collect::<Vec<_>>()
+    };
 
     let add_field = move |_| {
         let new_field = RFieldConstraint::<PrimitiveTypes> {
@@ -40,7 +50,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             value_type: RwSignal::new(PrimitiveTypes::String),
         };
         active_object().field_constraints.update(|prev| {
-            prev.push(new_field);
+            prev.insert(new_field.tag.id.get(), new_field);
         });
     };
 
@@ -61,41 +71,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             })
             .collect::<Vec<_>>()
     };
-    let constituent_library_operatives = move || {
-        active_object
-            .get()
-            .library_operatives
-            .get()
-            .iter()
-            .map(|library_operative_id| {
-                ctx.schema
-                    .operative_library
-                    .get()
-                    .get(library_operative_id)
-                    .cloned()
-                    .unwrap()
-            })
-            .collect::<Vec<_>>()
-    };
-    let constituent_trait_operatives = move || {
-        active_object
-            .get()
-            .trait_operatives
-            .get()
-            .iter()
-            .map(|trait_operative| {
-                (
-                    trait_operative.clone(),
-                    ctx.schema
-                        .traits
-                        .get()
-                        .get(&trait_operative.trait_id.get())
-                        .cloned()
-                        .unwrap(),
-                )
-            })
-            .collect::<Vec<_>>()
-    };
+
     let trait_impls = move || {
         active_object
             .get()
@@ -112,6 +88,8 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             .collect::<Vec<_>>()
     };
 
+    let operative_slot_view = view! {};
+
     let new_operative_name = RwSignal::new("new_operative".to_string());
     let new_instance_name = RwSignal::new("new_instance".to_string());
 
@@ -126,7 +104,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         });
     };
     let on_click_create_instance = move |_| {
-        let new_instance = RLibraryInstance::<PrimitiveTypes, PrimitiveValues>::new(
+        let new_instance = RLibraryOperative::<PrimitiveTypes, PrimitiveValues>::new(
             element.1,
             None,
             new_instance_name.get(),
@@ -141,7 +119,13 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
 
     let select_instance_options = ctx.schema.instance_library.with(|lib| {
         lib.iter()
-            .map(|(id, lib_item)| (*id, lib_item.tag.name.get()))
+            .filter_map(|(id, lib_item)| {
+                if lib_item.template_id.get() == active_object.get().tag.id.get() {
+                    None
+                } else {
+                    Some((*id, lib_item.tag.name.get()))
+                }
+            })
             .collect::<Vec<_>>()
     });
 
@@ -167,59 +151,77 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         }
     };
 
-    let select_operative_options = ctx.schema.operative_library.with(|lib| {
-        lib.iter()
-            .map(|(id, lib_item)| (*id, lib_item.tag.name.get()))
-            .collect::<Vec<_>>()
+    let select_operative_options = create_memo(move |_| {
+        ctx.schema.operative_library.with(|lib| {
+            lib.iter()
+                .filter_map(|(id, lib_item)| {
+                    if lib_item.template_id.get() == active_object.get().tag.id.get() {
+                        None
+                    } else {
+                        Some((*id, lib_item.tag.name.get()))
+                    }
+                })
+                .collect::<Vec<_>>()
+        })
     });
-    let add_operative_id = RwSignal::new(None);
+    let add_operative_id = RwSignal::<Option<Uid>>::new(None);
     let on_click_add_operative = move |_| {
         if let Some(operative_id) = add_operative_id.get() {
-            active_object
-                .get()
-                .library_operatives
-                .update(|prev| prev.push(operative_id));
+            active_object.get().operative_slots.update(|prev| {
+                let new_slot = ROperativeSlot::new(
+                    ROperativeVariants::LibraryOperative(RwSignal::new(operative_id)),
+                    "New_Slot",
+                );
+                prev.insert(new_slot.tag.id.get(), new_slot);
+            });
         }
+        add_operative_id.set(None);
     };
-    // let derived_operative_selection = Signal::derive(move || add_operative_id.get().unwrap_or(0));
+
     let TypedSelectInputOperativeSelection = SelectInputOptional::<Uid, String, _, _>;
-    let delete_operative = move |id: Uid| {
-        move |_| {
+    let delete_operative_slot = move |id: Uid| {
+        move |_: MouseEvent| {
             active_object
                 .get()
-                .library_operatives
-                .update(|lib| lib.retain(|item| item != &id));
+                .operative_slots
+                .update(|prev| prev.retain(|slot_id, _slot| slot_id != &id));
         }
     };
 
-    let select_trait_operative_options = ctx.schema.traits.with(|lib| {
-        lib.iter()
-            .map(|(id, lib_item)| (*id, lib_item.tag.name.get()))
-            .collect::<Vec<_>>()
+    let select_trait_operative_options = create_memo(move |_| {
+        ctx.schema.traits.with(|lib| {
+            lib.iter()
+                .map(|(id, lib_item)| (*id, lib_item.tag.name.get()))
+                .collect::<Vec<_>>()
+        })
     });
-    let add_trait_operative_id = RwSignal::new(None);
+    let add_trait_operative_ids = RwSignal::<Option<Vec<Uid>>>::new(None);
+    let add_trait_operative_id = RwSignal::<Option<Uid>>::new(None);
     let new_trait_operative_name = RwSignal::new("new_trait_operative".to_string());
     let on_click_add_trait_operative = move |_| {
-        if let Some(trait_operative_id) = add_trait_operative_id.get() {
-            println!("{}", trait_operative_id);
+        if let Some(trait_operative_id) = add_trait_operative_ids.get() {
+            println!("{:?}", trait_operative_id);
             let new_trait_op = RTraitOperative {
                 trait_ids: RwSignal::new(trait_operative_id),
                 tag: RTag::new(new_trait_operative_name.get()),
             };
-            active_object
-                .get()
-                .trait_operatives
-                .update(|prev| prev.push(new_trait_op));
+            active_object.get().operative_slots.update(|prev| {
+                let new_slot = ROperativeSlot::new(
+                    ROperativeVariants::TraitOperative(new_trait_op),
+                    "New_Slot",
+                );
+                prev.insert(new_slot.tag.id.get(), new_slot);
+            })
         }
     };
     let TypedSelectInputTraitOperativeSelection = SelectInputOptional::<Uid, String, _, _>;
 
     let delete_trait_operative = move |id: Uid| {
-        move |_| {
+        move |_: MouseEvent| {
             active_object
                 .get()
-                .trait_operatives
-                .update(|lib| lib.retain(|item| item.tag.id.get() != id));
+                .operative_slots
+                .update(|prev| prev.retain(|slot_id, _slot| slot_id != &id));
         }
     };
 
@@ -259,19 +261,20 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                         .filter(|item| item.0 != TreeTypes::Template)
                         .map(|item| match item.0.clone() {
                             TreeTypes::Instance => {
-                                RTraitMethodImplPath::InstanceConstituent(RwSignal::new(item.1))
+                                RTraitMethodImplPath::Constituent(RwSignal::new(item.1))
                             }
                             TreeTypes::LibraryOperative => {
-                                RTraitMethodImplPath::LibraryOperativeConstituent(RwSignal::new(
-                                    item.1,
-                                ))
+                                RTraitMethodImplPath::Constituent(RwSignal::new(item.1))
                             }
                             TreeTypes::TraitOperative(trait_op) => {
-                                RTraitMethodImplPath::TraitOperativeConstituent {
-                                    trait_method_id: RwSignal::new(method_id),
-                                    trait_operative_id: RwSignal::new(trait_op.tag.id.get()),
-                                    trait_id: RwSignal::new(trait_op.trait_ids.get()),
-                                }
+                                RTraitMethodImplPath::Constituent(RwSignal::new(
+                                    trait_op.tag.id.get(),
+                                ))
+                                // RTraitMethodImplPath::TraitOperativeConstituent {
+                                //     trait_method_id: RwSignal::new(method_id),
+                                //     trait_operative_id: RwSignal::new(trait_op.tag.id.get()),
+                                //     trait_id: RwSignal::new(trait_op.trait_ids.get()),
+                                // }
                             }
                             _ => {
                                 log!("strange path item");
@@ -313,20 +316,18 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                 .with(|items| items.get(&trait_impl_id).cloned())
                 .expect("trait must exist");
             let mut hashmap = HashMap::new();
-            trait_in_question
-                .methods
-                .get()
-                .iter()
-                .for_each(|trait_item| {
+            trait_in_question.methods.get().iter().for_each(
+                |(trait_method_id, trait_method_def)| {
                     hashmap.insert(
-                        trait_item.tag.id.get(),
+                        *trait_method_id,
                         (
-                            trait_item.tag.name.get(),
-                            trait_item.return_type.get(),
+                            trait_method_def.tag.name.get(),
+                            trait_method_def.return_type.get(),
                             RwSignal::new(None),
                         ),
                     );
-                });
+                },
+            );
             active_trait_impl_method_paths.set(hashmap);
         } else {
             active_trait_impl_method_paths.set(HashMap::new());
@@ -372,6 +373,19 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         <div class="large-margin med-pad border-gray flex">
             <div class="flex-grow margin-right border-right">
                 <button on:click=move |_| ctx.selected_element.set(None)>X</button>
+
+                <strong>Name</strong>
+                <div class="flex">
+                    <TextInput
+                        initial_value=active_object.get().tag.name.get()
+                        on_save=move |val: String| {
+                            active_object.get().tag.name.set(val);
+                        }
+                    />
+
+                </div>
+                <hr/>
+
                 <button on:click=move |_| {
                     ctx.schema
                         .template_library
@@ -405,19 +419,6 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             </div>
 
             <div class="flex-grow margin-right border-right">
-                <h4>Name</h4>
-                <div class="flex">
-                    <TextInput
-                        initial_value=active_object.get().tag.name.get()
-                        on_save=move |val: String| {
-                            active_object.get().tag.name.set(val);
-                        }
-                    />
-
-                </div>
-            </div>
-
-            <div class="flex-grow margin-right border-right">
                 <h4>Fields <button on:click=add_field>+</button></h4>
                 <For each=field_constraints key=move |item| item.tag.id let:item>
 
@@ -445,7 +446,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                 />
 
                                 <TypedSelectInput
-                                    options=field_type_options
+                                    options=field_type_options.into()
                                     on_select=change_field_type
                                     value=item.value_type
                                 />
@@ -457,12 +458,10 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             </div>
 
             <div class="flex-grow margin-right border-right">
-                <h4>Constituents</h4>
-                <strong>Instances</strong>
+                <h4>Instances</h4>
 
-                <br/>
                 <TypedSelectInputInstanceSelection
-                    options=select_instance_options
+                    options=select_instance_options.into()
                     value=add_instance_id
                     on_select=move |instance_id| add_instance_id.set(instance_id)
                 />
@@ -488,43 +487,157 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
 
                 <br/>
 
-                <strong>Library Operatives</strong>
+                <h4>Operative Slots</h4>
+
+                <For
+                    each=active_object.get().operative_slots
+                    key=move |op_slot| op_slot.0
+                    let:op_slot
+                >
+                    <div>
+                        Slot name: <TextInput2 value=op_slot.1.tag.name/>
+                        <button on:click=delete_operative_slot(op_slot.0)>Delete Slot</button> <br/>
+                        Operative name:
+                        {match op_slot.1.operative_descriptor {
+                            ROperativeVariants::TraitOperative(trait_op) => trait_op.tag.name.get(),
+                            ROperativeVariants::LibraryOperative(op_id) => {
+                                ctx.schema
+                                    .operative_library
+                                    .get()
+                                    .get(&op_id.get())
+                                    .unwrap()
+                                    .tag
+                                    .name
+                                    .get()
+                            }
+                        }}
+                        <br/> Slot Range: <br/> <SelectInputEnum value=op_slot.1.bounds/> <br/>
+                        {move || match op_slot.1.bounds.get() {
+                            RSlotBounds::LowerBound(val) => {
+                                view! {
+                                    Lower bound:
+                                    <NumberInput2 value=val/>
+                                }
+                            }
+                            RSlotBounds::UpperBound(val) => {
+                                view! {
+                                    Upper bound:
+                                    <NumberInput2 value=val/>
+                                }
+                            }
+                            RSlotBounds::Range(lower_range, upper_range) => {
+                                view! {
+                                    Lower range:
+                                    <NumberInput2 value=lower_range/>
+                                    <br/>
+                                    Upper range:
+                                    <NumberInput2 value=upper_range/>
+                                    <br/>
+                                }
+                            }
+                            RSlotBounds::LowerBoundOrZero(val) => {
+                                view! {
+                                    Lower bound:
+                                    <NumberInput2 value=val/>
+                                }
+                            }
+                            RSlotBounds::RangeOrZero(lower_range, upper_range) => {
+                                view! {
+                                    Lower range:
+                                    <NumberInput2 value=lower_range/>
+                                    <br/>
+                                    Upper range:
+                                    <NumberInput2 value=upper_range/>
+                                    <br/>
+                                }
+                            }
+                            _ => {
+                                view! {
+                                    idk
+                                    <br/>
+                                }
+                            }
+                        }}
+                        <br/>
+
+                    </div>
+                </For>
+
+                <strong>Add Library Operative</strong>
                 <br/>
-                <TypedSelectInputOperativeSelection
-                    options=select_operative_options
-                    value=add_operative_id
-                    on_select=move |operative_id| add_operative_id.set(operative_id)
-                />
+
+                {
+                    let casted_options = <Memo<
+                        Vec<(u128, std::string::String)>,
+                    > as Into<
+                        leptos::MaybeSignal<Vec<(u128, std::string::String)>>,
+                    >>::into(select_operative_options);
+                    view! {
+                        <TypedSelectInputOperativeSelection
+                            options=casted_options
+                            value=add_operative_id
+                            on_select=move |operative_id| add_operative_id.set(operative_id)
+                        />
+                    }
+                }
+
                 <button
                     on:click=on_click_add_operative
                     disabled=move || add_operative_id.get().is_none()
                 >
                     +
                 </button>
-                <For
-                    each=constituent_library_operatives
-                    key=move |item| item.tag.id
-                    children=move |item| {
-                        view! {
-                            <div>
-                                {item.tag.name} <br/>
-                                <button on:click=delete_operative(item.tag.id.get())>Delete</button>
-                            </div>
+
+                <br/>
+
+                <strong>Add Trait Operative</strong>
+                <br/>
+
+                {
+                    let casted_options = <Memo<
+                        Vec<(u128, std::string::String)>,
+                    > as Into<
+                        leptos::MaybeSignal<Vec<(u128, std::string::String)>>,
+                    >>::into(select_trait_operative_options);
+                    view! {
+                        <TypedSelectInputTraitOperativeSelection
+                            options=casted_options
+                            value=add_trait_operative_id
+                            on_select=move |trait_operative_id| {
+                                add_trait_operative_id.set(trait_operative_id)
+                            }
+                        />
+                    }
+                }
+
+                <button on:click=move |_| {
+                    if let Some(current_operative_id) = add_trait_operative_id.get() {
+                        if let Some(previously_set_types) = add_trait_operative_ids.get() {
+                            let mut new_trait_ids = previously_set_types.clone();
+                            new_trait_ids.push(current_operative_id);
+                            add_trait_operative_ids.set(Some(new_trait_ids));
+                        } else {
+                            add_trait_operative_ids.set(Some(vec![current_operative_id]));
                         }
                     }
-                />
+                }>
 
+                    Add trait to list
+                </button>
                 <br/>
+                Currently selected traits:
+                {move || {
+                    add_trait_operative_ids
+                        .get()
+                        .map(|item| {
+                            item.iter().map(|item| item.to_string()).collect::<Vec<_>>().join(", ")
+                        })
+                        .unwrap_or("None".to_string())
+                }}
 
-                <strong>Trait Operatives</strong>
-                <br/>
-                <TypedSelectInputTraitOperativeSelection
-                    options=select_trait_operative_options
-                    value=add_trait_operative_id
-                    on_select=move |trait_operative_id| {
-                        add_trait_operative_id.set(trait_operative_id)
-                    }
-                />
+                <button on:click=move |_| {
+                    add_trait_operative_ids.set(None)
+                }>Clear selected traits</button>
 
                 <TextInput
                     initial_value=new_trait_operative_name.get()
@@ -535,25 +648,10 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
 
                 <button
                     on:click=on_click_add_trait_operative
-                    disabled=move || add_trait_operative_id.get().is_none()
+                    disabled=move || add_trait_operative_ids.get().is_none()
                 >
                     +
                 </button>
-                <For
-                    each=constituent_trait_operatives
-                    key=move |(trait_operative, _trait_def)| trait_operative.tag.id
-                    children=move |(trait_operative, trait_def)| {
-                        view! {
-                            <div>
-                                operative name: {trait_operative.tag.name} <br/> trait name:
-                                {trait_def.tag.name} <br/>
-                                <button on:click=delete_trait_operative(
-                                    trait_operative.tag.id.get(),
-                                )>Delete</button>
-                            </div>
-                        }
-                    }
-                />
 
                 <br/>
 
@@ -573,7 +671,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                 <br/>
                 trait:
                 <TypedSelectInputTraitImplSelection
-                    options=select_trait_impl_options
+                    options=select_trait_impl_options.into()
                     value=add_trait_impl_id
                     on_select=on_select_trait_impl
                 />
@@ -636,7 +734,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                         let method_def = trait_def
                                             .methods
                                             .get()
-                                            .iter()
+                                            .values()
                                             .find(|method| method.tag.id.get() == method_id)
                                             .cloned()
                                             .unwrap();
@@ -646,14 +744,8 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                             .map(|path_item| {
                                                 match path_item {
                                                     RTraitMethodImplPath::Field(_item) => "Field".to_string(),
-                                                    RTraitMethodImplPath::InstanceConstituent(_item) => {
-                                                        "Instance".to_string()
-                                                    }
-                                                    RTraitMethodImplPath::LibraryOperativeConstituent(_item) => {
-                                                        "LibraryOperative".to_string()
-                                                    }
-                                                    RTraitMethodImplPath::TraitOperativeConstituent { .. } => {
-                                                        "TraitOperative".to_string()
+                                                    RTraitMethodImplPath::Constituent(_item) => {
+                                                        "Constituent".to_string()
                                                     }
                                                     RTraitMethodImplPath::TraitMethod {
                                                         trait_method_id: _,

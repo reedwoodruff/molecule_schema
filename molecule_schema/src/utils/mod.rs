@@ -6,6 +6,7 @@ use serde_types::{
 
 use self::reactive_types::RConstraintSchema;
 
+pub mod locked_field_digest;
 pub mod operative_digest;
 pub mod reactive_item;
 pub mod reactive_types;
