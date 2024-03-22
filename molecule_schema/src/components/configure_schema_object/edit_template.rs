@@ -373,6 +373,14 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         <div class="large-margin med-pad border-gray flex">
             <div class="flex-grow margin-right border-right">
                 <button on:click=move |_| ctx.selected_element.set(None)>X</button>
+                <button on:click=move |_| {
+                    ctx.schema
+                        .template_library
+                        .update(|prev| {
+                            prev.remove(&element.1);
+                        })
+                }>delete element</button>
+                <br/>
 
                 <strong>Name</strong>
                 <div class="flex">
@@ -386,13 +394,6 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                 </div>
                 <hr/>
 
-                <button on:click=move |_| {
-                    ctx.schema
-                        .template_library
-                        .update(|prev| {
-                            prev.remove(&element.1);
-                        })
-                }>delete element</button>
                 <br/>
                 <TextInput
                     initial_value=new_operative_name.get()
@@ -657,16 +658,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
 
             </div>
             <div class="flex-grow margin-right">
-                <h4>
-                    Trait Impls
-                    <button on:click=move |_| {
-                        if adding_trait_impl.get() {
-                            adding_trait_impl.set(false);
-                        } else {
-                            adding_trait_impl.set(true);
-                        }
-                    }>begin addition / cancel</button>
-                </h4>
+                <h4>Trait Impls</h4>
                 New Impl:
                 <br/>
                 trait:

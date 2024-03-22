@@ -90,9 +90,6 @@ fn get_tree_node_info<TTypes: ConstraintTraits, TValues: ConstraintTraits>(
 
     let operative_digest = item.get_operative_digest(schema);
     let template_level_instances = parent_template.instances.get();
-    // let instance_constituents = item.get_all_constituent_instance_ids(schema);
-    // let library_operative_constituents = item.get_all_unfulfilled_library_operatives_ids(schema);
-    // let trait_operative_constituents = item.get_all_unfulfilled_trait_operatives(schema);
 
     TreeNodeInfo {
         top_level_type: tree_type,
@@ -101,9 +98,6 @@ fn get_tree_node_info<TTypes: ConstraintTraits, TValues: ConstraintTraits>(
         trait_impls: traits_impled_defs,
         operative_digest,
         template_level_instances,
-        // instance_constituents,
-        // library_operative_constituents,
-        // trait_operative_constituents,
     }
 }
 #[component]
@@ -169,10 +163,9 @@ where
                 trait_impls: trait_impls,
                 template_level_instances: vec![],
                 operative_digest: ROperativeDigest {
+                    digest_object_id: *id,
                     operative_slots: HashMap::new(),
-                }, // instance_constituents: vec![],
-                   // library_operative_constituents: vec![],
-                   // trait_operative_constituents: vec![],
+                },
             }
         }
     });
@@ -186,15 +179,6 @@ where
     let new_path_4 = new_path.clone();
     let new_path_5 = new_path.clone();
 
-    // let unfulfilled_slots = create_memo(move |_| {
-    //     tree_element
-    //         .get()
-    //         .operative_digest
-    //         .get_unfulfilled_operative_slots()
-    //         .into_iter()
-    //         .cloned()
-    //         .collect::<Vec<_>>()
-    // });
     let all_slots = create_memo(move |_| {
         tree_element
             .get()
@@ -355,7 +339,7 @@ where
         // key=move |item| item.tag.id.get()
         // let:child
         // >
-        // 
+        //
         // {
         // let on_click_tree_data_3 = on_click_tree_data_3.clone();
         // view! {
@@ -366,13 +350,13 @@ where
         // TreeTypes::TraitOperative(child.clone()),
         // child.tag.id.get(),
         // )
-        // 
+        //
         // path=new_path_3.clone()
         // />
         // </div>
         // }
         // }
-        // 
+        //
         // </For>
         </div>
     }

@@ -16,7 +16,9 @@ use crate::{
     },
     utils::{
         reactive_item::RConstraintSchemaItem,
-        reactive_types::{RLibraryOperative, RSlottedInstances, RTraitMethodImplPath},
+        reactive_types::{
+            RLibraryOperative, ROperativeVariants, RSlottedInstances, RTraitMethodImplPath,
+        },
     },
 };
 
@@ -75,9 +77,6 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             .get()
             .get_locked_fields_digest(&schema_clone)
             .get_unfulfilled_fields()
-        // active_object
-        //     .get()
-        //     .get_all_unfulfilled_fields(&schema_clone)
     });
     let local_fulfilled_field_constraints = move || {
         active_object
@@ -93,7 +92,6 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             .get()
             .get_locked_fields_digest(&schema_clone_2)
             .get_ancestors_locked_fields()
-        // .get_ancestors_fulfilled_fields(&schema_clone_2)
     });
 
     let local_trait_impls = move || {
@@ -299,469 +297,537 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
     };
 
     view! {
-                    <div class="large-margin med-pad border-gray flex">
-                        <div class="flex-grow margin-right border-right">
-                            <button on:click=move |_| ctx.selected_element.set(None)>X</button>
-                            <button on:click=move |_| {
-                                schema_clone_14
-                                    .template_library
-                                    .update(|prev| {
-                                        prev.remove(&element.1);
-                                    })
-                            }>delete element</button>
-                            <br/>
-                            <TextInput
-                                initial_value=new_operative_name.get()
-                                on_save=move |val: String| {
-                                    new_operative_name.set(val);
-                                }
+        <div class="large-margin med-pad border-gray flex">
+            <div class="flex-grow margin-right border-right">
+                <button on:click=move |_| ctx.selected_element.set(None)>X</button>
+                <button on:click=move |_| {
+                    schema_clone_14
+                        .template_library
+                        .update(|prev| {
+                            prev.remove(&element.1);
+                        })
+                }>delete element</button>
+                <br/>
+                <h4>Name</h4>
+                <div class="flex">
+                    <TextInput
+                        initial_value=active_object.get().tag.name.get()
+                        on_save=move |val: String| {
+                            active_object.get().tag.name.set(val);
+                        }
+                    />
 
-                                show_save_button=true
-                            />
-                            <br/>
-                            <button on:click=on_click_create_operative>Create Operative</button>
-                            <br/>
-                            <TextInput
-                                initial_value=new_instance_name.get()
-                                on_save=move |val: String| {
-                                    new_instance_name.set(val);
-                                }
+                </div>
+                <hr/>
+                <br/>
+                <TextInput
+                    initial_value=new_operative_name.get()
+                    on_save=move |val: String| {
+                        new_operative_name.set(val);
+                    }
 
-                                show_save_button=true
-                            />
-                            <br/>
-                            <button on:click=on_click_create_instance>Create Instance</button>
+                    show_save_button=true
+                />
+                <br/>
+                <button on:click=on_click_create_operative>Create Operative</button>
+                <br/>
+                <TextInput
+                    initial_value=new_instance_name.get()
+                    on_save=move |val: String| {
+                        new_instance_name.set(val);
+                    }
 
-                        </div>
+                    show_save_button=true
+                />
+                <br/>
+                <button on:click=on_click_create_instance>Create Instance</button>
 
-                        <div class="flex-grow margin-right border-right">
-                            <h4>Name</h4>
-                            <div class="flex">
-                                <TextInput
-                                    initial_value=active_object.get().tag.name.get()
-                                    on_save=move |val: String| {
-                                        active_object.get().tag.name.set(val);
-                                    }
-                                />
+            </div>
 
-                            </div>
-                        </div>
+            <div class="flex-grow margin-right border-right">
+                <h4>Fields</h4>
+                <For
+                    each=ancestors_fulfilled_field_constraints
+                    key=move |item| item.fulfilled_field.field_constraint_id.get()
+                    let:item
+                >
+                    <div>{item.fulfilled_field.field_constraint_name} (locked above)</div>
+                </For>
+                <For
+                    each=local_fulfilled_field_constraints
+                    key=move |item| item.field_constraint_id.get()
+                    let:item
+                >
+                    <div>
+                        {item.field_constraint_name} : {move || item.value.get().to_string()}
+                        (locked)
+                        <button on:click=move |_| {
+                            active_object
+                                .get()
+                                .locked_fields
+                                .update(|prev| {
+                                    prev.remove(&item.field_constraint_id.get());
+                                })
+                        }>unlock</button>
+                    </div>
+                </For>
+                <For each=unfulfilled_field_constraints key=move |item| item.tag.id let:item>
+                    <div>
+                        {item.tag.name} <ButtonShow show_text="Begin Lock" hide_text="Cancel">
 
-                        <div class="flex-grow margin-right border-right">
-                            <h4>Fields</h4>
-                            <For
-                                each=ancestors_fulfilled_field_constraints
-                                key=move |item| item.fulfilled_field.field_constraint_id.get()
-                                let:item
-                            >
-                                <div>{item.fulfilled_field.field_constraint_name} (locked above)</div>
-                            </For>
-                            <For each=local_fulfilled_field_constraints key=move |item| item.field_constraint_id.get() let:item>
-                                <div>
-                                    {item.field_constraint_name} : {move || item.value.get().to_string()} (locked)
-                                    <button on:click=move |_| {
+                            {
+                                let item = item.clone();
+                                move || {
+                                    let value = RwSignal::new("".to_string());
+                                    let item_clone = item.clone();
+                                    let on_click_lock = Callback::new(move |_| {
+                                        let new_val = match item.value_type.get() {
+                                            PrimitiveTypes::Int => {
+                                                PrimitiveValues::Int(value.get().parse().unwrap())
+                                            }
+                                            PrimitiveTypes::Float => {
+                                                PrimitiveValues::Float(value.get().parse().unwrap())
+                                            }
+                                            PrimitiveTypes::String => {
+                                                PrimitiveValues::String(value.get().parse().unwrap())
+                                            }
+                                            PrimitiveTypes::Bool => {
+                                                PrimitiveValues::Bool(value.get().parse().unwrap())
+                                            }
+                                            PrimitiveTypes::Char => {
+                                                PrimitiveValues::Char(value.get().parse().unwrap())
+                                            }
+                                            PrimitiveTypes::Option(_) => todo!(),
+                                            PrimitiveTypes::List(_) => todo!(),
+                                        };
                                         active_object
                                             .get()
                                             .locked_fields
                                             .update(|prev| {
-                                                prev.remove(&item.field_constraint_id.get());
-                                            })
-                                    }>unlock</button>
-                                </div>
-                            </For>
-                            <For each=unfulfilled_field_constraints key=move |item| item.tag.id let:item>
-                                <div>
-                                    {item.tag.name} <ButtonShow show_text="Begin Lock" hide_text="Cancel">
+                                                prev.insert(
+                                                    item_clone.tag.id.get(),
+                                                    item_clone.fulfill(new_val),
+                                                );
+                                            });
+                                    });
+                                    view! {
+                                        <TextInput
+                                            initial_value=""
+                                            on_save=move |new_val| {
+                                                value.set(new_val.into());
+                                            }
+                                        />
 
-                                        {
-                                            let item = item.clone();
-                                            move || {
-                                                let value = RwSignal::new("".to_string());
-                                                let item_clone = item.clone();
-                                                let on_click_lock = Callback::new(move |_| {
-                                                    let new_val = match item.value_type.get() {
-                                                        PrimitiveTypes::Int => {
-                                                            PrimitiveValues::Int(value.get().parse().unwrap())
-                                                        }
-                                                        PrimitiveTypes::Float => {
-                                                            PrimitiveValues::Float(value.get().parse().unwrap())
-                                                        }
-                                                        PrimitiveTypes::String => {
-                                                            PrimitiveValues::String(value.get().parse().unwrap())
-                                                        }
-                                                        PrimitiveTypes::Bool => {
-                                                            PrimitiveValues::Bool(value.get().parse().unwrap())
-                                                        }
-                                                        PrimitiveTypes::Char => {
-                                                            PrimitiveValues::Char(value.get().parse().unwrap())
-                                                        }
-                                                        PrimitiveTypes::Option(_) => todo!(),
-                                                        PrimitiveTypes::List(_) => todo!(),
-                                                    };
+                                        <button on:click=on_click_lock>Lock</button>
+                                    }
+                                }
+                            }
+
+                        </ButtonShow>
+
+                    </div>
+
+                </For>
+            </div>
+
+            <div class="flex-grow margin-right border-right">
+                <h4>Operative Slots</h4>
+
+                <For
+                    each=move || {
+                        active_object.get().get_operative_digest(&schema_clone_12).operative_slots
+                    }
+
+                    key=move |(id, _item)| { id.clone() }
+                    let:operative_slot
+                >
+
+                    {
+                        let operative_describing_string = match operative_slot
+                            .1
+                            .slot
+                            .operative_descriptor
+                            .clone()
+                        {
+                            ROperativeVariants::TraitOperative(trait_op) => {
+                                format!("Trait Operative: {}", trait_op.tag.name.get())
+                            }
+                            ROperativeVariants::LibraryOperative(lib_op_id) => {
+                                format!(
+                                    "Library Operative: {}",
+                                    schema_clone_11
+                                        .operative_library
+                                        .with(|operative_library| {
+                                            operative_library
+                                                .get(&lib_op_id.get())
+                                                .unwrap()
+                                                .tag
+                                                .name
+                                                .get()
+                                        }),
+                                )
+                            }
+                        };
+                        let operative_slot_clone = operative_slot.1.clone();
+                        let operative_slot_clone_2 = operative_slot.1.clone();
+                        let operative_slot_clone_3 = operative_slot.1.clone();
+                        let schema_clone_15 = schema_clone_15.clone();
+                        let schema_clone_16 = schema_clone_15.clone();
+                        view! {
+                            <br/>
+                            <hr/>
+                            <div>
+                                {operative_slot.1.slot.tag.name} -- fulfilled:
+                                {move || operative_slot_clone.get_fulfillment_status()} <br/>
+                                {operative_describing_string} <br/> Current Instances:
+                                <For
+                                    each=move || {
+                                        operative_slot_clone_3
+                                            .get_ancestors_related_instances()
+                                            .clone()
+                                    }
+
+                                    key=move |item| item.instance_id
+                                    let:item
+                                >
+                                    <div>
+                                        {schema_clone_16
+                                            .instance_library
+                                            .with(|lib| {
+                                                lib.get(&item.instance_id).unwrap().tag.name.get()
+                                            })}
+
+                                    </div>
+                                </For>
+                                <For
+                                    each=move || {
+                                        operative_slot_clone_2.get_local_related_instances().clone()
+                                    }
+
+                                    key=move |item| item.instance_id
+                                    let:related_instance
+                                >
+
+                                    {
+                                        let instance_name = schema_clone_15
+                                            .instance_library
+                                            .with(|lib| {
+                                                lib.get(&related_instance.instance_id)
+                                                    .unwrap()
+                                                    .tag
+                                                    .name
+                                                    .get()
+                                            });
+                                        view! {
+                                            <div>
+                                                {instance_name}
+                                                <button on:click=move |_| {
                                                     active_object
                                                         .get()
-                                                        .locked_fields
-                                                        .update(|prev| {
-                                                            prev.insert(item_clone.tag.id.get(), item_clone.fulfill(new_val));
+                                                        .slotted_instances
+                                                        .update(|prev_slotted_instance_map| {
+                                                            prev_slotted_instance_map
+                                                                .entry(operative_slot.1.slot.tag.id.get())
+                                                                .and_modify(|prev_instance_entry| {
+                                                                    prev_instance_entry
+                                                                        .fulfilling_instance_ids
+                                                                        .update(|fulf_instance_vec| {
+                                                                            fulf_instance_vec
+                                                                                .retain(|fulf_instance_id| {
+                                                                                    fulf_instance_id != &related_instance.instance_id
+                                                                                })
+                                                                        });
+                                                                });
                                                         });
-                                                });
-                                                view! {
-                                                    <TextInput
-                                                        initial_value=""
-                                                        on_save=move |new_val| {
-                                                            value.set(new_val.into());
-                                                        }
-                                                    />
-
-                                                    <button on:click=on_click_lock>Lock</button>
-                                                }
-                                            }
+                                                }>remove</button>
+                                            </div>
                                         }
-
-                                    </ButtonShow>
-
-                                </div>
-
-                            </For>
-                        </div>
-
-                        <div class="flex-grow margin-right border-right">
-                            <h4>Constituents</h4>
-                            <strong>Instances</strong>
-
-                            <br/>
-
-                            // <For
-                            //     each=local_constituent_instances
-                            //     key=move |item| item.tag.id
-                            //     children=move |item| {
-                            //         let on_click_delete = move |_| {
-                            //             active_object
-                            //                 .get()
-                            //                 .fulfilled_library_operatives
-                            //                 .update(|prev| {
-                            //                     prev.retain(|prev_item| {
-                            //                         prev_item.fulfilling_instance_ids.get() != item.tag.id.get()
-                            //                     });
-                            //                 });
-                            //             active_object
-                            //                 .get()
-                            //                 .fulfilled_trait_operatives
-                            //                 .update(|prev| {
-                            //                     prev.retain(|prev_item| {
-                            //                         prev_item.fulfilling_instance_ids.get() != item.tag.id.get()
-                            //                     });
-                            //                 });
-                            //         };
-                            //         view! {
-                            //             <div>
-                            //                 {item.tag.name} <button on:click=on_click_delete>unlock</button>
-                            //             </div>
-                            //         }
-                            //     }
-                            // />
-
-                            // <For
-                            //     each=ancestors_constituent_instances
-                            //
-                            //     key=move |item| item.tag.id
-                            //     children=move |item| {
-                            //         view! { <div>{item.tag.name}</div> }
-                            //     }
-                            // />
-
-                            <br/>
-
-                            <strong>Library Operatives</strong>
-                            <br/>
-                            // <For
-                            //     each=constituent_library_operatives
-                            //     key=move |constituent_operative| constituent_operative.tag.id
-                            //     children=move |constituent_library_op| {
-                            //         let operative_options = schema_clone_18
-                            //             .instance_library
-                            //             .with(|instances| {
-                            //                 instances
-                            //                     .values()
-                            //                     .filter(|instance| {
-                            //                         log!(
-                            //                             "operative: {:?}, instance: {:?}", & constituent_library_op
-                            //                             .tag.id.get(), instance.tag.id.get()
-                            //                         );
-                            //                         instance
-                            //                             .check_ancestry(
-                            //                                 &constituent_library_op.tag.id.get(),
-                            //                                 &schema_clone_15,
-                            //                             )
-                            //                     })
-                            //                     .map(|item| (item.tag.id.get(), item.tag.name.get()))
-                            //                     .collect::<Vec<_>>()
-                            //             });
-                            //         let selected_instance = RwSignal::new(None);
-                            //         let on_click_lock = move |_| {
-                            //             if let Some(selected_item) = selected_instance.get() {
-                            //                 let new_fulfilled_op = RSlottedInstances::new(
-                            //                     constituent_library_op.tag.id.get(),
-                            //                     selected_item,
-                            //                 );
-                            //                 active_object
-                            //                     .get()
-                            //                     .fulfilled_library_operatives
-                            //                     .update(|prev| {
-                            //                         prev.push(new_fulfilled_op);
-                            //                     })
-                            //             }
-                            //         };
-                            //         view! {
-                            //             <div>
-                            //                 {constituent_library_op.tag.name} <br/>
-                            //                 <ButtonShow show_text="Start Lock" hide_text="Cancel">
-                            //
-                            //                     <SelectInputOptional
-                            //                         options=operative_options.clone()
-                            //                         on_select=move |new_val| selected_instance.set(new_val)
-                            //                         value=RwSignal::new(None)
-                            //                     />
-                            //                     <button on:click=on_click_lock>Lock</button>
-                            //                 </ButtonShow>
-                            //             </div>
-                            //         }
-                            //     }
-                            // />
-                            //
-                            <br/>
-
-                            <strong>Trait Operatives</strong>
-                            <br/>
-                            // <For
-                            //     each=unfulfilled_trait_operatives
-                            //     key=move |(trait_operative, _trait_def)| trait_operative.tag.id
-                            //     children=move |(trait_operative, trait_def)| {
-                            //         let operative_options = schema_clone_21
-                            //             .instance_library
-                            //             .with(|instances| {
-                            //                 instances
-                            //                     .values()
-                            //                     .filter(|item| {
-                            //                         item.check_trait_ancestry(
-                            //                             &trait_def.tag.id.get(),
-                            //                             &schema_clone_21,
-                            //                         )
-                            //                     })
-                            //                     .map(|item| (item.tag.id.get(), item.tag.name.get()))
-                            //                     .collect::<Vec<_>>()
-                            //             });
-                            //         let selected_instance = RwSignal::new(None);
-                            //         let on_click_lock = move |_| {
-                            //             if let Some(selected_item) = selected_instance.get() {
-                            //                 let new_fulfilled_op = RSlottedInstances::new(
-                            //                     trait_operative.tag.id.get(),
-                            //                     selected_item,
-                            //                 );
-                            //                 active_object
-                            //                     .get()
-                            //                     .fulfilled_trait_operatives
-                            //                     .update(|prev| {
-                            //                         prev.push(new_fulfilled_op);
-                            //                     })
-                            //             }
-                            //         };
-                            //         view! {
-                            //             <div>
-                            //                 operative name: {trait_operative.tag.name} <br/> trait name:
-                            //                 {trait_def.tag.name} <br/>
-                            //                 <ButtonShow show_text="Start Lock" hide_text="Cancel">
-                            //
-                            //                     <SelectInputOptional
-                            //                         options=operative_options.clone()
-                            //                         on_select=move |new_val| selected_instance.set(new_val)
-                            //                         value=RwSignal::new(None)
-                            //                     />
-                            //                     <button on:click=on_click_lock>Lock</button>
-                            //                 </ButtonShow>
-                            //
-                            //             </div>
-                            //         }
-                            //     }
-                            // />
-
-                            <br/>
-
-                        </div>
-                        <div class="flex-grow margin-right">
-                            <h4>
-                                Trait Impls
-                                <button on:click=move |_| {
-                                    if adding_trait_impl.get() {
-                                        adding_trait_impl.set(false);
-                                    } else {
-                                        adding_trait_impl.set(true);
                                     }
-                                }>begin addition / cancel</button>
-                            </h4>
-                            New Impl:
-                            <br/>
-                            trait:
-                            <TypedSelectInputTraitImplSelection
-                                options=select_trait_impl_options.into()
-                                value=add_trait_impl_id
-                                on_select=on_select_trait_impl
-                            />
-                            <br/>
-                            <For each=active_trait_impl_method_paths key=move |item| item.0 let:item>
 
+                                </For> <br/> Add Instance:
                                 {
-                                    let click_closure = move |_| {
-                                        if selecting_trait_impl_path
-                                            .get()
-                                            .is_some_and(|selected| selected == item.0)
-                                        {
-                                            selecting_trait_impl_path.set(None);
-                                        } else {
-                                            selecting_trait_impl_path.set(Some(item.0));
+                                    let TypedSelectInputFulfillingInstanceSelection = SelectInputOptional::<
+                                        Uid,
+                                        String,
+                                        _,
+                                        _,
+                                    >;
+                                    let select_fulfilling_instance_options = match operative_slot
+                                        .1
+                                        .slot
+                                        .operative_descriptor
+                                    {
+                                        ROperativeVariants::TraitOperative(ref trait_op) => {
+                                            schema_clone_19
+                                                .instance_library
+                                                .with(|lib| {
+                                                    lib.iter()
+                                                        .filter_map(|(id, lib_item)| {
+                                                            let trait_impl_digest = lib_item
+                                                                .get_trait_impl_digest(&schema_clone_19);
+                                                            log!("looking for traits: {:?}", trait_op.trait_ids.get());
+                                                            log!(
+                                                                "trait_op_digest: {:?}", trait_impl_digest.trait_impls
+                                                            );
+                                                            let contains_trait_impls = trait_op
+                                                                .trait_ids
+                                                                .get()
+                                                                .iter()
+                                                                .all(|required_trait_id| {
+                                                                    trait_impl_digest
+                                                                        .trait_impls
+                                                                        .contains_key(required_trait_id)
+                                                                });
+                                                            if contains_trait_impls {
+                                                                Some((*id, lib_item.tag.name.get()))
+                                                            } else {
+                                                                None
+                                                            }
+                                                        })
+                                                        .collect::<Vec<_>>()
+                                                })
+                                        }
+                                        ROperativeVariants::LibraryOperative(lib_op_id) => {
+                                            schema_clone_19
+                                                .instance_library
+                                                .with(|lib| {
+                                                    lib.iter()
+                                                        .filter_map(|(id, lib_item)| {
+                                                            log!(
+                                                                "lib_op id: {:?}; looking for: {:?}", lib_op_id.get(), id
+                                                            );
+                                                            if lib_op_id.get() == *id {
+                                                                Some((*id, lib_item.tag.name.get()))
+                                                            } else {
+                                                                None
+                                                            }
+                                                        })
+                                                        .collect::<Vec<_>>()
+                                                })
+                                        }
+                                    };
+                                    let selected_instance_id = RwSignal::new(None);
+                                    let operative_slot = operative_slot.1.slot.clone();
+                                    let operative_id = move || match &operative_slot
+                                        .operative_descriptor
+                                    {
+                                        ROperativeVariants::TraitOperative(trait_op) => {
+                                            trait_op.tag.id.get()
+                                        }
+                                        ROperativeVariants::LibraryOperative(lib_op_id) => {
+                                            lib_op_id.get()
                                         }
                                     };
                                     view! {
-                                        <div class=move || {
-                                            if item.1.2.get().is_some() { "bg-light-green" } else { "" }
-                                        }>{item.1.0} : {item.1.1.to_string()}</div>
+                                        <TypedSelectInputFulfillingInstanceSelection
+                                            options=select_fulfilling_instance_options.into()
+                                            value=add_trait_impl_id
+                                            on_select=move |return_val| {
+                                                selected_instance_id.set(return_val)
+                                            }
+                                        />
                                         <button
-                                            disabled=move || add_trait_impl_id.get().is_none()
-                                            on:click=click_closure
+                                            disabled=move || selected_instance_id.get().is_none()
+                                            on:click=move |_| {
+                                                active_object
+                                                    .get()
+                                                    .slotted_instances
+                                                    .update(|prev_slotted_instances| {
+                                                        let slot_id = operative_slot.tag.id.get();
+                                                        prev_slotted_instances
+                                                            .entry(slot_id)
+                                                            .or_insert(
+                                                                RSlottedInstances::new(slot_id, operative_id(), vec![]),
+                                                            )
+                                                            .fulfilling_instance_ids
+                                                            .update(|prev_instance_ids| {
+                                                                prev_instance_ids.push(selected_instance_id.get().unwrap());
+                                                            });
+                                                    })
+                                            }
                                         >
-                                            Click Here and then select in the graph view
+                                            +
                                         </button>
                                     }
                                 }
 
-                            </For>
-                            <br/>
+                            </div>
+                        }
+                    }
+
+                </For>
+                <br/>
+
+            </div>
+            <div class="flex-grow margin-right">
+                <h4>Trait Impls</h4>
+                New Impl:
+                <br/>
+                trait:
+                <TypedSelectInputTraitImplSelection
+                    options=select_trait_impl_options.into()
+                    value=add_trait_impl_id
+                    on_select=on_select_trait_impl
+                />
+                <br/>
+                <For each=active_trait_impl_method_paths key=move |item| item.0 let:item>
+
+                    {
+                        let click_closure = move |_| {
+                            if selecting_trait_impl_path
+                                .get()
+                                .is_some_and(|selected| selected == item.0)
+                            {
+                                selecting_trait_impl_path.set(None);
+                            } else {
+                                selecting_trait_impl_path.set(Some(item.0));
+                            }
+                        };
+                        view! {
+                            <div class=move || {
+                                if item.1.2.get().is_some() { "bg-light-green" } else { "" }
+                            }>{item.1.0} : {item.1.1.to_string()}</div>
                             <button
-                                on:click=on_click_add_trait_impl
-                                disabled=move || !is_trait_impl_complete.get()
+                                disabled=move || add_trait_impl_id.get().is_none()
+                                on:click=click_closure
                             >
-                                +
+                                Click Here and then select in the graph view
                             </button>
-                            <For
-                                each=ancestors_trait_impls
+                        }
+                    }
 
-                                key=move |(_methods, trait_def)| trait_def.tag.id
-                                children=move |(methods, trait_def)| {
-                                    let trait_id = trait_def.tag.id.get();
-                                    view! {
-                                        <div>
-                                            trait name: {trait_def.tag.name} <br/> trait methods:
-                                            <For
-                                                each=methods.trait_impl
-                                                key=move |(method_id, _path)| *method_id
-                                                children=move |(method_id, path)| {
-                                                    let method_def = trait_def
-                                                        .methods
-                                                        .get()
-        .values()
-                                                        .find(|method| method.tag.id.get() == method_id)
-                                                        .cloned()
-                                                        .unwrap();
-                                                    let method_path = path
-                                                        .get()
-                                                        .iter()
-                                                        .map(|path_item| {
-                                                            match path_item {
-                                                                RTraitMethodImplPath::Field(_item) => "Field".to_string(),
-                                                                // RTraitMethodImplPath::InstanceConstituent(_item) => {
-                                                                //     "Instance".to_string()
-                                                                // }
-                                                                // RTraitMethodImplPath::LibraryOperativeConstituent(_item) => {
-                                                                //     "LibraryOperative".to_string()
-                                                                // }
-                                                                // RTraitMethodImplPath::TraitOperativeConstituent { .. } => {
-                                                                //     "TraitOperative".to_string()
-                                                                // }
-                                                                RTraitMethodImplPath::Constituent(_) => "Constituent".to_string(),
-                                                                RTraitMethodImplPath::TraitMethod {
-                                                                    trait_method_id: _,
-                                                                    trait_id: _,
-                                                                } => "TraitMethod".to_string(),
-                                                            }
-                                                        })
-                                                        .collect::<Vec<String>>()
-                                                        .join("::");
-                                                    view! {
-                                                        {method_def.tag.name}
-                                                        <br/>
-                                                        {method_path}
+                </For>
+                <br/>
+                <button
+                    on:click=on_click_add_trait_impl
+                    disabled=move || !is_trait_impl_complete.get()
+                >
+                    +
+                </button>
+                <For
+                    each=ancestors_trait_impls
+
+                    key=move |(_methods, trait_def)| trait_def.tag.id
+                    children=move |(methods, trait_def)| {
+                        let trait_id = trait_def.tag.id.get();
+                        view! {
+                            <div>
+                                trait name: {trait_def.tag.name} <br/> trait methods:
+                                <For
+                                    each=methods.trait_impl
+                                    key=move |(method_id, _path)| *method_id
+                                    children=move |(method_id, path)| {
+                                        let method_def = trait_def
+                                            .methods
+                                            .get()
+                                            .values()
+                                            .find(|method| method.tag.id.get() == method_id)
+                                            .cloned()
+                                            .unwrap();
+                                        let method_path = path
+                                            .get()
+                                            .iter()
+                                            .map(|path_item| {
+                                                match path_item {
+                                                    RTraitMethodImplPath::Field(_item) => "Field".to_string(),
+                                                    RTraitMethodImplPath::Constituent(_) => {
+                                                        "Constituent".to_string()
                                                     }
+                                                    RTraitMethodImplPath::TraitMethod {
+                                                        trait_method_id: _,
+                                                        trait_id: _,
+                                                    } => "TraitMethod".to_string(),
                                                 }
-                                            />
+                                            })
+                                            .collect::<Vec<String>>()
+                                            .join("::");
+                                        view! {
+                                            // RTraitMethodImplPath::InstanceConstituent(_item) => {
+                                            // "Instance".to_string()
+                                            // }
+                                            // RTraitMethodImplPath::LibraryOperativeConstituent(_item) => {
+                                            // "LibraryOperative".to_string()
+                                            // }
+                                            // RTraitMethodImplPath::TraitOperativeConstituent { .. } => {
+                                            // "TraitOperative".to_string()
+                                            // }
 
-                                        </div>
+                                            {method_def.tag.name}
+                                            <br/>
+                                            {method_path}
+                                        }
                                     }
-                                }
-                            />
+                                />
 
-                            <For
-                                each=local_trait_impls
-                                key=move |(_methods, trait_def)| trait_def.tag.id
-                                children=move |(methods, trait_def)| {
-                                    let trait_id = trait_def.tag.id.get();
-                                    view! {
-                                        <div>
-                                            trait name: {trait_def.tag.name}
-                                            <button on:click=move |_| {
-                                                active_object
-                                                    .get()
-                                                    .trait_impls
-                                                    .update(|prev| {
-                                                        prev.remove(&trait_id.clone());
-                                                    })
-                                            }>delete impl</button> <br/> trait methods:
-                                            <For
-                                                each=methods
-                                                key=move |(method_id, _path)| *method_id
-                                                children=move |(method_id, path)| {
-                                                    let method_def = trait_def
-                                                        .methods
-                                                        .get()
-    .values()
-                                                        .find(|method| method.tag.id.get() == method_id)
-    .cloned()
-                                                        .unwrap();
-                                                    let method_path = path
-                                                        .get()
-                                                        .iter()
-                                                        .map(|path_item| {
-                                                            match path_item {
-                                                                RTraitMethodImplPath::Field(_item) => "Field".to_string(),
-            RTraitMethodImplPath::Constituent(_item) => "Constituent".to_string(),
+                            </div>
+                        }
+                    }
+                />
 
-                                                                RTraitMethodImplPath::TraitMethod {
-                                                                    trait_method_id: _,
-                                                                    trait_id: _,
-                                                                } => "TraitMethod".to_string(),
-                                                            }
-                                                        })
-                                                        .collect::<Vec<String>>()
-                                                        .join("::");
-                                                    view! {
-                                                        {method_def.tag.name}
-                                                        <br/>
-                                                        {method_path}
+                <For
+                    each=local_trait_impls
+                    key=move |(_methods, trait_def)| trait_def.tag.id
+                    children=move |(methods, trait_def)| {
+                        let trait_id = trait_def.tag.id.get();
+                        view! {
+                            <div>
+                                trait name: {trait_def.tag.name}
+                                <button on:click=move |_| {
+                                    active_object
+                                        .get()
+                                        .trait_impls
+                                        .update(|prev| {
+                                            prev.remove(&trait_id.clone());
+                                        })
+                                }>delete impl</button> <br/> trait methods:
+                                <For
+                                    each=methods
+                                    key=move |(method_id, _path)| *method_id
+                                    children=move |(method_id, path)| {
+                                        let method_def = trait_def
+                                            .methods
+                                            .get()
+                                            .values()
+                                            .find(|method| method.tag.id.get() == method_id)
+                                            .cloned()
+                                            .unwrap();
+                                        let method_path = path
+                                            .get()
+                                            .iter()
+                                            .map(|path_item| {
+                                                match path_item {
+                                                    RTraitMethodImplPath::Field(_item) => "Field".to_string(),
+                                                    RTraitMethodImplPath::Constituent(_item) => {
+                                                        "Constituent".to_string()
                                                     }
+                                                    RTraitMethodImplPath::TraitMethod {
+                                                        trait_method_id: _,
+                                                        trait_id: _,
+                                                    } => "TraitMethod".to_string(),
                                                 }
-                                            />
-
-                                        </div>
+                                            })
+                                            .collect::<Vec<String>>()
+                                            .join("::");
+                                        view! {
+                                            {method_def.tag.name}
+                                            <br/>
+                                            {method_path}
+                                        }
                                     }
-                                }
-                            />
+                                />
 
-                        </div>
-                    </div>
-                    <Show when=move || ctx.selected_element.get().is_some()>
-                        <TreeView
-                            on_click_tree_data=on_click_tree_data.clone()
-                            element=ctx.selected_element.get().unwrap()
-                        />
-                    </Show>
-                }
+                            </div>
+                        }
+                    }
+                />
+
+            </div>
+        </div>
+        <Show when=move || ctx.selected_element.get().is_some()>
+            <TreeView
+                on_click_tree_data=on_click_tree_data.clone()
+                element=ctx.selected_element.get().unwrap()
+            />
+        </Show>
+    }
 }

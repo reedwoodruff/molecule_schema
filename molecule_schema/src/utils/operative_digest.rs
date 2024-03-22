@@ -10,11 +10,13 @@ use super::reactive_types::{ROperativeSlot, RSlotBounds};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ROperativeDigest {
+    pub digest_object_id: Uid,
     pub operative_slots: HashMap<Uid, ROperativeSlotDigest>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ROperativeSlotDigest {
+    pub digest_object_id: Uid,
     pub slot: ROperativeSlot,
     pub related_instances: Vec<RRelatedInstance>,
 }
@@ -47,6 +49,20 @@ impl ROperativeSlotDigest {
             }
         }
     }
+    pub fn get_local_related_instances(&self) -> Vec<RRelatedInstance> {
+        self.related_instances
+            .iter()
+            .filter(|related_instance| related_instance.hosting_element_id == self.digest_object_id)
+            .cloned()
+            .collect()
+    }
+    pub fn get_ancestors_related_instances(&self) -> Vec<RRelatedInstance> {
+        self.related_instances
+            .iter()
+            .filter(|related_instance| related_instance.hosting_element_id != self.digest_object_id)
+            .cloned()
+            .collect()
+    }
 }
 
 impl ROperativeDigest {
@@ -74,4 +90,5 @@ impl ROperativeDigest {
             })
             .collect()
     }
+    // pub fn get_local_relat
 }

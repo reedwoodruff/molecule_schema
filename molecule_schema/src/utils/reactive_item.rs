@@ -77,6 +77,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                     (
                         *slot_id,
                         ROperativeSlotDigest {
+                            digest_object_id: self.get_tag().id.get(),
                             slot: op_slot.clone(),
                             related_instances: vec![],
                         },
@@ -85,6 +86,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                 .collect()
         });
         ROperativeDigest {
+            digest_object_id: self.get_tag().id.get(),
             operative_slots: slot_digest_hashmap,
         }
     }
@@ -198,6 +200,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                     (
                         *slot_id,
                         ROperativeSlotDigest {
+                            digest_object_id: self.tag.id.get(),
                             slot: op_slot.clone(),
                             related_instances: aggregate_instances
                                 .get(slot_id)
@@ -209,7 +212,10 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                 .collect()
         });
 
-        ROperativeDigest { operative_slots }
+        ROperativeDigest {
+            digest_object_id: self.get_tag().id.get(),
+            operative_slots,
+        }
     }
 
     fn get_trait_impl_digest(
@@ -218,6 +224,27 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
     ) -> RTraitImplDigest {
         let mut next_parent_id = Some(self.tag.id.get());
         let mut aggregate_trait_impls = HashMap::new();
+        let template = schema.template_library.with(|template_library| {
+            template_library
+                .get(&self.get_template_id())
+                .unwrap()
+                .clone()
+        });
+
+        aggregate_trait_impls.extend(template.get_local_trait_impls().with(|local_trait_impls| {
+            local_trait_impls
+                .iter()
+                .map(|(trait_id, trait_impl)| {
+                    (
+                        *trait_id,
+                        RRelatedTraitImpl {
+                            trait_impl: trait_impl.clone(),
+                            hosting_element_id: self.get_tag().id.get(),
+                        },
+                    )
+                })
+                .collect::<HashMap<_, _>>()
+        }));
 
         while let Some(parent_id) = next_parent_id {
             let parent_operative = schema.operative_library.with(|operative_library| {
