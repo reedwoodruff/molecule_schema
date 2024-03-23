@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::{logging::log, *};
 use std::collections::HashMap;
 
 use serde_types::common::{ConstraintTraits, Uid};
@@ -22,6 +22,40 @@ pub trait RConstraintSchemaItem: Tagged + PartialEq {
     fn get_parent_operative_id(&self) -> Option<Uid>;
     fn get_local_trait_impls(&self) -> RwSignal<HashMap<Uid, RTraitImpl>>;
     fn get_local_slotted_instances(&self) -> Option<RwSignal<HashMap<Uid, RSlottedInstances>>>;
+    fn check_ancestry(
+        &self,
+        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
+        ancestor_id_in_question: &Uid,
+    ) -> bool {
+        if self.get_tag().id.get() == *ancestor_id_in_question {
+            return true;
+        }
+
+        let template = schema.template_library.with(|template_library| {
+            template_library
+                .get(&self.get_template_id())
+                .unwrap()
+                .clone()
+        });
+        if template.get_template_id() == *ancestor_id_in_question {
+            return true;
+        }
+        let mut next_parent_id = self.get_parent_operative_id();
+        while let Some(parent_id) = next_parent_id {
+            if let Some(parent_operative) = schema
+                .operative_library
+                .with(|operative_library| operative_library.get(&parent_id).cloned())
+            {
+                if parent_operative.get_tag().id.get() == *ancestor_id_in_question {
+                    return true;
+                }
+                next_parent_id = parent_operative.get_parent_operative_id();
+            } else {
+                panic!("Ancestor not found in schema");
+            }
+        }
+        false
+    }
     fn get_local_locked_fields(
         &self,
     ) -> RwSignal<HashMap<Uid, RFulfilledFieldConstraint<Self::TValues>>>;
@@ -32,7 +66,7 @@ pub trait RConstraintSchemaItem: Tagged + PartialEq {
     fn get_operative_digest(
         &self,
         schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> ROperativeDigest;
+    ) -> Memo<ROperativeDigest>;
     fn get_locked_fields_digest(
         &self,
         schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
@@ -69,26 +103,29 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
     fn get_operative_digest(
         &self,
         schema: &RConstraintSchema<TTypes, TValues>,
-    ) -> ROperativeDigest {
-        let slot_digest_hashmap = self.operative_slots.with(|operative_slot| {
-            operative_slot
-                .iter()
-                .map(|(slot_id, op_slot)| {
-                    (
-                        *slot_id,
-                        ROperativeSlotDigest {
-                            digest_object_id: self.get_tag().id.get(),
-                            slot: op_slot.clone(),
-                            related_instances: vec![],
-                        },
-                    )
-                })
-                .collect()
-        });
-        ROperativeDigest {
-            digest_object_id: self.get_tag().id.get(),
-            operative_slots: slot_digest_hashmap,
-        }
+    ) -> Memo<ROperativeDigest> {
+        let self_clone = self.clone();
+        create_memo(move |_| {
+            let slot_digest_hashmap = self_clone.operative_slots.with(|operative_slot| {
+                operative_slot
+                    .iter()
+                    .map(|(slot_id, op_slot)| {
+                        (
+                            *slot_id,
+                            ROperativeSlotDigest {
+                                digest_object_id: self_clone.get_tag().id.get(),
+                                slot: op_slot.clone(),
+                                related_instances: vec![],
+                            },
+                        )
+                    })
+                    .collect()
+            });
+            ROperativeDigest {
+                digest_object_id: self_clone.get_tag().id.get(),
+                operative_slots: slot_digest_hashmap,
+            }
+        })
     }
     fn get_trait_impl_digest(
         &self,
@@ -142,80 +179,85 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
         self.locked_fields
     }
     fn get_operative_digest<'a>(
-        &'a self,
+        &self,
         schema: &'a RConstraintSchema<Self::TTypes, TValues>,
-    ) -> ROperativeDigest {
-        let related_template = schema.template_library.with(|template_library| {
-            template_library
-                .get(&self.get_template_id())
-                .unwrap()
-                .clone()
-        });
-        let mut aggregate_instances = HashMap::new();
+    ) -> Memo<ROperativeDigest> {
+        let self_clone = self.clone();
+        let schema_clone = schema.clone();
 
-        // by setting the first parent id to the current operative's id, we can avoid special
-        // casing this element
-        let mut next_parent_id = Some(self.tag.id.get());
-        while let Some(parent_id) = next_parent_id {
-            let parent_operative = schema.operative_library.with(|operative_library| {
-                if let Some(parent_operative) = operative_library.get(&parent_id) {
-                    parent_operative.clone()
-                } else {
-                    schema
-                        .instance_library
-                        .with(|instance_library| instance_library.get(&parent_id).unwrap().clone())
-                }
+        create_memo(move |_| {
+            let related_template = schema_clone.template_library.with(|template_library| {
+                template_library
+                    .get(&self_clone.get_template_id())
+                    .unwrap()
+                    .clone()
             });
-            // let parent_operative = schema
-            //     .operative_library
-            //     .with(|operative_library| operative_library.get(&parent_id).unwrap().clone());
-            parent_operative
-                .slotted_instances
-                .with(|parent_slotted_instances| {
-                    for (slot_id, slotted_instances) in parent_slotted_instances.iter() {
-                        let related_instances = slotted_instances.fulfilling_instance_ids.with(
-                            |fulfilling_instance_ids| {
-                                fulfilling_instance_ids
-                                    .iter()
-                                    .map(|instance_id| RRelatedInstance {
-                                        instance_id: *instance_id,
-                                        hosting_element_id: parent_id,
-                                    })
-                                    .collect::<Vec<_>>()
-                            },
-                        );
-                        aggregate_instances
-                            .entry(*slot_id)
-                            .or_insert_with(|| vec![])
-                            .extend(related_instances);
+            let mut aggregate_instances = HashMap::new();
+
+            // by setting the first parent id to the current operative's id, we can avoid special
+            // casing this element
+            let mut next_parent_id = Some(self_clone.tag.id.get());
+            while let Some(parent_id) = next_parent_id {
+                let parent_operative = schema_clone.operative_library.with(|operative_library| {
+                    if let Some(parent_operative) = operative_library.get(&parent_id) {
+                        parent_operative.clone()
+                    } else {
+                        schema_clone.instance_library.with(|instance_library| {
+                            instance_library.get(&parent_id).unwrap().clone()
+                        })
                     }
                 });
-            next_parent_id = parent_operative.parent_operative_id.get();
-        }
+                // let parent_operative = schema_clone
+                //     .operative_library
+                //     .with(|operative_library| operative_library.get(&parent_id).unwrap().clone());
+                parent_operative
+                    .slotted_instances
+                    .with(|parent_slotted_instances| {
+                        for (slot_id, slotted_instances) in parent_slotted_instances.iter() {
+                            let related_instances = slotted_instances.fulfilling_instance_ids.with(
+                                |fulfilling_instance_ids| {
+                                    fulfilling_instance_ids
+                                        .iter()
+                                        .map(|instance_id| RRelatedInstance {
+                                            instance_id: *instance_id,
+                                            hosting_element_id: parent_id,
+                                        })
+                                        .collect::<Vec<_>>()
+                                },
+                            );
+                            aggregate_instances
+                                .entry(*slot_id)
+                                .or_insert_with(|| vec![])
+                                .extend(related_instances);
+                        }
+                    });
+                next_parent_id = parent_operative.parent_operative_id.get();
+            }
 
-        let operative_slots = related_template.operative_slots.with(|operative_slots| {
-            operative_slots
-                .iter()
-                .map(|(slot_id, op_slot)| {
-                    (
-                        *slot_id,
-                        ROperativeSlotDigest {
-                            digest_object_id: self.tag.id.get(),
-                            slot: op_slot.clone(),
-                            related_instances: aggregate_instances
-                                .get(slot_id)
-                                .cloned()
-                                .unwrap_or_else(|| vec![]),
-                        },
-                    )
-                })
-                .collect()
-        });
+            let operative_slots = related_template.operative_slots.with(|operative_slots| {
+                operative_slots
+                    .iter()
+                    .map(|(slot_id, op_slot)| {
+                        (
+                            *slot_id,
+                            ROperativeSlotDigest {
+                                digest_object_id: self_clone.tag.id.get(),
+                                slot: op_slot.clone(),
+                                related_instances: aggregate_instances
+                                    .get(slot_id)
+                                    .cloned()
+                                    .unwrap_or_else(|| vec![]),
+                            },
+                        )
+                    })
+                    .collect()
+            });
 
-        ROperativeDigest {
-            digest_object_id: self.get_tag().id.get(),
-            operative_slots,
-        }
+            ROperativeDigest {
+                digest_object_id: self_clone.get_tag().id.get(),
+                operative_slots,
+            }
+        })
     }
 
     fn get_trait_impl_digest(

@@ -48,7 +48,7 @@ struct TreeNodeInfo<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     tag: RTag,
     fields: Vec<FieldInfoStruct<TTypes, TValues>>,
     trait_impls: Vec<RTraitDef<TTypes>>,
-    operative_digest: ROperativeDigest,
+    operative_digest: Memo<ROperativeDigest>,
     template_level_instances: Vec<Uid>, // instance_constituents: Vec<Uid>,
 }
 
@@ -110,6 +110,7 @@ where
     F: Fn(TreeNodeDataSelectionType, PrimitiveTypes, Rc<Vec<TreeRef>>) + 'static,
 {
     let ctx = use_context::<SchemaContext>().unwrap();
+    let schema_clone = ctx.schema.clone();
     let element_clone = element.clone();
 
     let on_click_tree_data_1 = on_click_tree_data.clone();
@@ -156,16 +157,17 @@ where
                     .collect::<Vec<_>>()
             });
 
+            let cloned_id = id.clone();
             TreeNodeInfo {
                 top_level_type: TreeTypes::TraitOperative(trait_op.clone()),
                 tag: trait_op.tag.clone(),
                 fields: vec![],
                 trait_impls: trait_impls,
                 template_level_instances: vec![],
-                operative_digest: ROperativeDigest {
-                    digest_object_id: *id,
+                operative_digest: create_memo(move |_| ROperativeDigest {
+                    digest_object_id: cloned_id,
                     operative_slots: HashMap::new(),
-                },
+                }),
             }
         }
     });
@@ -183,6 +185,7 @@ where
         tree_element
             .get()
             .operative_digest
+            .get()
             .operative_slots
             .values()
             .cloned()
@@ -278,8 +281,8 @@ where
 
             </For>
             <For
-                each=move || tree_element.get().operative_digest.operative_slots
-                key=move |(slot_id, _slot)| slot_id.clone()
+                each=move || tree_element.get().operative_digest.get().operative_slots
+                key=move |(slot_id, _slot)| (slot_id.clone(), _slot.clone())
                 let:slot_info
             >
 
@@ -289,7 +292,7 @@ where
                 }
 
             </For>
-            <For each=all_slots key=move |item| item.slot.tag.id.get() let:child>
+            <For each=all_slots key=move |item| item.clone() let:child>
 
                 {
                     let on_click_tree_data_3 = on_click_tree_data_3.clone();
@@ -302,12 +305,16 @@ where
                                 "unfulfilled"
                             }
                     };
+                    let related_instances_clone = Rc::new(child.related_instances.clone());
+                    let show_instances= move || {child.related_instances.len() > 0};
                     view! {
                         <div>
                             <div class=slot_class>Slot name: {child.slot.tag.name} <br/></div>
                             <div class="flex">
                                 <div>
-                                    Operative <br/> <hr/>
+                                    <Show when=show_instances.clone()>
+                                    Operative: <br/> <hr/>
+                    </Show>
                                     <TreeNode
                                         on_click_tree_data=on_click_tree_data_3
                                         element=match child.slot.operative_descriptor {
@@ -325,9 +332,38 @@ where
                                         path=new_path_2.clone()
                                     />
                                 </div>
-                                <Show when=move || {
-                                    child.related_instances.len() > 0
-                                }>INSTANCE</Show>
+                                <Show when=show_instances>
+
+                                    {
+                                        let related_instances_clone = related_instances_clone
+                                            .as_ref()
+                                            .clone();
+                                        view! {
+                                            <div>
+                                                Slotted instances: <br/>
+                                                <For
+                                                    each=move || related_instances_clone.clone()
+                                                    key=move |instance| instance.clone()
+                                                    let:instance
+                                                >
+                                                    <div>
+                                                        {&schema_clone
+                                                            .instance_library
+                                                            .with(|instance_library| {
+                                                                instance_library
+                                                                    .get(&instance.instance_id)
+                                                                    .unwrap()
+                                                                    .tag
+                                                                    .name
+                                                                    .get()
+                                                            })}
+                                                    </div>
+                                                </For>
+                                            </div>
+                                        }
+                                    }
+
+                                </Show>
                             </div>
                         </div>
                     }
@@ -349,13 +385,13 @@ where
         // element=TreeRef(
         // TreeTypes::TraitOperative(child.clone()),
         // child.tag.id.get(),
-        // )
+        //)
         //
         // path=new_path_3.clone()
         // />
         // </div>
         // }
-        // }
+        //}
         //
         // </For>
         </div>

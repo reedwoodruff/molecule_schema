@@ -435,10 +435,14 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
 
                 <For
                     each=move || {
-                        active_object.get().get_operative_digest(&schema_clone_12).operative_slots
+                        active_object
+                            .get()
+                            .get_operative_digest(&schema_clone_12)
+                            .get()
+                            .operative_slots
                     }
 
-                    key=move |(id, _item)| { id.clone() }
+                    key=move |(id, _item)| { (id.clone(), _item.clone()) }
                     let:operative_slot
                 >
 
@@ -473,6 +477,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                         let operative_slot_clone_3 = operative_slot.1.clone();
                         let schema_clone_15 = schema_clone_15.clone();
                         let schema_clone_16 = schema_clone_15.clone();
+                        log!("Run fun");
                         view! {
                             <br/>
                             <hr/>
@@ -482,9 +487,8 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                 {operative_describing_string} <br/> Current Instances:
                                 <For
                                     each=move || {
-                                        operative_slot_clone_3
-                                            .get_ancestors_related_instances()
-                                            .clone()
+                                        log!("gumblin ancestors!!!!");
+                                        operative_slot_clone_3.get_ancestors_related_instances()
                                     }
 
                                     key=move |item| item.instance_id
@@ -501,6 +505,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                 </For>
                                 <For
                                     each=move || {
+                                        log!("gumblin local!!!!");
                                         operative_slot_clone_2.get_local_related_instances().clone()
                                     }
 
@@ -522,23 +527,28 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                             <div>
                                                 {instance_name}
                                                 <button on:click=move |_| {
-                                                    active_object
+                                                    let slotted_instances = active_object
                                                         .get()
                                                         .slotted_instances
-                                                        .update(|prev_slotted_instance_map| {
-                                                            prev_slotted_instance_map
-                                                                .entry(operative_slot.1.slot.tag.id.get())
-                                                                .and_modify(|prev_instance_entry| {
-                                                                    prev_instance_entry
-                                                                        .fulfilling_instance_ids
-                                                                        .update(|fulf_instance_vec| {
-                                                                            fulf_instance_vec
-                                                                                .retain(|fulf_instance_id| {
-                                                                                    fulf_instance_id != &related_instance.instance_id
-                                                                                })
-                                                                        });
-                                                                });
+                                                        .with(|slotted_instances| {
+                                                            slotted_instances
+                                                                .get(&operative_slot.1.slot.tag.id.get())
+                                                                .cloned()
                                                         });
+                                                    let mut delete_entry = false;
+                                                    if let Some(slotted_instances) = slotted_instances {
+                                                        slotted_instances
+                                                            .fulfilling_instance_ids
+                                                            .update(|prev_instance_ids| {
+                                                                prev_instance_ids
+                                                                    .retain(|instance_id| {
+                                                                        instance_id != &related_instance.instance_id
+                                                                    });
+                                                                if prev_instance_ids.len() == 0 {
+                                                                    delete_entry = true;
+                                                                }
+                                                            });
+                                                    } else {}
                                                 }>remove</button>
                                             </div>
                                         }
@@ -565,10 +575,6 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                                         .filter_map(|(id, lib_item)| {
                                                             let trait_impl_digest = lib_item
                                                                 .get_trait_impl_digest(&schema_clone_19);
-                                                            log!("looking for traits: {:?}", trait_op.trait_ids.get());
-                                                            log!(
-                                                                "trait_op_digest: {:?}", trait_impl_digest.trait_impls
-                                                            );
                                                             let contains_trait_impls = trait_op
                                                                 .trait_ids
                                                                 .get()
@@ -588,15 +594,15 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                                 })
                                         }
                                         ROperativeVariants::LibraryOperative(lib_op_id) => {
+                                            log!("lib_op_id: {}", lib_op_id.get());
                                             schema_clone_19
                                                 .instance_library
                                                 .with(|lib| {
                                                     lib.iter()
                                                         .filter_map(|(id, lib_item)| {
-                                                            log!(
-                                                                "lib_op id: {:?}; looking for: {:?}", lib_op_id.get(), id
-                                                            );
-                                                            if lib_op_id.get() == *id {
+                                                            if lib_item
+                                                                .check_ancestry(&schema_clone_22, &lib_op_id.get())
+                                                            {
                                                                 Some((*id, lib_item.tag.name.get()))
                                                             } else {
                                                                 None
@@ -626,26 +632,40 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                                 selected_instance_id.set(return_val)
                                             }
                                         />
+
                                         <button
                                             disabled=move || selected_instance_id.get().is_none()
                                             on:click=move |_| {
-                                                active_object
+                                                let slot_id = operative_slot.tag.id.get();
+                                                let current_slot_instances = active_object
                                                     .get()
                                                     .slotted_instances
-                                                    .update(|prev_slotted_instances| {
-                                                        let slot_id = operative_slot.tag.id.get();
-                                                        prev_slotted_instances
-                                                            .entry(slot_id)
-                                                            .or_insert(
-                                                                RSlottedInstances::new(slot_id, operative_id(), vec![]),
-                                                            )
-                                                            .fulfilling_instance_ids
-                                                            .update(|prev_instance_ids| {
-                                                                prev_instance_ids.push(selected_instance_id.get().unwrap());
-                                                            });
-                                                    })
+                                                    .with(|slotted_instances| {
+                                                        slotted_instances.get(&slot_id).cloned()
+                                                    });
+                                                if let Some(current_slot_instances) = current_slot_instances {
+                                                    current_slot_instances
+                                                        .fulfilling_instance_ids
+                                                        .update(|prev_instance_ids| {
+                                                            prev_instance_ids.push(selected_instance_id.get().unwrap());
+                                                        });
+                                                } else {
+                                                    let new_slotted_instances = RSlottedInstances::new(
+                                                        slot_id,
+                                                        operative_id(),
+                                                        vec![selected_instance_id.get().unwrap()],
+                                                    );
+                                                    active_object
+                                                        .get()
+                                                        .slotted_instances
+                                                        .update(|prev_slotted_instance_map| {
+                                                            prev_slotted_instance_map
+                                                                .insert(slot_id, new_slotted_instances);
+                                                        });
+                                                }
                                             }
                                         >
+
                                             +
                                         </button>
                                     }

@@ -1,90 +1,9 @@
 {
   "template_library": {
-    "151010266062060940842084059666418528594": {
-      "tag": {
-        "name": "NewConstraintObject",
-        "id": 151010266062060940842084059666418528594
-      },
-      "field_constraints": {},
-      "operative_slots": {
-        "206655433473101179464275716200408352520": {
-          "tag": {
-            "name": "New_Slot",
-            "id": 206655433473101179464275716200408352520
-          },
-          "operative_descriptor": {
-            "TraitOperative": {
-              "trait_ids": [
-                12398769123987
-              ],
-              "tag": {
-                "name": "new_trait_operative",
-                "id": 181613106650976730270109617176835672932
-              }
-            }
-          },
-          "bounds": "Single"
-        }
-      },
-      "trait_impls": {},
-      "instances": [],
-      "_phantom": null
-    },
-    "86419503452695622566793613562558050652": {
-      "tag": {
-        "name": "bokn",
-        "id": 86419503452695622566793613562558050652
-      },
-      "field_constraints": {
-        "58288818976341006672845064546357746369": {
-          "tag": {
-            "name": "stri",
-            "id": 58288818976341006672845064546357746369
-          },
-          "value_type": "String"
-        }
-      },
-      "operative_slots": {},
-      "trait_impls": {
-        "12398769123987": {
-          "985762345157": [
-            {
-              "Field": 58288818976341006672845064546357746369
-            }
-          ]
-        }
-      },
-      "instances": [],
-      "_phantom": null
-    }
   },
   "instance_library": {
-    "100403636030935249861308693365143146253": {
-      "tag": {
-        "name": "new_instance",
-        "id": 100403636030935249861308693365143146253
-      },
-      "template_id": 86419503452695622566793613562558050652,
-      "parent_operative_id": null,
-      "slotted_instances": {},
-      "locked_fields": {},
-      "trait_impls": {},
-      "_phantom": null
-    }
   },
   "operative_library": {
-    "114277788317262364231693990613019688596": {
-      "tag": {
-        "name": "new_operative",
-        "id": 114277788317262364231693990613019688596
-      },
-      "template_id": 151010266062060940842084059666418528594,
-      "parent_operative_id": null,
-      "slotted_instances": {},
-      "locked_fields": {},
-      "trait_impls": {},
-      "_phantom": null
-    }
   },
   "traits": {
     "23409817235987234": {

@@ -28,9 +28,12 @@ pub struct RRelatedInstance {
 
 impl ROperativeDigest {
     pub fn is_fulfilled<TTypes: ConstraintTraits, TValues: ConstraintTraits>(&self) -> bool {
-        self.operative_slots
-            .values()
-            .all(|op_slot_status| op_slot_status.get_fulfillment_status())
+        self.
+        // operative_slots.with(|operative_slots| {
+            operative_slots
+                .values()
+                .all(|operative_slot| operative_slot.get_fulfillment_status())
+        // })
     }
 }
 
@@ -66,29 +69,41 @@ impl ROperativeSlotDigest {
 }
 
 impl ROperativeDigest {
-    pub fn get_unfulfilled_operative_slots(&self) -> Vec<&ROperativeSlotDigest> {
-        self.operative_slots
+    pub fn get_unfulfilled_operative_slots(&self) -> Vec<ROperativeSlotDigest> {
+        let self_clone = self.clone();
+        // create_memo(move |_| {
+        self_clone
+            // .operative_slots.with(|operative_slots| {
+            .operative_slots
             .iter()
             .filter_map(|(_slot_id, operative_slot)| {
                 if !operative_slot.get_fulfillment_status() {
-                    Some(operative_slot)
+                    Some(operative_slot.clone())
                 } else {
                     None
                 }
             })
             .collect()
+        // })
+        // })
     }
-    pub fn get_fulfilled_operative_slots(&self) -> Vec<&ROperativeSlotDigest> {
-        self.operative_slots
+    pub fn get_fulfilled_operative_slots(&self) -> Vec<ROperativeSlotDigest> {
+        let self_clone = self.clone();
+        // create_memo(move |_| {
+        self_clone
+            // .operative_slots.with(|operative_slots| {
+            .operative_slots
             .iter()
             .filter_map(|(_slot_id, operative_slot)| {
                 if operative_slot.get_fulfillment_status() {
-                    Some(operative_slot)
+                    Some(operative_slot.clone())
                 } else {
                     None
                 }
             })
             .collect()
+        // })
+        // })
     }
     // pub fn get_local_relat
 }

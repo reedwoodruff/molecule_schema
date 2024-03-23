@@ -17,9 +17,12 @@ use crate::{
         tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
         SchemaContext, TreeTypes,
     },
-    utils::reactive_types::{
-        RFieldConstraint, RLibraryOperative, ROperativeSlot, ROperativeVariants, RSlotBounds, RTag,
-        RTraitMethodImplPath, RTraitOperative,
+    utils::{
+        reactive_item::RConstraintSchemaItem,
+        reactive_types::{
+            RFieldConstraint, RLibraryOperative, ROperativeSlot, ROperativeVariants, RSlotBounds,
+            RTag, RTraitMethodImplPath, RTraitOperative,
+        },
     },
 };
 
@@ -151,11 +154,12 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         }
     };
 
+    let schema_clone = ctx.schema.clone();
     let select_operative_options = create_memo(move |_| {
         ctx.schema.operative_library.with(|lib| {
             lib.iter()
                 .filter_map(|(id, lib_item)| {
-                    if lib_item.template_id.get() == active_object.get().tag.id.get() {
+                    if lib_item.check_ancestry(&schema_clone, &active_object.get().tag.id.get()) {
                         None
                     } else {
                         Some((*id, lib_item.tag.name.get()))
@@ -215,15 +219,6 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         }
     };
     let TypedSelectInputTraitOperativeSelection = SelectInputOptional::<Uid, String, _, _>;
-
-    let delete_trait_operative = move |id: Uid| {
-        move |_: MouseEvent| {
-            active_object
-                .get()
-                .operative_slots
-                .update(|prev| prev.retain(|slot_id, _slot| slot_id != &id));
-        }
-    };
 
     let select_trait_impl_options = ctx.schema.traits.with(|lib| {
         lib.iter()
