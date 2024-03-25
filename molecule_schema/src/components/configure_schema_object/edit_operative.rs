@@ -8,11 +8,11 @@ use serde_types::{
 
 use crate::{
     components::{
+        app::{SchemaContext, TreeTypes},
         common::{
             button_show::ButtonShow, select_input::SelectInputOptional, text_input::TextInput,
         },
         tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
-        SchemaContext, TreeTypes,
     },
     utils::{
         reactive_item::RConstraintSchemaItem,
@@ -113,7 +113,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
         active_object
             .get()
             .get_trait_impl_digest(&schema_clone_13)
-            .get_ancestors_trait_impls()
+            .get_local_trait_impls()
             .iter()
             .map(|(trait_id, related_trait_impl)| {
                 (
@@ -122,15 +122,6 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                 )
             })
             .collect::<Vec<_>>()
-        // .get_ancestors_trait_impls(&*schema_clone_4)
-        // .iter()
-        // .map(|(trait_id, trait_methods)| {
-        //     (
-        //         *trait_methods,
-        //         schema_clone_10.traits.get().get(trait_id).cloned().unwrap(),
-        //     )
-        // })
-        // .collect::<Vec<_>>()
     };
 
     let new_operative_name = RwSignal::new("new_operative".to_string());
@@ -301,46 +292,32 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             <div class="flex-grow margin-right border-right">
                 <button on:click=move |_| ctx.selected_element.set(None)>X</button>
                 <button on:click=move |_| {
+                    ctx.selected_element.set(None);
+                    let stored_element_id = element.1.clone();
                     schema_clone_14
-                        .template_library
+                        .operative_library
                         .update(|prev| {
-                            prev.remove(&element.1);
+                            prev.remove(&stored_element_id);
                         })
                 }>delete element</button>
                 <br/>
-                <h4>Name</h4>
+                <br/>
+                <strong>Name</strong>
+                <br/>
                 <div class="flex">
-                    <TextInput
-                        initial_value=active_object.get().tag.name.get()
-                        on_save=move |val: String| {
-                            active_object.get().tag.name.set(val);
-                        }
-                    />
+                <TextInput value=active_object.get().tag.name/>
 
                 </div>
                 <hr/>
+                <div>
+                    <TextInput value=new_operative_name/>
+                    <button on:click=on_click_create_operative>Create Operative</button>
+                </div>
                 <br/>
-                <TextInput
-                    initial_value=new_operative_name.get()
-                    on_save=move |val: String| {
-                        new_operative_name.set(val);
-                    }
-
-                    show_save_button=true
-                />
-                <br/>
-                <button on:click=on_click_create_operative>Create Operative</button>
-                <br/>
-                <TextInput
-                    initial_value=new_instance_name.get()
-                    on_save=move |val: String| {
-                        new_instance_name.set(val);
-                    }
-
-                    show_save_button=true
-                />
-                <br/>
-                <button on:click=on_click_create_instance>Create Instance</button>
+                <div>
+                    <TextInput value=new_instance_name/>
+                    <button on:click=on_click_create_instance>Create Instance</button>
+                </div>
 
             </div>
 
@@ -411,12 +388,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                             });
                                     });
                                     view! {
-                                        <TextInput
-                                            initial_value=""
-                                            on_save=move |new_val| {
-                                                value.set(new_val.into());
-                                            }
-                                        />
+                                        <TextInput value = value />
 
                                         <button on:click=on_click_lock>Lock</button>
                                     }
@@ -762,19 +734,15 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                             .collect::<Vec<String>>()
                                             .join("::");
                                         view! {
-                                            // RTraitMethodImplPath::InstanceConstituent(_item) => {
-                                            // "Instance".to_string()
-                                            // }
-                                            // RTraitMethodImplPath::LibraryOperativeConstituent(_item) => {
-                                            // "LibraryOperative".to_string()
-                                            // }
-                                            // RTraitMethodImplPath::TraitOperativeConstituent { .. } => {
-                                            // "TraitOperative".to_string()
-                                            // }
+                                            <div>
 
-                                            {method_def.tag.name}
-                                            <br/>
-                                            {method_path}
+                                                <strong>{method_def.tag.name}</strong>
+
+                                                ()
+                                                <br/>
+                                                Fulfillment path:
+                                                {method_path}
+                                            </div>
                                         }
                                     }
                                 />
@@ -829,9 +797,15 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                             .collect::<Vec<String>>()
                                             .join("::");
                                         view! {
-                                            {method_def.tag.name}
-                                            <br/>
-                                            {method_path}
+                                            <div>
+
+                                                <strong>{method_def.tag.name}</strong>
+
+                                                ()
+                                                <br/>
+                                                Fulfillment path:
+                                                {method_path}
+                                            </div>
                                         }
                                     }
                                 />
@@ -844,10 +818,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             </div>
         </div>
         <Show when=move || ctx.selected_element.get().is_some()>
-            <TreeView
-                on_click_tree_data=on_click_tree_data.clone()
-                element=ctx.selected_element.get().unwrap()
-            />
+            <TreeView on_click_tree_data=on_click_tree_data.clone() element=element.clone()/>
         </Show>
     }
 }

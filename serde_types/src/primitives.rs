@@ -1,15 +1,27 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
 use crate::common::*;
 
 use strum::IntoEnumIterator;
-use strum_macros::EnumIter;
+use strum_macros::{Display, EnumIter, EnumString};
 // pub struct TypeContainer {
 //     types: Vec<TypeDef>,
 // }
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Hash, Eq, EnumIter, Default)]
+#[derive(
+    Serialize,
+    Deserialize,
+    Clone,
+    Debug,
+    PartialEq,
+    Hash,
+    Eq,
+    EnumString,
+    EnumIter,
+    Default,
+    Display,
+)]
 pub enum PrimitiveTypes {
     #[default]
     Bool,
@@ -50,20 +62,6 @@ impl PrimitiveTypes {
 }
 impl ConstraintTraits for PrimitiveTypes {}
 
-impl Display for PrimitiveTypes {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PrimitiveTypes::Char => write!(f, "char"),
-            PrimitiveTypes::Int => write!(f, "int"),
-            PrimitiveTypes::String => write!(f, "string"),
-            PrimitiveTypes::Float => write!(f, "float"),
-            PrimitiveTypes::Bool => write!(f, "bool"),
-            PrimitiveTypes::Option(val) => write!(f, "option({})", val),
-            PrimitiveTypes::List(val) => write!(f, "list({})", val),
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum PrimitiveValues {
     Int(u32),
@@ -73,6 +71,11 @@ pub enum PrimitiveValues {
     Char(char),
     Option(Box<Option<PrimitiveValues>>),
     List(Box<Vec<PrimitiveValues>>),
+}
+impl Default for PrimitiveValues {
+    fn default() -> Self {
+        Self::String("DefaultString".to_string())
+    }
 }
 impl Display for PrimitiveValues {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

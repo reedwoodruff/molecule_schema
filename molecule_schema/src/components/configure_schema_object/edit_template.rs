@@ -9,13 +9,12 @@ use web_sys::MouseEvent;
 
 use crate::{
     components::{
+        app::{SchemaContext, TreeTypes},
         common::{
             select_input::{SelectInput, SelectInputEnum, SelectInputOptional},
-            text_input::TextInput,
-            text_input_2::{NumberInput2, TextInput2},
+            text_input::{NumberInput2, TextInput},
         },
         tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
-        SchemaContext, TreeTypes,
     },
     utils::{
         reactive_item::RConstraintSchemaItem,
@@ -369,6 +368,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             <div class="flex-grow margin-right border-right">
                 <button on:click=move |_| ctx.selected_element.set(None)>X</button>
                 <button on:click=move |_| {
+                    ctx.selected_element.set(None);
                     ctx.schema
                         .template_library
                         .update(|prev| {
@@ -376,41 +376,24 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                         })
                 }>delete element</button>
                 <br/>
+                <br/>
 
                 <strong>Name</strong>
                 <div class="flex">
-                    <TextInput
-                        initial_value=active_object.get().tag.name.get()
-                        on_save=move |val: String| {
-                            active_object.get().tag.name.set(val);
-                        }
-                    />
+                    <TextInput value=active_object.get().tag.name />
 
                 </div>
                 <hr/>
 
+                <div>
+                    <TextInput value=new_operative_name/>
+                    <button on:click=on_click_create_operative>Create Operative</button>
+                </div>
                 <br/>
-                <TextInput
-                    initial_value=new_operative_name.get()
-                    on_save=move |val: String| {
-                        new_operative_name.set(val);
-                    }
-
-                    show_save_button=true
-                />
-                <br/>
-                <button on:click=on_click_create_operative>Create Operative</button>
-                <br/>
-                <TextInput
-                    initial_value=new_instance_name.get()
-                    on_save=move |val: String| {
-                        new_instance_name.set(val);
-                    }
-
-                    show_save_button=true
-                />
-                <br/>
-                <button on:click=on_click_create_instance>Create Instance</button>
+                <div>
+                    <TextInput value=new_instance_name/>
+                    <button on:click=on_click_create_instance>Create Instance</button>
+                </div>
 
             </div>
 
@@ -432,14 +415,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                         >;
                         view! {
                             <div class="flex">
-                                <TextInput
-                                    initial_value=item.tag.name.get()
-                                    on_save=move |val: String| {
-                                        item.tag.name.set(val);
-                                    }
-
-                                    show_save_button=true
-                                />
+                                <TextInput value=item.tag.name />
 
                                 <TypedSelectInput
                                     options=field_type_options.into()
@@ -491,7 +467,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     let:op_slot
                 >
                     <div>
-                        Slot name: <TextInput2 value=op_slot.1.tag.name/>
+                        Slot name: <TextInput value=op_slot.1.tag.name/>
                         <button on:click=delete_operative_slot(op_slot.0)>Delete Slot</button> <br/>
                         Operative name:
                         {match op_slot.1.operative_descriptor {
@@ -635,12 +611,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     add_trait_operative_ids.set(None)
                 }>Clear selected traits</button>
 
-                <TextInput
-                    initial_value=new_trait_operative_name.get()
-                    on_save=move |val: String| {
-                        new_trait_operative_name.set(val);
-                    }
-                />
+                <TextInput value=new_trait_operative_name />
 
                 <button
                     on:click=on_click_add_trait_operative
@@ -743,9 +714,14 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                             .collect::<Vec<String>>()
                                             .join("::");
                                         view! {
-                                            {method_def.tag.name}
-                                            <br/>
-                                            {method_path}
+                                            <div>
+                                                <strong>{method_def.tag.name}</strong>
+
+                                                ()
+                                                <br/>
+                                                Fulfillment path:
+                                                {method_path}
+                                            </div>
                                         }
                                     }
                                 />
@@ -758,10 +734,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             </div>
         </div>
         <Show when=move || ctx.selected_element.get().is_some()>
-            <TreeView
-                on_click_tree_data=on_click_tree_data.clone()
-                element=ctx.selected_element.get().unwrap()
-            />
+            <TreeView on_click_tree_data=on_click_tree_data.clone() element=element.clone()/>
         </Show>
     }
 }

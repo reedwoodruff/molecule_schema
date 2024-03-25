@@ -281,7 +281,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                         *trait_id,
                         RRelatedTraitImpl {
                             trait_impl: trait_impl.clone(),
-                            hosting_element_id: self.get_tag().id.get(),
+                            hosting_element_id: template.get_tag().id.get(),
                         },
                     )
                 })
@@ -310,7 +310,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                                 *trait_id,
                                 RRelatedTraitImpl {
                                     trait_impl: trait_impl.clone(),
-                                    hosting_element_id: self.get_tag().id.get(),
+                                    hosting_element_id: parent_id,
                                 },
                             )
                         })

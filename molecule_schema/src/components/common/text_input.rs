@@ -1,46 +1,34 @@
 use std::rc::Rc;
 
-use leptos::*;
-use web_sys::{SubmitEvent};
+use leptos::{logging::log, *};
+use web_sys::SubmitEvent;
 
 #[component]
-pub fn TextInput<F>(
-    #[prop(into)] initial_value: String,
-    #[prop(optional)] show_save_button: Option<bool>,
-    on_save: F,
-) -> impl IntoView
+pub fn TextInput(
+    value: RwSignal<String>,
+    // #[prop(optional)] show_save_button: Option<bool>,
+    // on_save: F,
+) -> impl IntoView {
+    view! { <input value=value on:input=move |e| value.set(event_target_value(&e))/> }
+}
+
+#[component]
+pub fn NumberInput2<T>(value: RwSignal<T>) -> impl IntoView
 where
-    F: Fn(String) + 'static,
+    T: Into<usize> + std::str::FromStr + Clone + IntoAttribute + 'static,
 {
-    let name_signal = RwSignal::<String>::new(initial_value);
-
-    let on_save = Rc::new(on_save);
-    // let save = Rc::new(move || {
-    //     on_save();
-    // });
-    // let save2 = move |_| {
-    //     save.clone()();
-    // };
-    let save2 = on_save.clone();
-    let submit_form = move |e: SubmitEvent| {
-        e.prevent_default();
-        // save.clone()();
-        on_save(name_signal.get());
-    };
-
     view! {
-        <form on:submit=submit_form>
-            <input value=name_signal on:input=move |e| name_signal.set(event_target_value(&e))/>
-            <Show when=move || {
-                show_save_button.is_some_and(|ssb| ssb)
-            }>
-
-                {
-                    let save2 = save2.clone();
-                    view! { <button on:click=move |_| save2(name_signal.get())>Save</button> }
+        <input
+            value=value
+            type="number"
+            on:input=move |e| {
+                log! {
+                    "{:?}", event_target_value(& e).parse::< usize > ()
                 }
-
-            </Show>
-        </form>
+                if let Ok(num_val) = event_target_value(&e).parse() {
+                    value.set(num_val)
+                }
+            }
+        />
     }
 }

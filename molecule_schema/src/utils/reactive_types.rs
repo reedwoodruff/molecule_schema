@@ -784,6 +784,14 @@ pub struct RTraitDef<TTypes: ConstraintTraits> {
     pub tag: RTag,
     pub methods: RwSignal<HashMap<Uid, RTraitMethodDef<TTypes>>>,
 }
+impl<TTypes: ConstraintTraits> RTraitDef<TTypes> {
+    pub fn new() -> Self {
+        Self {
+            tag: RTag::new("new_trait"),
+            methods: RwSignal::new(HashMap::new()),
+        }
+    }
+}
 apply_tagged!(RTraitDef<TTypes>);
 impl<TTypes: ConstraintTraits> From<TraitDef<TTypes>> for RTraitDef<TTypes> {
     fn from(value: TraitDef<TTypes>) -> Self {
@@ -817,6 +825,14 @@ impl<TTypes: ConstraintTraits> From<RTraitDef<TTypes>> for TraitDef<TTypes> {
 pub struct RTraitMethodDef<TTypes: ConstraintTraits> {
     pub tag: RTag,
     pub return_type: RwSignal<TTypes>,
+}
+impl<TTypes: ConstraintTraits> RTraitMethodDef<TTypes> {
+    pub fn new() -> Self {
+        Self {
+            tag: RTag::new("new_method"),
+            return_type: RwSignal::new(TTypes::default()),
+        }
+    }
 }
 apply_tagged!(RTraitMethodDef<TTypes>);
 impl<TTypes: ConstraintTraits> From<TraitMethodDef<TTypes>> for RTraitMethodDef<TTypes> {

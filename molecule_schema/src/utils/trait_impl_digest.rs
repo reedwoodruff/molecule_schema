@@ -22,6 +22,15 @@ impl RTraitImplDigest {
             object_id,
         }
     }
+    pub fn get_local_trait_impls(&self) -> HashMap<Uid, RRelatedTraitImpl> {
+        self.trait_impls
+            .iter()
+            .filter(|(trait_id, trait_impl_digest)| {
+                trait_impl_digest.hosting_element_id != self.object_id
+            })
+            .map(|(trait_id, trait_impl_digest)| (trait_id.clone(), trait_impl_digest.clone()))
+            .collect()
+    }
     pub fn get_ancestors_trait_impls(&self) -> HashMap<Uid, RRelatedTraitImpl> {
         self.trait_impls
             .iter()

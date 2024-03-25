@@ -1,5 +1,5 @@
 use leptos::*;
-use molecule_schema::components::App;
+use molecule_schema::components::app::App;
 
 pub fn main() {
     constraint_schema::constraint_schema!();

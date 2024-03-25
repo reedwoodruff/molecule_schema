@@ -108,4 +108,4 @@ impl FuzzyEdgeDescriptor {
     }
 }
 
-pub trait ConstraintTraits: Clone + std::fmt::Debug + PartialEq + 'static {}
+pub trait ConstraintTraits: Clone + std::fmt::Debug + PartialEq + Default + 'static {}

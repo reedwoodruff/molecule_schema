@@ -6,16 +6,19 @@ use serde_types::{
     primitives::PrimitiveTypes,
 };
 
-use crate::utils::{
-    operative_digest::{ROperativeDigest, ROperativeSlotDigest},
-    reactive_item::RConstraintSchemaItem,
-    reactive_types::{
-        FieldInfo, RConstraintSchema, RFieldConstraint, ROperativeVariants, RTag, RTraitDef,
-        RTraitOperative, Tagged,
+use crate::{
+    components::app::SchemaContext,
+    utils::{
+        operative_digest::{ROperativeDigest, ROperativeSlotDigest},
+        reactive_item::RConstraintSchemaItem,
+        reactive_types::{
+            FieldInfo, RConstraintSchema, RFieldConstraint, ROperativeVariants, RTag, RTraitDef,
+            RTraitOperative, Tagged,
+        },
     },
 };
 
-use super::{SchemaContext, TreeTypes};
+use super::app::TreeTypes;
 
 #[component]
 pub fn TreeView<F>(element: TreeRef, on_click_tree_data: Rc<F>) -> impl IntoView
@@ -198,7 +201,11 @@ where
                 + &tree_element.get().top_level_type.to_string()
         }>
             <h3 class="small-title">{move || tree_element.get().tag.name}</h3>
-            <For each=move || tree_element.get().fields key=move |item| item.tag.id.get() let:item>
+            <For
+                each=move || tree_element.get().fields
+                key=move |item| (item.tag.id.get(), item.value_type.clone())
+                let:item
+            >
 
                 {
                     let on_click_tree_data_4 = on_click_tree_data_4.clone();
@@ -306,15 +313,13 @@ where
                             }
                     };
                     let related_instances_clone = Rc::new(child.related_instances.clone());
-                    let show_instances= move || {child.related_instances.len() > 0};
+                    let show_instances = move || { child.related_instances.len() > 0 };
                     view! {
                         <div>
                             <div class=slot_class>Slot name: {child.slot.tag.name} <br/></div>
                             <div class="flex">
                                 <div>
-                                    <Show when=show_instances.clone()>
-                                    Operative: <br/> <hr/>
-                    </Show>
+                                    <Show when=show_instances.clone()>Operative: <br/> <hr/></Show>
                                     <TreeNode
                                         on_click_tree_data=on_click_tree_data_3
                                         element=match child.slot.operative_descriptor {
@@ -357,6 +362,7 @@ where
                                                                     .name
                                                                     .get()
                                                             })}
+
                                                     </div>
                                                 </For>
                                             </div>
@@ -375,7 +381,7 @@ where
         // key=move |item| item.tag.id.get()
         // let:child
         // >
-        //
+        // 
         // {
         // let on_click_tree_data_3 = on_click_tree_data_3.clone();
         // view! {
@@ -385,14 +391,14 @@ where
         // element=TreeRef(
         // TreeTypes::TraitOperative(child.clone()),
         // child.tag.id.get(),
-        //)
-        //
+        // )
+        // 
         // path=new_path_3.clone()
         // />
         // </div>
         // }
-        //}
-        //
+        // }
+        // 
         // </For>
         </div>
     }

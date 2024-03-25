@@ -131,19 +131,19 @@ where
     }
 }
 
+use serde_types::primitives::PrimitiveTypes;
 use strum::IntoEnumIterator;
 #[component]
-pub fn SelectInputEnum<T: IntoEnumIterator + FromStr + ToString + Default + Clone + 'static>(
-    value: RwSignal<T>,
-) -> impl IntoView {
+pub fn SelectInputEnum<T>(value: RwSignal<T>) -> impl IntoView
+where
+    T: IntoEnumIterator + FromStr + ToString + Default + std::fmt::Debug + Clone + 'static,
+    <T as std::str::FromStr>::Err: std::fmt::Debug,
+{
     let options = T::iter()
         .map(|item| (item.clone(), item.to_string()))
         .collect::<Vec<_>>();
     view! {
         <select on:change=move |e| {
-            log! {
-                "running"
-            }
             let return_val = event_target_value(&e);
             if let (Ok(return_val)) = T::from_str(&return_val) {
                 value.set(return_val);
