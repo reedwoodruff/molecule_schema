@@ -7,7 +7,7 @@ use super::{
     locked_field_digest::{RLockedFieldDigest, RLockedFieldsDigest},
     operative_digest::{ROperativeDigest, ROperativeSlotDigest, RRelatedInstance},
     reactive_types::{
-        RConstraintSchema, RFulfilledFieldConstraint, RLibraryOperative, RLibraryTemplate,
+        RConstraintSchema, RLibraryOperative, RLibraryTemplate, RLockedFieldConstraint,
         RSlottedInstances, RTag, RTraitImpl, Tagged,
     },
     trait_impl_digest::{RRelatedTraitImpl, RTraitImplDigest},
@@ -58,7 +58,7 @@ pub trait RConstraintSchemaItem: Tagged + PartialEq {
     }
     fn get_local_locked_fields(
         &self,
-    ) -> RwSignal<HashMap<Uid, RFulfilledFieldConstraint<Self::TValues>>>;
+    ) -> RwSignal<HashMap<Uid, RLockedFieldConstraint<Self::TValues>>>;
     fn get_trait_impl_digest(
         &self,
         schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
@@ -151,7 +151,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
     }
     fn get_local_locked_fields(
         &self,
-    ) -> RwSignal<HashMap<Uid, RFulfilledFieldConstraint<Self::TValues>>> {
+    ) -> RwSignal<HashMap<Uid, RLockedFieldConstraint<Self::TValues>>> {
         RwSignal::new(HashMap::new())
     }
 }
@@ -175,7 +175,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
     }
     fn get_local_locked_fields(
         &self,
-    ) -> RwSignal<HashMap<Uid, RFulfilledFieldConstraint<Self::TValues>>> {
+    ) -> RwSignal<HashMap<Uid, RLockedFieldConstraint<Self::TValues>>> {
         self.locked_fields
     }
     fn get_operative_digest<'a>(

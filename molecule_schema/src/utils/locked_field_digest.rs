@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use serde_types::common::{ConstraintTraits, Uid};
 
-use super::reactive_types::{RFieldConstraint, RFulfilledFieldConstraint};
+use super::reactive_types::{RFieldConstraint, RLockedFieldConstraint};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RLockedFieldsDigest<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
@@ -14,7 +14,7 @@ pub struct RLockedFieldsDigest<TTypes: ConstraintTraits, TValues: ConstraintTrai
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RLockedFieldDigest<TValues: ConstraintTraits> {
-    pub fulfilled_field: RFulfilledFieldConstraint<TValues>,
+    pub fulfilled_field: RLockedFieldConstraint<TValues>,
     pub hosting_element_id: Uid,
 }
 

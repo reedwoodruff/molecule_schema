@@ -27,7 +27,7 @@ pub struct LibraryOperative<TTypes: ConstraintTraits, TValues: ConstraintTraits>
     // If the operative is based on another operative
     pub parent_operative_id: Option<Uid>,
     pub slotted_instances: HashMap<Uid, SlottedInstances>,
-    pub locked_fields: HashMap<Uid, FulfilledFieldConstraint<TValues>>,
+    pub locked_fields: HashMap<Uid, LockedFieldConstraint<TValues>>,
     pub trait_impls: HashMap<Uid, TraitImpl>,
     pub _phantom: PhantomData<TTypes>,
 }
@@ -51,14 +51,14 @@ pub enum SlotBounds {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct TraitOperative {
-    pub trait_ids: Vec<Uid>,
-    pub tag: Tag,
-}
-#[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum OperativeVariants {
     LibraryOperative(Uid),
     TraitOperative(TraitOperative),
+}
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct TraitOperative {
+    pub trait_ids: Vec<Uid>,
+    pub tag: Tag,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -94,7 +94,7 @@ pub struct FieldConstraint<TTypes: ConstraintTraits> {
 }
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
-pub struct FulfilledFieldConstraint<TValues: ConstraintTraits> {
+pub struct LockedFieldConstraint<TValues: ConstraintTraits> {
     pub field_constraint_name: String,
     pub field_constraint_id: Uid,
     pub value: TValues,

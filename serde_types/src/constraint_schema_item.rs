@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::{
     common::{ConstraintTraits, Tag, Uid},
     constraint_schema::{
-        ConstraintSchema, FieldConstraint, FulfilledFieldConstraint, LibraryOperative,
-        LibraryTemplate, SlottedInstances, TraitImpl, TraitOperative,
+        ConstraintSchema, FieldConstraint, LibraryOperative, LibraryTemplate,
+        LockedFieldConstraint, SlottedInstances, TraitImpl, TraitOperative,
     },
     locked_field_digest::{LockedFieldDigest, LockedFieldsDigest},
     operative_digest::{OperativeDigest, OperativeSlotDigest, RelatedInstance},
@@ -21,7 +21,7 @@ pub trait ConstraintSchemaItem {
     fn get_local_slotted_instances(&self) -> Option<&HashMap<Uid, SlottedInstances>>;
     fn get_local_locked_fields(
         &self,
-    ) -> Option<&HashMap<Uid, FulfilledFieldConstraint<Self::TValues>>>;
+    ) -> Option<&HashMap<Uid, LockedFieldConstraint<Self::TValues>>>;
     fn get_trait_impl_digest<'a>(
         &'a self,
         schema: &'a ConstraintSchema<Self::TTypes, Self::TValues>,
@@ -58,7 +58,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
     }
     fn get_local_locked_fields(
         &self,
-    ) -> Option<&HashMap<Uid, FulfilledFieldConstraint<Self::TValues>>> {
+    ) -> Option<&HashMap<Uid, LockedFieldConstraint<Self::TValues>>> {
         None
     }
     fn get_operative_digest(&self, schema: &ConstraintSchema<TTypes, TValues>) -> OperativeDigest {
@@ -127,7 +127,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
     }
     fn get_local_locked_fields(
         &self,
-    ) -> Option<&HashMap<Uid, FulfilledFieldConstraint<Self::TValues>>> {
+    ) -> Option<&HashMap<Uid, LockedFieldConstraint<Self::TValues>>> {
         Some(&self.locked_fields)
     }
     fn get_operative_digest<'a>(

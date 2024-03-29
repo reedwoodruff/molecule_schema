@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     common::{ConstraintTraits, Uid},
-    constraint_schema::FulfilledFieldConstraint,
+    constraint_schema::LockedFieldConstraint,
 };
 
 pub struct LockedFieldsDigest<TValues: ConstraintTraits>(
@@ -10,6 +10,6 @@ pub struct LockedFieldsDigest<TValues: ConstraintTraits>(
 );
 
 pub struct LockedFieldDigest<TValues: ConstraintTraits> {
-    pub fulfilled_field: FulfilledFieldConstraint<TValues>,
+    pub fulfilled_field: LockedFieldConstraint<TValues>,
     pub hosting_element_id: Uid,
 }

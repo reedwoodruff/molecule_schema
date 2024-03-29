@@ -6,9 +6,9 @@ use leptos::signal_prelude::*;
 use serde_types::{
     common::{ConstraintTraits, Tag, Uid},
     constraint_schema::{
-        ConstraintSchema, FieldConstraint, FulfilledFieldConstraint, LibraryOperative,
-        LibraryTemplate, OperativeSlot, OperativeVariants, SlotBounds, SlottedInstances, TraitDef,
-        TraitMethodDef, TraitMethodImplPath, TraitOperative,
+        ConstraintSchema, FieldConstraint, LibraryOperative, LibraryTemplate,
+        LockedFieldConstraint, OperativeSlot, OperativeVariants, SlotBounds, SlottedInstances,
+        TraitDef, TraitMethodDef, TraitMethodImplPath, TraitOperative,
     },
 };
 
@@ -445,8 +445,8 @@ impl<TTypes: ConstraintTraits> RFieldConstraint<TTypes> {
     pub fn fulfill<TValues: ConstraintTraits>(
         &self,
         value: TValues,
-    ) -> RFulfilledFieldConstraint<TValues> {
-        RFulfilledFieldConstraint {
+    ) -> RLockedFieldConstraint<TValues> {
+        RLockedFieldConstraint {
             field_constraint_name: RwSignal::new(self.tag.name.get()),
             field_constraint_id: RwSignal::new(self.tag.id.get()),
             value: RwSignal::new(value),
@@ -565,55 +565,16 @@ impl RSlottedInstances {
     }
 }
 
-// #[derive(Clone, Debug, PartialEq)]
-// pub enum ROperativeVariants {
-//     LibraryOperative(RwSignal<Uid>),
-//     TraitOperative(RwSignal<Uid>),
-// }
-// impl From<OperativeVariants> for ROperativeVariants {
-//     fn from(value: OperativeVariants) -> Self {
-//         match value {
-//             OperativeVariants::TraitOperative(val) => {
-//                 ROperativeVariants::TraitOperative(RwSignal::new(val))
-//             }
-//             OperativeVariants::LibraryOperative(val) => {
-//                 ROperativeVariants::LibraryOperative(RwSignal::new(val))
-//             }
-//         }
-//     }
-// }
-// impl From<ROperativeVariants> for OperativeVariants {
-//     fn from(value: ROperativeVariants) -> Self {
-//         match value {
-//             ROperativeVariants::TraitOperative(val) => OperativeVariants::TraitOperative(val.get()),
-//             ROperativeVariants::LibraryOperative(val) => {
-//                 OperativeVariants::LibraryOperative(val.get())
-//             }
-//         }
-//     }
-// }
-
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct RFulfilledFieldConstraint<TValues: ConstraintTraits> {
+pub struct RLockedFieldConstraint<TValues: ConstraintTraits> {
     pub field_constraint_id: RwSignal<Uid>,
     pub field_constraint_name: RwSignal<String>,
     pub value: RwSignal<TValues>,
 }
-// impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> FieldInfo<TTypes, TValues>
-//     for RFulfilledFieldConstraint<TValues>
-// {
-//     fn get_value_type(&self) -> TTypes {
-//         self.value_type.get()
-//     }
-//
-//     fn get_value(&self) -> Option<TValues> {
-//         Some(self.value.get())
-//     }
-// }
-impl<TValues: ConstraintTraits> From<FulfilledFieldConstraint<TValues>>
-    for RFulfilledFieldConstraint<TValues>
+impl<TValues: ConstraintTraits> From<LockedFieldConstraint<TValues>>
+    for RLockedFieldConstraint<TValues>
 {
-    fn from(value: FulfilledFieldConstraint<TValues>) -> Self {
+    fn from(value: LockedFieldConstraint<TValues>) -> Self {
         Self {
             field_constraint_name: RwSignal::new(value.field_constraint_name),
             field_constraint_id: value.field_constraint_id.into(),
@@ -621,10 +582,10 @@ impl<TValues: ConstraintTraits> From<FulfilledFieldConstraint<TValues>>
         }
     }
 }
-impl<TValues: ConstraintTraits> From<RFulfilledFieldConstraint<TValues>>
-    for FulfilledFieldConstraint<TValues>
+impl<TValues: ConstraintTraits> From<RLockedFieldConstraint<TValues>>
+    for LockedFieldConstraint<TValues>
 {
-    fn from(value: RFulfilledFieldConstraint<TValues>) -> Self {
+    fn from(value: RLockedFieldConstraint<TValues>) -> Self {
         Self {
             field_constraint_name: value.field_constraint_name.get(),
             field_constraint_id: value.field_constraint_id.get(),
@@ -632,7 +593,7 @@ impl<TValues: ConstraintTraits> From<RFulfilledFieldConstraint<TValues>>
         }
     }
 }
-impl<TValues: ConstraintTraits> RFulfilledFieldConstraint<TValues> {
+impl<TValues: ConstraintTraits> RLockedFieldConstraint<TValues> {
     pub fn new(field_constraint_id: Uid, name: &str, value: TValues) -> Self {
         Self {
             field_constraint_name: RwSignal::new(name.to_string()),
@@ -650,7 +611,7 @@ pub struct RLibraryOperative<TTypes: ConstraintTraits, TValues: ConstraintTraits
     pub parent_operative_id: RwSignal<Option<Uid>>,
     pub tag: RTag,
     pub slotted_instances: RwSignal<HashMap<Uid, RSlottedInstances>>,
-    pub locked_fields: RwSignal<HashMap<Uid, RFulfilledFieldConstraint<TValues>>>,
+    pub locked_fields: RwSignal<HashMap<Uid, RLockedFieldConstraint<TValues>>>,
     pub trait_impls: RwSignal<HashMap<Uid, RTraitImpl>>,
     pub _phantom: PhantomData<TTypes>,
 }
