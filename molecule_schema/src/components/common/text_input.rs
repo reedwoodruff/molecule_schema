@@ -1,7 +1,5 @@
-use std::rc::Rc;
 
 use leptos::{logging::log, *};
-use web_sys::SubmitEvent;
 
 #[component]
 pub fn TextInput(

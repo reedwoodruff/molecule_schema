@@ -1,4 +1,4 @@
-use leptos::{logging::log, *};
+use leptos::{*};
 use std::collections::HashMap;
 
 use serde_types::common::{ConstraintTraits, Uid};
@@ -8,7 +8,7 @@ use super::{
     operative_digest::{ROperativeDigest, ROperativeSlotDigest, RRelatedInstance},
     reactive_types::{
         RConstraintSchema, RLibraryOperative, RLibraryTemplate, RLockedFieldConstraint,
-        RSlottedInstances, RTag, RTraitImpl, Tagged,
+        RSlottedInstances, RTraitImpl, Tagged,
     },
     trait_impl_digest::{RRelatedTraitImpl, RTraitImplDigest},
 };
@@ -97,7 +97,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
         RLockedFieldsDigest {
             object_id: self.get_tag().id.get(),
             locked_fields: HashMap::new(),
-            field_constraints: self.field_constraints.clone(),
+            field_constraints: self.field_constraints,
         }
     }
     fn get_operative_digest(
@@ -140,7 +140,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                         (
                             *trait_id,
                             RRelatedTraitImpl {
-                                trait_impl: trait_impl.clone(),
+                                trait_impl: *trait_impl,
                                 hosting_element_id: self.get_tag().id.get(),
                             },
                         )
@@ -178,9 +178,9 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
     ) -> RwSignal<HashMap<Uid, RLockedFieldConstraint<Self::TValues>>> {
         self.locked_fields
     }
-    fn get_operative_digest<'a>(
+    fn get_operative_digest(
         &self,
-        schema: &'a RConstraintSchema<Self::TTypes, TValues>,
+        schema: &RConstraintSchema<Self::TTypes, TValues>,
     ) -> Memo<ROperativeDigest> {
         let self_clone = self.clone();
         let schema_clone = schema.clone();
@@ -227,7 +227,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                             );
                             aggregate_instances
                                 .entry(*slot_id)
-                                .or_insert_with(|| vec![])
+                                .or_insert_with(std::vec::Vec::new)
                                 .extend(related_instances);
                         }
                     });
@@ -246,7 +246,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                                 related_instances: aggregate_instances
                                     .get(slot_id)
                                     .cloned()
-                                    .unwrap_or_else(|| vec![]),
+                                    .unwrap_or_else(std::vec::Vec::new),
                             },
                         )
                     })
@@ -280,7 +280,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                     (
                         *trait_id,
                         RRelatedTraitImpl {
-                            trait_impl: trait_impl.clone(),
+                            trait_impl: *trait_impl,
                             hosting_element_id: template.get_tag().id.get(),
                         },
                     )
@@ -309,7 +309,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                             (
                                 *trait_id,
                                 RRelatedTraitImpl {
-                                    trait_impl: trait_impl.clone(),
+                                    trait_impl: *trait_impl,
                                     hosting_element_id: parent_id,
                                 },
                             )
@@ -373,7 +373,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
         RLockedFieldsDigest {
             object_id: self.tag.id.get(),
             locked_fields: aggregate_locked_fields,
-            field_constraints: template.field_constraints.clone(),
+            field_constraints: template.field_constraints,
         }
     }
 }

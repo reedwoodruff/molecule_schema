@@ -28,7 +28,7 @@ where
                 .collect::<HashMap<K, String>>()
         })
     });
-    let map2 = map.clone();
+    let map2 = map;
 
     let cur_value = move || {
         log!("{:?}", value.get());
@@ -41,7 +41,7 @@ where
 
     let callback = Rc::new(on_select);
     let on_change = move |e| {
-        let map = map2.clone();
+        let map = map2;
         let return_val = event_target_value(&e);
         log!("{}", return_val);
         let key_val_pair = map
@@ -88,7 +88,7 @@ where
                 .collect::<HashMap<K, String>>()
         })
     });
-    let map2 = map.clone();
+    let map2 = map;
 
     let cur_value = move || {
         if let Some(val) = value.get() {
@@ -100,7 +100,7 @@ where
 
     let callback = Rc::new(on_select);
     let on_change = move |e| {
-        let map = map2.clone();
+        let map = map2;
 
         let return_val = event_target_value(&e);
         log!("{}", return_val);
@@ -131,7 +131,6 @@ where
     }
 }
 
-use serde_types::primitives::PrimitiveTypes;
 use strum::IntoEnumIterator;
 #[component]
 pub fn SelectInputEnum<T>(value: RwSignal<T>) -> impl IntoView
@@ -145,7 +144,7 @@ where
     view! {
         <select on:change=move |e| {
             let return_val = event_target_value(&e);
-            if let (Ok(return_val)) = T::from_str(&return_val) {
+            if let Ok(return_val) = T::from_str(&return_val) {
                 value.set(return_val);
             }
         }>

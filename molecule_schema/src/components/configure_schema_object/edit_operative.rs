@@ -293,7 +293,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                 <button on:click=move |_| ctx.selected_element.set(None)>X</button>
                 <button on:click=move |_| {
                     ctx.selected_element.set(None);
-                    let stored_element_id = element.1.clone();
+                    let stored_element_id = element.1;
                     schema_clone_14
                         .operative_library
                         .update(|prev| {
@@ -414,7 +414,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                             .operative_slots
                     }
 
-                    key=move |(id, _item)| { (id.clone(), _item.clone()) }
+                    key=move |(id, _item)| { (*id, _item.clone()) }
                     let:operative_slot
                 >
 
@@ -516,11 +516,11 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                                                     .retain(|instance_id| {
                                                                         instance_id != &related_instance.instance_id
                                                                     });
-                                                                if prev_instance_ids.len() == 0 {
+                                                                if prev_instance_ids.is_empty() {
                                                                     delete_entry = true;
                                                                 }
                                                             });
-                                                    } else {}
+                                                    } 
                                                 }>remove</button>
                                             </div>
                                         }

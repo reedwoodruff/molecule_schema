@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use leptos::{RwSignal, *};
+use leptos::{*};
 use serde_types::{
     common::{ConstraintTraits, Uid},
-    constraint_schema::SlotBounds,
 };
 
 use super::reactive_types::{ROperativeSlot, RSlotBounds};

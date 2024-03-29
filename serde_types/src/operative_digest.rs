@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     common::{ConstraintTraits, Uid},
-    constraint_schema::{ConstraintSchema, OperativeSlot, OperativeVariants},
+    constraint_schema::{OperativeSlot},
 };
 
 #[derive(Clone, Debug)]
@@ -44,10 +44,10 @@ impl<'a> OperativeSlotDigest<'a> {
                 lower <= self.related_instances.len() && self.related_instances.len() <= upper
             }
             crate::constraint_schema::SlotBounds::LowerBoundOrZero(lower_bound) => {
-                self.related_instances.len() == 0 || self.related_instances.len() >= lower_bound
+                self.related_instances.is_empty() || self.related_instances.len() >= lower_bound
             }
             crate::constraint_schema::SlotBounds::RangeOrZero(lower, upper) => {
-                self.related_instances.len() == 0
+                self.related_instances.is_empty()
                     || (lower <= self.related_instances.len()
                         && self.related_instances.len() <= upper)
             }

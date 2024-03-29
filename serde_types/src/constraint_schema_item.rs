@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::{
     common::{ConstraintTraits, Tag, Uid},
     constraint_schema::{
-        ConstraintSchema, FieldConstraint, LibraryOperative, LibraryTemplate,
-        LockedFieldConstraint, SlottedInstances, TraitImpl, TraitOperative,
+        ConstraintSchema, LibraryOperative, LibraryTemplate,
+        LockedFieldConstraint, SlottedInstances, TraitImpl,
     },
     locked_field_digest::{LockedFieldDigest, LockedFieldsDigest},
     operative_digest::{OperativeDigest, OperativeSlotDigest, RelatedInstance},
@@ -89,7 +89,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
                     (
                         *trait_id,
                         RelatedTraitImpl {
-                            trait_impl: &trait_impl,
+                            trait_impl,
                             hosting_element_id: self.get_tag().id,
                         },
                     )
@@ -151,7 +151,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
             for (slot_id, slotted_instances) in &parent_operative.slotted_instances {
                 aggregate_instances
                     .entry(*slot_id)
-                    .or_insert_with(|| vec![])
+                    .or_insert_with(std::vec::Vec::new)
                     .extend(
                         slotted_instances
                             .fulfilling_instance_ids
@@ -172,11 +172,11 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
                 (
                     *slot_id,
                     OperativeSlotDigest {
-                        slot: &op_slot,
+                        slot: op_slot,
                         related_instances: aggregate_instances
                             .get(slot_id)
                             .cloned()
-                            .unwrap_or_else(|| vec![]),
+                            .unwrap_or_else(std::vec::Vec::new),
                     },
                 )
             })
@@ -196,7 +196,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
 
         let template = schema
             .template_library
-            .get(&self.get_template_id())
+            .get(self.get_template_id())
             .unwrap();
 
         aggregate_trait_impls.extend(
@@ -207,7 +207,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
                     (
                         *trait_id,
                         RelatedTraitImpl {
-                            trait_impl: &trait_impl,
+                            trait_impl,
                             hosting_element_id: self.get_tag().id,
                         },
                     )
@@ -231,7 +231,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
                         (
                             *trait_id,
                             RelatedTraitImpl {
-                                trait_impl: &trait_impl,
+                                trait_impl,
                                 hosting_element_id: self.get_tag().id,
                             },
                         )

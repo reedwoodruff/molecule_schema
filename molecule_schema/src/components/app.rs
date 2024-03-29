@@ -1,4 +1,4 @@
-use std::{fmt::Display, rc::Rc};
+use std::{fmt::Display};
 
 use crate::{
     components::{
@@ -12,7 +12,7 @@ use crate::{
         reactive_types::{RConstraintSchema, RLibraryTemplate, RTag, RTraitDef, RTraitOperative},
     },
 };
-use leptos::{logging::log, *};
+use leptos::{*};
 use serde_types::{
     common::Uid,
     constraint_schema::ConstraintSchema,
@@ -178,7 +178,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                     </h2>
                     <For
                         each=traits
-                        key=move |(id, _child)| id.clone()
+                        key=move |(id, _child)| *id
                         children=move |(_id, child)| {
                             view! {
                                 <RootListItem

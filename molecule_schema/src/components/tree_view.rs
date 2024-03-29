@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc};
 
-use leptos::{logging::log, *};
+use leptos::{*};
 use serde_types::{
     common::{ConstraintTraits, Uid},
     primitives::PrimitiveTypes,
@@ -9,11 +9,10 @@ use serde_types::{
 use crate::{
     components::app::SchemaContext,
     utils::{
-        operative_digest::{ROperativeDigest, ROperativeSlotDigest},
+        operative_digest::{ROperativeDigest},
         reactive_item::RConstraintSchemaItem,
         reactive_types::{
-            FieldInfo, RConstraintSchema, RFieldConstraint, ROperativeVariants, RTag, RTraitDef,
-            RTraitOperative, Tagged,
+            FieldInfo, RConstraintSchema, RFieldConstraint, ROperativeVariants, RTag, RTraitDef, Tagged,
         },
     },
 };
@@ -87,7 +86,7 @@ fn get_tree_node_info<TTypes: ConstraintTraits, TValues: ConstraintTraits>(
         .map(|id| {
             schema
                 .traits
-                .with(|trait_items| trait_items.get(&id).unwrap().clone())
+                .with(|trait_items| trait_items.get(id).unwrap().clone())
         })
         .collect();
 
@@ -160,12 +159,12 @@ where
                     .collect::<Vec<_>>()
             });
 
-            let cloned_id = id.clone();
+            let cloned_id = *id;
             TreeNodeInfo {
                 top_level_type: TreeTypes::TraitOperative(trait_op.clone()),
                 tag: trait_op.tag.clone(),
                 fields: vec![],
-                trait_impls: trait_impls,
+                trait_impls,
                 template_level_instances: vec![],
                 operative_digest: create_memo(move |_| ROperativeDigest {
                     digest_object_id: cloned_id,
@@ -236,7 +235,7 @@ where
                             implements trait: {item.tag.name} <br/>
                             <For
                                 each=move || item.methods.get()
-                                key=move |(method_item_id, _method_item)| method_item_id.clone()
+                                key=move |(method_item_id, _method_item)| *method_item_id
                                 let:method_item
                             >
 
@@ -289,7 +288,7 @@ where
             </For>
             <For
                 each=move || tree_element.get().operative_digest.get().operative_slots
-                key=move |(slot_id, _slot)| (slot_id.clone(), _slot.clone())
+                key=move |(slot_id, _slot)| (*slot_id, _slot.clone())
                 let:slot_info
             >
 
@@ -313,7 +312,7 @@ where
                             }
                     };
                     let related_instances_clone = Rc::new(child.related_instances.clone());
-                    let show_instances = move || { child.related_instances.len() > 0 };
+                    let show_instances = move || { !child.related_instances.is_empty() };
                     view! {
                         <div>
                             <div class=slot_class>Slot name: {child.slot.tag.name} <br/></div>

@@ -745,6 +745,12 @@ pub struct RTraitDef<TTypes: ConstraintTraits> {
     pub tag: RTag,
     pub methods: RwSignal<HashMap<Uid, RTraitMethodDef<TTypes>>>,
 }
+impl<TTypes: ConstraintTraits> Default for RTraitDef<TTypes> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<TTypes: ConstraintTraits> RTraitDef<TTypes> {
     pub fn new() -> Self {
         Self {
@@ -787,6 +793,12 @@ pub struct RTraitMethodDef<TTypes: ConstraintTraits> {
     pub tag: RTag,
     pub return_type: RwSignal<TTypes>,
 }
+impl<TTypes: ConstraintTraits> Default for RTraitMethodDef<TTypes> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<TTypes: ConstraintTraits> RTraitMethodDef<TTypes> {
     pub fn new() -> Self {
         Self {

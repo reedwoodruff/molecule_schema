@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, str::FromStr};
+use std::{collections::HashMap, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 
@@ -80,11 +80,11 @@ impl Default for PrimitiveValues {
 impl Display for PrimitiveValues {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PrimitiveValues::Char(val) => write!(f, "{}", val.to_string()),
-            PrimitiveValues::Int(val) => write!(f, "{}", val.to_string(),),
+            PrimitiveValues::Char(val) => write!(f, "{}", val),
+            PrimitiveValues::Int(val) => write!(f, "{}", val,),
             PrimitiveValues::String(val) => write!(f, "{}", val),
-            PrimitiveValues::Float(val) => write!(f, "{}", val.to_string()),
-            PrimitiveValues::Bool(val) => write!(f, "{}", val.to_string()),
+            PrimitiveValues::Float(val) => write!(f, "{}", val),
+            PrimitiveValues::Bool(val) => write!(f, "{}", val),
             PrimitiveValues::Option(val) => {
                 if let Some(val) = val.as_ref() {
                     write!(f, "Some({})", val)

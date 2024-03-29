@@ -1,4 +1,4 @@
-use leptos::{logging::log, *};
+use leptos::{*};
 use serde_types::{common::Uid, primitives::PrimitiveTypes};
 
 use crate::{
