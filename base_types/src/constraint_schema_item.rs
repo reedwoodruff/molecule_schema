@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use crate::{
     common::{ConstraintTraits, Tag, Uid},
     constraint_schema::{
-        ConstraintSchema, LibraryOperative, LibraryTemplate,
-        LockedFieldConstraint, SlottedInstances, TraitImpl,
+        ConstraintSchema, LibraryOperative, LibraryTemplate, LockedFieldConstraint,
+        SlottedInstances, TraitImpl,
     },
     locked_field_digest::{LockedFieldDigest, LockedFieldsDigest},
     operative_digest::{OperativeDigest, OperativeSlotDigest, RelatedInstance},
@@ -194,10 +194,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
         let mut next_parent_id = Some(self.tag.id);
         let mut aggregate_trait_impls = HashMap::new();
 
-        let template = schema
-            .template_library
-            .get(self.get_template_id())
-            .unwrap();
+        let template = schema.template_library.get(self.get_template_id()).unwrap();
 
         aggregate_trait_impls.extend(
             template

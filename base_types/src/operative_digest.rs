@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{
     common::{ConstraintTraits, Uid},
-    constraint_schema::{OperativeSlot},
+    constraint_schema::OperativeSlot,
 };
 
 #[derive(Clone, Debug)]

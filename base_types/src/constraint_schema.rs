@@ -1,8 +1,8 @@
 use crate::common::*;
-use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, marker::PhantomData};
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct ConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub template_library: HashMap<Uid, LibraryTemplate<TTypes, TValues>>,
     pub instance_library: HashMap<Uid, LibraryOperative<TTypes, TValues>>,
@@ -10,7 +10,8 @@ pub struct ConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits>
     pub traits: HashMap<Uid, TraitDef<TTypes>>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct LibraryTemplate<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub tag: Tag,
     pub field_constraints: HashMap<Uid, FieldConstraint<TTypes>>,
@@ -20,7 +21,8 @@ pub struct LibraryTemplate<TTypes: ConstraintTraits, TValues: ConstraintTraits> 
     pub _phantom: PhantomData<TValues>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct LibraryOperative<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub tag: Tag,
     pub template_id: Uid,
@@ -32,14 +34,16 @@ pub struct LibraryOperative<TTypes: ConstraintTraits, TValues: ConstraintTraits>
     pub _phantom: PhantomData<TTypes>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct OperativeSlot {
     pub tag: Tag,
     pub operative_descriptor: OperativeVariants,
     pub bounds: SlotBounds,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub enum SlotBounds {
     // Unbounded,
     Single,
@@ -50,24 +54,28 @@ pub enum SlotBounds {
     RangeOrZero(usize, usize),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub enum OperativeVariants {
     LibraryOperative(Uid),
     TraitOperative(TraitOperative),
 }
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct TraitOperative {
     pub trait_ids: Vec<Uid>,
     pub tag: Tag,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct TraitDef<TTypes: ConstraintTraits> {
     pub tag: Tag,
     pub methods: HashMap<Uid, TraitMethodDef<TTypes>>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct TraitMethodDef<TTypes: ConstraintTraits> {
     // pub trait_id: Uid,
     pub tag: Tag,
@@ -76,7 +84,8 @@ pub struct TraitMethodDef<TTypes: ConstraintTraits> {
 
 pub type TraitImpl = HashMap<Uid, Vec<TraitMethodImplPath>>;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub enum TraitMethodImplPath {
     // Denotes that the current path element has a field with id [Uid] which holds the
     // required information.
@@ -87,20 +96,23 @@ pub enum TraitMethodImplPath {
     Constituent(Uid),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct FieldConstraint<TTypes: ConstraintTraits> {
     pub tag: Tag,
     pub value_type: TTypes,
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct LockedFieldConstraint<TValues: ConstraintTraits> {
     pub field_constraint_name: String,
     pub field_constraint_id: Uid,
     pub value: TValues,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct SlottedInstances {
     pub operative_slot_id: Uid,
     pub operative_id: Uid,

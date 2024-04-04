@@ -1,8 +1,8 @@
-use proc_macro::TokenStream;
-use serde_types::{
+use base_types::{
     constraint_schema::ConstraintSchema,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
+use proc_macro::TokenStream;
 
 #[proc_macro]
 pub fn constraint_schema(_input: TokenStream) -> proc_macro::TokenStream {
@@ -15,7 +15,7 @@ pub fn constraint_schema(_input: TokenStream) -> proc_macro::TokenStream {
     print!("{}", data);
     quote::quote! {
         const SCHEMA_JSON: &str = #data;
-         let constraint_schema_generated: serde_types::constraint_schema::ConstraintSchema<serde_types::primitives::PrimitiveTypes, serde_types::primitives::PrimitiveValues> =
+         let constraint_schema_generated: base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> =
         serde_json::from_str(SCHEMA_JSON).unwrap();
     }.into()
 }

@@ -1,0 +1,25 @@
+[package]
+name = "base_types"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+serde = ["serde/derive", "serde_json"]
+
+[dependencies.uuid]
+version = "1.4.1"
+features = [
+  "v4",                # Lets you generate random UUIDs
+  "fast-rng",          # Use a faster (but still sufficiently random) RNG
+  "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]
+
+[dependencies]
+serde = { version = "1", features = [
+  "derive",
+], optional = true } # reactive_types = { path = "../reactive_types/" }
+serde_json = { version = "1", optional = true }
+strum = "0.26.1"
+strum_macros = "0.26.1"
+validator = { version = "0.17.0", features = ["derive"] }
+# leptos = { version = "0.5.2", features = ["csr", "nightly"] }

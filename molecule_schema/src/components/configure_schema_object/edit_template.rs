@@ -1,27 +1,25 @@
 use std::{collections::HashMap, rc::Rc};
 
-use leptos::{logging::log, *};
-use serde_types::{
+use base_types::{
     common::Uid,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
+use leptos::{logging::log, *};
 use web_sys::MouseEvent;
 
-use crate::{
-    components::{
-        app::{SchemaContext, TreeTypes},
-        common::{
-            select_input::{SelectInput, SelectInputEnum, SelectInputOptional},
-            text_input::{NumberInput2, TextInput},
-        },
-        tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
+use crate::components::{
+    app::{SchemaContext, TreeTypes},
+    common::{
+        select_input::{SelectInput, SelectInputEnum, SelectInputOptional},
+        text_input::{NumberInput2, TextInput},
     },
-    utils::{
-        reactive_item::RConstraintSchemaItem,
-        reactive_types::{
-            RFieldConstraint, RLibraryOperative, ROperativeSlot, ROperativeVariants, RSlotBounds,
-            RTag, RTraitMethodImplPath, RTraitOperative,
-        },
+    tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
+};
+use reactive_types::{
+    reactive_item::RConstraintSchemaItem,
+    reactive_types::{
+        RFieldConstraint, RLibraryOperative, ROperativeSlot, ROperativeVariants, RSlotBounds, RTag,
+        RTraitMethodImplPath, RTraitOperative,
     },
 };
 

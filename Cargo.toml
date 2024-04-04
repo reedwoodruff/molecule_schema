@@ -5,8 +5,8 @@ members = [
   "constraint_schema",
   "molecule_schema",
   # "generate_schema",
-  "serde_types",
-  "output_types",
+  "base_types",
+  "reactive_types",
 ]
 
 

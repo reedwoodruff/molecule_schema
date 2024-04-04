@@ -7,8 +7,7 @@ edition = "2021"
 proc-macro = true
 
 [dependencies]
-serde_types = { path = "../serde_types/" }
-output_types = { path = "../output_types/" }
+base_types = { path = "../base_types/", features = ["serde"] }
 syn = { version = "2.0", features = ["full"] }
 quote = "1.0"
 proc-macro2 = "1"

@@ -61,7 +61,7 @@ fn get_primitive_value(ty: &PrimitiveValues) -> proc_macro2::TokenStream {
 }
 
 fn concat_unique_element(element: &Box<&dyn ConstraintSchemaItem<TTypes = PrimitiveTypes, TValues = PrimitiveValues>>) -> String {
-    element.get_tag().name.clone() 
+    element.get_tag().name.clone() + "_" + element.get_constraint_schema_instantiable_type().as_ref()
 }
 fn get_variant_name(element: &Box<&dyn ConstraintSchemaItem<TTypes = PrimitiveTypes, TValues = PrimitiveValues>> ) -> syn::Ident {
     syn::Ident::new(&concat_unique_element(element), proc_macro2::Span::call_site())
@@ -73,6 +73,12 @@ fn get_variant_builder_name(element: &Box<&dyn ConstraintSchemaItem<TTypes = Pri
 #[proc_macro]
 pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
     let graph_environment = syn::parse_macro_input!(input as syn::Expr); 
+
+    // let data = std::fs::read_to_string("generate_schema_macro/resources/schema.json");
+    // let data = data.expect("schema json must be present");
+    // let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
+    //     serde_json::from_str::<ConstraintSchema<PrimitiveTypes, PrimitiveValues>>(&data)
+    //         .expect("json should be formatted correctly");
 
     constraint_schema::constraint_schema!();
 
@@ -583,5 +589,4 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
     }
     .into()
 }
-
 

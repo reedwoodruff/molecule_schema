@@ -1,22 +1,21 @@
-use std::{fmt::Display};
+use std::fmt::Display;
 
-use crate::{
-    components::{
-        configure_schema_object::{
-            edit_operative::EditOperative, edit_template::EditTemplate, edit_trait::EditTrait,
-        },
-        tree_view::TreeRef,
+use crate::components::{
+    configure_schema_object::{
+        edit_operative::EditOperative, edit_template::EditTemplate, edit_trait::EditTrait,
     },
-    utils::{
-        export_schema,
-        reactive_types::{RConstraintSchema, RLibraryTemplate, RTag, RTraitDef, RTraitOperative},
-    },
+    tree_view::TreeRef,
 };
-use leptos::{*};
-use serde_types::{
+
+use base_types::{
     common::Uid,
     constraint_schema::ConstraintSchema,
     primitives::{PrimitiveTypes, PrimitiveValues},
+};
+use leptos::*;
+use reactive_types::{
+    print_schema_reactive,
+    reactive_types::{RConstraintSchema, RLibraryTemplate, RTag, RTraitDef, RTraitOperative},
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -89,7 +88,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
     };
 
     view! {
-        <button on:click=move |_| export_schema(&reactive_schema)>Export Schema</button>
+        <button on:click=move |_| print_schema_reactive(&reactive_schema)>Export Schema</button>
         <div class="flex">
             <div class="flex-grow ">
                 <div class="large-margin med-pad border-gray">

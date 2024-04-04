@@ -1,7 +1,7 @@
-use leptos::{*};
+use leptos::*;
 use std::collections::HashMap;
 
-use serde_types::common::{ConstraintTraits, Uid};
+use base_types::common::{ConstraintTraits, Uid};
 
 use super::{
     locked_field_digest::{RLockedFieldDigest, RLockedFieldsDigest},

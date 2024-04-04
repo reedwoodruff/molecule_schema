@@ -1,7 +1,5 @@
 use std::{collections::HashMap, fmt::Display};
 
-use serde::{Deserialize, Serialize};
-
 use crate::common::*;
 
 use strum::IntoEnumIterator;
@@ -9,19 +7,8 @@ use strum_macros::{Display, EnumIter, EnumString};
 // pub struct TypeContainer {
 //     types: Vec<TypeDef>,
 // }
-#[derive(
-    Serialize,
-    Deserialize,
-    Clone,
-    Debug,
-    PartialEq,
-    Hash,
-    Eq,
-    EnumString,
-    EnumIter,
-    Default,
-    Display,
-)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq, Hash, Eq, EnumString, EnumIter, Default, Display)]
 pub enum PrimitiveTypes {
     #[default]
     Bool,
@@ -62,7 +49,8 @@ impl PrimitiveTypes {
 }
 impl ConstraintTraits for PrimitiveTypes {}
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq)]
 pub enum PrimitiveValues {
     Int(u32),
     Float(f32),

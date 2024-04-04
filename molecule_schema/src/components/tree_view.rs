@@ -1,19 +1,17 @@
 use std::{collections::HashMap, rc::Rc};
 
-use leptos::{*};
-use serde_types::{
+use base_types::{
     common::{ConstraintTraits, Uid},
     primitives::PrimitiveTypes,
 };
+use leptos::*;
 
-use crate::{
-    components::app::SchemaContext,
-    utils::{
-        operative_digest::{ROperativeDigest},
-        reactive_item::RConstraintSchemaItem,
-        reactive_types::{
-            FieldInfo, RConstraintSchema, RFieldConstraint, ROperativeVariants, RTag, RTraitDef, Tagged,
-        },
+use crate::components::app::SchemaContext;
+use reactive_types::{
+    operative_digest::ROperativeDigest,
+    reactive_item::RConstraintSchemaItem,
+    reactive_types::{
+        FieldInfo, RConstraintSchema, RFieldConstraint, ROperativeVariants, RTag, RTraitDef, Tagged,
     },
 };
 
@@ -380,7 +378,7 @@ where
         // key=move |item| item.tag.id.get()
         // let:child
         // >
-        // 
+        //
         // {
         // let on_click_tree_data_3 = on_click_tree_data_3.clone();
         // view! {
@@ -391,13 +389,13 @@ where
         // TreeTypes::TraitOperative(child.clone()),
         // child.tag.id.get(),
         // )
-        // 
+        //
         // path=new_path_3.clone()
         // />
         // </div>
         // }
         // }
-        // 
+        //
         // </For>
         </div>
     }

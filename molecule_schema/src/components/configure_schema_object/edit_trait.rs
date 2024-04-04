@@ -1,14 +1,13 @@
-use leptos::{*};
-use serde_types::{common::Uid, primitives::PrimitiveTypes};
+use base_types::common::Uid;
+use base_types::primitives::PrimitiveTypes;
+use leptos::*;
 
-use crate::{
-    components::{
-        app::SchemaContext,
-        common::{select_input::SelectInputEnum, text_input::TextInput},
-    },
-    utils::reactive_types::RTraitMethodDef,
+use crate::components::{
+    app::SchemaContext,
+    common::{select_input::SelectInputEnum, text_input::TextInput},
 };
 
+use reactive_types::reactive_types::RTraitMethodDef;
 #[component]
 pub fn EditTrait(id: RwSignal<Uid>) -> impl IntoView {
     let ctx = use_context::<SchemaContext>().unwrap();

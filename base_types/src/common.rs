@@ -1,39 +1,36 @@
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+use crate::constraint_schema::ConstraintSchema;
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub enum Dir {
     Emit,
     Recv,
 }
-pub type Uid = u128;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub enum EdgeType {
     Normal,
     // Hole(Uid),
     Slot(Uid),
 }
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct EdgeInstance {
     pub dir: Dir,
     pub host: Uid,
     pub target: Uid,
     pub edge_type: EdgeType,
 }
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct Tag {
     pub name: String,
     pub id: Uid,
 }
-impl From<Tag> for output_types::Tag {
-    fn from(value: Tag) -> Self {
-        output_types::Tag {
-            id: value.id,
-            name: value.name,
-        }
-    }
-}
+
 impl Tag {
     pub fn new<T>(name: T) -> Self
     where
@@ -46,7 +43,8 @@ impl Tag {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
 pub struct FuzzyEdgeDescriptor {
     dir: Option<Dir>,
     host: Option<Uid>,
@@ -61,6 +59,10 @@ impl Default for FuzzyEdgeDescriptor {
         Self::new()
     }
 }
+
+pub trait ConstraintTraits: Clone + std::fmt::Debug + PartialEq + Default + 'static {}
+
+pub type Uid = u128;
 
 impl FuzzyEdgeDescriptor {
     pub fn new() -> Self {
@@ -107,5 +109,3 @@ impl FuzzyEdgeDescriptor {
         self
     }
 }
-
-pub trait ConstraintTraits: Clone + std::fmt::Debug + PartialEq + Default + 'static {}

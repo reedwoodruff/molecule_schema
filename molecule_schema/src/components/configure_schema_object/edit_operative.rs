@@ -1,24 +1,20 @@
 use leptos::{logging::log, *};
 use std::{collections::HashMap, rc::Rc};
 
-use serde_types::{
+use base_types::{
     common::Uid,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 
-use crate::{
-    components::{
-        app::{SchemaContext, TreeTypes},
-        common::{
-            button_show::ButtonShow, select_input::SelectInputOptional, text_input::TextInput,
-        },
-        tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
-    },
-    utils::{
-        reactive_item::RConstraintSchemaItem,
-        reactive_types::{
-            RLibraryOperative, ROperativeVariants, RSlottedInstances, RTraitMethodImplPath,
-        },
+use crate::components::{
+    app::{SchemaContext, TreeTypes},
+    common::{button_show::ButtonShow, select_input::SelectInputOptional, text_input::TextInput},
+    tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
+};
+use reactive_types::{
+    reactive_item::RConstraintSchemaItem,
+    reactive_types::{
+        RLibraryOperative, ROperativeVariants, RSlottedInstances, RTraitMethodImplPath,
     },
 };
 
@@ -520,7 +516,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                                                     delete_entry = true;
                                                                 }
                                                             });
-                                                    } 
+                                                    }
                                                 }>remove</button>
                                             </div>
                                         }

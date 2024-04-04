@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use serde_types::common::Uid;
+use base_types::common::Uid;
 
 use super::reactive_types::RTraitImpl;
 
