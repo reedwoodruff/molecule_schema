@@ -1,4 +1,7 @@
-use std::marker::PhantomData;
+use std::{
+    any::{Any, TypeId},
+    marker::PhantomData,
+};
 
 use validator::{Validate, ValidationError, ValidationErrors};
 
@@ -21,15 +24,18 @@ where
 
     /// Instance ID
     fn get_id(&self) -> Uid;
-    /// Should always be an operative ID
     fn get_constraint_schema_operative_tag(&self) -> &Tag;
     fn get_constraint_schema_template_tag(&self) -> &Tag;
     fn initiate_build() -> Self::Builder;
     fn get_operative_by_id(&self, operative_id: &Uid) -> Option<Uid>;
 }
+pub struct AnyGSO {
+    value: Box<dyn Any>,
+    type_id: TypeId,
+}
 
 pub trait Finalizable<T>: Default + Validate {
-    fn finalize(&self) -> T;
+    fn finalize(&self) -> Result<T, ValidationErrors>;
 }
 
 struct GSOBuilder<F, T>
@@ -39,13 +45,15 @@ where
     wip_instance: F,
     _phantom: PhantomData<T>,
 }
+
 impl<F, T> GSOBuilder<F, T>
 where
     F: Finalizable<T>,
 {
     fn build(&self) -> Result<T, ValidationErrors> {
-        self.wip_instance.validate()?;
-        Ok(self.wip_instance.finalize())
+        // self.wip_instance.validate()?;
+        // Ok(self.wip_instance.finalize())
+        self.wip_instance.finalize()
     }
     fn new() -> Self {
         Self {
@@ -75,10 +83,11 @@ impl SetDisplay for WordBuilder {
 }
 
 impl Finalizable<Word> for WordBuilder {
-    fn finalize(&self) -> Word {
-        Word {
+    fn finalize(&self) -> Result<Word, ValidationErrors> {
+        self.validate()?;
+        Ok(Word {
             display: self.display.as_ref().unwrap().clone(),
-        }
+        })
     }
 }
 impl<F: SetDisplay + Finalizable<T>, T> GSOBuilder<F, T> {

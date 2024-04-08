@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::{borrow::Cow, collections::HashMap};
 
 use crate::{
     common::{ConstraintTraits, Tag, Uid},
     constraint_schema::{
-        ConstraintSchema, LibraryOperative, LibraryTemplate, LockedFieldConstraint,
-        SlottedInstances, TraitImpl,
+        ConstraintSchema, FieldId, LibraryOperative, LibraryTemplate, LockedFieldConstraint,
+        SlottedInstances, TraitId, TraitImpl,
     },
     locked_field_digest::{LockedFieldDigest, LockedFieldsDigest},
     operative_digest::{OperativeDigest, OperativeSlotDigest, RelatedInstance},
@@ -17,11 +17,11 @@ pub trait ConstraintSchemaItem {
     fn get_template_id(&self) -> &Uid;
     fn get_parent_operative_id(&self) -> Option<&Uid>;
     fn get_tag(&self) -> &Tag;
-    fn get_local_trait_impls(&self) -> &HashMap<Uid, TraitImpl>;
+    fn get_local_trait_impls(&self) -> &HashMap<TraitId, TraitImpl>;
     fn get_local_slotted_instances(&self) -> Option<&HashMap<Uid, SlottedInstances>>;
     fn get_local_locked_fields(
         &self,
-    ) -> Option<&HashMap<Uid, LockedFieldConstraint<Self::TValues>>>;
+    ) -> Option<&HashMap<FieldId, LockedFieldConstraint<Self::TValues>>>;
     fn get_trait_impl_digest<'a>(
         &'a self,
         schema: &'a ConstraintSchema<Self::TTypes, Self::TValues>,
@@ -33,7 +33,7 @@ pub trait ConstraintSchemaItem {
     fn get_locked_fields_digest<'a>(
         &'a self,
         schema: &'a ConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Option<LockedFieldsDigest<Self::TValues>>;
+    ) -> Option<LockedFieldsDigest<Self::TTypes, Self::TValues>>;
 }
 
 impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
@@ -50,7 +50,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
     fn get_tag(&self) -> &Tag {
         &self.tag
     }
-    fn get_local_trait_impls(&self) -> &HashMap<Uid, TraitImpl> {
+    fn get_local_trait_impls(&self) -> &HashMap<TraitId, TraitImpl> {
         &self.trait_impls
     }
     fn get_local_slotted_instances(&self) -> Option<&HashMap<Uid, SlottedInstances>> {
@@ -63,13 +63,15 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
     }
     fn get_operative_digest(&self, schema: &ConstraintSchema<TTypes, TValues>) -> OperativeDigest {
         OperativeDigest {
-            constituent_operatives: self
+            digest_object_id: self.tag.id,
+            operative_slots: self
                 .operative_slots
                 .iter()
                 .map(|(slot_id, op_slot)| {
                     (
                         *slot_id,
                         OperativeSlotDigest {
+                            digest_object_id: self.tag.id,
                             slot: op_slot,
                             related_instances: vec![],
                         },
@@ -82,8 +84,9 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
         &'a self,
         schema: &'a ConstraintSchema<TTypes, TValues>,
     ) -> TraitImplDigest {
-        TraitImplDigest(
-            self.trait_impls
+        TraitImplDigest {
+            trait_impls: self
+                .trait_impls
                 .iter()
                 .map(|(trait_id, trait_impl)| {
                     (
@@ -95,12 +98,13 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
                     )
                 })
                 .collect(),
-        )
+            object_id: self.tag.id,
+        }
     }
     fn get_locked_fields_digest<'a>(
         &'a self,
         schema: &'a ConstraintSchema<TTypes, TValues>,
-    ) -> Option<LockedFieldsDigest<TValues>> {
+    ) -> Option<LockedFieldsDigest<TTypes, TValues>> {
         None
     }
 }
@@ -119,7 +123,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
     fn get_tag(&self) -> &Tag {
         &self.tag
     }
-    fn get_local_trait_impls(&self) -> &HashMap<Uid, TraitImpl> {
+    fn get_local_trait_impls(&self) -> &HashMap<TraitId, TraitImpl> {
         &self.trait_impls
     }
     fn get_local_slotted_instances(&self) -> Option<&HashMap<Uid, SlottedInstances>> {
@@ -172,6 +176,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
                 (
                     *slot_id,
                     OperativeSlotDigest {
+                        digest_object_id: self.tag.id,
                         slot: op_slot,
                         related_instances: aggregate_instances
                             .get(slot_id)
@@ -183,7 +188,8 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
             .collect();
 
         OperativeDigest {
-            constituent_operatives,
+            digest_object_id: self.tag.id,
+            operative_slots: constituent_operatives,
         }
     }
 
@@ -238,14 +244,18 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
             next_parent_id = parent_operative.parent_operative_id;
         }
 
-        TraitImplDigest(aggregate_trait_impls)
+        TraitImplDigest {
+            object_id: self.tag.id,
+            trait_impls: aggregate_trait_impls,
+        }
     }
     fn get_locked_fields_digest<'a>(
         &'a self,
         schema: &'a ConstraintSchema<Self::TTypes, Self::TValues>,
-    ) -> Option<LockedFieldsDigest<Self::TValues>> {
+    ) -> Option<LockedFieldsDigest<Self::TTypes, Self::TValues>> {
         let mut next_parent_id = Some(self.tag.id);
         let mut aggregate_locked_fields = HashMap::new();
+        let template = schema.template_library.get(&self.template_id).unwrap();
 
         while let Some(parent_id) = next_parent_id {
             // let parent_operative = schema.operative_library.get(&parent_id).unwrap();
@@ -263,6 +273,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
                             (
                                 *field_id,
                                 LockedFieldDigest {
+                                    digest_object_id: self.tag.id,
                                     fulfilled_field: field_constraint.clone(),
                                     hosting_element_id: parent_id,
                                 },
@@ -273,6 +284,11 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
             }
             next_parent_id = parent_operative.parent_operative_id;
         }
-        Some(LockedFieldsDigest(aggregate_locked_fields))
+
+        Some(LockedFieldsDigest {
+            field_constraints: Cow::Borrowed(&template.field_constraints),
+            digest_object_id: self.tag.id,
+            locked_fields: aggregate_locked_fields,
+        })
     }
 }

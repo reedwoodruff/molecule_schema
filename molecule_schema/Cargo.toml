@@ -10,7 +10,7 @@ edition = "2021"
 console_error_panic_hook = "0.1.7"
 reactive_types = { path = "../reactive_types/" }
 im = "15.1.0"
-leptos = { version = "0.5.2", features = ["csr", "nightly"] }
+leptos = { version = "0.6", features = ["csr"] }
 base_types = { path = "../base_types" }
 constraint_schema = { path = "../constraint_schema" }
 serde = { version = "1", features = ["derive"] }

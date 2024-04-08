@@ -20,6 +20,7 @@ pub struct ROperativeSlotDigest {
 }
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct RRelatedInstance {
+    pub digest_object_id: Uid,
     pub instance_id: Uid,
     pub hosting_element_id: Uid,
 }

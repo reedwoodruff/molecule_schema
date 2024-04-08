@@ -296,7 +296,7 @@ where
                 }
 
             </For>
-            <For each=all_slots key=move |item| item.clone() let:child>
+            <For each=move||all_slots.get() key=move |item| item.clone() let:child>
 
                 {
                     let on_click_tree_data_3 = on_click_tree_data_3.clone();
@@ -334,6 +334,7 @@ where
                                         path=new_path_2.clone()
                                     />
                                 </div>
+
                                 <Show when=show_instances>
 
                                     {

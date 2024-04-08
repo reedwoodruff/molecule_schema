@@ -13,7 +13,7 @@ features = [
 
 [dependencies]
 base_types = { path = "../base_types", features = ["serde"] }
-leptos = { version = "0.5.2", features = ["csr", "nightly"] }
+leptos = { version = "0.6", features = ["csr"] }
 strum = "0.26.1"
 strum_macros = "0.26.1"
 # serde = { version = "1", features = ["derive"] }

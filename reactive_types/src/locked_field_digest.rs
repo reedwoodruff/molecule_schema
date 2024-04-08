@@ -7,13 +7,14 @@ use super::reactive_types::{RFieldConstraint, RLockedFieldConstraint};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RLockedFieldsDigest<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
-    pub object_id: Uid,
+    pub digest_object_id: Uid,
     pub locked_fields: HashMap<Uid, RLockedFieldDigest<TValues>>,
     pub field_constraints: RwSignal<HashMap<Uid, RFieldConstraint<TTypes>>>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct RLockedFieldDigest<TValues: ConstraintTraits> {
+    pub digest_object_id: Uid,
     pub fulfilled_field: RLockedFieldConstraint<TValues>,
     pub hosting_element_id: Uid,
 }
@@ -23,7 +24,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLockedFieldsDigest<TT
         Self {
             locked_fields: HashMap::new(),
             field_constraints: RwSignal::new(HashMap::new()),
-            object_id,
+            digest_object_id: object_id,
         }
     }
     pub fn get_unfulfilled_fields(&self) -> Vec<RFieldConstraint<TTypes>> {
@@ -38,7 +39,9 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RLockedFieldsDigest<TT
     pub fn get_ancestors_locked_fields(&self) -> Vec<RLockedFieldDigest<TValues>> {
         self.locked_fields
             .values()
-            .filter(|locked_field_digest| locked_field_digest.hosting_element_id != self.object_id)
+            .filter(|locked_field_digest| {
+                locked_field_digest.hosting_element_id != self.digest_object_id
+            })
             .cloned()
             .collect()
     }

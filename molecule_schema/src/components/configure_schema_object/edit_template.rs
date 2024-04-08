@@ -49,7 +49,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             tag: RTag::new("New Field".to_string()),
             value_type: RwSignal::new(PrimitiveTypes::String),
         };
-        active_object().field_constraints.update(|prev| {
+        active_object.get().field_constraints.update(|prev| {
             prev.insert(new_field.tag.id.get(), new_field);
         });
     };
@@ -460,7 +460,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                 <h4>Operative Slots</h4>
 
                 <For
-                    each=active_object.get().operative_slots
+                    each=move || active_object.get().operative_slots.get()
                     key=move |op_slot| op_slot.0
                     let:op_slot
                 >
@@ -632,7 +632,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     on_select=on_select_trait_impl
                 />
                 <br/>
-                <For each=active_trait_impl_method_paths key=move |item| item.0 let:item>
+                <For each=move || active_trait_impl_method_paths.get() key=move |item| item.0 let:item>
 
                     {
                         let click_closure = move |_| {
@@ -684,7 +684,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                         })
                                 }>delete impl</button> <br/> trait methods:
                                 <For
-                                    each=methods
+                                    each=move ||methods.get()
                                     key=move |(method_id, _path)| *method_id
                                     children=move |(method_id, path)| {
                                         let method_def = trait_def

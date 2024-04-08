@@ -11,7 +11,7 @@ pub fn ButtonShow(
         <Show when=move || !showing.get()>
             <button on:click=move |_| showing.set(true)>{show_text.clone()}</button>
         </Show>
-        <Show when=showing>
+        <Show when=move || showing.get()>
 
             {
                 let children = children.clone();

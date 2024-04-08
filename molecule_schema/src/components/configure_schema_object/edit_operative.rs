@@ -1,5 +1,6 @@
 use leptos::{logging::log, *};
 use std::{collections::HashMap, rc::Rc};
+use web_sys::MouseEvent;
 
 use base_types::{
     common::Uid,
@@ -320,7 +321,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             <div class="flex-grow margin-right border-right">
                 <h4>Fields</h4>
                 <For
-                    each=ancestors_fulfilled_field_constraints
+                    each=move || ancestors_fulfilled_field_constraints.get()
                     key=move |item| item.fulfilled_field.field_constraint_id.get()
                     let:item
                 >
@@ -344,7 +345,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                         }>unlock</button>
                     </div>
                 </For>
-                <For each=unfulfilled_field_constraints key=move |item| item.tag.id let:item>
+                <For each=move || unfulfilled_field_constraints.get() key=move |item| item.tag.id let:item>
                     <div>
                         {item.tag.name} <ButtonShow show_text="Begin Lock" hide_text="Cancel">
 
@@ -386,7 +387,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                     view! {
                                         <TextInput value = value />
 
-                                        <button on:click=on_click_lock>Lock</button>
+                                    <button on:click=move |e| on_click_lock.call(e)>Lock</button>
                                     }
                                 }
                             }
@@ -658,7 +659,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                     on_select=on_select_trait_impl
                 />
                 <br/>
-                <For each=active_trait_impl_method_paths key=move |item| item.0 let:item>
+                <For each=move ||active_trait_impl_method_paths.get() key=move |item| item.0 let:item>
 
                     {
                         let click_closure = move |_| {
@@ -702,7 +703,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                             <div>
                                 trait name: {trait_def.tag.name} <br/> trait methods:
                                 <For
-                                    each=methods.trait_impl
+                                    each=move || methods.trait_impl.get()
                                     key=move |(method_id, _path)| *method_id
                                     children=move |(method_id, path)| {
                                         let method_def = trait_def
@@ -765,7 +766,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                         })
                                 }>delete impl</button> <br/> trait methods:
                                 <For
-                                    each=methods
+                                    each=move||methods.get()
                                     key=move |(method_id, _path)| *method_id
                                     children=move |(method_id, path)| {
                                         let method_def = trait_def

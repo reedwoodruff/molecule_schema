@@ -21,5 +21,5 @@ serde = { version = "1", features = [
 serde_json = { version = "1", optional = true }
 strum = "0.26.1"
 strum_macros = "0.26.1"
-validator = { version = "0.17.0", features = ["derive"] }
+validator = { version = "0.18", features = ["derive"] }
 # leptos = { version = "0.5.2", features = ["csr", "nightly"] }

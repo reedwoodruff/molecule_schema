@@ -1,6 +1,11 @@
 use crate::common::*;
 use std::{collections::HashMap, marker::PhantomData};
 
+pub type SlotId = Uid;
+pub type TraitId = Uid;
+pub type TraitMethodId = Uid;
+pub type FieldId = Uid;
+
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 pub struct ConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
@@ -14,9 +19,9 @@ pub struct ConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits>
 #[derive(Clone, Debug)]
 pub struct LibraryTemplate<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub tag: Tag,
-    pub field_constraints: HashMap<Uid, FieldConstraint<TTypes>>,
-    pub operative_slots: HashMap<Uid, OperativeSlot>,
-    pub trait_impls: HashMap<Uid, TraitImpl>,
+    pub field_constraints: HashMap<FieldId, FieldConstraint<TTypes>>,
+    pub operative_slots: HashMap<SlotId, OperativeSlot>,
+    pub trait_impls: HashMap<TraitId, TraitImpl>,
     pub instances: Vec<Uid>,
     pub _phantom: PhantomData<TValues>,
 }
@@ -28,9 +33,9 @@ pub struct LibraryOperative<TTypes: ConstraintTraits, TValues: ConstraintTraits>
     pub template_id: Uid,
     // If the operative is based on another operative
     pub parent_operative_id: Option<Uid>,
-    pub slotted_instances: HashMap<Uid, SlottedInstances>,
-    pub locked_fields: HashMap<Uid, LockedFieldConstraint<TValues>>,
-    pub trait_impls: HashMap<Uid, TraitImpl>,
+    pub slotted_instances: HashMap<SlotId, SlottedInstances>,
+    pub locked_fields: HashMap<FieldId, LockedFieldConstraint<TValues>>,
+    pub trait_impls: HashMap<TraitId, TraitImpl>,
     pub _phantom: PhantomData<TTypes>,
 }
 
@@ -82,7 +87,7 @@ pub struct TraitMethodDef<TTypes: ConstraintTraits> {
     pub return_type: TTypes,
 }
 
-pub type TraitImpl = HashMap<Uid, Vec<TraitMethodImplPath>>;
+pub type TraitImpl = HashMap<TraitMethodId, Vec<TraitMethodImplPath>>;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]

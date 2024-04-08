@@ -38,7 +38,7 @@ pub fn EditTrait(id: RwSignal<Uid>) -> impl IntoView {
 
                 <div class="flex-grow margin-right border-right">
                     <h4>Methods</h4>
-                    <For each=trait_info.get().methods key=|(method_id, _method)| *method_id let:method>
+                    <For each=move ||trait_info.get().methods.get() key=|(method_id, _method)| *method_id let:method>
                        <div><TextInput value=method.1.tag.name /> " -> " <SelectInputEnum  value=method.1.return_type />
                         <button on:click=move |_|{trait_info.get().methods.update(|prev_methods| {prev_methods.remove(&method.0);});}>Delete Method</button>
                     </div>

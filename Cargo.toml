@@ -4,7 +4,7 @@ resolver = "2"
 members = [
   "constraint_schema",
   "molecule_schema",
-  # "generate_schema",
+  "generate_schema",
   "base_types",
   "reactive_types",
 ]

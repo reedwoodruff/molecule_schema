@@ -32,7 +32,7 @@ where
 
     let cur_value = move || {
         log!("{:?}", value.get());
-        if let Some(val) = map().clone().get(&value.get()) {
+        if let Some(val) = map.get().clone().get(&value.get()) {
             val.clone()
         } else {
             "".to_string()
@@ -55,7 +55,7 @@ where
 
     view! {
         <select ref=select_ref value=move || cur_value() on:change=on_change>
-            <For each=options2 key=move |item| item.0.clone() let:item>
+            <For each=move || options2.get() key=move |item| item.0.clone() let:item>
                 <option value=item.1.clone().into()>{item.1.into()}</option>
             </For>
         // {move || options.get().into_iter().map(|item| {
@@ -121,7 +121,7 @@ where
     view! {
         <select value=move || cur_value() on:change=on_change>
             <option value="NoneOption" id="NoneOption"></option>
-            <For each=options2 key=move |item| item.0.clone() let:item>
+            <For each=move || options2.get() key=move |item| item.0.clone() let:item>
                 <option value=item.1.clone().into()>{item.1.into()}</option>
             </For>
         // {move || options.get().into_iter().map(|item| {

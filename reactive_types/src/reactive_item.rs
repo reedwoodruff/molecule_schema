@@ -95,7 +95,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
         schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> RLockedFieldsDigest<Self::TTypes, Self::TValues> {
         RLockedFieldsDigest {
-            object_id: self.get_tag().id.get(),
+            digest_object_id: self.get_tag().id.get(),
             locked_fields: HashMap::new(),
             field_constraints: self.field_constraints,
         }
@@ -182,6 +182,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
         &self,
         schema: &RConstraintSchema<Self::TTypes, TValues>,
     ) -> Memo<ROperativeDigest> {
+        let self_id = self.get_tag().id.get();
         let self_clone = self.clone();
         let schema_clone = schema.clone();
 
@@ -196,7 +197,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
 
             // by setting the first parent id to the current operative's id, we can avoid special
             // casing this element
-            let mut next_parent_id = Some(self_clone.tag.id.get());
+            let mut next_parent_id = Some(self_id);
             while let Some(parent_id) = next_parent_id {
                 let parent_operative = schema_clone.operative_library.with(|operative_library| {
                     if let Some(parent_operative) = operative_library.get(&parent_id) {
@@ -219,6 +220,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                                     fulfilling_instance_ids
                                         .iter()
                                         .map(|instance_id| RRelatedInstance {
+                                            digest_object_id: self_id,
                                             instance_id: *instance_id,
                                             hosting_element_id: parent_id,
                                         })
@@ -241,7 +243,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                         (
                             *slot_id,
                             ROperativeSlotDigest {
-                                digest_object_id: self_clone.tag.id.get(),
+                                digest_object_id: self_id,
                                 slot: op_slot.clone(),
                                 related_instances: aggregate_instances
                                     .get(slot_id)
@@ -254,7 +256,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
             });
 
             ROperativeDigest {
-                digest_object_id: self_clone.get_tag().id.get(),
+                digest_object_id: self_id,
                 operative_slots,
             }
         })
@@ -354,6 +356,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                             (
                                 *field_id,
                                 RLockedFieldDigest {
+                                    digest_object_id: self.get_tag().id.get(),
                                     fulfilled_field: field_constraint.clone(),
                                     hosting_element_id: parent_id,
                                 },
@@ -371,7 +374,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
                 .clone()
         });
         RLockedFieldsDigest {
-            object_id: self.tag.id.get(),
+            digest_object_id: self.tag.id.get(),
             locked_fields: aggregate_locked_fields,
             field_constraints: template.field_constraints,
         }
