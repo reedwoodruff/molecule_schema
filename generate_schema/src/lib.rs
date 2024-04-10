@@ -10,6 +10,8 @@ use syn::{
     punctuated::Punctuated, Result as SynResult, Token, Type,
 };
 
+use crate::utils::get_variant_name;
+
 mod generate_operative_streams;
     mod generate_trait_impl_streams;
 mod utils;
@@ -35,7 +37,9 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
             let method_name = syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
             let return_type = utils::get_primitive_type(&method_def.return_type);    
             quote! {
-                fn #method_name(&self, env: &dyn base_types::traits::GraphEnvironment<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues>) -> std::borrow::Cow<#return_type>;
+                fn #method_name(&self, 
+                    env: &dyn base_types::traits::GraphEnvironment<TTypes=base_types::primitives::PrimitiveTypes, TValues=base_types::primitives::PrimitiveValues, TSchema = Schema>
+                    ) -> std::borrow::Cow<#return_type>;
             }
         });
         quote! {
@@ -59,20 +63,57 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
     })
     .collect::<Vec<_>>();
 
+    let all_lib_op_names = constraint_schema_generated.operative_library.values().map(|el| {
+        get_variant_name(&Box::new(el))
+    }).collect::<Vec<_>>();
+
     quote! {
         use base_types::traits::GSO;
         // Helper trait, private to your module
         trait IsGraphEnvironment {}
 
         // Implement IsMyTrait for all T that implement MyTrait
-        impl<T> IsGraphEnvironment for T where T: base_types::traits::GraphEnvironment<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {}
+        // impl<T> IsGraphEnvironment for T where T: base_types::traits::GraphEnvironment<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {}
+        impl<T> IsGraphEnvironment for T where T: base_types::traits::GraphEnvironment<TTypes=base_types::primitives::PrimitiveTypes, TValues=base_types::primitives::PrimitiveValues, TSchema = Schema> {}
         let _check: &dyn IsGraphEnvironment = &#graph_environment;
 
-        // const SCHEMA_JSON: &str = #data;
+
         #(#trait_definition_streams)*
         // #(#template_streams)*
         #(#library_operative_streams)*
         #(#instance_streams)*
+
+        enum Schema {
+            #(#all_lib_op_names(#all_lib_op_names),)*
+        }
+
+        impl base_types::traits::GSO for Schema {
+            fn get_constraint_schema_operative_tag(&self) -> &base_types::common::Tag {
+                match &self {
+                #(Self::#all_lib_op_names(item) => item.get_constraint_schema_operative_tag(),)*
+                _ => panic!(),
+                }
+            }
+            fn get_id(&self) -> base_types::common::Uid {
+                match self {
+                    #(Self::#all_lib_op_names(item) => item.get_id(),)*
+                    _ => panic!(),
+                }
+            }
+            fn get_constraint_schema_template_tag(&self) -> &base_types::common::Tag {
+                match self {
+                    #(Self::#all_lib_op_names(item) => item.get_constraint_schema_template_tag(),)*
+                    _ => panic!(),
+                }
+            }
+            fn get_operative_by_id(&self, operative_id: &base_types::common::Uid) -> Option<base_types::common::Uid> {
+                match &self {
+                #(Self::#all_lib_op_names(item) => item.get_operative_by_id(operative_id),)*
+                _ => panic!(),
+                }
+            }
+            
+        }
 
             
     }

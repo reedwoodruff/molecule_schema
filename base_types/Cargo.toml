@@ -22,4 +22,7 @@ serde_json = { version = "1", optional = true }
 strum = "0.26.1"
 strum_macros = "0.26.1"
 validator = { version = "0.18", features = ["derive"] }
+anyhow = "1.0"
+# quote = "1.0"
+# proc-macro2 = "1.0"
 # leptos = { version = "0.5.2", features = ["csr", "nightly"] }

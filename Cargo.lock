@@ -74,6 +74,7 @@ checksum = "9475866fec1451be56a3c2400fd081ff546538961565ccb5b7142cbd22bc7a51"
 name = "base_types"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "serde",
  "serde_json",
  "strum",
@@ -410,6 +411,7 @@ dependencies = [
 name = "generate_schema"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "base_types",
  "constraint_schema",
  "generate_schema",

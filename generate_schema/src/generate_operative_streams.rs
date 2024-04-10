@@ -55,20 +55,64 @@ pub(crate) fn generate_operative_streams(
         .map(|field| get_primitive_type(&field.value_type))
         .collect::<Vec<_>>();
 
+    let operative_tag_handle = syn::Ident::new(
+        &(struct_name.to_string().clone() + "operative_tag"),
+        proc_macro2::Span::call_site(),
+    );
+
+    let operative_tag_name = instantiable.get_tag().name.clone();
+    let operative_tag_id = instantiable.get_tag().id;
+
+    let template_tag_name = reference_template.get_tag().name.clone();
+
     quote! {
+        // const #operative_tag_handle:  base_types::common::Tag = base_types::common::Tag {name: #operative_tag_name, id: #operative_tag_id };
         pub struct #struct_name {
             #(#unfulfilled_field_names: #unfulfilled_field_value_types,)*
+            operative_tag: base_types::common::Tag,
+            template_tag: base_types::common::Tag,
         }
+        impl base_types::traits::GSO for #struct_name {
+            fn get_constraint_schema_operative_tag(&self) -> &base_types::common::Tag {
+                &self.operative_tag
+                // base_types::common::Tag {
+                //     name: #operative_tag_name,
+                //     id: #operative_tag_id,
+                // }
+            }
+            fn get_id(&self) -> base_types::common::Uid {
+                12
+            }
+            fn get_constraint_schema_template_tag(&self) -> &base_types::common::Tag {
+                &self.template_tag
+                // base_types::common::Tag {
+                //     name: #template_tag_name,
+                //     id: #reference_template_id,
+                // }
+            }
+            fn get_operative_by_id(&self, operative_id: &base_types::common::Uid) -> Option<base_types::common::Uid> {
+                Some(12)
+            }
+        }
+
         #[derive(validator::Validate, Default)]
         pub struct #struct_builder_name {
             #(#[validate(required)] #unfulfilled_field_names: Option<#unfulfilled_field_value_types>,)*
 
         }
         impl base_types::traits::Finalizable<#struct_name> for #struct_builder_name {
-            fn finalize(&self) -> Result<#struct_name, validator::ValidationErrors> {
+            fn finalize(&self) -> Result<#struct_name, anyhow::Error> {
                 <Self as validator::Validate>::validate(self)?;
                 Ok(#struct_name {
                     #(#unfulfilled_field_names: self.#unfulfilled_field_names.as_ref().unwrap().clone(),)*
+                    operative_tag: base_types::common::Tag {
+                        name: #operative_tag_name.to_string(),
+                        id: #operative_tag_id,
+                    },
+                    template_tag: base_types::common::Tag {
+                        name: #template_tag_name.to_string(),
+                        id: #reference_template_id,
+                    },
                 })
             }
         }
