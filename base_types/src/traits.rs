@@ -22,12 +22,20 @@ pub trait GraphEnvironment {
     fn get_constraint_schema(&self) -> &ConstraintSchema<Self::TTypes, Self::TValues>;
 }
 
-pub trait GSO {
+pub trait GSO: std::fmt::Debug {
     /// Instance ID
     fn get_id(&self) -> Uid;
     fn get_constraint_schema_operative_tag(&self) -> &Tag;
     fn get_constraint_schema_template_tag(&self) -> &Tag;
-    fn get_operative_by_id(&self, operative_id: &Uid) -> Option<Uid>;
+    fn get_slot_by_id(&self, slot_id: &Uid) -> Option<&ActiveSlot> {
+        self.get_slots().get(slot_id)
+    }
+    fn get_slots(&self) -> &HashMap<Uid, ActiveSlot>;
+    fn get_parent_slots(&self) -> Vec<SlotRef>;
+}
+pub struct SlotRef {
+    pub host_instance_id: Uid,
+    pub slot_id: Uid,
 }
 
 pub trait Slotted {}
@@ -55,72 +63,224 @@ impl ActiveSlot {
     }
 }
 
-pub trait Buildable
+pub trait Buildable<G: GraphEnvironment>
 where
-    Self: Sized,
+    Self: Sized + 'static,
+    Self: Instantiable<Graph = G>,
 {
-    type Builder: Finalizable<Self>;
+    type Builder: Finalizable<Self, Self::Graph>;
 
-    fn initiate_build() -> GSOBuilder<Self::Builder, Self> {
-        GSOBuilder::<Self::Builder, Self>::new()
+    fn initiate_build() -> GSOBuilder<Self::Builder, Self, G> {
+        GSOBuilder::<Self::Builder, Self, G>::new()
     }
 }
 
-pub trait Finalizable<T>: Default {
-    fn finalize(&self) -> Result<T, Error>;
+pub trait Verifiable {
+    fn verify(&self) -> Result<(), Error>;
+}
+pub trait Instantiable: GSO {
+    type Graph: GraphEnvironment;
+
+    fn instantiate(&self) -> Result<(), Error>;
+    fn get_id(&self) -> &Uid;
+}
+type InstantiableElements<G> = Vec<Box<dyn Instantiable<Graph = G>>>;
+
+pub struct InstantiableWrapper<T, G: GraphEnvironment>
+where
+    T: Instantiable<Graph = G>,
+{
+    prereq_instantiables: InstantiableElements<G>,
+    instantiable_instance: T,
 }
 
-// pub struct GSOEditor {}
-
-#[derive(Default, Debug, Clone)]
-struct GSOBuilder<F, T, R = ()>
+impl<T, G: GraphEnvironment> InstantiableWrapper<T, G>
 where
-    F: Finalizable<T>,
+    T: Instantiable<Graph = G> + 'static,
 {
+    pub fn flatten(mut self) -> InstantiableElements<G> {
+        self.prereq_instantiables
+            .push(Box::new(self.instantiable_instance));
+        self.prereq_instantiables
+    }
+    pub fn get_prereq_instantiables(&self) -> &InstantiableElements<G> {
+        &self.prereq_instantiables
+    }
+    pub fn get_instantiable_instance(&self) -> &T {
+        &self.instantiable_instance
+    }
+}
+
+pub trait Producable<T, G: GraphEnvironment>
+where
+    T: Instantiable<Graph = G>,
+{
+    fn produce(&self) -> T;
+}
+
+pub trait Finalizable<T: Instantiable<Graph = G>, G: GraphEnvironment>:
+    Default + Verifiable + Producable<T, G>
+{
+    fn finalize(&self) -> Result<T, Error> {
+        self.verify()?;
+        Ok(self.produce())
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct GSOBuilder<F, T, G: GraphEnvironment>
+where
+    F: Finalizable<T, G>,
+    T: Instantiable<Graph = G>,
+{
+    instantiables: Vec<Box<dyn Instantiable<Graph = G>>>,
     wip_instance: F,
-    saved_state: Option<R>,
-    _phantom: PhantomData<T>,
+    _phantom: PhantomData<(T, G)>,
 }
 
-pub trait CombinableGSOBuilder<F, T, R> {
-    fn combine(&self) -> T;
-}
-
-impl<F, T, R> GSOBuilder<F, T, R>
+impl<F, T, G: GraphEnvironment> GSOBuilder<F, T, G>
 where
-    F: Finalizable<T>,
-    R: Clone,
+    F: Finalizable<T, G>,
+    T: Instantiable<Graph = G> + 'static,
 {
-    fn build(&self) -> Result<T, Error> {
-        self.wip_instance.finalize()
-    }
-    fn get_saved_state(&self) -> Option<R> {
-        self.saved_state.as_ref().cloned()
-    }
-    fn new_with_saved_state(state: R) -> Self {
-        Self {
-            wip_instance: F::default(),
-            saved_state: Some(state),
-            _phantom: PhantomData,
-        }
+    fn build(mut self) -> Result<InstantiableWrapper<T, G>, Error> {
+        Ok(InstantiableWrapper {
+            instantiable_instance: self.wip_instance.finalize()?,
+            prereq_instantiables: self.instantiables,
+        })
     }
     fn new() -> Self {
         Self {
+            instantiables: vec![],
             wip_instance: F::default(),
-            saved_state: None,
             _phantom: PhantomData,
         }
     }
+}
+
+pub trait Integrable<C> {
+    fn integrate(&mut self, child: &C) -> &mut Self;
+}
+
+pub fn integrate_child<F, T, C, G: GraphEnvironment>(
+    builder: &mut GSOBuilder<F, T, G>,
+    child: InstantiableWrapper<C, G>,
+) -> &mut GSOBuilder<F, T, G>
+where
+    F: Integrable<C> + Finalizable<T, G>,
+    T: Instantiable<Graph = G>,
+    C: Instantiable<Graph = G> + 'static,
+{
+    builder
+        .wip_instance
+        .integrate(child.get_instantiable_instance());
+    builder
 }
 
 #[cfg(test)]
 mod tests {
 
+    static COUNTER: AtomicUsize = AtomicUsize::new(9);
+    fn get_next_id() -> usize {
+        COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst)
+    }
+
+    use std::sync::atomic::AtomicUsize;
+
+    use crate::primitives::{PrimitiveTypes, PrimitiveValues};
+
     use super::*;
+
+    #[derive(Debug)]
+    struct SampleGraphEnvironment<TSchema: GSO> {
+        created_instances: HashMap<Uid, TSchema>,
+        constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
+    }
+
+    impl<TTSchema: GSO> GraphEnvironment for SampleGraphEnvironment<TTSchema> {
+        type TSchema = TTSchema;
+        type TTypes = PrimitiveTypes;
+        type TValues = PrimitiveValues;
+
+        fn get_constraint_schema(&self) -> &ConstraintSchema<Self::TTypes, Self::TValues> {
+            &self.constraint_schema
+        }
+
+        fn get_element(&self, id: &Uid) -> Option<&Self::TSchema> {
+            self.created_instances.get(id)
+        }
+        fn instantiate_element(&mut self, element: Self::TSchema) -> Uid {
+            // let id = uuid::Uuid::new_v4().as_u128();
+            let id = element.get_id();
+            self.created_instances.insert(id, element);
+            id
+        }
+    }
+
+    #[derive(Debug)]
+    enum SampleSchema {
+        Sentence(Sentence),
+        Word(Word),
+    }
+    type SampleG = SampleGraphEnvironment<SampleSchema>;
+
+    impl GSO for SampleSchema {
+        fn get_id(&self) -> Uid {
+            todo!()
+        }
+
+        fn get_constraint_schema_operative_tag(&self) -> &Tag {
+            todo!()
+        }
+
+        fn get_constraint_schema_template_tag(&self) -> &Tag {
+            todo!()
+        }
+
+        fn get_slots(&self) -> &HashMap<Uid, ActiveSlot> {
+            todo!()
+        }
+
+        fn get_parent_slots(&self) -> Vec<SlotRef> {
+            todo!()
+        }
+    }
 
     #[derive(Debug, Clone)]
     struct Sentence {
         operative_slots: HashMap<Uid, ActiveSlot>,
+    }
+    impl Instantiable for Sentence {
+        type Graph = SampleG;
+
+        fn instantiate(&self) -> Result<(), Error> {
+            todo!()
+        }
+
+        fn get_id(&self) -> &Uid {
+            todo!()
+        }
+    }
+    impl GSO for Sentence {
+        fn get_id(&self) -> Uid {
+            todo!()
+        }
+
+        fn get_constraint_schema_operative_tag(&self) -> &Tag {
+            todo!()
+        }
+
+        fn get_constraint_schema_template_tag(&self) -> &Tag {
+            todo!()
+        }
+
+        fn get_slots(&self) -> &HashMap<Uid, ActiveSlot> {
+            todo!()
+        }
+
+        fn get_parent_slots(&self) -> Vec<SlotRef> {
+            todo!()
+        }
     }
     impl Default for Sentence {
         fn default() -> Self {
@@ -171,67 +331,39 @@ mod tests {
         }
     }
 
-    trait ManipulateWordSlot {
-        // fn add_word_new(
-        //     self,
-        // ) -> GSOBuilder<WordBuilder, Word, GSOBuilder<SentenceBuilder, Sentence>>;
-        fn add_word_existing(&mut self, instance_id: Uid) -> &mut Self;
-    }
-    impl ManipulateWordSlot for SentenceBuilder {
-        // fn add_word_new(
-        //     self,
-        // ) -> GSOBuilder<WordBuilder, Word, GSOBuilder<SentenceBuilder, Sentence>> {
-        //     GSOBuilder::<WordBuilder, Word, GSOBuilder<SentenceBuilder, Sentence>>::new_with_saved_state(self)
-        // }
-        fn add_word_existing(&mut self, instance_id: Uid) -> &mut Self {
+    impl Integrable<Word> for SentenceBuilder {
+        fn integrate(&mut self, child: &Word) -> &mut Self {
             self.operative_slots
                 .entry(0)
-                .and_modify(|slot| slot.slotted_instances.push(instance_id));
+                .and_modify(|prev_ids| prev_ids.slotted_instances.push(child.id));
             self
         }
     }
-    impl Finalizable<GSOBuilder<SentenceBuilder, Sentence>>
-        for GSOBuilder<WordBuilder, Word, GSOBuilder<SentenceBuilder, Sentence>>
-    {
-        fn finalize(&self) -> Result<GSOBuilder<SentenceBuilder, Sentence>, Error> {
-            let mut existing_sentence = self.get_saved_state().unwrap();
-            let new_word = self.wip_instance.finalize()?;
-            println!("new_word: {:?}", new_word);
-            existing_sentence.add_word_existing(new_word.id);
-            println!("new_sentence: {:?}", existing_sentence);
-            Ok(existing_sentence)
-        }
-    }
 
-    impl Finalizable<Sentence> for SentenceBuilder {
-        fn finalize(&self) -> Result<Sentence, Error> {
-            self.validate()?;
-            Ok(Sentence {
+    impl Producable<Sentence, SampleG> for SentenceBuilder {
+        fn produce(&self) -> Sentence {
+            Sentence {
                 operative_slots: self.operative_slots.clone(),
-            })
+            }
         }
     }
 
-    impl Buildable for Sentence {
+    impl Verifiable for SentenceBuilder {
+        fn verify(&self) -> Result<(), Error> {
+            self.validate()?;
+            Ok(())
+        }
+    }
+
+    impl Finalizable<Sentence, SampleG> for SentenceBuilder {}
+
+    impl Buildable<SampleG> for Sentence {
         type Builder = SentenceBuilder;
     }
-    // impl<F: ManipulateWordSlot + Finalizable<T>, T> GSOBuilder<F, T> {
-    //     pub fn add_word_new(
-    //         self,
-    //     ) -> GSOBuilder<WordBuilder, Word, GSOBuilder<SentenceBuilder, Sentence>> {
-    //         // self.wip_instance.add_word_new()
-    //         GSOBuilder::<WordBuilder, Word, GSOBuilder<SentenceBuilder, Sentence>>::new_with_saved_state(self)
-    //     }
-    // }
-    impl GSOBuilder<SentenceBuilder, Sentence> {
-        pub fn add_word_new(
-            self,
-        ) -> GSOBuilder<WordBuilder, Word, GSOBuilder<SentenceBuilder, Sentence>> {
-            // self.wip_instance.add_word_new()
-            GSOBuilder::<WordBuilder, Word, GSOBuilder<SentenceBuilder, Sentence>>::new_with_saved_state(self)
-        }
-        pub fn add_word_existing(&mut self, id: Uid) {
-            self.wip_instance.add_word_existing(id);
+    impl GSOBuilder<SentenceBuilder, Sentence, SampleG> {
+        pub fn add_word(&mut self, word: InstantiableWrapper<Word, SampleG>) -> &mut Self {
+            integrate_child(self, word);
+            self
         }
     }
 
@@ -239,6 +371,17 @@ mod tests {
     struct Word {
         id: Uid,
         display: String,
+    }
+    impl Instantiable for Word {
+        type Graph = SampleG;
+
+        fn instantiate(&self) -> Result<(), Error> {
+            todo!()
+        }
+
+        fn get_id(&self) -> &Uid {
+            todo!()
+        }
     }
 
     #[derive(Debug, Default, Validate, Clone)]
@@ -255,17 +398,28 @@ mod tests {
         }
     }
 
-    impl Finalizable<Word> for WordBuilder {
-        fn finalize(&self) -> Result<Word, Error> {
+    impl Verifiable for WordBuilder {
+        fn verify(&self) -> Result<(), Error> {
             self.validate()?;
-            Ok(Word {
-                id: 111,
-                display: self.display.as_ref().unwrap().clone(),
-            })
+            Ok(())
         }
     }
-    impl<F: SetDisplay + Finalizable<T>, T, R> GSOBuilder<F, T, R> {
-        fn set_display(&mut self, new_display: &str) -> &mut Self {
+    impl Producable<Word, SampleG> for WordBuilder {
+        fn produce(&self) -> Word {
+            Word {
+                id: get_next_id() as u128,
+                display: self.display.as_ref().unwrap().clone(),
+            }
+        }
+    }
+
+    impl Finalizable<Word, SampleG> for WordBuilder {}
+
+    impl<G: GraphEnvironment, F: SetDisplay + Finalizable<T, G>, T> GSOBuilder<F, T, G>
+    where
+        T: Instantiable<Graph = G>,
+    {
+        fn set_display(mut self, new_display: &str) -> Self {
             self.wip_instance.set_display(new_display);
             self
         }
@@ -285,33 +439,36 @@ mod tests {
             todo!()
         }
 
-        fn get_operative_by_id(&self, operative_id: &Uid) -> Option<Uid> {
+        fn get_slots(&self) -> &HashMap<Uid, ActiveSlot> {
+            todo!()
+        }
+
+        fn get_parent_slots(&self) -> Vec<SlotRef> {
             todo!()
         }
     }
 
-    impl Buildable for Word {
+    impl Buildable<SampleG> for Word {
         type Builder = WordBuilder;
 
-        fn initiate_build() -> GSOBuilder<Self::Builder, Self> {
-            GSOBuilder::<Self::Builder, Self>::new()
+        fn initiate_build() -> GSOBuilder<Self::Builder, Self, Self::Graph> {
+            GSOBuilder::<Self::Builder, Self, Self::Graph>::new()
         }
     }
+
     #[test]
     fn test_builder() {
         let new_word = Word::initiate_build()
             .set_display("Humgub")
             .build()
             .unwrap();
-        // let test: Box<dyn Any> = Box::new(new_word);
-        let new_sentence = Sentence::initiate_build()
-            .add_word_new()
-            .set_display("VOIU")
-            .finalize()
-            .unwrap()
-            .build()
-            .unwrap();
-        println!("{:?}", new_sentence);
+        let mut sentence_builder = Sentence::initiate_build();
+        sentence_builder.add_word(new_word);
+        let sentence = sentence_builder.build().unwrap();
+        for line in sentence.flatten() {
+            println!("{:?}", line);
+        }
+
         panic!();
     }
 }

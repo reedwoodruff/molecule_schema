@@ -323,3 +323,20 @@ But this would require creating a whole syntax for mapping over the structure --
 
 This seems difficult. I'm searching for a stopgap solution in the meantime.
 Maybe it would be best to only allow trait propagation through 1:1 operative slots for now.
+
+
+## April 10, 2024
+Trying to nail down a version of the builder pattern which would be serviceable.
+Ideally you could start creating some new Template (say a Sentence), and fluently chain the creation of prerequisite constituent operatives.
+You should be able to either provide existing nodes to slot in or create new ones as necessary.
+I'd really prefer an interface something like this:
+let new_sentence =
+    Sentence::new()
+    .add_new_word()
+      .set_word_value("Word1")
+      .build()                    // This building the new word and adding it to the sentence's operative slot.
+    .add_existing_word_by_id(42)
+    .build();                     // This building the sentence.
+
+Any subnode created for a slot should expose the same interface as if it was being built standalone, and then just return to the higher-order builder when it is finalized.
+
