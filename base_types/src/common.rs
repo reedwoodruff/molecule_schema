@@ -1,5 +1,3 @@
-// use proc_macro2::TokenStream;
-// use quote::TokenStreamExt;
 use uuid::Uuid;
 
 use crate::constraint_schema::ConstraintSchema;
@@ -32,15 +30,19 @@ pub struct Tag {
     pub name: String,
     pub id: Uid,
 }
-// impl quote::ToTokens for Tag {
-//     fn to_tokens(&self, tokens: &mut TokenStream) {
-//         tokens.extend(quote::quote! {base_types::common::Tag {
-//             id: self.id,
-//             name: self.name,
-//         }});
-//     }
-// }
-//
+
+#[cfg(feature = "to_tokens")]
+impl quote::ToTokens for Tag {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let id = self.id;
+        let name = self.name.clone();
+        tokens.extend(quote::quote! {base_types::common::Tag {
+            id: #id,
+            name: #name.to_string(),
+        }});
+    }
+}
+
 impl Tag {
     pub fn new<T>(name: T) -> Self
     where

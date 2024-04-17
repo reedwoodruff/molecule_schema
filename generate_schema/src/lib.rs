@@ -18,7 +18,7 @@ mod utils;
 
 #[proc_macro]
 pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
-    let graph_environment = syn::parse_macro_input!(input as syn::Expr); 
+    // let graph_environment = syn::parse_macro_input!(input as syn::Expr); 
 
     constraint_schema::constraint_schema!();
 
@@ -38,7 +38,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
             let return_type = utils::get_primitive_type(&method_def.return_type);    
             quote! {
                 fn #method_name(&self, 
-                    env: &dyn base_types::traits::GraphEnvironment<TTypes=base_types::primitives::PrimitiveTypes, TValues=base_types::primitives::PrimitiveValues, TSchema = Schema>
+                    env: &dyn base_types::traits::GraphEnvironment<Types=base_types::primitives::PrimitiveTypes, Values=base_types::primitives::PrimitiveValues, Schema = Schema>
                     ) -> std::borrow::Cow<#return_type>;
             }
         });
@@ -67,49 +67,54 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         get_variant_name(&Box::new(el))
     }).collect::<Vec<_>>();
 
+
+
     quote! {
         use base_types::traits::GSO;
-        // Helper trait, private to your module
-        trait IsGraphEnvironment {}
-
-        // Implement IsMyTrait for all T that implement MyTrait
-        // impl<T> IsGraphEnvironment for T where T: base_types::traits::GraphEnvironment<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {}
-        impl<T> IsGraphEnvironment for T where T: base_types::traits::GraphEnvironment<TTypes=base_types::primitives::PrimitiveTypes, TValues=base_types::primitives::PrimitiveValues, TSchema = Schema> {}
-        let _check: &dyn IsGraphEnvironment = &#graph_environment;
-
+        use base_types::{traits as bt};
+        use validator::Validate;
+        use base_types::traits::Buildable;
 
         #(#trait_definition_streams)*
         // #(#template_streams)*
         #(#library_operative_streams)*
         #(#instance_streams)*
 
+        #[derive(Debug, Clone)]
         enum Schema {
-            #(#all_lib_op_names(#all_lib_op_names),)*
+            #(#all_lib_op_names(base_types::traits::GSOWrapper<#all_lib_op_names>),)*
         }
 
+
         impl base_types::traits::GSO for Schema {
-            fn get_constraint_schema_operative_tag(&self) -> &base_types::common::Tag {
+            fn get_constraint_schema_operative_tag(&self) -> std::rc::Rc<base_types::common::Tag> {
                 match &self {
                 #(Self::#all_lib_op_names(item) => item.get_constraint_schema_operative_tag(),)*
                 _ => panic!(),
                 }
             }
-            fn get_id(&self) -> base_types::common::Uid {
+            fn get_id(&self) -> &base_types::common::Uid {
                 match self {
                     #(Self::#all_lib_op_names(item) => item.get_id(),)*
                     _ => panic!(),
                 }
             }
-            fn get_constraint_schema_template_tag(&self) -> &base_types::common::Tag {
+            fn get_constraint_schema_template_tag(&self) -> std::rc::Rc<base_types::common::Tag> {
                 match self {
                     #(Self::#all_lib_op_names(item) => item.get_constraint_schema_template_tag(),)*
                     _ => panic!(),
                 }
             }
-            fn get_operative_by_id(&self, operative_id: &base_types::common::Uid) -> Option<base_types::common::Uid> {
-                match &self {
-                #(Self::#all_lib_op_names(item) => item.get_operative_by_id(operative_id),)*
-                _ => panic!(),
+            fn get_slots(&self) -> &HashMap<Uid, base_types::traits::ActiveSlot>{
+                match self {
+                    #(Self::#all_lib_op_names(item) => item.get_slots(),)*
+                    _ => panic!(),
+                }
+            }
+            fn get_parent_slots(&self) -> &Vec<base_types::traits::ParentSlotRef>{
+                match self {
+                    #(Self::#all_lib_op_names(item) => item.get_parent_slots(),)*
+                    _ => panic!(),
                 }
             }
             

@@ -75,6 +75,8 @@ name = "base_types"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "proc-macro2",
+ "quote",
  "serde",
  "serde_json",
  "strum",

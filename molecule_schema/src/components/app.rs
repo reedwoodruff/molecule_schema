@@ -12,10 +12,9 @@ use base_types::{
     constraint_schema::ConstraintSchema,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
-use leptos::*;
-use reactive_types::{
-    print_schema_reactive,
-    reactive_types::{RConstraintSchema, RLibraryTemplate, RTag, RTraitDef, RTraitOperative},
+use leptos::{logging::log, *};
+use reactive_types::reactive_types::{
+    RConstraintSchema, RLibraryTemplate, RTag, RTraitDef, RTraitOperative,
 };
 
 #[derive(Clone, PartialEq, Debug)]
@@ -58,6 +57,13 @@ impl Display for TreeTypes {
 pub struct SchemaContext {
     pub schema: RConstraintSchema<PrimitiveTypes, PrimitiveValues>,
     pub selected_element: RwSignal<Option<ListItemTypes>>,
+}
+pub fn print_schema_reactive(reactive_schema: &RConstraintSchema<PrimitiveTypes, PrimitiveValues>) {
+    let base_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
+        reactive_schema.clone().into();
+    let json = serde_json::to_string_pretty(&base_schema).unwrap();
+    // std::fs::write(path, json).expect("Unable to write file");
+    log!("{}", json);
 }
 
 #[component]

@@ -1,23 +1,31 @@
+use std::collections::HashMap;
+
+use base_types::traits::{ActiveSlot, GSOWrapperBuilder};
 use proc_macro::TokenStream;
 
-use quote::quote;
+use proc_macro2::Ident;
+use quote::{quote, ToTokens, TokenStreamExt};
 
-use base_types::constraint_schema::*;
 use base_types::constraint_schema_item::ConstraintSchemaItem;
 use base_types::primitives::*;
+use base_types::{constraint_schema::*, traits::GraphEnvironment};
 use syn::{
     parse::{Parse, ParseStream},
     punctuated::Punctuated,
     Result as SynResult, Token, Type,
 };
 
-use crate::utils::{get_primitive_type, get_variant_builder_name, get_variant_name};
+use crate::generate_trait_impl_streams;
+use crate::utils::{
+    get_primitive_type, get_primitive_value, get_variant_builder_name, get_variant_name,
+};
 
 pub(crate) fn generate_operative_streams(
     instantiable: Box<
         &dyn ConstraintSchemaItem<TTypes = PrimitiveTypes, TValues = PrimitiveValues>,
     >,
     constraint_schema: &ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
+    // graph_environment: syn::Expr,
 ) -> proc_macro2::TokenStream {
     let mut field_names = Vec::<syn::Ident>::new();
     let mut field_names_setters = Vec::<syn::Ident>::new();
@@ -35,12 +43,15 @@ pub(crate) fn generate_operative_streams(
         instantiable.get_tag().name.clone(),
         instantiable.get_tag().id,
     );
+    let operative_tag = instantiable.get_tag();
+    let operative_id = operative_tag.id.clone();
     let reference_template = constraint_schema
         .clone()
         .template_library
         .get(reference_template_id)
         .cloned()
         .expect("instantiable must be based on a constraint object");
+    let template_tag = reference_template.get_tag();
 
     let field_digest = instantiable
         .get_locked_fields_digest(constraint_schema)
@@ -55,66 +66,251 @@ pub(crate) fn generate_operative_streams(
         .map(|field| get_primitive_type(&field.value_type))
         .collect::<Vec<_>>();
 
+    let fulfilled_fields = field_digest.locked_fields;
+    let fulfilled_field_names = fulfilled_fields
+        .values()
+        .map(|field| {
+            syn::Ident::new(
+                &*field.fulfilled_field.field_constraint_name,
+                proc_macro2::Span::call_site(),
+            )
+        })
+        .collect::<Vec<_>>();
+    let fulfilled_field_value_types = fulfilled_fields
+        .values()
+        .map(|field| {
+            let value_type = &constraint_schema.template_library[&template_tag.id]
+                .field_constraints[&field.fulfilled_field.field_constraint_id]
+                .value_type;
+            get_primitive_type(value_type)
+        })
+        .collect::<Vec<_>>();
+    let fulfilled_field_values = fulfilled_fields
+        .values()
+        .map(|field| get_primitive_value(&field.fulfilled_field.value));
+
     let operative_tag_handle = syn::Ident::new(
         &(struct_name.to_string().clone() + "operative_tag"),
         proc_macro2::Span::call_site(),
     );
 
-    let operative_tag_name = instantiable.get_tag().name.clone();
-    let operative_tag_id = instantiable.get_tag().id;
+    let op_digest = instantiable.get_operative_digest(constraint_schema);
+    // let unfulfilled_slots = op_digest.get_unfulfilled_operative_slots();
+    let all_slots = op_digest.operative_slots.values().collect::<Vec<_>>();
+    let active_slots = all_slots
+        .iter()
+        .map(|unf_slot| {
+            // let slot_name = unf_slot.slot.tag.name;
+            let slot_id = unf_slot.slot.tag.id;
+            let active_slot = ActiveSlot {
+                slot: unf_slot.slot.clone(),
+                slotted_instances: unf_slot
+                    .related_instances
+                    .iter()
+                    .map(|ri| ri.instance_id)
+                    .collect(),
+            };
+            active_slot
+        })
+        .collect::<Vec<_>>();
+    let active_slot_ids = active_slots
+        .iter()
+        .map(|active_slot| active_slot.slot.tag.id);
+    let active_slot_tokens = if active_slots.is_empty() {
+        quote! {None}
+    } else {
+        quote! {
+            Some(std::collections::HashMap::from([#((#active_slot_ids, #active_slots),)*]))
+        }
+    };
 
-    let template_tag_name = reference_template.get_tag().name.clone();
+    let manipulate_fields_stream = unfulfilled_fields.iter().map(|field| {
+        let field_value_type = get_primitive_type(&field.value_type);
+        let field_name = syn::Ident::new(&*field.tag.name, proc_macro2::Span::call_site());
+        let manipulate_field_trait_name = proc_macro2::Ident::new(
+            &format!("{}{}Field", struct_name, field.tag.name),
+            proc_macro2::Span::call_site(),
+        );
+
+        let setter_fn_name = proc_macro2::Ident::new(
+            &format!("set_{}", field.tag.name.to_lowercase()),
+            proc_macro2::Span::call_site(),
+        );
+
+        quote! {
+            pub trait #manipulate_field_trait_name {
+                fn #setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self;
+            }
+
+            impl #manipulate_field_trait_name for base_types::traits::GSOBuilder<base_types::traits::GSOWrapperBuilder<#struct_builder_name>, base_types::traits::GSOWrapper<#struct_name>> {
+                fn #setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self {
+                    self.wip_instance.data.#field_name = Some(new_val);
+                    self
+                }
+            }
+        }
+    });
+
+    let manipulate_slots_stream = all_slots.iter().map(|slot| {
+        let slot_id = slot.slot.tag.id;
+        let manipulate_slot_trait_name = proc_macro2::Ident::new(
+            &format!("{}{}Slot", struct_name, slot.slot.tag.name),
+            proc_macro2::Span::call_site(),
+        );
+        let add_new_fn_name = proc_macro2::Ident::new(
+            &format!("add_new_{}", slot.slot.tag.name.to_lowercase()),
+            proc_macro2::Span::call_site(),
+        );
+        let add_existing_fn_name = proc_macro2::Ident::new(
+            &format!(
+                "add_existing_{}",
+                slot.slot.tag.name.to_lowercase()
+            ),
+            proc_macro2::Span::call_site(),
+        );
+        let slot_marker_trait = proc_macro2::Ident::new(&format!("{}{}", struct_name, slot.slot.tag.name), proc_macro2::Span::call_site());
+
+        let add_new_stream = match &slot.slot.operative_descriptor {
+            OperativeVariants::LibraryOperative(lib_op_id) => {
+                let item_name = get_variant_name(&Box::new(
+                    constraint_schema.operative_library.get(&lib_op_id).unwrap(),
+                ));
+                quote! {
+                    fn #add_new_fn_name(&mut self, new_item: base_types::traits::InstantiableWrapper<base_types::traits::GSOWrapper<#item_name>> ) -> &mut Self
+                }
+            }
+            OperativeVariants::TraitOperative(trait_op) => {
+                let trait_names = trait_op
+                    .trait_ids
+                    .iter()
+                    .map(|trait_id| {
+                        constraint_schema
+                            .traits
+                            .get(trait_id)
+                            .unwrap()
+                            .tag
+                            .name
+                            .clone()
+                    })
+                    .collect::<Vec<_>>();
+                let trait_names = trait_names.join(" + ");
+                let trait_names = Ident::new(&trait_names, proc_macro2::Span::call_site());
+                quote! {
+                    fn #add_new_fn_name<T>(&mut self, new_item: base_types::traits::InstantiableWrapper<base_types::traits::GSOWrapper<T>>) -> &mut Self
+                        where base_types::traits::GSOWrapper<T>: #trait_names,
+                              T: Clone + std::fmt::Debug + #slot_marker_trait + 'static,
+                }
+            }
+        };
+
+        let integrable_stream = {
+            let to_integrate_operatives = match &slot.slot.operative_descriptor {
+                OperativeVariants::LibraryOperative(lib_op_id) => {
+                    vec![constraint_schema.operative_library.get(lib_op_id).unwrap().clone()]
+                },
+                OperativeVariants::TraitOperative(trait_op) => {
+                    constraint_schema.operative_library.values().filter(|filtering_op| {
+                        let filter_op_trait_impls = filtering_op.get_trait_impl_digest(constraint_schema).trait_impls;//.map(|related_impl| {related_impl.trait_impl}).collect::<Vec<_>>();
+                        for trait_id in trait_op.trait_ids.iter() {
+                            if !filter_op_trait_impls.contains_key(trait_id) {
+                                return false
+                            };
+                        };
+                        true
+                    }).cloned().collect::<Vec<_>>()
+                },
+            };
+            println!("to_integrate: {:#?}", to_integrate_operatives);
+            let streams = to_integrate_operatives.iter().map(|operative| {
+                let operative_name = get_variant_name(&Box::new(operative));
+                quote!{
+                    impl #slot_marker_trait for #operative_name {}
+                }
+            }).collect::<Vec<_>>();
+            streams
+        };
+
+        quote! {
+            trait #slot_marker_trait {}
+            #(#integrable_stream)*
+            pub trait #manipulate_slot_trait_name {
+                #add_new_stream;
+                fn #add_existing_fn_name(&mut self, existing_id: &base_types::common::Uid) -> &mut Self;
+            }
+
+            impl #manipulate_slot_trait_name for base_types::traits::GSOBuilder<base_types::traits::GSOWrapperBuilder<#struct_builder_name>, base_types::traits::GSOWrapper<#struct_name>> {
+                #add_new_stream {
+                    base_types::traits::integrate_child(self, new_item, #slot_id);
+                    self
+                }
+                fn #add_existing_fn_name(&mut self, existing_id: &base_types::common::Uid) -> &mut Self {
+                    base_types::traits::integrate_child_id(self, existing_id, #slot_id);
+                    self
+                }
+            }
+        }
+    });
+
+    let trait_impl_streams =
+        generate_trait_impl_streams::generate_trait_impl_streams(&instantiable, constraint_schema);
 
     quote! {
         // const #operative_tag_handle:  base_types::common::Tag = base_types::common::Tag {name: #operative_tag_name, id: #operative_tag_id };
+        #[derive(Clone, Debug, Default)]
         pub struct #struct_name {
             #(#unfulfilled_field_names: #unfulfilled_field_value_types,)*
-            operative_tag: base_types::common::Tag,
-            template_tag: base_types::common::Tag,
+            #(#fulfilled_field_names: #fulfilled_field_value_types,)*
         }
-        impl base_types::traits::GSO for #struct_name {
-            fn get_constraint_schema_operative_tag(&self) -> &base_types::common::Tag {
-                &self.operative_tag
-                // base_types::common::Tag {
-                //     name: #operative_tag_name,
-                //     id: #operative_tag_id,
-                // }
+
+        impl bt::Buildable for #struct_name {
+            type Builder = bt::GSOWrapperBuilder<#struct_builder_name>;
+
+            fn initiate_build() -> bt::GSOBuilder<Self::Builder, bt::GSOWrapper<Self>> {
+                bt::GSOBuilder::<Self::Builder, bt::GSOWrapper<Self>>::new(
+                        bt::GSOWrapperBuilder::new(
+                            #struct_builder_name::default(),
+                            #active_slot_tokens,
+                            std::rc::Rc::new(#operative_tag),
+                            std::rc::Rc::new(#template_tag),
+                            ),
+                    )
             }
-            fn get_id(&self) -> base_types::common::Uid {
-                12
-            }
-            fn get_constraint_schema_template_tag(&self) -> &base_types::common::Tag {
-                &self.template_tag
-                // base_types::common::Tag {
-                //     name: #template_tag_name,
-                //     id: #reference_template_id,
-                // }
-            }
-            fn get_operative_by_id(&self, operative_id: &base_types::common::Uid) -> Option<base_types::common::Uid> {
-                Some(12)
+            fn get_operative_id() -> base_types::common::Uid {
+               #operative_id
             }
         }
 
-        #[derive(validator::Validate, Default)]
+        #[derive(validator::Validate, Default, Clone, Debug)]
         pub struct #struct_builder_name {
             #(#[validate(required)] #unfulfilled_field_names: Option<#unfulfilled_field_value_types>,)*
-
         }
-        impl base_types::traits::Finalizable<#struct_name> for #struct_builder_name {
+        impl bt::Finalizable<#struct_name> for #struct_builder_name {
             fn finalize(&self) -> Result<#struct_name, anyhow::Error> {
                 <Self as validator::Validate>::validate(self)?;
                 Ok(#struct_name {
                     #(#unfulfilled_field_names: self.#unfulfilled_field_names.as_ref().unwrap().clone(),)*
-                    operative_tag: base_types::common::Tag {
-                        name: #operative_tag_name.to_string(),
-                        id: #operative_tag_id,
-                    },
-                    template_tag: base_types::common::Tag {
-                        name: #template_tag_name.to_string(),
-                        id: #reference_template_id,
-                    },
+                    #(#fulfilled_field_names: #fulfilled_field_values,)*
                 })
             }
         }
+
+        impl bt::Producable<#struct_name > for #struct_builder_name {
+            fn produce(&self) -> #struct_name {
+                #struct_name {
+                    #(#unfulfilled_field_names: self.#unfulfilled_field_names.as_ref().unwrap().clone(),)*
+                }
+            }
+        }
+        impl bt::Verifiable for #struct_builder_name {
+            fn verify(&self) -> Result<(), anyhow::Error> {
+                self.validate()?;
+                Ok(())
+            }
+        }
+
+        #(#manipulate_fields_stream)*
+        #(#manipulate_slots_stream)*
+
+        #trait_impl_streams
     }
 }

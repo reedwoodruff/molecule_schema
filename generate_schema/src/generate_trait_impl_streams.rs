@@ -1,5 +1,6 @@
 use proc_macro::TokenStream;
 
+use proc_macro2::Ident;
 use quote::quote;
 
 use base_types::constraint_schema::*;
@@ -11,14 +12,58 @@ use syn::{
     Result as SynResult, Token, Type,
 };
 
+use crate::utils;
+
 pub(crate) fn generate_trait_impl_streams(
     instantiable: &Box<
         &dyn ConstraintSchemaItem<TTypes = PrimitiveTypes, TValues = PrimitiveValues>,
     >,
     constraint_schema: &ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
 ) -> proc_macro2::TokenStream {
-    quote! {}
-    // let instantiable_name = crate::get_variant_name(&instantiable);
+    let instantiable_name = crate::get_variant_name(&instantiable);
+    let trait_impl_digest = instantiable.get_trait_impl_digest(constraint_schema);
+
+    let trait_impl_stream = trait_impl_digest.trait_impls.iter().map(|(trait_id, trait_impl)| {
+        let trait_def = &constraint_schema.traits[trait_id];
+        let trait_name = syn::Ident::new(&trait_def.tag.name, proc_macro2::Span::call_site());
+        let fn_streams = trait_def.methods.values().map(|method_def| {
+            let method_name = syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
+            let return_type = utils::get_primitive_type(&method_def.return_type);    
+            let method_impl = &trait_impl.trait_impl[&method_def.tag.id];
+            let inner_method_stream = method_impl.iter().map(|method_impl_part| {
+                match method_impl_part {
+                    TraitMethodImplPath::Field(field_id) => {
+                        let field_name = &instantiable.get_locked_fields_digest(constraint_schema).unwrap().field_constraints[field_id].tag.name;
+                        let field_ident = Ident::new(field_name, proc_macro2::Span::call_site());
+                        quote!{
+                            std::borrow::Cow::Borrowed(&self.data.#field_ident)
+                        }
+                    },
+                    TraitMethodImplPath::TraitMethod { trait_id, trait_method_id } => todo!(),
+                    TraitMethodImplPath::Constituent(_) => todo!(),
+                }
+            });
+
+             
+           quote! {
+            fn #method_name(&self, 
+                env: &dyn base_types::traits::GraphEnvironment<Types=base_types::primitives::PrimitiveTypes, Values=base_types::primitives::PrimitiveValues, Schema = Schema>
+                ) -> std::borrow::Cow<#return_type> {
+                    #(#inner_method_stream)*
+                    
+                }
+            }
+        });
+        quote! {
+            impl #trait_name for base_types::traits::GSOWrapper<#instantiable_name> {
+                #(#fn_streams)*
+            }
+        }
+    });
+    quote! {
+        #(#trait_impl_stream)*
+    }
+
     // let mut rolling_trait_impl_list = instantiable.get_local_trait_impls().clone();
     // let ancestor_trait_impls = instantiable
     //     .get_trait_impl_digest(&constraint_schema)

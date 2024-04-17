@@ -27,67 +27,6 @@
       "instances": [],
       "_phantom": null
     },
-    "80154108532351420208023950238362199537": {
-      "tag": {
-        "name": "Punctuation",
-        "id": 80154108532351420208023950238362199537
-      },
-      "field_constraints": {
-        "283999175325162081283664257021156979782": {
-          "tag": {
-            "name": "display",
-            "id": 283999175325162081283664257021156979782
-          },
-          "value_type": "String"
-        }
-      },
-      "operative_slots": {},
-      "trait_impls": {
-        "269615568518355714289153245133887789848": {
-          "193779877189280239920184837987866239289": [
-            {
-              "Field": 283999175325162081283664257021156979782
-            }
-          ]
-        }
-      },
-      "instances": [],
-      "_phantom": null
-    },
-    "108679724794032509075765737841260554635": {
-      "tag": {
-        "name": "Sentence",
-        "id": 108679724794032509075765737841260554635
-      },
-      "field_constraints": {},
-      "operative_slots": {
-        "19115959626290932012034352531699796789": {
-          "tag": {
-            "name": "linear_displayable",
-            "id": 19115959626290932012034352531699796789
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 146589671677852572510862249854309642703
-          },
-          "bounds": {
-            "LowerBound": 1
-          }
-        },
-        "16441253672467350872661031560135915256": {
-          "tag": {
-            "name": "final_punctuation",
-            "id": 16441253672467350872661031560135915256
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 206325976247375236594506543803265806822
-          },
-          "bounds": "Single"
-        }
-      },
-      "trait_impls": {},
-      "instances": [],
-      "_phantom": null
-    },
     "126934203727462554665438647706445778888": {
       "tag": {
         "name": "LinearDisplayable",
@@ -135,10 +74,83 @@
       "trait_impls": {},
       "instances": [],
       "_phantom": null
+    },
+    "80154108532351420208023950238362199537": {
+      "tag": {
+        "name": "Punctuation",
+        "id": 80154108532351420208023950238362199537
+      },
+      "field_constraints": {
+        "283999175325162081283664257021156979782": {
+          "tag": {
+            "name": "display",
+            "id": 283999175325162081283664257021156979782
+          },
+          "value_type": "String"
+        }
+      },
+      "operative_slots": {},
+      "trait_impls": {
+        "269615568518355714289153245133887789848": {
+          "193779877189280239920184837987866239289": [
+            {
+              "Field": 283999175325162081283664257021156979782
+            }
+          ]
+        }
+      },
+      "instances": [],
+      "_phantom": null
+    },
+    "108679724794032509075765737841260554635": {
+      "tag": {
+        "name": "Sentence",
+        "id": 108679724794032509075765737841260554635
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "16441253672467350872661031560135915256": {
+          "tag": {
+            "name": "final_punctuation",
+            "id": 16441253672467350872661031560135915256
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 206325976247375236594506543803265806822
+          },
+          "bounds": "Single"
+        },
+        "19115959626290932012034352531699796789": {
+          "tag": {
+            "name": "linear_displayable",
+            "id": 19115959626290932012034352531699796789
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 146589671677852572510862249854309642703
+          },
+          "bounds": {
+            "LowerBound": 1
+          }
+        }
+      },
+      "trait_impls": {},
+      "instances": [],
+      "_phantom": null
     }
   },
   "instance_library": {},
   "operative_library": {
+    "146589671677852572510862249854309642703": {
+      "tag": {
+        "name": "LinearDisplayableOp",
+        "id": 146589671677852572510862249854309642703
+      },
+      "template_id": 126934203727462554665438647706445778888,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
     "206325976247375236594506543803265806822": {
       "tag": {
         "name": "PunctuationOp",
@@ -151,12 +163,24 @@
       "trait_impls": {},
       "_phantom": null
     },
-    "146589671677852572510862249854309642703": {
+    "174269049910124881773176165750451637336": {
       "tag": {
-        "name": "LinearDisplayableOp",
-        "id": 146589671677852572510862249854309642703
+        "name": "SentenceOp",
+        "id": 174269049910124881773176165750451637336
       },
-      "template_id": 126934203727462554665438647706445778888,
+      "template_id": 108679724794032509075765737841260554635,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "301268331587431506953240857854582522773": {
+      "tag": {
+        "name": "WordOp",
+        "id": 301268331587431506953240857854582522773
+      },
+      "template_id": 309332476772966045744569128325923845305,
       "parent_operative_id": null,
       "slotted_instances": {},
       "locked_fields": {},

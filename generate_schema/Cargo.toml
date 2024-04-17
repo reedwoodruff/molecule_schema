@@ -19,7 +19,9 @@ features = [
 
 [dependencies]
 constraint_schema = { path = "../constraint_schema" }
-base_types = { path = "../base_types" }                 # molecule_schema = { path = "../molecule_schema" }
+base_types = { path = "../base_types", features = [
+  "to_tokens",
+] } # molecule_schema = { path = "../molecule_schema" }
 syn = { version = "2.0", features = ["full"] }
 quote = "1.0"
 proc-macro2 = "1"
