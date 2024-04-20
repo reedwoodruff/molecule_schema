@@ -343,3 +343,28 @@ Any subnode created for a slot should expose the same interface as if it was bei
 ## April 15, 2024
 Difficult at this point to see how/if everything is going to come together. There are many unanswered questions and unasked questions. Right now, it seems like the prudent thing to do is to get a rough working implementation of the graph environment up which interfaces with the schema system. This would allow for some experimentation with different schemas to see how useful/unuseful the entire system is. It's surprisingly difficult to conceptualize how the resulting graphs will behave or speculate about their properties (largely, I think, because that is more a function of the specific schema than it is of the overarching system). That, I suppose, was the impetus for the whole system -- the hope that usefulness beyond what can immediately be conceptualized will be unlocked by providing an environment in which one could easily manipulate and interact with a schemaful graph.
 The hierarchy of written language is a good starting point -- encoding documents, paragraphs, sentences, and words. The hope is that alongside this structural schema could exist some more semantic schema. A rich text editor could use the structural schema to lay out the words how we're used to seeing them, and then there would need to be some creative way of visualizing and interacting with the semantic schema.
+
+## April 18, 2024
+Coming to a better understanding that I think the key primitives in any standard library schema should actually be the relationships rather than the objects.
+In other words, rather than trying to model a bunch of abstract entities which various things can be loosely represented by, instead trying to abstract out the way things relate to each other. The idea is that entities or complex state could then be modeled as arbitrarily large collections of these primitive associations.
+
+It's not clear that there won't need to be *some* kind of entity representations. I think the point here is more in regards to the direction of specificity flow.
+As things become more specialized, they can kind of encapsulate the less-specific things, rather than the other way around.
+Instead of having a "building" entity concept which is complex enough to house every single type of building, instead you have a "building" entity which is very basic and consists only of the concepts which are integral to "buildingness" -- maybe location, for example. And then "library" might have "building" in its constituent structure (perhaps connected to by a "consists_of" relationship) but it could also include many other constituent concepts in parallel.
+
+There is a helpful interaction with the trait system here, I think. For example, you could have a "building" entity and also a "building" trait. The building entity would implement the building trait.
+Anything that has a "building" in its constituent structure could essentially "lift" the building trait so that it also satisfies the building trait.
+
+Truth is, I'm not sure it's super helpful to delineate between entities and relationships right now. It seems like they kind of mix together, as will hopefully become more apparent. What we'd think of "relationships" might actually be a conglomerate subgraph consisting of various things (some of which we might classically consider entities, and some which we might classically consider relationships). And the same would be true for things we'd normally call "entities" (they'd be composed of a conglomeration of entities and relationships).
+For example, you might have several a very basic relationships like "consists_of". Then you might specialize that to make a new relationship "has_color", which is essentially a "consists_of" with the stipulation that the pointed-to thing be a color.
+And then a cardinal bird might consist of some "bird" subgraph and a "has_color" relationship with red.
+
+There's still a lot of thought to put into this, but it seems apparent to me that it will be required to have a very lean set of basic "relationships" or "assertions" which serve as building blocks for more complex meaning.
+
+Base assertion candidates:
+- relates_to (it might be useful to have a totally neutral base assertion like this which could be used with qualifiers to build new meaning. In fact, maybe all other assertions should ultimately be built with this one)
+- consists_of
+- precedes/succeeds (denoting linear order)
+
+Base entity candidates:
+- entity (again, a neutral base entity which serves as the building block)

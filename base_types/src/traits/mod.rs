@@ -23,18 +23,19 @@ mod tests;
 type LibOp = LibraryOperative<PrimitiveTypes, PrimitiveValues>;
 type LibTemplate = LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
 
+#[derive(Debug, Display)]
+enum ElementCreationError {
+    BoundCheckOutOfRange,
+    ChildElementIsWrongType,
+    ChildElementDoesntExist,
+}
+impl std::error::Error for ElementCreationError {}
+
 #[derive(Debug)]
 pub struct BaseGraphEnvironment<TSchema: GSO> {
     pub created_instances: HashMap<Uid, TSchema>,
     pub constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
 }
-// impl<TSchema: GSO> BaseGraphEnvironment {
-//     fn new() -> Self {
-//         Self {
-//             created_instances: HashMap::new(),
-//         }
-//     }
-// }
 
 impl<TSchema: GSO> GraphEnvironment for BaseGraphEnvironment<TSchema> {
     type Schema = TSchema;
@@ -48,11 +49,19 @@ impl<TSchema: GSO> GraphEnvironment for BaseGraphEnvironment<TSchema> {
     fn get_element(&self, id: &Uid) -> Option<&Self::Schema> {
         self.created_instances.get(id)
     }
-    fn instantiate_element(&mut self, element: Self::Schema) -> Uid {
+    fn instantiate_element<T: Clone + std::fmt::Debug>(
+        &mut self,
+        // element: InstantiableWrapper<GSOWrapper<T>>,
+        element: Self::Schema,
+    ) -> Uid {
         let id = *element.get_id();
         self.created_instances.insert(id, element);
+        // element.flatten().into_iter().for_each(|instantiable| {
+        //    self.created_instances.insert(instantiable.get_id(), instantiable)
+        // });
         id
     }
+    // fn instantiate_elements()
 }
 
 pub trait GraphEnvironment {
@@ -61,7 +70,11 @@ pub trait GraphEnvironment {
     type Schema: GSO;
 
     fn get_element(&self, id: &Uid) -> Option<&Self::Schema>;
-    fn instantiate_element(&mut self, element: Self::Schema) -> Uid;
+    fn instantiate_element<T: Clone + std::fmt::Debug>(
+        &mut self,
+        // element: InstantiableWrapper<GSOWrapper<T>>,
+        element: Self::Schema,
+    ) -> Uid;
     fn get_constraint_schema(&self) -> &ConstraintSchema<Self::Types, Self::Values>;
 }
 
@@ -171,14 +184,6 @@ impl<T: Clone + std::fmt::Debug> GSO for GSOWrapper<T> {
         self.template_tag.clone()
     }
 }
-// pub trait InitializeWrapperBuilder<T> {
-//     fn initialize(
-//         data: T,
-//         slots: Option<HashMap<Uid, ActiveSlot>>,
-//         operative_tag: Rc<Tag>,
-//         template_tag: Rc<Tag>,
-//     ) -> Self;
-// }
 #[derive(Clone, Debug)]
 pub struct GSOWrapperBuilder<T> {
     id: Uid,
@@ -190,23 +195,6 @@ pub struct GSOWrapperBuilder<T> {
     // operative: Rc<LibOp>,
     // template: Rc<LibTemplate>,
 }
-// impl<T: Clone + std::fmt::Debug> InitializeWrapperBuilder<T> for GSOWrapperBuilder<T> {
-//     fn initialize(
-//         data: T,
-//         slots: Option<HashMap<Uid, ActiveSlot>>,
-//         operative_tag: Rc<Tag>,
-//         template_tag: Rc<Tag>,
-//     ) -> Self {
-//         Self {
-//             id: uuid::Uuid::new_v4().as_u128(),
-//             slots: slots.unwrap_or(HashMap::new()),
-//             parent_slots: Vec::new(),
-//             data,
-//             operative_tag,
-//             template_tag,
-//         }
-//     }
-// }
 
 impl<T: Clone + std::fmt::Debug> GSOWrapperBuilder<T> {
     pub fn new(
@@ -260,13 +248,7 @@ where
         }
     }
 }
-#[derive(Debug, Display)]
-enum ElementCreationError {
-    BoundCheckOutOfRange,
-    ChildElementIsWrongType,
-    ChildElementDoesntExist,
-}
-impl std::error::Error for ElementCreationError {}
+
 impl<F> Verifiable for GSOWrapperBuilder<F>
 where
     F: Verifiable,
@@ -291,10 +273,7 @@ where
         Err(Error::new(ElementCreationError::BoundCheckOutOfRange))
     }
 }
-// impl<F, T, G: GraphEnvironment> Finalizable<GSOWrapper<T>, G> for GSOWrapperBuilder<F> where
-//     F: Finalizable<T, G>
-// {
-// }
+
 impl<F, T> Finalizable<T> for F
 where
     F: Verifiable + Producable<T>,
@@ -310,9 +289,6 @@ where
     type Builder: Finalizable<GSOWrapper<Self>>;
 
     fn initiate_build() -> GSOBuilder<Self::Builder, GSOWrapper<Self>>;
-    // {
-    //     GSOBuilder::<Self::Builder, GSOWrapper<Self>>::new()
-    // }
     fn get_operative_id() -> Uid;
 }
 
@@ -407,14 +383,6 @@ where
     }
 }
 
-// pub trait Integrable<C> {
-//     fn get_slot_id() -> Uid;
-//     // fn integrate(&mut self, child_id: &Uid) -> ParentSlotRef;
-// }
-
-// impl<F, T> Integrable<T> for GSOWrapperBuilder<F> {
-//     fn integrate(&mut self, child: &T) -> &mut Self {}
-// }
 pub fn integrate_child<F, T, C>(
     builder: &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>>,
     mut child: InstantiableWrapper<GSOWrapper<C>>,
@@ -447,7 +415,6 @@ where
     F: Verifiable + Producable<T> + Clone + std::fmt::Debug,
     T: Clone + std::fmt::Debug,
 {
-    // let slot_id = <F as Integrable<C>>::get_slot_id().clone();
     builder
         .wip_instance
         .add_instance_to_slot(&slot_id, *child_id);
@@ -459,19 +426,6 @@ where
     builder.child_updates.push((*child_id, slot_ref));
     builder
 }
-// pub fn integrate_child_id<'a, F, T, C>(
-//     builder: &'a mut GSOBuilder<F, T>,
-//     child_id: &Uid,
-// ) -> &'a mut GSOBuilder<F, T>
-// where
-//     F: Integrable<GSOWrapper<C>> + Finalizable<T>,
-//     T: Instantiable,
-//     GSOWrapper<C>: Instantiable + 'static,
-// {
-//     let slot_ref = builder.wip_instance.integrate(child_id);
-//     builder.child_updates.push((*child_id, slot_ref));
-//     builder
-// }
 
 impl<T: Clone + std::fmt::Debug> Instantiable for GSOWrapper<T> {
     // type Graph = G;
