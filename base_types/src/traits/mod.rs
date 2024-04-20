@@ -36,8 +36,27 @@ pub struct BaseGraphEnvironment<TSchema: GSO> {
     pub created_instances: HashMap<Uid, TSchema>,
     pub constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
 }
+impl<TSchema: GSO> BaseGraphEnvironment<TSchema> {
+    pub fn new(constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> Self {
+        Self {
+            created_instances: HashMap::new(),
+            constraint_schema,
+        }
+    }
+    pub fn new_without_schema() -> Self {
+        Self {
+            created_instances: HashMap::new(),
+            constraint_schema: ConstraintSchema {
+                template_library: HashMap::new(),
+                instance_library: HashMap::new(),
+                operative_library: HashMap::new(),
+                traits: HashMap::new(),
+            },
+        }
+    }
+}
 
-impl<TSchema: GSO> GraphEnvironment for BaseGraphEnvironment<TSchema> {
+impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> {
     type Schema = TSchema;
     type Types = PrimitiveTypes;
     type Values = PrimitiveValues;
@@ -49,16 +68,21 @@ impl<TSchema: GSO> GraphEnvironment for BaseGraphEnvironment<TSchema> {
     fn get_element(&self, id: &Uid) -> Option<&Self::Schema> {
         self.created_instances.get(id)
     }
-    fn instantiate_element<T: Clone + std::fmt::Debug>(
+    fn instantiate_element<T: std::fmt::Debug + Clone + 'static>(
         &mut self,
-        // element: InstantiableWrapper<GSOWrapper<T>>,
-        element: Self::Schema,
-    ) -> Uid {
-        let id = *element.get_id();
-        self.created_instances.insert(id, element);
-        // element.flatten().into_iter().for_each(|instantiable| {
-        //    self.created_instances.insert(instantiable.get_id(), instantiable)
-        // });
+        element: InstantiableWrapper<GSOWrapper<T>, Self::Schema>,
+    ) -> Uid
+    where
+        Self: Sized,
+        GSOWrapper<T>: Instantiable<Schema = Self::Schema>,
+    {
+        let id = *element.get_instantiable_instance().get_id();
+        // self.created_instances.insert(id, element);
+        element.flatten().into_iter().for_each(|instantiable| {
+            let instantiated = instantiable.instantiate();
+            self.created_instances
+                .insert(*instantiable.get_instance_id(), instantiated);
+        });
         id
     }
     // fn instantiate_elements()
@@ -67,18 +91,20 @@ impl<TSchema: GSO> GraphEnvironment for BaseGraphEnvironment<TSchema> {
 pub trait GraphEnvironment {
     type Types: ConstraintTraits;
     type Values: ConstraintTraits;
-    type Schema: GSO;
+    type Schema: GSO + 'static;
 
     fn get_element(&self, id: &Uid) -> Option<&Self::Schema>;
-    fn instantiate_element<T: Clone + std::fmt::Debug>(
+    fn instantiate_element<T: std::fmt::Debug + Clone + 'static>(
         &mut self,
-        // element: InstantiableWrapper<GSOWrapper<T>>,
-        element: Self::Schema,
-    ) -> Uid;
+        element: InstantiableWrapper<GSOWrapper<T>, Self::Schema>,
+    ) -> Uid
+    where
+        GSOWrapper<T>: Instantiable<Schema = Self::Schema>,
+        Self: Sized;
     fn get_constraint_schema(&self) -> &ConstraintSchema<Self::Types, Self::Values>;
 }
 
-pub trait GSO: std::fmt::Debug {
+pub trait GSO: std::fmt::Debug + Clone {
     /// Instance ID
     fn get_id(&self) -> &Uid;
     // fn get_constraint_schema_operative_tag(&self) -> Rc<LibOp>;
@@ -150,7 +176,7 @@ pub struct GSOWrapper<T> {
     pub data: T,
     operative_tag: Rc<Tag>,
     template_tag: Rc<Tag>,
-    // operative: Rc<LibOp>,
+    // _phantom: PhantomData<TSchema>, // operative: Rc<LibOp>,
     // template: Rc<LibTemplate>,
 }
 impl<T: Clone + std::fmt::Debug> GSOWrapper<T> {}
@@ -274,63 +300,60 @@ where
     }
 }
 
-impl<F, T> Finalizable<T> for F
-where
-    F: Verifiable + Producable<T>,
-    T: Instantiable,
-{
-}
+impl<F, T> Finalizable<GSOWrapper<T>> for GSOWrapperBuilder<F> where F: Verifiable + Producable<T> {}
 
 pub trait Buildable
 where
     Self: Sized + 'static,
-    GSOWrapper<Self>: Instantiable,
+    GSOWrapper<Self>: Instantiable<Schema = Self::Schema>,
 {
     type Builder: Finalizable<GSOWrapper<Self>>;
+    type Schema;
 
-    fn initiate_build() -> GSOBuilder<Self::Builder, GSOWrapper<Self>>;
+    fn initiate_build() -> GSOBuilder<Self::Builder, GSOWrapper<Self>, Self::Schema>;
     fn get_operative_id() -> Uid;
 }
 
 pub trait Verifiable {
     fn verify(&self) -> Result<(), Error>;
 }
-pub trait Instantiable: GSO {
+pub trait Instantiable: std::fmt::Debug + Any {
     // type Graph: GraphEnvironment;
+    type Schema;
 
-    fn instantiate(&self) -> Result<(), Error>;
-    fn get_id(&self) -> &Uid;
+    fn instantiate(&self) -> Self::Schema;
+    fn get_instance_id(&self) -> &Uid;
 }
-type InstantiableElements = Vec<Rc<dyn Instantiable>>;
+type InstantiableElements<TSchema> = Vec<Rc<dyn Instantiable<Schema = TSchema>>>;
 
 #[derive(Debug, Clone)]
-pub struct InstantiableWrapper<T>
+pub struct InstantiableWrapper<T, TSchema>
 where
-    T: Instantiable,
+    T: Instantiable<Schema = TSchema>,
 {
-    prereq_instantiables: InstantiableElements,
+    prereq_instantiables: InstantiableElements<TSchema>,
     instantiable_instance: T,
 }
 
-impl<T> InstantiableWrapper<T>
+impl<T, TSchema> InstantiableWrapper<T, TSchema>
 where
-    T: Instantiable + 'static,
+    T: Instantiable<Schema = TSchema> + 'static,
 {
-    pub fn flatten(mut self) -> InstantiableElements {
+    pub fn flatten(mut self) -> InstantiableElements<TSchema> {
         self.prereq_instantiables
             .push(Rc::new(self.instantiable_instance));
         self.prereq_instantiables
     }
-    pub fn get_prereq_instantiables(&self) -> &InstantiableElements {
+    pub fn get_prereq_instantiables(&self) -> &InstantiableElements<TSchema> {
         &self.prereq_instantiables
     }
     pub fn get_instantiable_instance(&self) -> &T {
         &self.instantiable_instance
     }
 }
-impl<T> InstantiableWrapper<GSOWrapper<T>>
+impl<T, TSchema> InstantiableWrapper<GSOWrapper<T>, TSchema>
 where
-    GSOWrapper<T>: Instantiable,
+    GSOWrapper<T>: Instantiable<Schema = TSchema>,
 {
     pub fn add_parent_slot(&mut self, parent_slot: ParentSlotRef) {
         self.instantiable_instance.parent_slots.push(parent_slot);
@@ -349,24 +372,23 @@ pub trait Finalizable<T>: Verifiable + Producable<T> {
 }
 
 #[derive(Default, Debug)]
-pub struct GSOBuilder<F, T>
+pub struct GSOBuilder<F, T, TSchema>
 where
     F: Finalizable<T>,
-    T: Instantiable,
 {
-    instantiables: Vec<Rc<dyn Instantiable>>,
+    instantiables: Vec<Rc<dyn Instantiable<Schema = TSchema>>>,
     child_updates: Vec<(Uid, ParentSlotRef)>,
     parent_updates: Vec<(Uid, ChildSlotRef)>,
     pub wip_instance: F,
     _phantom: PhantomData<T>,
 }
 
-impl<F, T> GSOBuilder<F, T>
+impl<F, T, TSchema> GSOBuilder<F, T, TSchema>
 where
     F: Finalizable<T>,
-    T: Instantiable + 'static,
+    T: Instantiable<Schema = TSchema> + 'static,
 {
-    pub fn build(&mut self) -> Result<InstantiableWrapper<T>, Error> {
+    pub fn build(&mut self) -> Result<InstantiableWrapper<T, TSchema>, Error> {
         Ok(InstantiableWrapper {
             instantiable_instance: self.wip_instance.finalize()?,
             prereq_instantiables: self.instantiables.clone(),
@@ -383,15 +405,15 @@ where
     }
 }
 
-pub fn integrate_child<F, T, C>(
-    builder: &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>>,
-    mut child: InstantiableWrapper<GSOWrapper<C>>,
+pub fn integrate_child<F, T, C, TSchema>(
+    builder: &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>, TSchema>,
+    mut child: InstantiableWrapper<GSOWrapper<C>, TSchema>,
     slot_id: Uid,
-) -> &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>>
+) -> &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>, TSchema>
 where
     F: Verifiable + Producable<T> + Clone + std::fmt::Debug,
     T: Clone + std::fmt::Debug,
-    GSOWrapper<C>: Instantiable + 'static,
+    GSOWrapper<C>: Instantiable<Schema = TSchema> + 'static,
 {
     // let slot_id = <F as Integrable<C>>::get_slot_id().clone();
     builder
@@ -406,11 +428,11 @@ where
     builder
 }
 
-pub fn integrate_child_id<'a, F, T>(
-    builder: &'a mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>>,
+pub fn integrate_child_id<'a, F, T, TSchema>(
+    builder: &'a mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>, TSchema>,
     mut child_id: &Uid,
     slot_id: Uid,
-) -> &'a mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>>
+) -> &'a mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>, TSchema>
 where
     F: Verifiable + Producable<T> + Clone + std::fmt::Debug,
     T: Clone + std::fmt::Debug,
@@ -427,14 +449,25 @@ where
     builder
 }
 
-impl<T: Clone + std::fmt::Debug> Instantiable for GSOWrapper<T> {
-    // type Graph = G;
+impl<T, TSchema> Instantiable for GSOWrapper<T>
+where
+    T: Clone + std::fmt::Debug + IntoSchema<Schema = TSchema> + 'static,
+{
+    type Schema = TSchema;
 
-    fn instantiate(&self) -> Result<(), Error> {
-        todo!()
+    fn instantiate(&self) -> Self::Schema {
+        T::into_schema(self.clone())
     }
 
-    fn get_id(&self) -> &Uid {
-        todo!()
+    fn get_instance_id(&self) -> &Uid {
+        self.get_id()
     }
+}
+
+pub trait IntoSchema
+where
+    Self: Sized,
+{
+    type Schema;
+    fn into_schema(instantiable: GSOWrapper<Self>) -> Self::Schema;
 }

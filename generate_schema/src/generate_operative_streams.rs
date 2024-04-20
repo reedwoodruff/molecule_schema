@@ -142,7 +142,7 @@ pub(crate) fn generate_operative_streams(
                 fn #setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self;
             }
 
-            impl #manipulate_field_trait_name for base_types::traits::GSOBuilder<base_types::traits::GSOWrapperBuilder<#struct_builder_name>, base_types::traits::GSOWrapper<#struct_name>> {
+            impl #manipulate_field_trait_name for base_types::traits::GSOBuilder<base_types::traits::GSOWrapperBuilder<#struct_builder_name>, base_types::traits::GSOWrapper<#struct_name>, Schema> {
                 fn #setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self {
                     self.wip_instance.data.#field_name = Some(new_val);
                     self
@@ -176,7 +176,7 @@ pub(crate) fn generate_operative_streams(
                     constraint_schema.operative_library.get(&lib_op_id).unwrap(),
                 ));
                 quote! {
-                    fn #add_new_fn_name(&mut self, new_item: base_types::traits::InstantiableWrapper<base_types::traits::GSOWrapper<#item_name>> ) -> &mut Self
+                    fn #add_new_fn_name(&mut self, new_item: base_types::traits::InstantiableWrapper<base_types::traits::GSOWrapper<#item_name>, Schema> ) -> &mut Self
                 }
             }
             OperativeVariants::TraitOperative(trait_op) => {
@@ -196,9 +196,9 @@ pub(crate) fn generate_operative_streams(
                 let trait_names = trait_names.join(" + ");
                 let trait_names = Ident::new(&trait_names, proc_macro2::Span::call_site());
                 quote! {
-                    fn #add_new_fn_name<T>(&mut self, new_item: base_types::traits::InstantiableWrapper<base_types::traits::GSOWrapper<T>>) -> &mut Self
+                    fn #add_new_fn_name<T>(&mut self, new_item: base_types::traits::InstantiableWrapper<base_types::traits::GSOWrapper<T>, Schema>) -> &mut Self
                         where base_types::traits::GSOWrapper<T>: #trait_names,
-                              T: Clone + std::fmt::Debug + #slot_marker_trait + 'static,
+                              T: Clone + std::fmt::Debug + bt::IntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
                 }
             }
         };
@@ -238,7 +238,7 @@ pub(crate) fn generate_operative_streams(
                 fn #add_existing_fn_name(&mut self, existing_id: &base_types::common::Uid) -> &mut Self;
             }
 
-            impl #manipulate_slot_trait_name for base_types::traits::GSOBuilder<base_types::traits::GSOWrapperBuilder<#struct_builder_name>, base_types::traits::GSOWrapper<#struct_name>> {
+            impl #manipulate_slot_trait_name for base_types::traits::GSOBuilder<base_types::traits::GSOWrapperBuilder<#struct_builder_name>, base_types::traits::GSOWrapper<#struct_name>, Schema> {
                 #add_new_stream {
                     base_types::traits::integrate_child(self, new_item, #slot_id);
                     self
@@ -262,11 +262,19 @@ pub(crate) fn generate_operative_streams(
             #(#fulfilled_field_names: #fulfilled_field_value_types,)*
         }
 
+        impl bt::IntoSchema for #struct_name {
+            type Schema = Schema;
+            fn into_schema(instantiable: bt::GSOWrapper<Self>) -> Self::Schema {
+                Schema::#struct_name(instantiable.to_owned())
+            }
+        }
+
         impl bt::Buildable for #struct_name {
+            type Schema = Schema;
             type Builder = bt::GSOWrapperBuilder<#struct_builder_name>;
 
-            fn initiate_build() -> bt::GSOBuilder<Self::Builder, bt::GSOWrapper<Self>> {
-                bt::GSOBuilder::<Self::Builder, bt::GSOWrapper<Self>>::new(
+            fn initiate_build() -> bt::GSOBuilder<Self::Builder, bt::GSOWrapper<Self>, Schema> {
+                bt::GSOBuilder::<Self::Builder, bt::GSOWrapper<Self>, Schema>::new(
                         bt::GSOWrapperBuilder::new(
                             #struct_builder_name::default(),
                             #active_slot_tokens,

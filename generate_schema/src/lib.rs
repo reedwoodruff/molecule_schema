@@ -81,7 +81,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
         #(#instance_streams)*
 
         #[derive(Debug, Clone)]
-        enum Schema {
+        pub enum Schema {
             #(#all_lib_op_names(base_types::traits::GSOWrapper<#all_lib_op_names>),)*
         }
 

@@ -36,14 +36,15 @@ fn test_macro() {
         .add_new_linear_displayable(new_linear_displayable)
         .add_new_final_punctuation(new_punctuation_op)
         .build()
-        .unwrap()
-        .flatten();
+        .unwrap(); // .flatten();
 
-    for element in new_sen {
-        println!("{:#?}", element);
-    }
+    // for element in new_sen {
+    //     println!("{:#?}", element);
+    // }
 
     // sge_instance.instantiate_element(Schema::)
+    sge_instance.instantiate_element(new_sen);
+    println!("{:#?}", sge_instance.created_instances);
     panic!();
     // let mut new_sen = SentenceOp::initiate_build();
     // let mut new_linear_displayable = LinearDisplayableOp::initiate_build();
