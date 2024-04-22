@@ -52,16 +52,20 @@ impl GSO for SampleSchema {
         todo!()
     }
 
-    fn add_parent_slot(&mut self, slot_ref: SlotRef) -> &mut Self {
+    fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> EditHistoryItem {
         todo!()
     }
 
-    fn remove_from_child_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+    fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> EditHistoryItem {
         todo!()
     }
 
-    fn remove_from_parent_slot(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self {
+    fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> EditHistoryItem {
         todo!()
+    }
+
+    fn get_slot_by_id(&self, slot_id: &Uid) -> Option<&ActiveSlot> {
+        self.get_slots().get(slot_id)
     }
 }
 
@@ -285,10 +289,11 @@ fn test_builder() {
     let mut env = BaseGraphEnvironment::<SampleSchema>::new_without_schema();
 
     env.instantiate_element(sentence);
-    let word = match env.get_mut(&word1id) {
-        Some(SampleSchema::Word(word)) => word,
-        _ => unreachable!(),
-    };
+    let word = env.get_mut(&word1id).unwrap();
+    //  {
+    //     Some(SampleSchema::Word(word)) => word,
+    //     _ => unreachable!(),
+    // };
     // word.data.display = "Goolo".to_string();
     word.set_display("goob");
     println!("{:#?}", word);

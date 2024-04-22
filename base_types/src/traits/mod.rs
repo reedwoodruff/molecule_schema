@@ -45,16 +45,19 @@ impl std::error::Error for ElementDeletionError {}
 pub struct BaseGraphEnvironment<TSchema: GSO> {
     pub created_instances: HashMap<Uid, TSchema>,
     pub constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
+    pub history: Vec<Vec<AllHistoryItem<TSchema>>>,
 }
 impl<TSchema: GSO> BaseGraphEnvironment<TSchema> {
     pub fn new(constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> Self {
         Self {
             created_instances: HashMap::new(),
             constraint_schema,
+            history: Vec::new(),
         }
     }
     pub fn new_without_schema() -> Self {
         Self {
+            history: Vec::new(),
             created_instances: HashMap::new(),
             constraint_schema: ConstraintSchema {
                 template_library: HashMap::new(),
@@ -69,10 +72,11 @@ impl<TSchema: GSO> BaseGraphEnvironment<TSchema> {
 impl<TSchema: GSO + 'static> BaseGraphEnvironment<TSchema> {
     fn check_and_delete_children(&mut self, id: &Uid, parent_id: Option<&Uid>) {
         let mut should_delete = if parent_id.is_some() { false } else { true };
-        let item = self.get_mut(&id).unwrap();
+        // let item_slots = self.get(&id).unwrap();
+        // let mut item_mut = self.get_mut(&id).unwrap();
 
         if let Some(parent_id) = parent_id {
-            let child_parent_slots = item.get_parent_slots();
+            let child_parent_slots = self.get(&id).unwrap().get_parent_slots();
             let remaining_parents = child_parent_slots
                 .iter()
                 .filter(|slot_ref| slot_ref.host_instance_id != *parent_id)
@@ -83,19 +87,27 @@ impl<TSchema: GSO + 'static> BaseGraphEnvironment<TSchema> {
         }
 
         if !should_delete && parent_id.is_some() {
-            item.remove_from_parent_slot(&parent_id.unwrap(), None);
+            self.get_mut(&id)
+                .unwrap()
+                .internal_remove_parent(&parent_id.unwrap(), None);
         }
 
         if should_delete {
-            item.get_slots().clone().values().for_each(|slot| {
-                slot.slotted_instances
-                    .iter()
-                    .for_each(|slotted_instance_id| {
-                        self.check_and_delete_children(slotted_instance_id, Some(id));
-                    });
-            });
+            self.get(&id)
+                .unwrap()
+                .get_slots()
+                .clone()
+                .values()
+                .for_each(|slot| {
+                    slot.slotted_instances
+                        .iter()
+                        .for_each(|slotted_instance_id| {
+                            self.check_and_delete_children(slotted_instance_id, Some(id));
+                        });
+                });
         }
-        self.created_instances.remove(&id);
+        let removed_value = self.created_instances.remove(&id).unwrap();
+        self.append_top_level_history_item(AllHistoryItem::Delete(vec![removed_value]));
     }
 }
 impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> {
@@ -110,8 +122,8 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
     fn get(&self, id: &Uid) -> Option<&Self::Schema> {
         self.created_instances.get(id)
     }
-    fn get_mut(&mut self, id: &Uid) -> Option<&mut Self::Schema> {
-        self.created_instances.get_mut(id)
+    fn get_mut(&mut self, id: &Uid) -> Option<GSOEditor<Self>> {
+        Some(GSOEditor::<Self>::new(*id, self))
     }
     fn instantiate_element<T: std::fmt::Debug + Clone + 'static>(
         &mut self,
@@ -124,8 +136,8 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
         let id = *element.get_instantiable_instance().get_id();
         // self.created_instances.insert(id, element);
         element.child_updates.iter().for_each(|child_update| {
-            let child = self.created_instances.get_mut(&child_update.0).unwrap();
-            child.add_parent_slot(child_update.1.clone());
+            let mut child = self.get_mut(&child_update.0).unwrap();
+            child.internal_add_parent_slot(&child_update.1.clone());
         });
         element.flatten().into_iter().for_each(|instantiable| {
             let instantiated = instantiable.instantiate();
@@ -148,15 +160,44 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
         if !can_delete {
             return Err(Error::new(ElementDeletionError::RequiredByParentSlot));
         }
+        self.add_top_level_history_item(AllHistoryItem::BlockActionMarker);
         parent_slots.iter().for_each(|parent_slot| {
             self.get_mut(&parent_slot.host_instance_id)
                 .unwrap()
-                .remove_from_child_slot(parent_slot);
+                .internal_remove_child_from_slot(parent_slot);
         });
 
         self.check_and_delete_children(id, None);
 
         Ok(())
+    }
+
+    fn add_edit_history_item(&mut self, manifest: EditHistoryItem) {
+        self.history.push(vec![AllHistoryItem::Edit(manifest)]);
+    }
+
+    fn append_edit_to_history_item(&mut self, manifest: EditHistoryItem) {
+        if let Some(last_item) = self.history.last_mut() {
+            last_item.push(AllHistoryItem::Edit(manifest));
+        } else {
+            self.history.push(vec![AllHistoryItem::Edit(manifest)]);
+        }
+    }
+
+    fn add_top_level_history_item(&mut self, manifest: AllHistoryItem<Self::Schema>) {
+        self.history.push(vec![manifest]);
+    }
+
+    fn append_top_level_history_item(&mut self, manifest: AllHistoryItem<Self::Schema>) {
+        if let Some(last_item) = self.history.last_mut() {
+            last_item.push(manifest);
+        } else {
+            self.history.push(vec![manifest]);
+        }
+    }
+
+    fn get_mut_raw(&mut self, id: &Uid) -> Option<&mut Self::Schema> {
+        self.created_instances.get_mut(id)
     }
     // fn instantiate_elements()
 }
@@ -174,12 +215,107 @@ pub trait GraphEnvironment {
     where
         GSOWrapper<T>: Instantiable<Schema = Self::Schema>,
         Self: Sized;
-    fn get_mut(&mut self, id: &Uid) -> Option<&mut Self::Schema>;
+    fn get_mut(&mut self, id: &Uid) -> Option<GSOEditor<Self>>
+    where
+        Self: Sized;
+    fn get_mut_raw(&mut self, id: &Uid) -> Option<&mut Self::Schema>;
     fn get_constraint_schema(&self) -> &ConstraintSchema<Self::Types, Self::Values>;
     fn delete(&mut self, id: &Uid) -> Result<(), Error>;
+    fn add_edit_history_item(&mut self, manifest: EditHistoryItem);
+    fn append_edit_to_history_item(&mut self, manifest: EditHistoryItem);
+    fn add_top_level_history_item(&mut self, manifest: AllHistoryItem<Self::Schema>);
+    fn append_top_level_history_item(&mut self, manifest: AllHistoryItem<Self::Schema>);
+}
+
+#[derive(Debug, Clone)]
+pub enum AllHistoryItem<TSchema: GSO> {
+    Edit(EditHistoryItem),
+    Delete(Vec<TSchema>),
+    BlockActionMarker,
+    // Add(TSchema)
+}
+#[derive(Debug, Clone)]
+pub enum EditHistoryItem {
+    RemoveChildFromSlot(Vec<SlotRef>),
+    RemoveParent(Vec<SlotRef>),
+    // AddChildToSlot(),
+    AddParent(SlotRef),
+}
+
+pub struct GSOEditor<'a, G: GraphEnvironment> {
+    graph: &'a mut G,
+    id: Uid,
+}
+impl<'a, G: GraphEnvironment> GSOEditor<'a, G> {
+    pub fn new(id: Uid, graph: &'a mut G) -> Self {
+        let instance = graph.get_mut_raw(&id).unwrap();
+        Self {
+            id,
+            // instance,
+            graph,
+        }
+    }
+    // pub fn get_field_access(&mut self) -> &mut G::Schema {
+    //     self.graph.get_mut_raw(&self.id).unwrap().s
+    // }
+    pub fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+        let manifest = self
+            .graph
+            .get_mut_raw(&self.id)
+            .unwrap()
+            .remove_child_from_slot(slot_ref);
+        self.graph.add_edit_history_item(manifest);
+        self
+    }
+    pub fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self {
+        let manifest = self
+            .graph
+            .get_mut_raw(&self.id)
+            .unwrap()
+            .remove_parent(parent_id, slot_id);
+        self.graph.add_edit_history_item(manifest);
+        self
+    }
+    pub fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+        let manifest = self
+            .graph
+            .get_mut_raw(&self.id)
+            .unwrap()
+            .add_parent_slot(slot_ref);
+        self.graph.add_edit_history_item(manifest);
+        self
+    }
+    fn internal_add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+        let manifest = self
+            .graph
+            .get_mut_raw(&self.id)
+            .unwrap()
+            .add_parent_slot(slot_ref);
+        self.graph.append_edit_to_history_item(manifest);
+        self
+    }
+    fn internal_remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+        let manifest = self
+            .graph
+            .get_mut_raw(&self.id)
+            .unwrap()
+            .remove_child_from_slot(slot_ref);
+        self.graph.append_edit_to_history_item(manifest);
+        self
+    }
+    fn internal_remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self {
+        let manifest = self
+            .graph
+            .get_mut_raw(&self.id)
+            .unwrap()
+            .remove_parent(parent_id, slot_id);
+        self.graph.append_edit_to_history_item(manifest);
+        self
+    }
 }
 
 pub trait GSO: std::fmt::Debug + Clone {
+    // type Graph: GraphEnvironment;
     /// Instance ID
     fn get_id(&self) -> &Uid;
     // fn get_constraint_schema_operative_tag(&self) -> Rc<LibOp>;
@@ -191,9 +327,9 @@ pub trait GSO: std::fmt::Debug + Clone {
     }
     fn get_slots(&self) -> &HashMap<Uid, ActiveSlot>;
     fn get_parent_slots(&self) -> &Vec<SlotRef>;
-    fn add_parent_slot(&mut self, slot_ref: SlotRef) -> &mut Self;
-    fn remove_from_child_slot(&mut self, slot_ref: &SlotRef) -> &mut Self;
-    fn remove_from_parent_slot(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self;
+    fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> EditHistoryItem;
+    fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> EditHistoryItem;
+    fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> EditHistoryItem;
 }
 
 #[derive(Clone, Debug)]
@@ -291,31 +427,38 @@ impl<T: Clone + std::fmt::Debug> GSO for GSOWrapper<T> {
         self.template_tag.clone()
     }
 
-    fn add_parent_slot(&mut self, slot_ref: SlotRef) -> &mut Self {
-        self.parent_slots.push(slot_ref);
-        self
+    fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> EditHistoryItem {
+        self.parent_slots.push(slot_ref.clone());
+        EditHistoryItem::AddParent(slot_ref.clone())
     }
 
-    fn remove_from_child_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+    fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> EditHistoryItem {
         self.slots
             .get_mut(&slot_ref.slot_id)
             .unwrap()
             .slotted_instances
             .retain(|slotted_instance_id| *slotted_instance_id != slot_ref.child_instance_id);
-        self
+        EditHistoryItem::RemoveChildFromSlot(vec![slot_ref.clone()])
     }
 
-    fn remove_from_parent_slot(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self {
+    fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> EditHistoryItem {
+        let mut removed = Vec::new();
         self.parent_slots.retain(|slot_ref| {
             if slot_ref.host_instance_id != *parent_id {
+                removed.push(slot_ref.clone());
                 return true;
             }
             if let Some(slot_id) = slot_id {
-                return *slot_id != slot_ref.slot_id;
+                if *slot_id != slot_ref.slot_id {
+                    return false;
+                } else {
+                    removed.push(slot_ref.clone());
+                    return true;
+                };
             }
             false
         });
-        self
+        EditHistoryItem::RemoveParent(removed)
     }
 }
 #[derive(Clone, Debug)]

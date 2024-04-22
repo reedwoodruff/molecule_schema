@@ -51,11 +51,11 @@ impl GSO for SampleSchema {
         todo!()
     }
 
-    fn remove_from_child_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+    fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
         todo!()
     }
 
-    fn remove_from_parent_slot(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self {
+    fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self {
         todo!()
     }
 }
