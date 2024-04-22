@@ -25,20 +25,6 @@ pub enum SampleSchema {
     Sentence(GSOWrapper<Sentence>),
     Word(GSOWrapper<Word>),
 }
-type SampleG = BaseGraphEnvironment<SampleSchema>;
-
-// impl<T: Clone + std::fmt::Debug> Instantiable for GSOWrapper<T> {
-//     type Schema = SampleSchema;
-
-//     fn instantiate(&self) -> Self::Schema {
-//         todo!()
-//     }
-
-//     fn get_instance_id(&self) -> &Uid {
-//         todo!()
-//     }
-//     // type Graph = G;
-// }
 
 impl GSO for SampleSchema {
     fn get_id(&self) -> &Uid {
@@ -49,7 +35,7 @@ impl GSO for SampleSchema {
         todo!()
     }
 
-    fn get_parent_slots(&self) -> &Vec<ParentSlotRef> {
+    fn get_parent_slots(&self) -> &Vec<SlotRef> {
         todo!()
     }
 
@@ -58,6 +44,18 @@ impl GSO for SampleSchema {
     }
 
     fn get_constraint_schema_template_tag(&self) -> Rc<Tag> {
+        todo!()
+    }
+
+    fn add_parent_slot(&mut self, slot_ref: SlotRef) -> &mut Self {
+        todo!()
+    }
+
+    fn remove_from_child_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+        todo!()
+    }
+
+    fn remove_from_parent_slot(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self {
         todo!()
     }
 }
@@ -200,6 +198,12 @@ impl SetDisplay for WordBuilder {
         self
     }
 }
+impl SetDisplay for GSOWrapper<Word> {
+    fn set_display(&mut self, new_display: &str) -> &mut Self {
+        self.data.display = new_display.to_string();
+        self
+    }
+}
 
 impl Verifiable for WordBuilder {
     fn verify(&self) -> Result<(), Error> {
@@ -265,14 +269,24 @@ fn test_builder() {
     new_word2.set_display("Humgubbery");
     let new_word2 = new_word2.build().unwrap();
 
+    let word1id = new_word.get_instantiable_instance().get_id().clone();
+
     let mut sentence = Sentence::initiate_build();
     sentence.add_word_new(new_word);
     sentence.add_word_new(new_word2);
     sentence.add_word_existing(&55);
     let sentence = sentence.build().unwrap();
-    for line in sentence.flatten() {
-        println!("{:#?}", line);
-    }
 
-    panic!();
+    let mut env = BaseGraphEnvironment::<SampleSchema>::new_without_schema();
+
+    env.instantiate_element(sentence);
+    let word = match env.get_mut(&word1id) {
+        Some(SampleSchema::Word(word)) => word,
+        _ => unreachable!(),
+    };
+    // word.data.display = "Goolo".to_string();
+    word.set_display("goob");
+    println!("{:#?}", word);
+
+    panic!()
 }

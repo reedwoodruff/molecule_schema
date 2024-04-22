@@ -82,11 +82,11 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
 
         #[derive(Debug, Clone)]
         pub enum Schema {
-            #(#all_lib_op_names(base_types::traits::GSOWrapper<#all_lib_op_names>),)*
+            #(#all_lib_op_names(bt::GSOWrapper<#all_lib_op_names>),)*
         }
 
 
-        impl base_types::traits::GSO for Schema {
+        impl bt::GSO for Schema {
             fn get_constraint_schema_operative_tag(&self) -> std::rc::Rc<base_types::common::Tag> {
                 match &self {
                 #(Self::#all_lib_op_names(item) => item.get_constraint_schema_operative_tag(),)*
@@ -105,15 +105,33 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                     _ => panic!(),
                 }
             }
-            fn get_slots(&self) -> &HashMap<Uid, base_types::traits::ActiveSlot>{
+            fn get_slots(&self) -> &HashMap<Uid, bt::ActiveSlot>{
                 match self {
                     #(Self::#all_lib_op_names(item) => item.get_slots(),)*
                     _ => panic!(),
                 }
             }
-            fn get_parent_slots(&self) -> &Vec<base_types::traits::ParentSlotRef>{
+            fn get_parent_slots(&self) -> &Vec<bt::SlotRef>{
                 match self {
                     #(Self::#all_lib_op_names(item) => item.get_parent_slots(),)*
+                    _ => panic!(),
+                }
+            }
+            fn add_parent_slot(&mut self, slot_ref: bt::SlotRef) -> &mut Self {
+                match self {
+                    #(Self::#all_lib_op_names(item) => {item.add_parent_slot(slot_ref); self},)*
+                    _ => panic!(),
+                }
+            }
+            fn remove_from_child_slot(&mut self, slot_ref: &bt::SlotRef) -> &mut Self{
+                match self {
+                    #(Self::#all_lib_op_names(item) => {item.remove_from_child_slot(slot_ref); self},)*
+                    _ => panic!(),
+                }
+            }
+            fn remove_from_parent_slot(&mut self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> &mut Self {
+                match self {
+                    #(Self::#all_lib_op_names(item) => {item.remove_from_parent_slot(parent_id, slot_id); self},)*
                     _ => panic!(),
                 }
             }

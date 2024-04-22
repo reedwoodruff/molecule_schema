@@ -148,6 +148,12 @@ pub(crate) fn generate_operative_streams(
                     self
                 }
             }
+            impl #manipulate_field_trait_name for bt::GSOWrapper<#struct_name> {
+                fn #setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self {
+                    self.data.#field_name = new_val;
+                    self
+                }
+            }
         }
     });
 
@@ -248,6 +254,16 @@ pub(crate) fn generate_operative_streams(
                     self
                 }
             }
+            // impl #manipulate_slot_trait_name for base_types::traits::GSOWrapper<#struct_name> {
+                // #add_new_stream {
+                //     base_types::traits::integrate_child(self, new_item, #slot_id);
+                //     self
+                // }
+                // fn #add_existing_fn_name(&mut self, existing_id: &base_types::common::Uid) -> &mut Self {
+                //     base_types::traits::integrate_child_id(self, existing_id, #slot_id);
+                //     self
+                // }
+            // }
         }
     });
 
