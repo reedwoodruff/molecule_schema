@@ -1,5 +1,6 @@
 use std::borrow::Borrow;
 use std::collections::HashMap;
+use std::io::Write;
 
 use base_types::common::{ConstraintTraits, Uid};
 use base_types::constraint_schema::ConstraintSchema;
@@ -9,6 +10,9 @@ use generate_schema::generate_concrete_schema;
 
 #[test]
 fn test_macro() {
+    println!("starting test");
+    println!("=========================++!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!+++===================================");
+    std::io::stdout().flush().unwrap();
     constraint_schema::constraint_schema!();
     let mut sge_instance = BaseGraphEnvironment::new(constraint_schema_generated);
     generate_concrete_schema!();
@@ -59,23 +63,18 @@ fn test_macro() {
         .build()
         .unwrap();
 
-    // for element in new_sen {
-    //     println!("{:#?}", element);
-    // }
-
-    // sge_instance.instantiate_element(Schema::)
     let sent_id = sge_instance.instantiate_element(new_sen);
-    // let word = match sge_instance.get_mut(&word1id).unwrap() {
-    //     Schema::WordOp(word) => word,
-    //     _ => panic!(),
-    // };
-    // word.set_display("clong".to_string());
+    // // let word = match sge_instance.get_mut(&word1id).unwrap() {
+    // //     Schema::WordOp(word) => word,
+    // //     _ => panic!(),
+    // // };
+    // // word.set_display("clong".to_string());
     sge_instance.delete(&second_displayable_id).unwrap();
-    // sge_instance.delete(&first_displayable_id).unwrap();
-    // for instance in sge_instance.created_instances.values() {
-    //     println!("{:#?}", instance);
-    // }
-    println!("{:#?}", sge_instance);
+    // // sge_instance.delete(&first_displayable_id).unwrap();
+    // // for instance in sge_instance.created_instances.values() {
+    // //     println!("{:#?}", instance);
+    // // }
+    println!("{:#?}", sge_instance.undo_stack);
     panic!();
     // let mut new_sen = SentenceOp::initiate_build();
     // let mut new_linear_displayable = LinearDisplayableOp::initiate_build();

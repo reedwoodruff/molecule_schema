@@ -12,7 +12,7 @@ pub fn constraint_schema(_input: TokenStream) -> proc_macro::TokenStream {
         serde_json::from_str::<ConstraintSchema<PrimitiveTypes, PrimitiveValues>>(&data)
             .expect("json should be formatted correctly");
 
-    print!("{}", data);
+    // print!("{}", data);
     quote::quote! {
         const SCHEMA_JSON: &str = #data;
          let constraint_schema_generated: base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> =

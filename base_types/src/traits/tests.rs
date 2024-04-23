@@ -13,8 +13,8 @@ use validator::Validate;
 
 #[derive(Debug, Clone)]
 pub enum SampleSchema {
-    Sentence(GSOWrapper<Sentence>),
-    Word(GSOWrapper<Word>),
+    Sentence(GSOWrapper<Sentence, SampleSchema>),
+    Word(GSOWrapper<Word, SampleSchema>),
 }
 type SampleG = BaseGraphEnvironment<SampleSchema>;
 
@@ -32,6 +32,7 @@ type SampleG = BaseGraphEnvironment<SampleSchema>;
 // }
 
 impl GSO for SampleSchema {
+    type Schema = Self;
     fn get_id(&self) -> &Uid {
         todo!()
     }
@@ -52,20 +53,24 @@ impl GSO for SampleSchema {
         todo!()
     }
 
-    fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> EditHistoryItem {
-        todo!()
-    }
-
-    fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> EditHistoryItem {
-        todo!()
-    }
-
-    fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> EditHistoryItem {
-        todo!()
-    }
-
     fn get_slot_by_id(&self, slot_id: &Uid) -> Option<&ActiveSlot> {
         self.get_slots().get(slot_id)
+    }
+
+    fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+        todo!()
+    }
+
+    fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+        todo!()
+    }
+
+    fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self {
+        todo!()
+    }
+
+    fn set_history(&mut self, history: Option<HistoryStack<Self::Schema>>) {
+        todo!()
     }
 }
 
@@ -74,7 +79,7 @@ struct Sentence {}
 impl IntoSchema for Sentence {
     type Schema = SampleSchema;
 
-    fn into_schema(instantiable: GSOWrapper<Self>) -> Self::Schema {
+    fn into_schema(instantiable: GSOWrapper<Self, Self::Schema>) -> Self::Schema {
         // let test = instantiable as &GSOWrapper<Sentence>;
         SampleSchema::Sentence(instantiable.to_owned())
     }
@@ -122,7 +127,7 @@ impl Buildable for Sentence {
     fn get_operative_id() -> Uid {
         10
     }
-    fn initiate_build() -> GSOBuilder<Self::Builder, GSOWrapper<Self>, Self::Schema> {
+    fn initiate_build() -> GSOBuilder<Self::Builder, GSOWrapper<Self, SampleSchema>, Self::Schema> {
         let op_slot = OperativeSlot {
             tag: Tag {
                 name: String::from("WordSlot"),
@@ -150,22 +155,26 @@ impl Buildable for Sentence {
                 name: "Sentence".to_string(),
             }),
         );
-        GSOBuilder::<Self::Builder, GSOWrapper<Self>, SampleSchema>::new(builder)
+        GSOBuilder::<Self::Builder, GSOWrapper<Self, SampleSchema>, SampleSchema>::new(builder)
     }
 }
 pub trait SentenceWordSlot {
     fn add_word_new(
         &mut self,
-        word: InstantiableWrapper<GSOWrapper<Word>, SampleSchema>,
+        word: InstantiableWrapper<GSOWrapper<Word, SampleSchema>, SampleSchema>,
     ) -> &mut Self;
     fn add_word_existing(&mut self, word_id: &Uid) -> &mut Self;
 }
 impl SentenceWordSlot
-    for GSOBuilder<GSOWrapperBuilder<SentenceBuilder>, GSOWrapper<Sentence>, SampleSchema>
+    for GSOBuilder<
+        GSOWrapperBuilder<SentenceBuilder>,
+        GSOWrapper<Sentence, SampleSchema>,
+        SampleSchema,
+    >
 {
     fn add_word_new(
         &mut self,
-        word: InstantiableWrapper<GSOWrapper<Word>, SampleSchema>,
+        word: InstantiableWrapper<GSOWrapper<Word, SampleSchema>, SampleSchema>,
     ) -> &mut Self {
         integrate_child(self, word, 0);
         self
@@ -187,7 +196,7 @@ impl IntoSchema for Word {
     //     let test = instantiable as GSOWrapper<Self>;
     //     SampleSchema::Word(test)
     // }
-    fn into_schema(instantiable: GSOWrapper<Self>) -> Self::Schema {
+    fn into_schema(instantiable: GSOWrapper<Self, SampleSchema>) -> Self::Schema {
         // let test = instantiable as &GSOWrapper<Sentence>;
         SampleSchema::Word(instantiable.to_owned())
     }
@@ -237,7 +246,7 @@ impl SetDisplay for GSOWrapperBuilder<WordBuilder> {
         self
     }
 }
-impl SetDisplay for GSOWrapper<Word> {
+impl SetDisplay for GSOWrapper<Word, SampleSchema> {
     fn set_display(&mut self, new_display: &str) -> &mut Self {
         self.data.display = new_display.to_string();
         self
@@ -248,21 +257,21 @@ impl Buildable for Word {
     type Schema = SampleSchema;
     type Builder = GSOWrapperBuilder<WordBuilder>;
 
-    fn initiate_build() -> GSOBuilder<Self::Builder, GSOWrapper<Self>, SampleSchema> {
-        GSOBuilder::<Self::Builder, GSOWrapper<Self>, SampleSchema>::new(GSOWrapperBuilder::<
-            WordBuilder,
-        >::new(
-            WordBuilder::default(),
-            None,
-            Rc::new(Tag {
-                id: 1,
-                name: "WordOp".to_string(),
-            }),
-            Rc::new(Tag {
-                id: 2,
-                name: "Word".to_string(),
-            }),
-        ))
+    fn initiate_build() -> GSOBuilder<Self::Builder, GSOWrapper<Self, SampleSchema>, SampleSchema> {
+        GSOBuilder::<Self::Builder, GSOWrapper<Self, SampleSchema>, SampleSchema>::new(
+            GSOWrapperBuilder::<WordBuilder>::new(
+                WordBuilder::default(),
+                None,
+                Rc::new(Tag {
+                    id: 1,
+                    name: "WordOp".to_string(),
+                }),
+                Rc::new(Tag {
+                    id: 2,
+                    name: "Word".to_string(),
+                }),
+            ),
+        )
     }
     fn get_operative_id() -> Uid {
         1
@@ -288,7 +297,7 @@ fn test_builder() {
     let mut env = BaseGraphEnvironment::<SampleSchema>::new_without_schema();
 
     let sentence_id = env.instantiate_element(sentence);
-    env.delete(&sentence_id);
+    // env.delete(&sentence_id);
     // let word = env.get_mut(&word1id).unwrap();
     println!("{:#?}", env);
     //  {

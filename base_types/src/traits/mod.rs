@@ -2,7 +2,9 @@ use anyhow::{Error, Result};
 
 use std::{
     any::{Any, TypeId},
+    cell::RefCell,
     collections::HashMap,
+    io::Write,
     marker::PhantomData,
     rc::Rc,
 };
@@ -41,23 +43,24 @@ enum ElementDeletionError {
 }
 impl std::error::Error for ElementDeletionError {}
 
+pub type HistoryStack<TSchema> = Rc<RefCell<Vec<Vec<HistoryItem<TSchema>>>>>;
 #[derive(Debug)]
 pub struct BaseGraphEnvironment<TSchema: GSO> {
     pub created_instances: HashMap<Uid, TSchema>,
     pub constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
-    pub history: Vec<Vec<AllHistoryItem<TSchema>>>,
+    pub undo_stack: HistoryStack<TSchema>,
 }
 impl<TSchema: GSO> BaseGraphEnvironment<TSchema> {
     pub fn new(constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> Self {
         Self {
             created_instances: HashMap::new(),
             constraint_schema,
-            history: Vec::new(),
+            undo_stack: Rc::new(RefCell::new(Vec::new())),
         }
     }
     pub fn new_without_schema() -> Self {
         Self {
-            history: Vec::new(),
+            undo_stack: Rc::new(RefCell::new(Vec::new())),
             created_instances: HashMap::new(),
             constraint_schema: ConstraintSchema {
                 template_library: HashMap::new(),
@@ -89,7 +92,7 @@ impl<TSchema: GSO + 'static> BaseGraphEnvironment<TSchema> {
         if !should_delete && parent_id.is_some() {
             self.get_mut(&id)
                 .unwrap()
-                .internal_remove_parent(&parent_id.unwrap(), None);
+                .remove_parent(&parent_id.unwrap(), None);
         }
 
         if should_delete {
@@ -106,8 +109,13 @@ impl<TSchema: GSO + 'static> BaseGraphEnvironment<TSchema> {
                         });
                 });
         }
-        let removed_value = self.created_instances.remove(&id).unwrap();
-        self.append_top_level_history_item(AllHistoryItem::Delete(removed_value));
+        let mut removed_value = self.created_instances.remove(&id).unwrap();
+        removed_value.set_history(None);
+        self.undo_stack
+            .borrow_mut()
+            .last_mut()
+            .unwrap()
+            .push(HistoryItem::Delete(removed_value));
     }
 }
 impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> {
@@ -122,29 +130,29 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
     fn get(&self, id: &Uid) -> Option<&Self::Schema> {
         self.created_instances.get(id)
     }
-    fn get_mut(&mut self, id: &Uid) -> Option<GSOEditor<Self>> {
-        Some(GSOEditor::<Self>::new(*id, self))
-    }
     fn instantiate_element<T: std::fmt::Debug + Clone + 'static>(
         &mut self,
-        element: InstantiableWrapper<GSOWrapper<T>, Self::Schema>,
+        element: InstantiableWrapper<GSOWrapper<T, Self::Schema>, Self::Schema>,
     ) -> Uid
     where
         Self: Sized,
-        GSOWrapper<T>: Instantiable<Schema = Self::Schema>,
+        GSOWrapper<T, Self::Schema>: Instantiable<Schema = Self::Schema>,
     {
         let id = *element.get_instantiable_instance().get_id();
-        // self.created_instances.insert(id, element);
-        self.add_top_level_history_item(AllHistoryItem::BlockActionMarker);
+        self.undo_stack
+            .borrow_mut()
+            .push(vec![HistoryItem::BlockActionMarker]);
         element.child_updates.iter().for_each(|child_update| {
             let mut child = self.get_mut(&child_update.0).unwrap();
-            child.internal_add_parent_slot(&child_update.1.clone());
+            child.add_parent_slot(&child_update.1.clone());
         });
-        element.flatten().into_iter().for_each(|instantiable| {
-            let instantiated = instantiable.instantiate();
-            self.append_top_level_history_item(AllHistoryItem::Create(
-                *instantiable.get_instance_id(),
-            ));
+        element.flatten().into_iter().for_each(|mut instantiable| {
+            let instantiated = instantiable.instantiate(self.undo_stack.clone());
+            self.undo_stack
+                .borrow_mut()
+                .last_mut()
+                .unwrap()
+                .push(HistoryItem::Create(*instantiable.get_instance_id()));
             self.created_instances
                 .insert(*instantiable.get_instance_id(), instantiated);
         });
@@ -152,6 +160,7 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
     }
 
     fn delete(&mut self, id: &Uid) -> Result<(), Error> {
+        println!("entering delete");
         let parent_slots = self.get(id).unwrap().get_parent_slots().clone();
 
         let can_delete = parent_slots.iter().all(|parent_slot| {
@@ -164,11 +173,13 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
         if !can_delete {
             return Err(Error::new(ElementDeletionError::RequiredByParentSlot));
         }
-        self.add_top_level_history_item(AllHistoryItem::BlockActionMarker);
+        self.undo_stack
+            .borrow_mut()
+            .push(vec![HistoryItem::BlockActionMarker]);
         parent_slots.iter().for_each(|parent_slot| {
             self.get_mut(&parent_slot.host_instance_id)
                 .unwrap()
-                .internal_remove_child_from_slot(parent_slot);
+                .remove_child_from_slot(parent_slot);
         });
 
         self.check_and_delete_children(id, None);
@@ -176,34 +187,9 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
         Ok(())
     }
 
-    fn add_edit_history_item(&mut self, manifest: EditHistoryItem) {
-        self.history.push(vec![AllHistoryItem::Edit(manifest)]);
-    }
-
-    fn append_edit_to_history_item(&mut self, manifest: EditHistoryItem) {
-        if let Some(last_item) = self.history.last_mut() {
-            last_item.push(AllHistoryItem::Edit(manifest));
-        } else {
-            self.history.push(vec![AllHistoryItem::Edit(manifest)]);
-        }
-    }
-
-    fn add_top_level_history_item(&mut self, manifest: AllHistoryItem<Self::Schema>) {
-        self.history.push(vec![manifest]);
-    }
-
-    fn append_top_level_history_item(&mut self, manifest: AllHistoryItem<Self::Schema>) {
-        if let Some(last_item) = self.history.last_mut() {
-            last_item.push(manifest);
-        } else {
-            self.history.push(vec![manifest]);
-        }
-    }
-
-    fn get_mut_raw(&mut self, id: &Uid) -> Option<&mut Self::Schema> {
+    fn get_mut(&mut self, id: &Uid) -> Option<&mut Self::Schema> {
         self.created_instances.get_mut(id)
     }
-    // fn instantiate_elements()
 }
 
 pub trait GraphEnvironment {
@@ -214,116 +200,31 @@ pub trait GraphEnvironment {
     fn get(&self, id: &Uid) -> Option<&Self::Schema>;
     fn instantiate_element<T: std::fmt::Debug + Clone + 'static>(
         &mut self,
-        element: InstantiableWrapper<GSOWrapper<T>, Self::Schema>,
+        element: InstantiableWrapper<GSOWrapper<T, Self::Schema>, Self::Schema>,
     ) -> Uid
     where
-        GSOWrapper<T>: Instantiable<Schema = Self::Schema>,
+        GSOWrapper<T, Self::Schema>: Instantiable<Schema = Self::Schema>,
         Self: Sized;
-    fn get_mut(&mut self, id: &Uid) -> Option<GSOEditor<Self>>
-    where
-        Self: Sized;
-    fn get_mut_raw(&mut self, id: &Uid) -> Option<&mut Self::Schema>;
+    fn get_mut(&mut self, id: &Uid) -> Option<&mut Self::Schema>;
     fn get_constraint_schema(&self) -> &ConstraintSchema<Self::Types, Self::Values>;
     fn delete(&mut self, id: &Uid) -> Result<(), Error>;
-    fn add_edit_history_item(&mut self, manifest: EditHistoryItem);
-    fn append_edit_to_history_item(&mut self, manifest: EditHistoryItem);
-    fn add_top_level_history_item(&mut self, manifest: AllHistoryItem<Self::Schema>);
-    fn append_top_level_history_item(&mut self, manifest: AllHistoryItem<Self::Schema>);
 }
 
 #[derive(Debug, Clone)]
-pub enum AllHistoryItem<TSchema: GSO> {
-    Edit(EditHistoryItem),
-    Delete(TSchema),
-    Create(Uid),
-    BlockActionMarker,
-    // Add(TSchema)
-}
-#[derive(Debug, Clone)]
-pub enum EditHistoryItem {
+pub enum HistoryItem<TSchema: GSO> {
     RemoveChildFromSlot(Vec<SlotRef>),
     RemoveParent(Vec<SlotRef>),
     // AddChildToSlot(),
     AddParent(SlotRef),
-}
-
-pub struct GSOEditor<'a, G: GraphEnvironment> {
-    graph: &'a mut G,
-    id: Uid,
-}
-impl<'a, G: GraphEnvironment> GSOEditor<'a, G> {
-    pub fn new(id: Uid, graph: &'a mut G) -> Self {
-        Self {
-            id,
-            // instance,
-            graph,
-        }
-    }
-    pub fn get_field_access(&mut self) -> &mut G::Schema {
-        self.graph.get_mut_raw(&self.id).unwrap()
-    }
-    pub fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
-        let manifest = self
-            .graph
-            .get_mut_raw(&self.id)
-            .unwrap()
-            .remove_child_from_slot(slot_ref);
-        self.graph.add_edit_history_item(manifest);
-        self
-    }
-    pub fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self {
-        let manifest = self
-            .graph
-            .get_mut_raw(&self.id)
-            .unwrap()
-            .remove_parent(parent_id, slot_id);
-        self.graph.add_edit_history_item(manifest);
-        self
-    }
-    pub fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
-        let manifest = self
-            .graph
-            .get_mut_raw(&self.id)
-            .unwrap()
-            .add_parent_slot(slot_ref);
-        self.graph.add_edit_history_item(manifest);
-        self
-    }
-    fn internal_add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
-        let manifest = self
-            .graph
-            .get_mut_raw(&self.id)
-            .unwrap()
-            .add_parent_slot(slot_ref);
-        self.graph.append_edit_to_history_item(manifest);
-        self
-    }
-    fn internal_remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
-        let manifest = self
-            .graph
-            .get_mut_raw(&self.id)
-            .unwrap()
-            .remove_child_from_slot(slot_ref);
-        self.graph.append_edit_to_history_item(manifest);
-        self
-    }
-    fn internal_remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self {
-        let manifest = self
-            .graph
-            .get_mut_raw(&self.id)
-            .unwrap()
-            .remove_parent(parent_id, slot_id);
-        self.graph.append_edit_to_history_item(manifest);
-        self
-    }
+    Delete(TSchema),
+    Create(Uid),
+    BlockActionMarker,
 }
 
 pub trait GSO: std::fmt::Debug + Clone {
-    // type Graph: GraphEnvironment;
+    type Schema: GSO;
     /// Instance ID
     fn get_id(&self) -> &Uid;
-    // fn get_constraint_schema_operative_tag(&self) -> Rc<LibOp>;
-    // fn get_constraint_schema_template_tag(&self) -> Rc<LibTemplate>;
     fn get_constraint_schema_operative_tag(&self) -> Rc<Tag>;
     fn get_constraint_schema_template_tag(&self) -> Rc<Tag>;
     fn get_slot_by_id(&self, slot_id: &Uid) -> Option<&ActiveSlot> {
@@ -331,9 +232,10 @@ pub trait GSO: std::fmt::Debug + Clone {
     }
     fn get_slots(&self) -> &HashMap<Uid, ActiveSlot>;
     fn get_parent_slots(&self) -> &Vec<SlotRef>;
-    fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> EditHistoryItem;
-    fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> EditHistoryItem;
-    fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> EditHistoryItem;
+    fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self;
+    fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self;
+    fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self;
+    fn set_history(&mut self, history: Option<HistoryStack<Self::Schema>>);
 }
 
 #[derive(Clone, Debug)]
@@ -390,30 +292,22 @@ impl ActiveSlot {
 }
 
 #[derive(Clone, Debug)]
-pub struct GSOWrapper<T> {
+pub struct GSOWrapper<T, TSchema: GSO> {
     id: Uid,
     slots: HashMap<Uid, ActiveSlot>,
     parent_slots: Vec<SlotRef>,
     pub data: T,
     operative_tag: Rc<Tag>,
     template_tag: Rc<Tag>,
-    // _phantom: PhantomData<TSchema>, // operative: Rc<LibOp>,
-    // template: Rc<LibTemplate>,
+    history_handle: Option<HistoryStack<TSchema>>,
 }
-impl<T: Clone + std::fmt::Debug> GSOWrapper<T> {}
+impl<T: Clone + std::fmt::Debug, TSchema: GSO> GSOWrapper<T, TSchema> {}
 
-impl<T: Clone + std::fmt::Debug> GSO for GSOWrapper<T> {
+impl<T: Clone + std::fmt::Debug, TSchema: GSO> GSO for GSOWrapper<T, TSchema> {
+    type Schema = TSchema;
     fn get_id(&self) -> &Uid {
         &self.id
     }
-
-    // fn get_constraint_schema_operative_tag(&self) -> Rc<LibOp> {
-    //     self.operative
-    // }
-
-    // fn get_constraint_schema_template_tag(&self) -> Rc<LibTemplate> {
-    //     self.template
-    // }
 
     fn get_slots(&self) -> &HashMap<Uid, ActiveSlot> {
         &self.slots
@@ -431,21 +325,35 @@ impl<T: Clone + std::fmt::Debug> GSO for GSOWrapper<T> {
         self.template_tag.clone()
     }
 
-    fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> EditHistoryItem {
+    fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
         self.parent_slots.push(slot_ref.clone());
-        EditHistoryItem::AddParent(slot_ref.clone())
+        self.history_handle
+            .as_mut()
+            .unwrap()
+            .borrow_mut()
+            .last_mut()
+            .unwrap()
+            .push(HistoryItem::AddParent(slot_ref.clone()));
+        self
     }
 
-    fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> EditHistoryItem {
+    fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
         self.slots
             .get_mut(&slot_ref.slot_id)
             .unwrap()
             .slotted_instances
             .retain(|slotted_instance_id| *slotted_instance_id != slot_ref.child_instance_id);
-        EditHistoryItem::RemoveChildFromSlot(vec![slot_ref.clone()])
+        self.history_handle
+            .as_mut()
+            .unwrap()
+            .borrow_mut()
+            .last_mut()
+            .unwrap()
+            .push(HistoryItem::RemoveChildFromSlot(vec![slot_ref.clone()]));
+        self
     }
 
-    fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> EditHistoryItem {
+    fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self {
         let mut removed = Vec::new();
         self.parent_slots.retain(|slot_ref| {
             if slot_ref.host_instance_id != *parent_id {
@@ -462,7 +370,18 @@ impl<T: Clone + std::fmt::Debug> GSO for GSOWrapper<T> {
             }
             false
         });
-        EditHistoryItem::RemoveParent(removed)
+        self.history_handle
+            .as_mut()
+            .unwrap()
+            .borrow_mut()
+            .last_mut()
+            .unwrap()
+            .push(HistoryItem::RemoveParent(removed));
+        self
+    }
+
+    fn set_history(&mut self, history: Option<HistoryStack<Self::Schema>>) {
+        self.history_handle = history;
     }
 }
 #[derive(Clone, Debug)]
@@ -473,8 +392,6 @@ pub struct GSOWrapperBuilder<T> {
     pub data: T,
     operative_tag: Rc<Tag>,
     template_tag: Rc<Tag>,
-    // operative: Rc<LibOp>,
-    // template: Rc<LibTemplate>,
 }
 
 impl<T: Clone + std::fmt::Debug> GSOWrapperBuilder<T> {
@@ -483,7 +400,6 @@ impl<T: Clone + std::fmt::Debug> GSOWrapperBuilder<T> {
         slots: Option<HashMap<Uid, ActiveSlot>>,
         operative_tag: Rc<Tag>,
         template_tag: Rc<Tag>,
-        // , operative: Rc<LibOp>, template: Rc<LibTemplate>
     ) -> Self {
         Self {
             id: uuid::Uuid::new_v4().as_u128(),
@@ -491,8 +407,7 @@ impl<T: Clone + std::fmt::Debug> GSOWrapperBuilder<T> {
             parent_slots: Vec::new(),
             data,
             operative_tag,
-            template_tag, // operative,
-                          // template,
+            template_tag,
         }
     }
     fn replace_slots(&mut self, new_slots: HashMap<Uid, ActiveSlot>) -> &mut Self {
@@ -512,20 +427,19 @@ impl<T: Clone + std::fmt::Debug> GSOWrapperBuilder<T> {
         self
     }
 }
-impl<F, T> Producable<GSOWrapper<T>> for GSOWrapperBuilder<F>
+impl<F, T, TSchema: GSO> Producable<GSOWrapper<T, TSchema>> for GSOWrapperBuilder<F>
 where
     F: Producable<T>,
 {
-    fn produce(&self) -> GSOWrapper<T> {
-        GSOWrapper::<T> {
+    fn produce(&self) -> GSOWrapper<T, TSchema> {
+        GSOWrapper::<T, TSchema> {
+            history_handle: None,
             id: self.id.clone(),
             slots: self.slots.clone(),
             parent_slots: self.parent_slots.clone(),
             data: self.data.produce(),
             operative_tag: self.operative_tag.clone(),
             template_tag: self.template_tag.clone(),
-            // operative: self.operative.clone(),
-            // template: self.template.clone(),
         }
     }
 }
@@ -555,17 +469,20 @@ where
     }
 }
 
-impl<F, T> Finalizable<GSOWrapper<T>> for GSOWrapperBuilder<F> where F: Verifiable + Producable<T> {}
+impl<F, T, TSchema: GSO> Finalizable<GSOWrapper<T, TSchema>> for GSOWrapperBuilder<F> where
+    F: Verifiable + Producable<T>
+{
+}
 
 pub trait Buildable
 where
     Self: Sized + 'static,
-    GSOWrapper<Self>: Instantiable<Schema = Self::Schema>,
+    GSOWrapper<Self, Self::Schema>: Instantiable<Schema = Self::Schema>,
 {
-    type Builder: Finalizable<GSOWrapper<Self>>;
-    type Schema;
+    type Builder: Finalizable<GSOWrapper<Self, Self::Schema>>;
+    type Schema: GSO;
 
-    fn initiate_build() -> GSOBuilder<Self::Builder, GSOWrapper<Self>, Self::Schema>;
+    fn initiate_build() -> GSOBuilder<Self::Builder, GSOWrapper<Self, Self::Schema>, Self::Schema>;
     fn get_operative_id() -> Uid;
 }
 
@@ -573,10 +490,9 @@ pub trait Verifiable {
     fn verify(&self) -> Result<(), Error>;
 }
 pub trait Instantiable: std::fmt::Debug + Any {
-    // type Graph: GraphEnvironment;
-    type Schema;
+    type Schema: GSO;
 
-    fn instantiate(&self) -> Self::Schema;
+    fn instantiate(&self, history: HistoryStack<Self::Schema>) -> Self::Schema;
     fn get_instance_id(&self) -> &Uid;
 }
 type InstantiableElements<TSchema> = Vec<Rc<dyn Instantiable<Schema = TSchema>>>;
@@ -608,9 +524,9 @@ where
         &self.instantiable_instance
     }
 }
-impl<T, TSchema> InstantiableWrapper<GSOWrapper<T>, TSchema>
+impl<T, TSchema: GSO> InstantiableWrapper<GSOWrapper<T, TSchema>, TSchema>
 where
-    GSOWrapper<T>: Instantiable<Schema = TSchema>,
+    GSOWrapper<T, TSchema>: Instantiable<Schema = TSchema>,
 {
     pub fn add_parent_slot(&mut self, parent_slot: SlotRef) {
         self.instantiable_instance.parent_slots.push(parent_slot);
@@ -664,17 +580,16 @@ where
     }
 }
 
-pub fn integrate_child<F, T, C, TSchema>(
-    builder: &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>, TSchema>,
-    mut child: InstantiableWrapper<GSOWrapper<C>, TSchema>,
+pub fn integrate_child<F, T, C, TSchema: GSO>(
+    builder: &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T, TSchema>, TSchema>,
+    mut child: InstantiableWrapper<GSOWrapper<C, TSchema>, TSchema>,
     slot_id: Uid,
-) -> &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>, TSchema>
+) -> &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T, TSchema>, TSchema>
 where
     F: Verifiable + Producable<T> + Clone + std::fmt::Debug,
     T: Clone + std::fmt::Debug,
-    GSOWrapper<C>: Instantiable<Schema = TSchema> + 'static,
+    GSOWrapper<C, TSchema>: Instantiable<Schema = TSchema> + 'static,
 {
-    // let slot_id = <F as Integrable<C>>::get_slot_id().clone();
     builder
         .wip_instance
         .add_instance_to_slot(&slot_id, child.get_instantiable_instance().id);
@@ -688,11 +603,11 @@ where
     builder
 }
 
-pub fn integrate_child_id<'a, F, T, TSchema>(
-    builder: &'a mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>, TSchema>,
+pub fn integrate_child_id<'a, F, T, TSchema: GSO>(
+    builder: &'a mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T, TSchema>, TSchema>,
     child_id: &Uid,
     slot_id: Uid,
-) -> &'a mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T>, TSchema>
+) -> &'a mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T, TSchema>, TSchema>
 where
     F: Verifiable + Producable<T> + Clone + std::fmt::Debug,
     T: Clone + std::fmt::Debug,
@@ -710,14 +625,16 @@ where
     builder
 }
 
-impl<T, TSchema> Instantiable for GSOWrapper<T>
+impl<T, TSchema: GSO + 'static> Instantiable for GSOWrapper<T, TSchema>
 where
     T: Clone + std::fmt::Debug + IntoSchema<Schema = TSchema> + 'static,
 {
     type Schema = TSchema;
 
-    fn instantiate(&self) -> Self::Schema {
-        T::into_schema(self.clone())
+    fn instantiate(&self, history: HistoryStack<TSchema>) -> Self::Schema {
+        let mut new_self = self.clone();
+        new_self.set_history(Some(history));
+        T::into_schema(new_self)
     }
 
     fn get_instance_id(&self) -> &Uid {
@@ -729,6 +646,6 @@ pub trait IntoSchema
 where
     Self: Sized,
 {
-    type Schema;
-    fn into_schema(instantiable: GSOWrapper<Self>) -> Self::Schema;
+    type Schema: GSO;
+    fn into_schema(instantiable: GSOWrapper<Self, Self::Schema>) -> Self::Schema;
 }

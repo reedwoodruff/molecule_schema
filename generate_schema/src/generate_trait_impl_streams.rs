@@ -55,7 +55,7 @@ pub(crate) fn generate_trait_impl_streams(
             }
         });
         quote! {
-            impl #trait_name for base_types::traits::GSOWrapper<#instantiable_name> {
+            impl #trait_name for base_types::traits::GSOWrapper<#instantiable_name, Schema> {
                 #(#fn_streams)*
             }
         }

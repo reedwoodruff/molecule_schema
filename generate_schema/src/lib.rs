@@ -82,11 +82,12 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
 
         #[derive(Debug, Clone)]
         pub enum Schema {
-            #(#all_lib_op_names(bt::GSOWrapper<#all_lib_op_names>),)*
+            #(#all_lib_op_names(bt::GSOWrapper<#all_lib_op_names, Schema>),)*
         }
 
 
         impl bt::GSO for Schema {
+            type Schema = Self;
             fn get_constraint_schema_operative_tag(&self) -> std::rc::Rc<base_types::common::Tag> {
                 match &self {
                 #(Self::#all_lib_op_names(item) => item.get_constraint_schema_operative_tag(),)*
@@ -117,21 +118,27 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                     _ => panic!(),
                 }
             }
-            fn add_parent_slot(&mut self, slot_ref: &bt::SlotRef) ->  bt::EditHistoryItem {
+            fn add_parent_slot(&mut self, slot_ref: &bt::SlotRef) ->  &mut Self {
                 match self {
-                    #(Self::#all_lib_op_names(item) => item.add_parent_slot(slot_ref),)*
+                    #(Self::#all_lib_op_names(item) => {item.add_parent_slot(slot_ref); self},)*
                     _ => panic!(),
                 }
             }
-            fn remove_child_from_slot(&mut self, slot_ref: &bt::SlotRef) -> bt::EditHistoryItem{
+            fn remove_child_from_slot(&mut self, slot_ref: &bt::SlotRef) -> &mut Self{
                 match self {
-                    #(Self::#all_lib_op_names(item) => item.remove_child_from_slot(slot_ref),)*
+                    #(Self::#all_lib_op_names(item) => {item.remove_child_from_slot(slot_ref); self},)*
                     _ => panic!(),
                 }
             }
-            fn remove_parent(&mut self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> bt::EditHistoryItem {
+            fn remove_parent(&mut self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> &mut Self {
                 match self {
-                    #(Self::#all_lib_op_names(item) => item.remove_parent(parent_id, slot_id),)*
+                    #(Self::#all_lib_op_names(item) => {item.remove_parent(parent_id, slot_id);self},)*
+                    _ => panic!(),
+                }
+            }
+            fn set_history(&mut self, history: Option<bt::HistoryStack<Self>>) {
+                match self {
+                    #(Self::#all_lib_op_names(item) => item.set_history(history),)*
                     _ => panic!(),
                 }
             }
