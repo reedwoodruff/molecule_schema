@@ -72,6 +72,10 @@ impl GSO for SampleSchema {
     fn set_history(&mut self, history: Option<HistoryStack<Self::Schema>>) {
         todo!()
     }
+
+    fn add_child_to_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+        todo!()
+    }
 }
 
 #[derive(Debug, Clone, Default)]
@@ -280,33 +284,33 @@ impl Buildable for Word {
 
 #[test]
 fn test_builder() {
-    let mut new_word = Word::initiate_build();
-    new_word.set_display("Humgub");
-    let new_word = new_word.build().unwrap();
-    let mut new_word2 = Word::initiate_build();
-    new_word2.set_display("Humgubbery");
-    let new_word2 = new_word2.build().unwrap();
+    // let mut new_word = Word::initiate_build();
+    // new_word.set_display("Humgub");
+    // let new_word = new_word.build().unwrap();
+    // let mut new_word2 = Word::initiate_build();
+    // new_word2.set_display("Humgubbery");
+    // let new_word2 = new_word2.build().unwrap();
 
-    let word1id = new_word.get_instantiable_instance().get_id().clone();
+    // let word1id = new_word.get_instantiable_instance().get_id().clone();
 
-    let mut sentence = Sentence::initiate_build();
-    sentence.add_word_new(new_word);
-    sentence.add_word_new(new_word2);
-    let sentence = sentence.build().unwrap();
+    // let mut sentence = Sentence::initiate_build();
+    // sentence.add_word_new(new_word);
+    // sentence.add_word_new(new_word2);
+    // let sentence = sentence.build().unwrap();
 
-    let mut env = BaseGraphEnvironment::<SampleSchema>::new_without_schema();
+    // let mut env = BaseGraphEnvironment::<SampleSchema>::new_without_schema();
 
-    let sentence_id = env.instantiate_element(sentence);
-    // env.delete(&sentence_id);
-    // let word = env.get_mut(&word1id).unwrap();
-    println!("{:#?}", env);
-    //  {
-    //     Some(SampleSchema::Word(word)) => word,
-    //     _ => unreachable!(),
-    // };
-    // word.data.display = "Goolo".to_string();
-    // word.set_display("goob");
-    // println!("{:#?}", word);
+    // let sentence_id = env.instantiate_element(sentence);
+    // // env.delete(&sentence_id);
+    // // let word = env.get_mut(&word1id).unwrap();
+    // println!("{:#?}", env);
+    // //  {
+    // //     Some(SampleSchema::Word(word)) => word,
+    // //     _ => unreachable!(),
+    // // };
+    // // word.data.display = "Goolo".to_string();
+    // // word.set_display("goob");
+    // // println!("{:#?}", word);
 
     panic!()
 }

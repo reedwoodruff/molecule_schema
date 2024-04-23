@@ -70,6 +70,7 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
 
 
     quote! {
+        use base_types::utils::IntoPrimitiveValue;
         use base_types::traits::GSO;
         use base_types::{traits as bt};
         use validator::Validate;
@@ -139,6 +140,12 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
             fn set_history(&mut self, history: Option<bt::HistoryStack<Self>>) {
                 match self {
                     #(Self::#all_lib_op_names(item) => item.set_history(history),)*
+                    _ => panic!(),
+                }
+            }
+            fn add_child_to_slot(&mut self, slot_ref: &bt::SlotRef) -> &mut Self {
+                match self {
+                    #(Self::#all_lib_op_names(item) => {item.add_child_to_slot(slot_ref); self},)*
                     _ => panic!(),
                 }
             }

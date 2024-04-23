@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
 use base_types::traits::{ActiveSlot, GSOWrapperBuilder};
-use proc_macro::TokenStream;
 
-use proc_macro2::Ident;
+use proc_macro2::{Ident, TokenStream};
 use quote::{quote, ToTokens, TokenStreamExt};
 
 use base_types::constraint_schema_item::ConstraintSchemaItem;
@@ -125,6 +124,7 @@ pub(crate) fn generate_operative_streams(
     };
 
     let manipulate_fields_stream = unfulfilled_fields.iter().map(|field| {
+        let field_id = field.tag.id;
         let field_value_type = get_primitive_type(&field.value_type);
         let field_name = syn::Ident::new(&*field.tag.name, proc_macro2::Span::call_site());
         let manipulate_field_trait_name = proc_macro2::Ident::new(
@@ -150,6 +150,14 @@ pub(crate) fn generate_operative_streams(
             }
             impl #manipulate_field_trait_name for bt::GSOWrapper<#struct_name, Schema> {
                 fn #setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self {
+                    self.history
+                        .as_mut()
+                        .unwrap()
+                        .borrow_mut().push(vec![bt::HistoryItem::EditField(bt::FieldEdit {
+                            field_id: #field_id,
+                            prev_value: self.data.#field_name.clone().into_primitive_value(),
+                            new_value: new_val.clone().into_primitive_value(), 
+                        })]);
                     self.data.#field_name = new_val;
                     self
                 }
@@ -159,10 +167,15 @@ pub(crate) fn generate_operative_streams(
 
     let manipulate_slots_stream = all_slots.iter().map(|slot| {
         let slot_id = slot.slot.tag.id;
-        let manipulate_slot_trait_name = proc_macro2::Ident::new(
+        let building_manipulate_slot_trait_name = proc_macro2::Ident::new(
             &format!("{}{}Slot", struct_name, slot.slot.tag.name),
             proc_macro2::Span::call_site(),
         );
+        let editing_manipulate_slot_trait_name = proc_macro2::Ident::new(
+            &format!("{}{}SlotExisting", struct_name, slot.slot.tag.name),
+            proc_macro2::Span::call_site(),
+        );
+
         let add_new_fn_name = proc_macro2::Ident::new(
             &format!("add_new_{}", slot.slot.tag.name.to_lowercase()),
             proc_macro2::Span::call_site(),
@@ -176,13 +189,13 @@ pub(crate) fn generate_operative_streams(
         );
         let slot_marker_trait = proc_macro2::Ident::new(&format!("{}{}", struct_name, slot.slot.tag.name), proc_macro2::Span::call_site());
 
-        let add_new_stream = match &slot.slot.operative_descriptor {
+        let building_add_new_stream =            match &slot.slot.operative_descriptor {
             OperativeVariants::LibraryOperative(lib_op_id) => {
                 let item_name = get_variant_name(&Box::new(
                     constraint_schema.operative_library.get(&lib_op_id).unwrap(),
                 ));
                 quote! {
-                    fn #add_new_fn_name(&mut self, new_item: base_types::traits::InstantiableWrapper<base_types::traits::GSOWrapper<#item_name, Schema>, Schema> ) -> &mut Self
+                    fn #add_new_fn_name(&mut self, new_item: bt::InstantiableWrapper<base_types::traits::GSOWrapper<#item_name, Schema>, Schema> ) -> &mut Self
                 }
             }
             OperativeVariants::TraitOperative(trait_op) => {
@@ -202,12 +215,50 @@ pub(crate) fn generate_operative_streams(
                 let trait_names = trait_names.join(" + ");
                 let trait_names = Ident::new(&trait_names, proc_macro2::Span::call_site());
                 quote! {
-                    fn #add_new_fn_name<T>(&mut self, new_item: base_types::traits::InstantiableWrapper<base_types::traits::GSOWrapper<T, Schema>, Schema>) -> &mut Self
+                    fn #add_new_fn_name<T>(&mut self, new_item: bt::InstantiableWrapper<bt::GSOWrapper<T, Schema>, Schema>) -> &mut Self
                         where base_types::traits::GSOWrapper<T, Schema>: #trait_names,
                               T: Clone + std::fmt::Debug + bt::IntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
                 }
             }
         };
+        let get_editing_add_new_stream = |is_mut: TokenStream| {
+            
+            match &slot.slot.operative_descriptor {
+                OperativeVariants::LibraryOperative(lib_op_id) => {
+                    let item_name = get_variant_name(&Box::new(
+                        constraint_schema.operative_library.get(&lib_op_id).unwrap(),
+                    ));
+                    quote! {
+                        fn #add_new_fn_name(&self, #is_mut new_item: bt::InstantiableWrapper<base_types::traits::GSOWrapper<#item_name, Schema>, Schema> ) -> bt::InstantiableWrapper<base_types::traits::GSOWrapper<#item_name, Schema>, Schema>
+                    }
+                }
+                OperativeVariants::TraitOperative(trait_op) => {
+                    let trait_names = trait_op
+                        .trait_ids
+                        .iter()
+                        .map(|trait_id| {
+                            constraint_schema
+                                .traits
+                                .get(trait_id)
+                                .unwrap()
+                                .tag
+                                .name
+                                .clone()
+                        })
+                        .collect::<Vec<_>>();
+                    let trait_names = trait_names.join(" + ");
+                    let trait_names = Ident::new(&trait_names, proc_macro2::Span::call_site());
+                    quote! {
+                        fn #add_new_fn_name<T>(&self, #is_mut new_item: bt::InstantiableWrapper<bt::GSOWrapper<T, Schema>, Schema>) -> bt::InstantiableWrapper<bt::GSOWrapper<T, Schema>, Schema>
+                            where base_types::traits::GSOWrapper<T, Schema>: #trait_names,
+                                  T: Clone + std::fmt::Debug + bt::IntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
+                    }
+                }
+            }
+        };
+        let editing_add_new_stream_declaration = get_editing_add_new_stream(quote!{});
+        let editing_add_new_stream_impl = get_editing_add_new_stream(quote!{mut });
+
 
         let integrable_stream = {
             let to_integrate_operatives = match &slot.slot.operative_descriptor {
@@ -226,7 +277,7 @@ pub(crate) fn generate_operative_streams(
                     }).cloned().collect::<Vec<_>>()
                 },
             };
-            // println!("to_integrate: {:#?}", to_integrate_operatives);
+
             let streams = to_integrate_operatives.iter().map(|operative| {
                 let operative_name = get_variant_name(&Box::new(operative));
                 quote!{
@@ -239,13 +290,17 @@ pub(crate) fn generate_operative_streams(
         quote! {
             trait #slot_marker_trait {}
             #(#integrable_stream)*
-            pub trait #manipulate_slot_trait_name {
-                #add_new_stream;
+            pub trait #building_manipulate_slot_trait_name {
+                #building_add_new_stream;
                 fn #add_existing_fn_name(&mut self, existing_id: &base_types::common::Uid) -> &mut Self;
             }
+            pub trait #editing_manipulate_slot_trait_name {
+                #editing_add_new_stream_declaration;
+                fn #add_existing_fn_name(&self, existing_id: &base_types::common::Uid) -> bt::ConnectionAction;
+            }
 
-            impl #manipulate_slot_trait_name for base_types::traits::GSOBuilder<base_types::traits::GSOWrapperBuilder<#struct_builder_name>, base_types::traits::GSOWrapper<#struct_name, Schema>, Schema> {
-                #add_new_stream {
+            impl #building_manipulate_slot_trait_name for base_types::traits::GSOBuilder<base_types::traits::GSOWrapperBuilder<#struct_builder_name>, base_types::traits::GSOWrapper<#struct_name, Schema>, Schema> {
+                #building_add_new_stream {
                     base_types::traits::integrate_child(self, new_item, #slot_id);
                     self
                 }
@@ -254,16 +309,30 @@ pub(crate) fn generate_operative_streams(
                     self
                 }
             }
-            // impl #manipulate_slot_trait_name for base_types::traits::GSOWrapper<#struct_name> {
-                // #add_new_stream {
-                //     base_types::traits::integrate_child(self, new_item, #slot_id);
-                //     self
-                // }
-                // fn #add_existing_fn_name(&mut self, existing_id: &base_types::common::Uid) -> &mut Self {
-                //     base_types::traits::integrate_child_id(self, existing_id, #slot_id);
-                //     self
-                // }
-            // }
+            impl #editing_manipulate_slot_trait_name for bt::GSOWrapper<#struct_name, Schema> {
+                #editing_add_new_stream_impl {
+                    let slot_ref = bt::SlotRef{
+                        host_instance_id: self.get_id().clone(),
+                        child_instance_id: new_item.get_instantiable_instance().get_id().clone(),
+                        slot_id: #slot_id.clone(),
+                    };
+                    new_item.add_parent_slot(slot_ref.clone());
+                    new_item.parent_updates.push((self.get_id().clone(),slot_ref));
+                    new_item
+                }
+                fn #add_existing_fn_name(&self, existing_id: &base_types::common::Uid) -> bt::ConnectionAction {
+                    let slot_ref = bt::SlotRef{
+                        host_instance_id: self.get_id().clone(),
+                        child_instance_id: *existing_id,
+                        slot_id: #slot_id.clone(),
+                    };
+                    bt::ConnectionAction {
+                        slot_ref: slot_ref,
+                    }
+                    
+                }
+                
+            }
         }
     });
 

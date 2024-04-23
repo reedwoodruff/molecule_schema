@@ -58,7 +58,7 @@ pub enum PrimitiveValues {
     Bool(bool),
     Char(char),
     Option(Box<Option<PrimitiveValues>>),
-    List(Box<Vec<PrimitiveValues>>),
+    List(Vec<PrimitiveValues>),
 }
 impl Default for PrimitiveValues {
     fn default() -> Self {

@@ -1,4 +1,5 @@
 use anyhow::{Error, Result};
+use std::fmt;
 
 use std::{
     any::{Any, TypeId},
@@ -130,6 +131,27 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
     fn get(&self, id: &Uid) -> Option<&Self::Schema> {
         self.created_instances.get(id)
     }
+    fn create_connection(&mut self, connection: ConnectionAction) -> Result<(), Error> {
+        let parent = self.get_mut(&connection.slot_ref.host_instance_id).unwrap();
+        if parent
+            .get_slot_by_id(&connection.slot_ref.slot_id)
+            .unwrap()
+            .can_add_one()
+        {
+            parent.add_child_to_slot(&connection.slot_ref);
+        } else {
+            return Err(Error::new(ElementCreationError::BoundCheckOutOfRange));
+        }
+        self.get_mut(&connection.slot_ref.child_instance_id)
+            .unwrap()
+            .add_parent_slot(&connection.slot_ref);
+        self.undo_stack.borrow_mut().push(vec![
+            HistoryItem::BlockActionMarker,
+            HistoryItem::AddChild(connection.slot_ref.clone()),
+            HistoryItem::AddParent(connection.slot_ref.clone()),
+        ]);
+        Ok(())
+    }
     fn instantiate_element<T: std::fmt::Debug + Clone + 'static>(
         &mut self,
         element: InstantiableWrapper<GSOWrapper<T, Self::Schema>, Self::Schema>,
@@ -145,6 +167,20 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
         element.child_updates.iter().for_each(|child_update| {
             let mut child = self.get_mut(&child_update.0).unwrap();
             child.add_parent_slot(&child_update.1.clone());
+            self.undo_stack
+                .borrow_mut()
+                .last_mut()
+                .unwrap()
+                .push(HistoryItem::AddParent(child_update.1.clone()));
+        });
+        element.parent_updates.iter().for_each(|parent_update| {
+            let mut parent = self.get_mut(&parent_update.0).unwrap();
+            parent.add_child_to_slot(&parent_update.1);
+            self.undo_stack
+                .borrow_mut()
+                .last_mut()
+                .unwrap()
+                .push(HistoryItem::AddChild(parent_update.1.clone()));
         });
         element.flatten().into_iter().for_each(|mut instantiable| {
             let instantiated = instantiable.instantiate(self.undo_stack.clone());
@@ -160,7 +196,6 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
     }
 
     fn delete(&mut self, id: &Uid) -> Result<(), Error> {
-        println!("entering delete");
         let parent_slots = self.get(id).unwrap().get_parent_slots().clone();
 
         let can_delete = parent_slots.iter().all(|parent_slot| {
@@ -198,6 +233,7 @@ pub trait GraphEnvironment {
     type Schema: GSO + 'static;
 
     fn get(&self, id: &Uid) -> Option<&Self::Schema>;
+    fn create_connection(&mut self, connection: ConnectionAction) -> Result<(), Error>;
     fn instantiate_element<T: std::fmt::Debug + Clone + 'static>(
         &mut self,
         element: InstantiableWrapper<GSOWrapper<T, Self::Schema>, Self::Schema>,
@@ -216,9 +252,17 @@ pub enum HistoryItem<TSchema: GSO> {
     RemoveParent(Vec<SlotRef>),
     // AddChildToSlot(),
     AddParent(SlotRef),
+    AddChild(SlotRef),
     Delete(TSchema),
     Create(Uid),
+    EditField(FieldEdit),
     BlockActionMarker,
+}
+#[derive(Debug, Clone)]
+pub struct FieldEdit {
+    pub field_id: Uid,
+    pub new_value: PrimitiveValues,
+    pub prev_value: PrimitiveValues,
 }
 
 pub trait GSO: std::fmt::Debug + Clone {
@@ -233,6 +277,7 @@ pub trait GSO: std::fmt::Debug + Clone {
     fn get_slots(&self) -> &HashMap<Uid, ActiveSlot>;
     fn get_parent_slots(&self) -> &Vec<SlotRef>;
     fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self;
+    fn add_child_to_slot(&mut self, slot_ref: &SlotRef) -> &mut Self;
     fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self;
     fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self;
     fn set_history(&mut self, history: Option<HistoryStack<Self::Schema>>);
@@ -275,6 +320,10 @@ impl ActiveSlot {
         let len = self.slotted_instances.len() - 1;
         self.check_bound_conformity(len)
     }
+    pub fn can_add_one(&self) -> bool {
+        let len = self.slotted_instances.len() + 1;
+        self.check_bound_conformity(len)
+    }
     fn check_bound_conformity(&self, len: usize) -> bool {
         match &self.slot.bounds {
             SlotBounds::Single => len == 1,
@@ -291,7 +340,7 @@ impl ActiveSlot {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct GSOWrapper<T, TSchema: GSO> {
     id: Uid,
     slots: HashMap<Uid, ActiveSlot>,
@@ -299,8 +348,19 @@ pub struct GSOWrapper<T, TSchema: GSO> {
     pub data: T,
     operative_tag: Rc<Tag>,
     template_tag: Rc<Tag>,
-    history_handle: Option<HistoryStack<TSchema>>,
+    pub history: Option<HistoryStack<TSchema>>,
 }
+impl<T: std::fmt::Debug, TSchema: GSO> std::fmt::Debug for GSOWrapper<T, TSchema> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("GSOWrapper")
+            .field("id", &self.id)
+            .field("slots", &self.slots)
+            .field("parent_slots", &self.parent_slots)
+            .field("data", &self.data)
+            .finish()
+    }
+}
+
 impl<T: Clone + std::fmt::Debug, TSchema: GSO> GSOWrapper<T, TSchema> {}
 
 impl<T: Clone + std::fmt::Debug, TSchema: GSO> GSO for GSOWrapper<T, TSchema> {
@@ -327,13 +387,13 @@ impl<T: Clone + std::fmt::Debug, TSchema: GSO> GSO for GSOWrapper<T, TSchema> {
 
     fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
         self.parent_slots.push(slot_ref.clone());
-        self.history_handle
-            .as_mut()
-            .unwrap()
-            .borrow_mut()
-            .last_mut()
-            .unwrap()
-            .push(HistoryItem::AddParent(slot_ref.clone()));
+        // self.history
+        //     .as_mut()
+        //     .unwrap()
+        //     .borrow_mut()
+        //     .last_mut()
+        //     .unwrap()
+        //     .push(HistoryItem::AddParent(slot_ref.clone()));
         self
     }
 
@@ -343,13 +403,13 @@ impl<T: Clone + std::fmt::Debug, TSchema: GSO> GSO for GSOWrapper<T, TSchema> {
             .unwrap()
             .slotted_instances
             .retain(|slotted_instance_id| *slotted_instance_id != slot_ref.child_instance_id);
-        self.history_handle
-            .as_mut()
-            .unwrap()
-            .borrow_mut()
-            .last_mut()
-            .unwrap()
-            .push(HistoryItem::RemoveChildFromSlot(vec![slot_ref.clone()]));
+        // self.history
+        //     .as_mut()
+        //     .unwrap()
+        //     .borrow_mut()
+        //     .last_mut()
+        //     .unwrap()
+        //     .push(HistoryItem::RemoveChildFromSlot(vec![slot_ref.clone()]));
         self
     }
 
@@ -370,18 +430,27 @@ impl<T: Clone + std::fmt::Debug, TSchema: GSO> GSO for GSOWrapper<T, TSchema> {
             }
             false
         });
-        self.history_handle
-            .as_mut()
-            .unwrap()
-            .borrow_mut()
-            .last_mut()
-            .unwrap()
-            .push(HistoryItem::RemoveParent(removed));
+        // self.history
+        //     .as_mut()
+        //     .unwrap()
+        //     .borrow_mut()
+        //     .last_mut()
+        //     .unwrap()
+        //     .push(HistoryItem::RemoveParent(removed));
         self
     }
 
     fn set_history(&mut self, history: Option<HistoryStack<Self::Schema>>) {
-        self.history_handle = history;
+        self.history = history;
+    }
+
+    fn add_child_to_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+        self.slots
+            .get_mut(&slot_ref.slot_id)
+            .unwrap()
+            .slotted_instances
+            .push(slot_ref.child_instance_id.clone());
+        self
     }
 }
 #[derive(Clone, Debug)]
@@ -433,7 +502,7 @@ where
 {
     fn produce(&self) -> GSOWrapper<T, TSchema> {
         GSOWrapper::<T, TSchema> {
-            history_handle: None,
+            history: None,
             id: self.id.clone(),
             slots: self.slots.clone(),
             parent_slots: self.parent_slots.clone(),
@@ -504,7 +573,7 @@ where
 {
     prereq_instantiables: InstantiableElements<TSchema>,
     instantiable_instance: T,
-    parent_updates: Vec<(Uid, SlotRef)>,
+    pub parent_updates: Vec<(Uid, SlotRef)>,
     child_updates: Vec<(Uid, SlotRef)>,
 }
 
@@ -533,6 +602,10 @@ where
     }
 }
 
+pub struct ConnectionAction {
+    pub slot_ref: SlotRef,
+}
+
 pub trait Producable<T> {
     fn produce(&self) -> T;
 }
@@ -556,12 +629,30 @@ where
     _phantom: PhantomData<T>,
 }
 
-impl<F, T, TSchema> GSOBuilder<F, T, TSchema>
+impl<F, T, TSchema: GSO> GSOBuilder<F, T, TSchema>
 where
     F: Finalizable<T>,
     T: Instantiable<Schema = TSchema> + 'static,
 {
-    pub fn build(&mut self) -> Result<InstantiableWrapper<T, TSchema>, Error> {
+    pub fn build(
+        &mut self,
+        graph: &impl GraphEnvironment<
+            Types = PrimitiveTypes,
+            Values = PrimitiveValues,
+            Schema = TSchema,
+        >,
+    ) -> Result<InstantiableWrapper<T, TSchema>, Error> {
+        for parent_update in self.parent_updates.iter() {
+            let can_add_one = graph
+                .get(&parent_update.0)
+                .unwrap()
+                .get_slot_by_id(&parent_update.1.slot_id)
+                .unwrap()
+                .can_add_one();
+            if !can_add_one {
+                return Err(Error::new(ElementCreationError::BoundCheckOutOfRange));
+            }
+        }
         Ok(InstantiableWrapper {
             child_updates: self.child_updates.clone(),
             parent_updates: self.parent_updates.clone(),
