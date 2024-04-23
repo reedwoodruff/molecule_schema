@@ -117,21 +117,21 @@ pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
                     _ => panic!(),
                 }
             }
-            fn add_parent_slot(&mut self, slot_ref: bt::SlotRef) -> &mut Self {
+            fn add_parent_slot(&mut self, slot_ref: &bt::SlotRef) ->  bt::EditHistoryItem {
                 match self {
-                    #(Self::#all_lib_op_names(item) => {item.add_parent_slot(slot_ref); self},)*
+                    #(Self::#all_lib_op_names(item) => item.add_parent_slot(slot_ref),)*
                     _ => panic!(),
                 }
             }
-            fn remove_from_child_slot(&mut self, slot_ref: &bt::SlotRef) -> &mut Self{
+            fn remove_child_from_slot(&mut self, slot_ref: &bt::SlotRef) -> bt::EditHistoryItem{
                 match self {
-                    #(Self::#all_lib_op_names(item) => {item.remove_from_child_slot(slot_ref); self},)*
+                    #(Self::#all_lib_op_names(item) => item.remove_child_from_slot(slot_ref),)*
                     _ => panic!(),
                 }
             }
-            fn remove_from_parent_slot(&mut self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> &mut Self {
+            fn remove_parent(&mut self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> bt::EditHistoryItem {
                 match self {
-                    #(Self::#all_lib_op_names(item) => {item.remove_from_parent_slot(parent_id, slot_id); self},)*
+                    #(Self::#all_lib_op_names(item) => item.remove_parent(parent_id, slot_id),)*
                     _ => panic!(),
                 }
             }

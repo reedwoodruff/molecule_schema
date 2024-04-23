@@ -283,20 +283,21 @@ fn test_builder() {
     let mut sentence = Sentence::initiate_build();
     sentence.add_word_new(new_word);
     sentence.add_word_new(new_word2);
-    sentence.add_word_existing(&55);
     let sentence = sentence.build().unwrap();
 
     let mut env = BaseGraphEnvironment::<SampleSchema>::new_without_schema();
 
-    env.instantiate_element(sentence);
-    let word = env.get_mut(&word1id).unwrap();
+    let sentence_id = env.instantiate_element(sentence);
+    env.delete(&sentence_id);
+    // let word = env.get_mut(&word1id).unwrap();
+    println!("{:#?}", env);
     //  {
     //     Some(SampleSchema::Word(word)) => word,
     //     _ => unreachable!(),
     // };
     // word.data.display = "Goolo".to_string();
-    word.set_display("goob");
-    println!("{:#?}", word);
+    // word.set_display("goob");
+    // println!("{:#?}", word);
 
     panic!()
 }

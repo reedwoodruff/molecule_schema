@@ -10,10 +10,7 @@ use generate_schema::generate_concrete_schema;
 #[test]
 fn test_macro() {
     constraint_schema::constraint_schema!();
-    let mut sge_instance = BaseGraphEnvironment {
-        created_instances: HashMap::<Uid, Schema>::new(),
-        constraint_schema: constraint_schema_generated,
-    };
+    let mut sge_instance = BaseGraphEnvironment::new(constraint_schema_generated);
     generate_concrete_schema!();
 
     let new_word3 = WordOp::initiate_build()
@@ -68,16 +65,17 @@ fn test_macro() {
 
     // sge_instance.instantiate_element(Schema::)
     let sent_id = sge_instance.instantiate_element(new_sen);
-    let word = match sge_instance.get_mut(&word1id).unwrap() {
-        Schema::WordOp(word) => word,
-        _ => panic!(),
-    };
-    word.set_display("clong".to_string());
+    // let word = match sge_instance.get_mut(&word1id).unwrap() {
+    //     Schema::WordOp(word) => word,
+    //     _ => panic!(),
+    // };
+    // word.set_display("clong".to_string());
     sge_instance.delete(&second_displayable_id).unwrap();
-    sge_instance.delete(&first_displayable_id).unwrap();
-    for instance in sge_instance.created_instances.values() {
-        println!("{:#?}", instance);
-    }
+    // sge_instance.delete(&first_displayable_id).unwrap();
+    // for instance in sge_instance.created_instances.values() {
+    //     println!("{:#?}", instance);
+    // }
+    println!("{:#?}", sge_instance);
     panic!();
     // let mut new_sen = SentenceOp::initiate_build();
     // let mut new_linear_displayable = LinearDisplayableOp::initiate_build();

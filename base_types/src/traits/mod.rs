@@ -107,7 +107,7 @@ impl<TSchema: GSO + 'static> BaseGraphEnvironment<TSchema> {
                 });
         }
         let removed_value = self.created_instances.remove(&id).unwrap();
-        self.append_top_level_history_item(AllHistoryItem::Delete(vec![removed_value]));
+        self.append_top_level_history_item(AllHistoryItem::Delete(removed_value));
     }
 }
 impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> {
@@ -135,12 +135,16 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
     {
         let id = *element.get_instantiable_instance().get_id();
         // self.created_instances.insert(id, element);
+        self.add_top_level_history_item(AllHistoryItem::BlockActionMarker);
         element.child_updates.iter().for_each(|child_update| {
             let mut child = self.get_mut(&child_update.0).unwrap();
             child.internal_add_parent_slot(&child_update.1.clone());
         });
         element.flatten().into_iter().for_each(|instantiable| {
             let instantiated = instantiable.instantiate();
+            self.append_top_level_history_item(AllHistoryItem::Create(
+                *instantiable.get_instance_id(),
+            ));
             self.created_instances
                 .insert(*instantiable.get_instance_id(), instantiated);
         });
@@ -230,7 +234,8 @@ pub trait GraphEnvironment {
 #[derive(Debug, Clone)]
 pub enum AllHistoryItem<TSchema: GSO> {
     Edit(EditHistoryItem),
-    Delete(Vec<TSchema>),
+    Delete(TSchema),
+    Create(Uid),
     BlockActionMarker,
     // Add(TSchema)
 }
@@ -248,16 +253,15 @@ pub struct GSOEditor<'a, G: GraphEnvironment> {
 }
 impl<'a, G: GraphEnvironment> GSOEditor<'a, G> {
     pub fn new(id: Uid, graph: &'a mut G) -> Self {
-        let instance = graph.get_mut_raw(&id).unwrap();
         Self {
             id,
             // instance,
             graph,
         }
     }
-    // pub fn get_field_access(&mut self) -> &mut G::Schema {
-    //     self.graph.get_mut_raw(&self.id).unwrap().s
-    // }
+    pub fn get_field_access(&mut self) -> &mut G::Schema {
+        self.graph.get_mut_raw(&self.id).unwrap()
+    }
     pub fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
         let manifest = self
             .graph
