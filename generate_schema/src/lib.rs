@@ -3,12 +3,9 @@ use proc_macro::TokenStream;
 use quote::quote;
 
 use base_types::constraint_schema::*;
-use base_types::constraint_schema_item::ConstraintSchemaItem;
+
 use base_types::primitives::*;
-use syn::{
-    parse::{Parse, ParseStream},
-    punctuated::Punctuated, Result as SynResult, Token, Type,
-};
+
 
 use crate::utils::get_variant_name;
 
@@ -17,7 +14,7 @@ mod generate_operative_streams;
 mod utils;
 
 #[proc_macro]
-pub fn generate_concrete_schema(input: TokenStream) -> TokenStream {
+pub fn generate_concrete_schema(_input: TokenStream) -> TokenStream {
     // let graph_environment = syn::parse_macro_input!(input as syn::Expr); 
 
     constraint_schema::constraint_schema!();

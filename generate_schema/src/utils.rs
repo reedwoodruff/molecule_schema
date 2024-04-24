@@ -1,15 +1,11 @@
-use proc_macro::TokenStream;
+
 
 use quote::quote;
 
-use base_types::constraint_schema::*;
+
 use base_types::constraint_schema_item::ConstraintSchemaItem;
 use base_types::primitives::*;
-use syn::{
-    parse::{Parse, ParseStream},
-    punctuated::Punctuated,
-    Result as SynResult, Token, Type,
-};
+
 pub(crate) fn concat_unique_element(
     element: &Box<&dyn ConstraintSchemaItem<TTypes = PrimitiveTypes, TValues = PrimitiveValues>>,
 ) -> String {
@@ -65,7 +61,7 @@ pub(crate) fn get_primitive_value(ty: &PrimitiveValues) -> proc_macro2::TokenStr
             }
         }
         PrimitiveValues::List(val) => {
-            let inner = val.iter().map(|item| get_primitive_value(item));
+            let inner = val.iter().map(get_primitive_value);
             quote! {vec![#(#inner)*]}
         }
     }

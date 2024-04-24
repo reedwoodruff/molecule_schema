@@ -1,18 +1,14 @@
-use std::collections::HashMap;
 
-use base_types::traits::{ActiveSlot, GSOWrapperBuilder};
+
+use base_types::traits::{ActiveSlot};
 
 use proc_macro2::{Ident, TokenStream};
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{quote};
 
 use base_types::constraint_schema_item::ConstraintSchemaItem;
 use base_types::primitives::*;
 use base_types::{constraint_schema::*, traits::GraphEnvironment};
-use syn::{
-    parse::{Parse, ParseStream},
-    punctuated::Punctuated,
-    Result as SynResult, Token, Type,
-};
+
 
 use crate::generate_trait_impl_streams;
 use crate::utils::{
@@ -26,24 +22,24 @@ pub(crate) fn generate_operative_streams(
     constraint_schema: &ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
     // graph_environment: syn::Expr,
 ) -> proc_macro2::TokenStream {
-    let mut field_names = Vec::<syn::Ident>::new();
-    let mut field_names_setters = Vec::<syn::Ident>::new();
-    let mut field_values = Vec::<proc_macro2::TokenStream>::new();
-    let mut initial_values = Vec::<proc_macro2::TokenStream>::new();
+    let _field_names = Vec::<syn::Ident>::new();
+    let _field_names_setters = Vec::<syn::Ident>::new();
+    let _field_values = Vec::<proc_macro2::TokenStream>::new();
+    let _initial_values = Vec::<proc_macro2::TokenStream>::new();
     let struct_name = get_variant_name(&instantiable);
     let struct_builder_name = get_variant_builder_name(&instantiable);
-    let item_trait_stream = crate::generate_trait_impl_streams::generate_trait_impl_streams(
+    let _item_trait_stream = crate::generate_trait_impl_streams::generate_trait_impl_streams(
         &instantiable,
         constraint_schema,
     );
 
     let reference_template_id = instantiable.get_template_id();
-    let (constraint_schema_tag_name, constraint_schema_tag_id) = (
+    let (_constraint_schema_tag_name, _constraint_schema_tag_id) = (
         instantiable.get_tag().name.clone(),
         instantiable.get_tag().id,
     );
     let operative_tag = instantiable.get_tag();
-    let operative_id = operative_tag.id.clone();
+    let operative_id = operative_tag.id;
     let reference_template = constraint_schema
         .clone()
         .template_library
@@ -58,7 +54,7 @@ pub(crate) fn generate_operative_streams(
     let unfulfilled_fields = field_digest.get_unfulfilled_fields();
     let unfulfilled_field_names = unfulfilled_fields
         .iter()
-        .map(|field| syn::Ident::new(&*field.tag.name, proc_macro2::Span::call_site()))
+        .map(|field| syn::Ident::new(&field.tag.name, proc_macro2::Span::call_site()))
         .collect::<Vec<_>>();
     let unfulfilled_field_value_types = unfulfilled_fields
         .iter()
@@ -70,7 +66,7 @@ pub(crate) fn generate_operative_streams(
         .values()
         .map(|field| {
             syn::Ident::new(
-                &*field.fulfilled_field.field_constraint_name,
+                &field.fulfilled_field.field_constraint_name,
                 proc_macro2::Span::call_site(),
             )
         })
@@ -88,7 +84,7 @@ pub(crate) fn generate_operative_streams(
         .values()
         .map(|field| get_primitive_value(&field.fulfilled_field.value));
 
-    let operative_tag_handle = syn::Ident::new(
+    let _operative_tag_handle = syn::Ident::new(
         &(struct_name.to_string().clone() + "operative_tag"),
         proc_macro2::Span::call_site(),
     );
@@ -100,7 +96,7 @@ pub(crate) fn generate_operative_streams(
         .iter()
         .map(|unf_slot| {
             // let slot_name = unf_slot.slot.tag.name;
-            let slot_id = unf_slot.slot.tag.id;
+            let _slot_id = unf_slot.slot.tag.id;
             let active_slot = ActiveSlot {
                 slot: unf_slot.slot.clone(),
                 slotted_instances: unf_slot
@@ -126,7 +122,7 @@ pub(crate) fn generate_operative_streams(
     let manipulate_fields_stream = unfulfilled_fields.iter().map(|field| {
         let field_id = field.tag.id;
         let field_value_type = get_primitive_type(&field.value_type);
-        let field_name = syn::Ident::new(&*field.tag.name, proc_macro2::Span::call_site());
+        let field_name = syn::Ident::new(&field.tag.name, proc_macro2::Span::call_site());
         let manipulate_field_trait_name = proc_macro2::Ident::new(
             &format!("{}{}Field", struct_name, field.tag.name),
             proc_macro2::Span::call_site(),
@@ -192,7 +188,7 @@ pub(crate) fn generate_operative_streams(
         let building_add_new_stream =            match &slot.slot.operative_descriptor {
             OperativeVariants::LibraryOperative(lib_op_id) => {
                 let item_name = get_variant_name(&Box::new(
-                    constraint_schema.operative_library.get(&lib_op_id).unwrap(),
+                    constraint_schema.operative_library.get(lib_op_id).unwrap(),
                 ));
                 quote! {
                     fn #add_new_fn_name(&mut self, new_item: bt::InstantiableWrapper<base_types::traits::GSOWrapper<#item_name, Schema>, Schema> ) -> &mut Self
@@ -226,7 +222,7 @@ pub(crate) fn generate_operative_streams(
             match &slot.slot.operative_descriptor {
                 OperativeVariants::LibraryOperative(lib_op_id) => {
                     let item_name = get_variant_name(&Box::new(
-                        constraint_schema.operative_library.get(&lib_op_id).unwrap(),
+                        constraint_schema.operative_library.get(lib_op_id).unwrap(),
                     ));
                     quote! {
                         fn #add_new_fn_name(&self, #is_mut new_item: bt::InstantiableWrapper<base_types::traits::GSOWrapper<#item_name, Schema>, Schema> ) -> bt::InstantiableWrapper<base_types::traits::GSOWrapper<#item_name, Schema>, Schema>

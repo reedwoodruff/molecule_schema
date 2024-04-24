@@ -2,23 +2,21 @@ use anyhow::{Error, Result};
 use std::fmt;
 
 use std::{
-    any::{Any, TypeId},
+    any::{Any},
     cell::RefCell,
     collections::HashMap,
-    io::Write,
     marker::PhantomData,
     rc::Rc,
 };
 use strum_macros::Display;
 
-use validator::Validate;
+
 
 use crate::{
     common::{ConstraintTraits, Tag, Uid},
     constraint_schema::{
         ConstraintSchema, LibraryOperative, LibraryTemplate, OperativeSlot, SlotBounds,
     },
-    constraint_schema_item::ConstraintSchemaItem,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 
@@ -75,12 +73,12 @@ impl<TSchema: GSO> BaseGraphEnvironment<TSchema> {
 
 impl<TSchema: GSO + 'static> BaseGraphEnvironment<TSchema> {
     fn check_and_delete_children(&mut self, id: &Uid, parent_id: Option<&Uid>) {
-        let mut should_delete = if parent_id.is_some() { false } else { true };
+        let mut should_delete = parent_id.is_none();
         // let item_slots = self.get(&id).unwrap();
         // let mut item_mut = self.get_mut(&id).unwrap();
 
         if let Some(parent_id) = parent_id {
-            let child_parent_slots = self.get(&id).unwrap().get_parent_slots();
+            let child_parent_slots = self.get(id).unwrap().get_parent_slots();
             let remaining_parents = child_parent_slots
                 .iter()
                 .filter(|slot_ref| slot_ref.host_instance_id != *parent_id)
@@ -91,13 +89,13 @@ impl<TSchema: GSO + 'static> BaseGraphEnvironment<TSchema> {
         }
 
         if !should_delete && parent_id.is_some() {
-            self.get_mut(&id)
+            self.get_mut(id)
                 .unwrap()
-                .remove_parent(&parent_id.unwrap(), None);
+                .remove_parent(parent_id.unwrap(), None);
         }
 
         if should_delete {
-            self.get(&id)
+            self.get(id)
                 .unwrap()
                 .get_slots()
                 .clone()
@@ -110,7 +108,7 @@ impl<TSchema: GSO + 'static> BaseGraphEnvironment<TSchema> {
                         });
                 });
         }
-        let mut removed_value = self.created_instances.remove(&id).unwrap();
+        let mut removed_value = self.created_instances.remove(id).unwrap();
         removed_value.set_history(None);
         self.undo_stack
             .borrow_mut()
@@ -165,7 +163,7 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
             .borrow_mut()
             .push(vec![HistoryItem::BlockActionMarker]);
         element.child_updates.iter().for_each(|child_update| {
-            let mut child = self.get_mut(&child_update.0).unwrap();
+            let child = self.get_mut(&child_update.0).unwrap();
             child.add_parent_slot(&child_update.1.clone());
             self.undo_stack
                 .borrow_mut()
@@ -174,7 +172,7 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
                 .push(HistoryItem::AddParent(child_update.1.clone()));
         });
         element.parent_updates.iter().for_each(|parent_update| {
-            let mut parent = self.get_mut(&parent_update.0).unwrap();
+            let parent = self.get_mut(&parent_update.0).unwrap();
             parent.add_child_to_slot(&parent_update.1);
             self.undo_stack
                 .borrow_mut()
@@ -182,7 +180,7 @@ impl<TSchema: GSO + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> 
                 .unwrap()
                 .push(HistoryItem::AddChild(parent_update.1.clone()));
         });
-        element.flatten().into_iter().for_each(|mut instantiable| {
+        element.flatten().into_iter().for_each(|instantiable| {
             let instantiated = instantiable.instantiate(self.undo_stack.clone());
             self.undo_stack
                 .borrow_mut()
@@ -449,7 +447,7 @@ impl<T: Clone + std::fmt::Debug, TSchema: GSO> GSO for GSOWrapper<T, TSchema> {
             .get_mut(&slot_ref.slot_id)
             .unwrap()
             .slotted_instances
-            .push(slot_ref.child_instance_id.clone());
+            .push(slot_ref.child_instance_id);
         self
     }
 }
@@ -472,7 +470,7 @@ impl<T: Clone + std::fmt::Debug> GSOWrapperBuilder<T> {
     ) -> Self {
         Self {
             id: uuid::Uuid::new_v4().as_u128(),
-            slots: slots.unwrap_or(HashMap::new()),
+            slots: slots.unwrap_or_default(),
             parent_slots: Vec::new(),
             data,
             operative_tag,
@@ -503,7 +501,7 @@ where
     fn produce(&self) -> GSOWrapper<T, TSchema> {
         GSOWrapper::<T, TSchema> {
             history: None,
-            id: self.id.clone(),
+            id: self.id,
             slots: self.slots.clone(),
             parent_slots: self.parent_slots.clone(),
             data: self.data.produce(),

@@ -1,4 +1,4 @@
-use proc_macro::TokenStream;
+
 
 use proc_macro2::Ident;
 use quote::quote;
@@ -6,11 +6,7 @@ use quote::quote;
 use base_types::constraint_schema::*;
 use base_types::constraint_schema_item::ConstraintSchemaItem;
 use base_types::primitives::*;
-use syn::{
-    parse::{Parse, ParseStream},
-    punctuated::Punctuated,
-    Result as SynResult, Token, Type,
-};
+
 
 use crate::utils;
 
@@ -20,7 +16,7 @@ pub(crate) fn generate_trait_impl_streams(
     >,
     constraint_schema: &ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
 ) -> proc_macro2::TokenStream {
-    let instantiable_name = crate::get_variant_name(&instantiable);
+    let instantiable_name = crate::get_variant_name(instantiable);
     let trait_impl_digest = instantiable.get_trait_impl_digest(constraint_schema);
 
     let trait_impl_stream = trait_impl_digest.trait_impls.iter().map(|(trait_id, trait_impl)| {
@@ -39,7 +35,7 @@ pub(crate) fn generate_trait_impl_streams(
                             std::borrow::Cow::Borrowed(&self.data.#field_ident)
                         }
                     },
-                    TraitMethodImplPath::TraitMethod { trait_id, trait_method_id } => todo!(),
+                    TraitMethodImplPath::TraitMethod { trait_id: _, trait_method_id: _ } => todo!(),
                     TraitMethodImplPath::Constituent(_) => todo!(),
                 }
             });

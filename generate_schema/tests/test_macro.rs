@@ -1,10 +1,10 @@
-use std::borrow::Borrow;
+
 use std::collections::HashMap;
 use std::io::Write;
 
-use base_types::common::{ConstraintTraits, Uid};
-use base_types::constraint_schema::ConstraintSchema;
-use base_types::primitives::{PrimitiveTypes, PrimitiveValues};
+use base_types::common::{Uid};
+
+
 use base_types::traits::{BaseGraphEnvironment, GraphEnvironment, GSO};
 use generate_schema::generate_concrete_schema;
 
@@ -21,7 +21,7 @@ fn test_macro() {
         .set_display("CREATED_FIRST_WORD".to_string())
         .build(&sge_instance)
         .unwrap();
-    let word_3_id = new_word3.get_instantiable_instance().get_id().clone();
+    let word_3_id = *new_word3.get_instantiable_instance().get_id();
     let new_word4 = WordOp::initiate_build()
         .set_display("CREATED_FIRST_WORD_2".to_string())
         .build(&sge_instance)
@@ -38,7 +38,7 @@ fn test_macro() {
         .set_display("Clunk".to_string())
         .build(&sge_instance)
         .unwrap();
-    let word1id = new_word.get_instantiable_instance().get_id().clone();
+    let word1id = *new_word.get_instantiable_instance().get_id();
     let new_word2 = WordOp::initiate_build()
         .set_display("Clip".to_string())
         .build(&sge_instance)
@@ -49,10 +49,9 @@ fn test_macro() {
         .add_new_former(new_word2)
         .build(&sge_instance)
         .unwrap();
-    let second_displayable_id = new_linear_displayable
+    let _second_displayable_id = *new_linear_displayable
         .get_instantiable_instance()
-        .get_id()
-        .clone();
+        .get_id();
     let new_punctuation_op = PunctuationOp::initiate_build()
         .set_display(".".to_string())
         .build(&sge_instance)

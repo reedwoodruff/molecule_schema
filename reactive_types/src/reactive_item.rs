@@ -92,7 +92,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
     }
     fn get_locked_fields_digest(
         &self,
-        schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
+        _schema: &RConstraintSchema<Self::TTypes, Self::TValues>,
     ) -> RLockedFieldsDigest<Self::TTypes, Self::TValues> {
         RLockedFieldsDigest {
             digest_object_id: self.get_tag().id.get(),
@@ -102,7 +102,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
     }
     fn get_operative_digest(
         &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
+        _schema: &RConstraintSchema<TTypes, TValues>,
     ) -> Memo<ROperativeDigest> {
         let self_clone = self.clone();
         create_memo(move |_| {
@@ -129,7 +129,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
     }
     fn get_trait_impl_digest(
         &self,
-        schema: &RConstraintSchema<TTypes, TValues>,
+        _schema: &RConstraintSchema<TTypes, TValues>,
     ) -> RTraitImplDigest {
         RTraitImplDigest {
             object_id: self.get_tag().id.get(),

@@ -1,6 +1,6 @@
 use uuid::Uuid;
 
-use crate::constraint_schema::ConstraintSchema;
+
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]

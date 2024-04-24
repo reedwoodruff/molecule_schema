@@ -2,12 +2,10 @@ use super::*;
 
 use anyhow::{Error, Result};
 use std::{
-    any::{Any, TypeId},
     collections::HashMap,
-    marker::PhantomData,
     rc::Rc,
 };
-use strum_macros::Display;
+
 
 use validator::Validate;
 
@@ -57,23 +55,23 @@ impl GSO for SampleSchema {
         self.get_slots().get(slot_id)
     }
 
-    fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+    fn add_parent_slot(&mut self, _slot_ref: &SlotRef) -> &mut Self {
         todo!()
     }
 
-    fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+    fn remove_child_from_slot(&mut self, _slot_ref: &SlotRef) -> &mut Self {
         todo!()
     }
 
-    fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> &mut Self {
+    fn remove_parent(&mut self, _parent_id: &Uid, _slot_id: Option<&Uid>) -> &mut Self {
         todo!()
     }
 
-    fn set_history(&mut self, history: Option<HistoryStack<Self::Schema>>) {
+    fn set_history(&mut self, _history: Option<HistoryStack<Self::Schema>>) {
         todo!()
     }
 
-    fn add_child_to_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+    fn add_child_to_slot(&mut self, _slot_ref: &SlotRef) -> &mut Self {
         todo!()
     }
 }

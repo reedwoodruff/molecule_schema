@@ -61,7 +61,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
     ) -> Option<&HashMap<Uid, LockedFieldConstraint<Self::TValues>>> {
         None
     }
-    fn get_operative_digest(&self, schema: &ConstraintSchema<TTypes, TValues>) -> OperativeDigest {
+    fn get_operative_digest(&self, _schema: &ConstraintSchema<TTypes, TValues>) -> OperativeDigest {
         OperativeDigest {
             digest_object_id: self.tag.id,
             operative_slots: self
@@ -82,7 +82,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
     }
     fn get_trait_impl_digest<'a>(
         &'a self,
-        schema: &'a ConstraintSchema<TTypes, TValues>,
+        _schema: &'a ConstraintSchema<TTypes, TValues>,
     ) -> TraitImplDigest {
         TraitImplDigest {
             trait_impls: self
@@ -103,7 +103,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
     }
     fn get_locked_fields_digest<'a>(
         &'a self,
-        schema: &'a ConstraintSchema<TTypes, TValues>,
+        _schema: &'a ConstraintSchema<TTypes, TValues>,
     ) -> Option<LockedFieldsDigest<TTypes, TValues>> {
         None
     }

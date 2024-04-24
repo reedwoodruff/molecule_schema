@@ -25,7 +25,7 @@ impl RTraitImplDigest {
     pub fn get_local_trait_impls(&self) -> HashMap<Uid, RRelatedTraitImpl> {
         self.trait_impls
             .iter()
-            .filter(|(trait_id, trait_impl_digest)| {
+            .filter(|(_trait_id, trait_impl_digest)| {
                 trait_impl_digest.hosting_element_id != self.object_id
             })
             .map(|(trait_id, trait_impl_digest)| (*trait_id, trait_impl_digest.clone()))
@@ -34,7 +34,7 @@ impl RTraitImplDigest {
     pub fn get_ancestors_trait_impls(&self) -> HashMap<Uid, RRelatedTraitImpl> {
         self.trait_impls
             .iter()
-            .filter(|(trait_id, trait_impl_digest)| {
+            .filter(|(_trait_id, trait_impl_digest)| {
                 trait_impl_digest.hosting_element_id != self.object_id
             })
             .map(|(trait_id, trait_impl_digest)| (*trait_id, trait_impl_digest.clone()))
