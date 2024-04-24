@@ -1,9 +1,30 @@
-
-
 use crate::{
     constraint_schema::ConstraintSchema,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
+
+#[cfg(feature = "to_tokens")]
+pub fn get_primitive_value(ty: &PrimitiveValues) -> proc_macro2::TokenStream {
+    match ty {
+        PrimitiveValues::Int(val) => quote::quote! {#val},
+        PrimitiveValues::Float(val) => quote::quote! {#val},
+        PrimitiveValues::String(val) => quote::quote! {#val},
+        PrimitiveValues::Bool(val) => quote::quote! {#val},
+        PrimitiveValues::Char(val) => quote::quote! {#val},
+        PrimitiveValues::Option(val) => {
+            if let Some(present_value) = val.as_ref() {
+                let inner = get_primitive_value(present_value);
+                quote::quote! {#inner}
+            } else {
+                quote::quote! {None}
+            }
+        }
+        PrimitiveValues::List(val) => {
+            let inner = val.iter().map(get_primitive_value);
+            quote::quote! {vec![#(#inner)*]}
+        }
+    }
+}
 
 #[cfg(feature = "serde")]
 pub fn print_schema(schema: &ConstraintSchema<PrimitiveTypes, PrimitiveValues>) {

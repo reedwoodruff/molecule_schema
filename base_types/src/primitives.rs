@@ -19,6 +19,29 @@ pub enum PrimitiveTypes {
     Option(Box<PrimitiveTypes>),
     List(Box<PrimitiveTypes>),
 }
+#[cfg(feature = "to_tokens")]
+impl quote::ToTokens for PrimitiveTypes {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        let ts = match *self {
+            PrimitiveTypes::Bool => quote::quote! { base_types::primitives::PrimitiveTypes::Bool },
+            PrimitiveTypes::Char => quote::quote! { base_types::primitives::PrimitiveTypes::Char },
+            PrimitiveTypes::Int => quote::quote! { base_types::primitives::PrimitiveTypes::Int },
+            PrimitiveTypes::Float => {
+                quote::quote! { base_types::primitives::PrimitiveTypes::Float }
+            }
+            PrimitiveTypes::String => {
+                quote::quote! { base_types::primitives::PrimitiveTypes::String }
+            }
+            PrimitiveTypes::Option(ref inner) => {
+                quote::quote! { base_types::primitives::PrimitiveTypes::Option(Box::new(#inner)) }
+            }
+            PrimitiveTypes::List(ref inner) => {
+                quote::quote! { base_types::primitives::PrimitiveTypes::List(Box::new(#inner)) }
+            }
+        };
+        ts.to_tokens(tokens);
+    }
+}
 
 impl PrimitiveTypes {
     pub fn get_type_options() -> HashMap<PrimitiveTypes, String> {

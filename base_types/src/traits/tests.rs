@@ -1,11 +1,7 @@
 use super::*;
 
 use anyhow::{Error, Result};
-use std::{
-    collections::HashMap,
-    rc::Rc,
-};
-
+use std::{collections::HashMap, rc::Rc};
 
 use validator::Validate;
 
@@ -29,6 +25,11 @@ type SampleG = BaseGraphEnvironment<SampleSchema>;
 //     // type Graph = G;
 // }
 
+impl FieldEditable for SampleSchema {
+    fn apply_field_edit(&mut self, field_edit: FieldEdit) {
+        todo!()
+    }
+}
 impl GSO for SampleSchema {
     type Schema = Self;
     fn get_id(&self) -> &Uid {
@@ -63,11 +64,11 @@ impl GSO for SampleSchema {
         todo!()
     }
 
-    fn remove_parent(&mut self, _parent_id: &Uid, _slot_id: Option<&Uid>) -> &mut Self {
+    fn remove_parent(&mut self, _parent_id: &Uid, _slot_id: Option<&Uid>) -> Vec<SlotRef> {
         todo!()
     }
 
-    fn set_history(&mut self, _history: Option<HistoryStack<Self::Schema>>) {
+    fn set_history(&mut self, _history: Option<HistoryRef<Self::Schema>>) {
         todo!()
     }
 
@@ -78,6 +79,11 @@ impl GSO for SampleSchema {
 
 #[derive(Debug, Clone, Default)]
 struct Sentence {}
+impl FieldEditable for Sentence {
+    fn apply_field_edit(&mut self, field_edit: FieldEdit) {
+        todo!()
+    }
+}
 impl IntoSchema for Sentence {
     type Schema = SampleSchema;
 
@@ -190,6 +196,11 @@ impl SentenceWordSlot
 #[derive(Default, Debug, Clone)]
 struct Word {
     display: String,
+}
+impl FieldEditable for Word {
+    fn apply_field_edit(&mut self, field_edit: FieldEdit) {
+        todo!()
+    }
 }
 impl IntoSchema for Word {
     type Schema = SampleSchema;

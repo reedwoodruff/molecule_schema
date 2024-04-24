@@ -1,9 +1,7 @@
-
 use std::collections::HashMap;
 use std::io::Write;
 
-use base_types::common::{Uid};
-
+use base_types::common::Uid;
 
 use base_types::traits::{BaseGraphEnvironment, GraphEnvironment, GSO};
 use generate_schema::generate_concrete_schema;
@@ -49,9 +47,8 @@ fn test_macro() {
         .add_new_former(new_word2)
         .build(&sge_instance)
         .unwrap();
-    let _second_displayable_id = *new_linear_displayable
-        .get_instantiable_instance()
-        .get_id();
+    let _second_displayable_id = *new_linear_displayable.get_instantiable_instance().get_id();
+
     let new_punctuation_op = PunctuationOp::initiate_build()
         .set_display(".".to_string())
         .build(&sge_instance)
@@ -64,6 +61,7 @@ fn test_macro() {
         .unwrap();
 
     let sent_id = sge_instance.instantiate_element(new_sen);
+
     let word = match sge_instance.get_mut(&word1id).unwrap() {
         Schema::WordOp(word) => word,
         _ => panic!(),
@@ -87,12 +85,38 @@ fn test_macro() {
     sge_instance.create_connection(action);
     // sge_instance.instantiate_element(action);
 
+    sge_instance.undo();
+    sge_instance.undo();
+    sge_instance.undo();
+    sge_instance.undo();
+    sge_instance.undo();
+
+    sge_instance.redo();
+    sge_instance.redo();
+    sge_instance.redo();
+    sge_instance.redo();
+    sge_instance.redo();
+
+    sge_instance.undo();
+    sge_instance.undo();
+    sge_instance.undo();
+    sge_instance.undo();
+    sge_instance.undo();
+
+    sge_instance.redo();
+    sge_instance.redo();
+    sge_instance.redo();
+    sge_instance.redo();
+    sge_instance.redo();
     // sge_instance.delete(&second_displayable_id).unwrap();
     // // sge_instance.delete(&first_displayable_id).unwrap();
     // // for instance in sge_instance.created_instances.values() {
     // //     println!("{:#?}", instance);
     // // }
-    println!("{:#?}", sge_instance.undo_stack);
+    println!("{:#?}", sge_instance.history.borrow().undo);
+
+    println!("{:#?}", sge_instance.history.borrow().redo);
+    println!("{:#?}", sge_instance.created_instances);
     panic!();
     // let mut new_sen = SentenceOp::initiate_build();
     // let mut new_linear_displayable = LinearDisplayableOp::initiate_build();

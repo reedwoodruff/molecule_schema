@@ -52,6 +52,7 @@ pub(crate) fn generate_operative_streams(
         .get_locked_fields_digest(constraint_schema)
         .unwrap();
     let unfulfilled_fields = field_digest.get_unfulfilled_fields();
+    let unfulfilled_field_ids = unfulfilled_fields.iter().map(|field| field.tag.id).collect::<Vec<_>>();
     let unfulfilled_field_names = unfulfilled_fields
         .iter()
         .map(|field| syn::Ident::new(&field.tag.name, proc_macro2::Span::call_site()))
@@ -60,6 +61,11 @@ pub(crate) fn generate_operative_streams(
         .iter()
         .map(|field| get_primitive_type(&field.value_type))
         .collect::<Vec<_>>();
+    let unfulfilled_field_value_types_enum = unfulfilled_fields
+        .iter()
+        .map(|field| syn::Ident::new(&field.value_type.to_string(), proc_macro2::Span::call_site()))
+        .collect::<Vec<_>>();
+
 
     let fulfilled_fields = field_digest.locked_fields;
     let fulfilled_field_names = fulfilled_fields
@@ -146,14 +152,17 @@ pub(crate) fn generate_operative_streams(
             }
             impl #manipulate_field_trait_name for bt::GSOWrapper<#struct_name, Schema> {
                 fn #setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self {
+                    let instance_id = self.get_id().clone();
                     self.history
                         .as_mut()
                         .unwrap()
-                        .borrow_mut().push(vec![bt::HistoryItem::EditField(bt::FieldEdit {
+                        .borrow_mut().undo.push(vec![bt::HistoryItem::EditField(bt::HistoryFieldEdit {
+                            instance_id: instance_id,
                             field_id: #field_id,
                             prev_value: self.data.#field_name.clone().into_primitive_value(),
                             new_value: new_val.clone().into_primitive_value(), 
                         })]);
+                    self.history.as_mut().unwrap().borrow_mut().redo.clear();
                     self.data.#field_name = new_val;
                     self
                 }
@@ -213,7 +222,7 @@ pub(crate) fn generate_operative_streams(
                 quote! {
                     fn #add_new_fn_name<T>(&mut self, new_item: bt::InstantiableWrapper<bt::GSOWrapper<T, Schema>, Schema>) -> &mut Self
                         where base_types::traits::GSOWrapper<T, Schema>: #trait_names,
-                              T: Clone + std::fmt::Debug + bt::IntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
+                          T: Clone + bt::FieldEditable + std::fmt::Debug + bt::IntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
                 }
             }
         };
@@ -247,7 +256,7 @@ pub(crate) fn generate_operative_streams(
                     quote! {
                         fn #add_new_fn_name<T>(&self, #is_mut new_item: bt::InstantiableWrapper<bt::GSOWrapper<T, Schema>, Schema>) -> bt::InstantiableWrapper<bt::GSOWrapper<T, Schema>, Schema>
                             where base_types::traits::GSOWrapper<T, Schema>: #trait_names,
-                                  T: Clone + std::fmt::Debug + bt::IntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
+                              T: Clone + bt::FieldEditable + std::fmt::Debug + bt::IntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
                     }
                 }
             }
@@ -341,6 +350,22 @@ pub(crate) fn generate_operative_streams(
         pub struct #struct_name {
             #(#unfulfilled_field_names: #unfulfilled_field_value_types,)*
             #(#fulfilled_field_names: #fulfilled_field_value_types,)*
+        }
+
+        impl bt::FieldEditable for #struct_name {
+            fn apply_field_edit(&mut self, field_edit: bt::FieldEdit) {
+                match field_edit.field_id {
+                    #(#unfulfilled_field_ids => {
+                        match field_edit.value {
+                            base_types::primitives::PrimitiveValues::#unfulfilled_field_value_types_enum(val) => {
+                                self.#unfulfilled_field_names = val;
+                            }
+                            _ => panic!()
+                        }
+                    },)*
+                    _ => panic!()
+                }
+            }
         }
 
         impl bt::IntoSchema for #struct_name {

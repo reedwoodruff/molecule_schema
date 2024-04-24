@@ -83,6 +83,14 @@ pub fn generate_concrete_schema(_input: TokenStream) -> TokenStream {
             #(#all_lib_op_names(bt::GSOWrapper<#all_lib_op_names, Schema>),)*
         }
 
+        impl bt::FieldEditable for Schema {
+            fn apply_field_edit(&mut self, field_edit: bt::FieldEdit) {
+                match self {
+                #(Self::#all_lib_op_names(item) => item.apply_field_edit(field_edit),)*
+                _ => panic!(),
+                }
+            }
+        }
 
         impl bt::GSO for Schema {
             type Schema = Self;
@@ -128,13 +136,13 @@ pub fn generate_concrete_schema(_input: TokenStream) -> TokenStream {
                     _ => panic!(),
                 }
             }
-            fn remove_parent(&mut self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> &mut Self {
+            fn remove_parent(&mut self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> Vec<bt::SlotRef> {
                 match self {
-                    #(Self::#all_lib_op_names(item) => {item.remove_parent(parent_id, slot_id);self},)*
+                    #(Self::#all_lib_op_names(item) => item.remove_parent(parent_id, slot_id),)*
                     _ => panic!(),
                 }
             }
-            fn set_history(&mut self, history: Option<bt::HistoryStack<Self>>) {
+            fn set_history(&mut self, history: Option<bt::HistoryRef<Self>>) {
                 match self {
                     #(Self::#all_lib_op_names(item) => item.set_history(history),)*
                     _ => panic!(),
