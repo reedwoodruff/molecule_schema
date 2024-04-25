@@ -45,11 +45,13 @@ pub type HistoryRef<TSchema> = Rc<RefCell<HistoryContainer<TSchema>>>;
 #[derive(Debug)]
 pub struct BaseGraphEnvironment<TSchema: GSO> {
     pub created_instances: HashMap<Uid, TSchema>,
-    pub constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
+    pub constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
     pub history: HistoryRef<TSchema>,
 }
 impl<TSchema: GSO + 'static> BaseGraphEnvironment<TSchema> {
-    pub fn new(constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> Self {
+    pub fn new(
+        constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
+    ) -> Self {
         Self {
             created_instances: HashMap::new(),
             constraint_schema,
@@ -59,21 +61,21 @@ impl<TSchema: GSO + 'static> BaseGraphEnvironment<TSchema> {
             })),
         }
     }
-    pub fn new_without_schema() -> Self {
-        Self {
-            history: Rc::new(RefCell::new(HistoryContainer {
-                undo: Vec::new(),
-                redo: Vec::new(),
-            })),
-            created_instances: HashMap::new(),
-            constraint_schema: ConstraintSchema {
-                template_library: HashMap::new(),
-                instance_library: HashMap::new(),
-                operative_library: HashMap::new(),
-                traits: HashMap::new(),
-            },
-        }
-    }
+    // pub fn new_without_schema() -> Self {
+    //     Self {
+    //         history: Rc::new(RefCell::new(HistoryContainer {
+    //             undo: Vec::new(),
+    //             redo: Vec::new(),
+    //         })),
+    //         created_instances: HashMap::new(),
+    //         constraint_schema: &ConstraintSchema {
+    //             template_library: HashMap::new(),
+    //             instance_library: HashMap::new(),
+    //             operative_library: HashMap::new(),
+    //             traits: HashMap::new(),
+    //         },
+    //     }
+    // }
 }
 
 impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
@@ -409,8 +411,8 @@ pub trait GSO: std::fmt::Debug + Clone + FieldEditable {
     type Schema: GSO;
     /// Instance ID
     fn get_id(&self) -> &Uid;
-    fn get_constraint_schema_operative_tag(&self) -> Rc<Tag>;
-    fn get_constraint_schema_template_tag(&self) -> Rc<Tag>;
+    fn get_operative(&self) -> &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>;
+    fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
     fn get_slot_by_id(&self, slot_id: &Uid) -> Option<&ActiveSlot> {
         self.get_slots().get(slot_id)
     }
@@ -491,8 +493,8 @@ pub struct GSOWrapper<T, TSchema: GSO> {
     slots: HashMap<Uid, ActiveSlot>,
     parent_slots: Vec<SlotRef>,
     pub data: T,
-    operative_tag: Rc<Tag>,
-    template_tag: Rc<Tag>,
+    operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
+    template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
     pub history: Option<HistoryRef<TSchema>>,
 }
 impl<T: std::fmt::Debug, TSchema: GSO> std::fmt::Debug for GSOWrapper<T, TSchema> {
@@ -529,12 +531,12 @@ impl<T: Clone + std::fmt::Debug + FieldEditable, TSchema: GSO> GSO for GSOWrappe
         &self.parent_slots
     }
 
-    fn get_constraint_schema_operative_tag(&self) -> Rc<Tag> {
-        self.operative_tag.clone()
+    fn get_operative(&self) -> &'static LibraryOperative<PrimitiveTypes, PrimitiveValues> {
+        &self.operative
     }
 
-    fn get_constraint_schema_template_tag(&self) -> Rc<Tag> {
-        self.template_tag.clone()
+    fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues> {
+        &self.template
     }
 
     fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
@@ -611,24 +613,24 @@ pub struct GSOWrapperBuilder<T> {
     slots: HashMap<Uid, ActiveSlot>,
     parent_slots: Vec<SlotRef>,
     pub data: T,
-    operative_tag: Rc<Tag>,
-    template_tag: Rc<Tag>,
+    operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
+    template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
 }
 
 impl<T: Clone + std::fmt::Debug> GSOWrapperBuilder<T> {
     pub fn new(
         data: T,
         slots: Option<HashMap<Uid, ActiveSlot>>,
-        operative_tag: Rc<Tag>,
-        template_tag: Rc<Tag>,
+        operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
+        template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
     ) -> Self {
         Self {
             id: uuid::Uuid::new_v4().as_u128(),
             slots: slots.unwrap_or_default(),
             parent_slots: Vec::new(),
             data,
-            operative_tag,
-            template_tag,
+            operative,
+            template,
         }
     }
     fn replace_slots(&mut self, new_slots: HashMap<Uid, ActiveSlot>) -> &mut Self {
@@ -659,8 +661,8 @@ where
             slots: self.slots.clone(),
             parent_slots: self.parent_slots.clone(),
             data: self.data.produce(),
-            operative_tag: self.operative_tag.clone(),
-            template_tag: self.template_tag.clone(),
+            operative: &self.operative,
+            template: &self.template,
         }
     }
 }

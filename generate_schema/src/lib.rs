@@ -17,7 +17,7 @@ mod utils;
 pub fn generate_concrete_schema(_input: TokenStream) -> TokenStream {
     // let graph_environment = syn::parse_macro_input!(input as syn::Expr); 
 
-    constraint_schema::constraint_schema!();
+    let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> = constraint_schema::constraint_schema!();
 
     // The goal here is as follows:
     // 1. Map the constraint objects to individual structs which have:
@@ -72,6 +72,13 @@ pub fn generate_concrete_schema(_input: TokenStream) -> TokenStream {
         use base_types::{traits as bt};
         use validator::Validate;
         use base_types::traits::Buildable;
+        use lazy_static::lazy_static;
+
+        lazy_static!{
+            static ref CONSTRAINT_SCHEMA: base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> 
+            = constraint_schema::constraint_schema!();
+        }
+        
 
         #(#trait_definition_streams)*
         // #(#template_streams)*
@@ -94,9 +101,9 @@ pub fn generate_concrete_schema(_input: TokenStream) -> TokenStream {
 
         impl bt::GSO for Schema {
             type Schema = Self;
-            fn get_constraint_schema_operative_tag(&self) -> std::rc::Rc<base_types::common::Tag> {
+            fn get_operative(&self) -> &'static base_types::constraint_schema::LibraryOperative<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
                 match &self {
-                #(Self::#all_lib_op_names(item) => item.get_constraint_schema_operative_tag(),)*
+                #(Self::#all_lib_op_names(item) => item.get_operative(),)*
                 _ => panic!(),
                 }
             }
@@ -106,9 +113,9 @@ pub fn generate_concrete_schema(_input: TokenStream) -> TokenStream {
                     _ => panic!(),
                 }
             }
-            fn get_constraint_schema_template_tag(&self) -> std::rc::Rc<base_types::common::Tag> {
+            fn get_template(&self) -> &'static base_types::constraint_schema::LibraryTemplate<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
                 match self {
-                    #(Self::#all_lib_op_names(item) => item.get_constraint_schema_template_tag(),)*
+                    #(Self::#all_lib_op_names(item) => item.get_template(),)*
                     _ => panic!(),
                 }
             }

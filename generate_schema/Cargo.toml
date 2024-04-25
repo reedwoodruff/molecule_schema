@@ -30,3 +30,4 @@ serde_json = "1"
 reactive_types = { path = "../reactive_types" }
 validator = { version = "0.18", features = ["derive"] }
 anyhow = "1.0"
+lazy_static = "1.4"

@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, rc::Rc};
 
 use crate::{
     reactive_types::{
@@ -28,6 +28,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<ConstraintSchema<
                 value
                     .template_library
                     .iter()
+                    // .map(|(index, item)| (*index, (*item).as_ref().clone().into()))
                     .map(|(index, item)| (*index, item.clone().into()))
                     .collect(),
             ),
@@ -42,7 +43,11 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<ConstraintSchema<
                 value
                     .operative_library
                     .iter()
-                    .map(|(index, item)| (*index, item.clone().into()))
+                    .map(|(index, item)| {
+                        let reactive = item.clone();
+                        // let reactive = (*item).as_ref().clone();
+                        (*index, reactive.into())
+                    })
                     .collect(),
             ),
             traits: RwSignal::new(
@@ -64,6 +69,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RConstraintSchema
                 .template_library
                 .get()
                 .iter()
+                // .map(|(index, item)| (*index, Rc::new(item.clone().into())))
                 .map(|(index, item)| (*index, item.clone().into()))
                 .collect(),
 
@@ -78,6 +84,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> From<RConstraintSchema
                 .operative_library
                 .get()
                 .iter()
+                // .map(|(index, item)| (*index, Rc::new(item.clone().into())))
                 .map(|(index, item)| (*index, item.clone().into()))
                 .collect(),
 

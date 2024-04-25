@@ -4,6 +4,9 @@ use base_types::{
 };
 use proc_macro::TokenStream;
 
+// #[macro_use]
+// extern crate lazy_static;
+
 #[proc_macro]
 pub fn constraint_schema(_input: TokenStream) -> proc_macro::TokenStream {
     let data = std::fs::read_to_string("constraint_schema/resources/schema.json");
@@ -14,8 +17,14 @@ pub fn constraint_schema(_input: TokenStream) -> proc_macro::TokenStream {
 
     // print!("{}", data);
     quote::quote! {
-        const SCHEMA_JSON: &str = #data;
-         let constraint_schema_generated: base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> =
-        serde_json::from_str(SCHEMA_JSON).unwrap();
-    }.into()
+        // const SCHEMA_JSON: &str = #data;
+
+
+        // lazy_static!{
+        // pub static ref constraint_schema_generated: base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> =
+        // serde_json::from_str(SCHEMA_JSON).unwrap();
+        // }
+        serde_json::from_str(#data).unwrap()
+    }
+    .into()
 }

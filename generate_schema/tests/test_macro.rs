@@ -11,9 +11,10 @@ fn test_macro() {
     println!("starting test");
     println!("=========================++!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!+++===================================");
     std::io::stdout().flush().unwrap();
-    constraint_schema::constraint_schema!();
-    let mut sge_instance = BaseGraphEnvironment::new(constraint_schema_generated);
+    // constraint_schema::constraint_schema!();
+    // let mut sge_instance = BaseGraphEnvironment::new(constraint_schema_generated);
     generate_concrete_schema!();
+    let mut sge_instance = BaseGraphEnvironment::new(&CONSTRAINT_SCHEMA);
 
     let new_word3 = WordOp::initiate_build()
         .set_display("CREATED_FIRST_WORD".to_string())

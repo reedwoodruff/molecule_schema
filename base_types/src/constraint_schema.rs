@@ -1,5 +1,5 @@
 use crate::common::*;
-use std::{collections::HashMap, marker::PhantomData};
+use std::{collections::HashMap, marker::PhantomData, rc::Rc};
 
 pub type SlotId = Uid;
 pub type TraitId = Uid;
@@ -9,8 +9,10 @@ pub type FieldId = Uid;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 pub struct ConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
+    // pub template_library: HashMap<Uid, Rc<LibraryTemplate<TTypes, TValues>>>,
     pub template_library: HashMap<Uid, LibraryTemplate<TTypes, TValues>>,
     pub instance_library: HashMap<Uid, LibraryOperative<TTypes, TValues>>,
+    // pub operative_library: HashMap<Uid, Rc<LibraryOperative<TTypes, TValues>>>,
     pub operative_library: HashMap<Uid, LibraryOperative<TTypes, TValues>>,
     pub traits: HashMap<Uid, TraitDef<TTypes>>,
 }

@@ -380,12 +380,16 @@ pub(crate) fn generate_operative_streams(
             type Builder = bt::GSOWrapperBuilder<#struct_builder_name>;
 
             fn initiate_build() -> bt::GSOBuilder<Self::Builder, bt::GSOWrapper<Self, Schema>, Schema> {
+                let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
+                let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
                 bt::GSOBuilder::<Self::Builder, bt::GSOWrapper<Self, Schema>, Schema>::new(
                         bt::GSOWrapperBuilder::new(
                             #struct_builder_name::default(),
                             #active_slot_tokens,
-                            std::rc::Rc::new(#operative_tag),
-                            std::rc::Rc::new(#template_tag),
+                            // std::rc::Rc::new(#operative_tag),
+                            // std::rc::Rc::new(#template_tag),
+                            &operative_ref,
+                            &template_ref,
                             ),
                     )
             }

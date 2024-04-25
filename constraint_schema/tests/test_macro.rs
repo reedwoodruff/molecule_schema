@@ -1,10 +1,12 @@
-// use molecule_schema_macro::type_map;
-
-// // #[derive(Clone)]
-// struct MyStruct {}
-// #[test]
-// fn should_generate_enum() {
-//     type_map!(String);
-//     Types::String;
-//     Values::String(String::from("hello"));
-// }
+use base_types::{
+    constraint_schema::ConstraintSchema,
+    primitives::{PrimitiveTypes, PrimitiveValues},
+};
+#[test]
+fn should_generate_enum() {
+    // type_map!(String);
+    // Types::String;
+    // Values::String(String::from("hello"));
+    let test2: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
+        constraint_schema::constraint_schema!();
+}
