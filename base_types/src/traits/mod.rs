@@ -1,9 +1,12 @@
 use anyhow::{Error, Result};
 use std::fmt;
 
+use std::ops::Deref;
 use std::{any::Any, cell::RefCell, collections::HashMap, marker::PhantomData, rc::Rc};
 use strum_macros::Display;
 
+use crate::constraint_schema::OperativeVariants;
+use crate::constraint_schema_item::ConstraintSchemaItem;
 use crate::{
     common::{ConstraintTraits, Tag, Uid},
     constraint_schema::{
@@ -13,7 +16,7 @@ use crate::{
 };
 
 #[cfg(feature = "reactive")]
-mod reactive;
+pub mod reactive;
 
 mod tests;
 
@@ -166,11 +169,64 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
         &mut self,
         element: InstantiableWrapper<GSOWrapper<T, TSchema>, TSchema>,
         tag: &TaggedAction,
-    ) -> Uid
+    ) -> Result<Uid, Error>
     where
         Self: Sized,
         GSOWrapper<T, TSchema>: Instantiable<Schema = TSchema>,
     {
+        // Assumption here that when instantiating with this method,
+        // the only child updates will be with regards to parents which are now being created
+        for child_update in element.child_updates.iter() {
+            let mut parent = element.prereq_instantiables.iter().find(|prereq_inst| {
+                *prereq_inst.get_instance_id() == child_update.1.host_instance_id
+            });
+            let mut operative_descriptor;
+            if parent.is_none() {
+                operative_descriptor = &element
+                    .instantiable_instance
+                    .get_template()
+                    .operative_slots
+                    .get(&child_update.1.slot_id)
+                    .unwrap()
+                    .operative_descriptor;
+            } else {
+                operative_descriptor = &parent
+                    .unwrap()
+                    .get_template()
+                    .operative_slots
+                    .get(&child_update.1.slot_id)
+                    .unwrap()
+                    .operative_descriptor;
+            }
+            match operative_descriptor {
+                OperativeVariants::LibraryOperative(lib_op_id) => {
+                    if *lib_op_id
+                        != self
+                            .get(&child_update.0)
+                            .unwrap()
+                            .get_operative()
+                            .get_tag()
+                            .id
+                    {
+                        return Err(Error::new(ElementCreationError::ChildElementIsWrongType));
+                    };
+                }
+                OperativeVariants::TraitOperative(trait_op) => {
+                    let child_digest = self
+                        .get(&child_update.0)
+                        .unwrap()
+                        .get_operative()
+                        .get_trait_impl_digest(self.constraint_schema);
+                    let matches_trait_bounds = trait_op
+                        .trait_ids
+                        .iter()
+                        .all(|trait_id| child_digest.trait_impls.contains_key(trait_id));
+                    if !matches_trait_bounds {
+                        return Err(Error::new(ElementCreationError::ChildElementIsWrongType));
+                    }
+                }
+            }
+        }
         let id = *element.get_instantiable_instance().get_instance_id();
         self.push_history_item(vec![HistoryItem::BlockActionMarker], &tag);
 
@@ -190,13 +246,48 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
             self.created_instances
                 .insert(*instantiable.get_instance_id(), instantiated);
         });
-        id
+        Ok(id)
     }
     fn create_connection_tagged(
         &mut self,
         connection: ConnectionAction,
         tag: &TaggedAction,
     ) -> Result<(), Error> {
+        match &self
+            .get(&connection.slot_ref.host_instance_id)
+            .unwrap()
+            .get_slot_by_id(&connection.slot_ref.slot_id)
+            .unwrap()
+            .slot
+            .operative_descriptor
+        {
+            OperativeVariants::LibraryOperative(expected_id) => {
+                if *expected_id
+                    != self
+                        .get_mut(&connection.slot_ref.child_instance_id)
+                        .unwrap()
+                        .get_operative()
+                        .get_tag()
+                        .id
+                {
+                    return Err(Error::new(ElementCreationError::ChildElementIsWrongType));
+                }
+            }
+            OperativeVariants::TraitOperative(trait_op) => {
+                let child_digest = self
+                    .get(&connection.slot_ref.child_instance_id)
+                    .unwrap()
+                    .get_operative()
+                    .get_trait_impl_digest(self.constraint_schema);
+                let matches_trait_bounds = trait_op
+                    .trait_ids
+                    .iter()
+                    .all(|trait_id| child_digest.trait_impls.contains_key(trait_id));
+                if !matches_trait_bounds {
+                    return Err(Error::new(ElementCreationError::ChildElementIsWrongType));
+                }
+            }
+        }
         let parent = self.get_mut(&connection.slot_ref.host_instance_id).unwrap();
         if parent
             .get_slot_by_id(&connection.slot_ref.slot_id)
@@ -311,7 +402,7 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> GraphEnvironment for BaseGraphEnv
     fn instantiate_element<T: std::fmt::Debug + Clone + 'static>(
         &mut self,
         element: InstantiableWrapper<GSOWrapper<T, Self::Schema>, Self::Schema>,
-    ) -> Uid
+    ) -> Result<Uid, Error>
     where
         Self: Sized,
         GSOWrapper<T, Self::Schema>: Instantiable<Schema = Self::Schema>,
@@ -358,7 +449,7 @@ pub trait GraphEnvironment {
     fn instantiate_element<T>(
         &mut self,
         element: InstantiableWrapper<GSOWrapper<T, Self::Schema>, Self::Schema>,
-    ) -> Uid
+    ) -> Result<Uid, Error>
     where
         GSOWrapper<T, Self::Schema>: Instantiable<Schema = Self::Schema>,
         Self: Sized,
@@ -436,7 +527,7 @@ pub trait Slotted {}
 
 #[derive(Clone, Debug)]
 pub struct ActiveSlot {
-    pub slot: OperativeSlot,
+    pub slot: &'static OperativeSlot,
     pub slotted_instances: Vec<Uid>,
 }
 #[cfg(feature = "to_tokens")]
@@ -501,8 +592,23 @@ impl<T: std::fmt::Debug, TSchema: GSO> std::fmt::Debug for GSOWrapper<T, TSchema
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("GSOWrapper")
             .field("id", &self.id)
-            .field("slots", &self.slots)
-            .field("parent_slots", &self.parent_slots)
+            .field(
+                "slots",
+                &self
+                    .slots
+                    .values()
+                    .map(|slot| (&slot.slot.tag.name, &slot.slotted_instances))
+                    .collect::<HashMap<_, _>>(),
+            )
+            .field(
+                "parent_slots",
+                &self
+                    .parent_slots
+                    .iter()
+                    .map(|parent_slot| parent_slot.host_instance_id)
+                    .collect::<Vec<_>>(),
+            )
+            // .field("parent_slots", &self.parent_slots)
             .field("data", &self.data)
             .finish()
     }
@@ -570,19 +676,18 @@ impl<T: Clone + std::fmt::Debug + FieldEditable, TSchema: GSO> GSO for GSOWrappe
     fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> Vec<SlotRef> {
         let mut removed = Vec::new();
         self.parent_slots.retain(|slot_ref| {
-            if slot_ref.host_instance_id != *parent_id {
+            let matches_parent = slot_ref.host_instance_id == *parent_id;
+            let matches_slot_id = if let Some(given_slot_id) = slot_id {
+                slot_ref.slot_id == *given_slot_id
+            } else {
+                true
+            };
+            if matches_parent && matches_slot_id {
                 removed.push(slot_ref.clone());
+                return false;
+            } else {
                 return true;
             }
-            if let Some(slot_id) = slot_id {
-                if *slot_id != slot_ref.slot_id {
-                    return false;
-                } else {
-                    removed.push(slot_ref.clone());
-                    return true;
-                };
-            }
-            false
         });
         // self.history
         //     .as_mut()
@@ -717,8 +822,9 @@ pub trait Instantiable: std::fmt::Debug + Any {
 
     fn instantiate(&self, history: HistoryRef<Self::Schema>) -> Self::Schema;
     fn get_instance_id(&self) -> &Uid;
+    fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
 }
-type InstantiableElements<TSchema> = Vec<Rc<dyn Instantiable<Schema = TSchema>>>;
+pub type InstantiableElements<TSchema> = Vec<Rc<dyn Instantiable<Schema = TSchema>>>;
 
 #[derive(Debug, Clone)]
 pub struct InstantiableWrapper<T, TSchema>
@@ -807,6 +913,7 @@ where
                 return Err(Error::new(ElementCreationError::BoundCheckOutOfRange));
             }
         }
+
         Ok(InstantiableWrapper {
             child_updates: self.child_updates.clone(),
             parent_updates: self.parent_updates.clone(),
@@ -884,6 +991,9 @@ where
 
     fn get_instance_id(&self) -> &Uid {
         self.get_id()
+    }
+    fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues> {
+        self.template
     }
 }
 

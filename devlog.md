@@ -368,3 +368,6 @@ Base assertion candidates:
 
 Base entity candidates:
 - entity (again, a neutral base entity which serves as the building block)
+
+## April 25, 2024
+I am really loathe to maintain reactive and non-reactive versions of everything, but that's the route I've opted for right now. Maybe at some point I could write a macro to annotate non-reactive structs to create reactive versions, but I think it would still be required to manually update any functionality by hand. Idk, I hope there's a better solution eventually, as this adds serious friction to changing and improving things over time as the changes need to be mirrored multiple times.

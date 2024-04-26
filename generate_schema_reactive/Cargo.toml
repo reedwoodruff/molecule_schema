@@ -1,0 +1,35 @@
+[package]
+name = "generate_schema_reactive"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dev-dependencies]
+generate_schema_reactive = { path = "../generate_schema_reactive/" }
+
+[dependencies.uuid]
+version = "1.4.1"
+features = [
+  "v4",                # Lets you generate random UUIDs
+  "fast-rng",          # Use a faster (but still sufficiently random) RNG
+  "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]
+
+[dependencies]
+constraint_schema = { path = "../constraint_schema" }
+base_types = { path = "../base_types", features = [
+  "to_tokens",
+  "reactive",
+] } # molecule_schema = { path = "../molecule_schema" }
+syn = { version = "2.0", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+reactive_types = { path = "../reactive_types" }
+validator = { version = "0.18", features = ["derive"] }
+anyhow = "1.0"
+lazy_static = "1.4"
+leptos = { version = "0.6", features = [] }

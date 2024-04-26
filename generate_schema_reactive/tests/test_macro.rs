@@ -1,10 +1,12 @@
+use leptos::SignalGet;
 use std::collections::HashMap;
 use std::io::Write;
 
 use base_types::common::Uid;
 
+use base_types::traits::reactive::RBaseGraphEnvironment;
 use base_types::traits::{BaseGraphEnvironment, GraphEnvironment, GSO};
-use generate_schema::generate_concrete_schema;
+use generate_schema_reactive::generate_concrete_schema_reactive;
 
 #[test]
 fn test_macro() {
@@ -13,8 +15,8 @@ fn test_macro() {
     std::io::stdout().flush().unwrap();
     // constraint_schema::constraint_schema!();
     // let mut sge_instance = BaseGraphEnvironment::new(constraint_schema_generated);
-    generate_concrete_schema!();
-    let mut sge_instance = BaseGraphEnvironment::new(&CONSTRAINT_SCHEMA);
+    generate_concrete_schema_reactive!();
+    let mut sge_instance = RBaseGraphEnvironment::new(&CONSTRAINT_SCHEMA);
 
     let new_word3 = WordOp::initiate_build()
         .set_display("CREATED_FIRST_WORD".to_string())
@@ -66,7 +68,7 @@ fn test_macro() {
 
     let sent_id = sge_instance.instantiate_element(new_sen).unwrap();
 
-    let word = match sge_instance.get_mut(&word1id).unwrap() {
+    let word = match sge_instance.get(&word1id).unwrap() {
         Schema::WordOp(word) => word,
         _ => panic!(),
     };
@@ -78,14 +80,16 @@ fn test_macro() {
         .build(&sge_instance)
         .unwrap();
 
-    let latest_linear_displayable_id = sge_instance.instantiate_element(latest_linear_displayable);
+    let latest_linear_displayable_id = sge_instance
+        .instantiate_element(latest_linear_displayable)
+        .unwrap();
 
     let sentence = match sge_instance.get(&sent_id).unwrap() {
         Schema::SentenceOp(sentence) => sentence,
         _ => panic!(),
     };
     // let action = sentence.add_new_linear_displayable(latest_linear_displayable);
-    let action = sentence.add_existing_linear_displayable(&word1id);
+    let action = sentence.add_existing_linear_displayable(&latest_linear_displayable_id);
     sge_instance.create_connection(action).unwrap();
     // let new_word_last = WordOp::initiate_build()
     //     .set_display("HOoho".to_string())
@@ -126,7 +130,7 @@ fn test_macro() {
     println!("{:#?}", sge_instance.history.borrow().undo);
 
     println!("{:#?}", sge_instance.history.borrow().redo);
-    println!("{:#?}", sge_instance.created_instances.values());
+    println!("{:#?}", sge_instance.created_instances.get().values());
     panic!();
     // let mut new_sen = SentenceOp::initiate_build();
     // let mut new_linear_displayable = LinearDisplayableOp::initiate_build();
