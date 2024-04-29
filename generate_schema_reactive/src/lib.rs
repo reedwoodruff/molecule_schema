@@ -44,7 +44,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
             quote! {
                 fn #method_name(&self, 
                     env: &dyn base_types::traits::reactive::RGraphEnvironment<Types=base_types::primitives::PrimitiveTypes, Values=base_types::primitives::PrimitiveValues, Schema = Schema>
-                    ) -> leptos::RwSignal<#return_type>;
+                    ) -> #return_type;
             }
         });
         quote! {
@@ -146,7 +146,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                     _ => panic!(),
                 }
             }
-            fn add_parent_slot(& self, slot_ref: &base_types::traits::SlotRef) ->  &Self {
+            fn add_parent_slot(& self, slot_ref: base_types::traits::SlotRef) ->  &Self {
                 match self {
                     #(Self::#all_lib_op_names(item) => {item.add_parent_slot(slot_ref); self},)*
                     _ => panic!(),
@@ -170,7 +170,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                     _ => panic!(),
                 }
             }
-            fn add_child_to_slot(& self, slot_ref: &base_types::traits::SlotRef) -> & Self {
+            fn add_child_to_slot(& self, slot_ref: base_types::traits::SlotRef) -> & Self {
                 match self {
                     #(Self::#all_lib_op_names(item) => {item.add_child_to_slot(slot_ref); self},)*
                     _ => panic!(),

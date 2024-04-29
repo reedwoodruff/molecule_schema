@@ -25,6 +25,7 @@ type LibTemplate = LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
 
 #[derive(Debug, Display)]
 enum ElementCreationError {
+    RequiredFieldIsEmpty,
     BoundCheckOutOfRange,
     ChildElementIsWrongType,
     ChildElementDoesntExist,
@@ -583,10 +584,11 @@ pub struct GSOWrapper<T, TSchema: GSO> {
     id: Uid,
     slots: HashMap<Uid, ActiveSlot>,
     parent_slots: Vec<SlotRef>,
-    pub data: T,
+    pub data: HashMap<Uid, PrimitiveValues>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
     template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
     pub history: Option<HistoryRef<TSchema>>,
+    _phantom: PhantomData<T>,
 }
 impl<T: std::fmt::Debug, TSchema: GSO> std::fmt::Debug for GSOWrapper<T, TSchema> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -619,7 +621,8 @@ impl<T: Clone + std::fmt::Debug + FieldEditable, TSchema: GSO> FieldEditable
     for GSOWrapper<T, TSchema>
 {
     fn apply_field_edit(&mut self, field_edit: FieldEdit) {
-        self.data.apply_field_edit(field_edit);
+        // self.data.apply_field_edit(field_edit);
+        self.data.insert(field_edit.field_id, field_edit.value);
     }
 }
 
@@ -717,14 +720,15 @@ pub struct GSOWrapperBuilder<T> {
     id: Uid,
     slots: HashMap<Uid, ActiveSlot>,
     parent_slots: Vec<SlotRef>,
-    pub data: T,
+    pub data: HashMap<Uid, Option<PrimitiveValues>>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
     template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
+    _phantom: PhantomData<T>,
 }
 
 impl<T: Clone + std::fmt::Debug> GSOWrapperBuilder<T> {
     pub fn new(
-        data: T,
+        data: Option<HashMap<Uid, Option<PrimitiveValues>>>,
         slots: Option<HashMap<Uid, ActiveSlot>>,
         operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
         template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
@@ -733,9 +737,10 @@ impl<T: Clone + std::fmt::Debug> GSOWrapperBuilder<T> {
             id: uuid::Uuid::new_v4().as_u128(),
             slots: slots.unwrap_or_default(),
             parent_slots: Vec::new(),
-            data,
+            data: data.unwrap_or_default(),
             operative,
             template,
+            _phantom: PhantomData,
         }
     }
     fn replace_slots(&mut self, new_slots: HashMap<Uid, ActiveSlot>) -> &mut Self {
@@ -765,9 +770,14 @@ where
             id: self.id,
             slots: self.slots.clone(),
             parent_slots: self.parent_slots.clone(),
-            data: self.data.produce(),
+            data: self
+                .data
+                .iter()
+                .map(|(id, value)| (*id, value.clone().unwrap()))
+                .collect::<HashMap<Uid, PrimitiveValues>>(),
             operative: &self.operative,
             template: &self.template,
+            _phantom: PhantomData,
         }
     }
 }
@@ -777,7 +787,17 @@ where
     F: Verifiable,
 {
     fn verify(&self) -> Result<(), Error> {
-        self.data.verify()?;
+        // self.data.verify()?;
+        let field_errors = self
+            .data
+            .values()
+            .filter_map(|field_val| {
+                if field_val.is_none() {
+                    return Some(Error::new(ElementCreationError::RequiredFieldIsEmpty));
+                }
+                None
+            })
+            .collect::<Vec<_>>();
         let slot_errors = self
             .slots
             .values()
@@ -789,7 +809,7 @@ where
                 }
             })
             .collect::<Vec<_>>();
-        if slot_errors.is_empty() {
+        if slot_errors.is_empty() && field_errors.is_empty() {
             return Ok(());
         }
         // TODO make this return all of the errors

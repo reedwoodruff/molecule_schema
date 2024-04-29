@@ -21,7 +21,7 @@ use super::{
     ConnectionAction, ElementCreationError, ElementDeletionError, FieldEdit, Finalizable,
     HistoryFieldEdit, Producable, SlotRef, TaggedAction, Verifiable,
 };
-use leptos::{RwSignal, SignalGet, SignalUpdate, SignalWith};
+use leptos::{RwSignal, SignalGet, SignalSet, SignalUpdate, SignalWith};
 
 pub trait RFieldEditable {
     fn apply_field_edit(&self, field_edit: FieldEdit);
@@ -165,30 +165,28 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
     ) -> Result<Uid, Error>
     where
         Self: Sized,
-        RGSOWrapper<T, TSchema>: RInstantiable<Schema = TSchema>,
+        RGSOWrapper<T, TSchema>: RInstantiable<Schema = TSchema> + RFieldEditable,
     {
         for child_update in element.child_updates.iter() {
             let mut parent = element.prereq_instantiables.iter().find(|prereq_inst| {
                 *prereq_inst.get_instance_id() == child_update.1.host_instance_id
             });
-            let mut operative_descriptor;
-            if parent.is_none() {
-                operative_descriptor = &element
-                    .instantiable_instance
-                    .get_template()
+            // let mut operative_descriptor;
+            let operative_descriptor = if parent.is_none() {
+                &RGSO::get_template(&element.instantiable_instance)
                     .operative_slots
                     .get(&child_update.1.slot_id)
                     .unwrap()
-                    .operative_descriptor;
+                    .operative_descriptor
             } else {
-                operative_descriptor = &parent
+                &parent
                     .unwrap()
                     .get_template()
                     .operative_slots
                     .get(&child_update.1.slot_id)
                     .unwrap()
-                    .operative_descriptor;
-            }
+                    .operative_descriptor
+            };
             match operative_descriptor {
                 OperativeVariants::LibraryOperative(lib_op_id) => {
                     if *lib_op_id
@@ -223,12 +221,12 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
 
         element.child_updates.iter().for_each(|child_update| {
             let child = self.get(&child_update.0).unwrap();
-            child.add_parent_slot(&child_update.1.clone());
+            child.add_parent_slot(child_update.1.clone());
             self.append_history_item(RHistoryItem::AddParent(child_update.1.clone()), &tag);
         });
         element.parent_updates.iter().for_each(|parent_update| {
             let parent = self.get(&parent_update.0).unwrap();
-            parent.add_child_to_slot(&parent_update.1);
+            parent.add_child_to_slot(parent_update.1.clone());
             self.append_history_item(RHistoryItem::AddChild(parent_update.1.clone()), &tag);
         });
         element.flatten().into_iter().for_each(|instantiable| {
@@ -286,13 +284,13 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
             .unwrap()
             .can_add_one()
         {
-            parent.add_child_to_slot(&connection.slot_ref);
+            parent.add_child_to_slot(connection.slot_ref.clone());
         } else {
             return Err(Error::new(ElementCreationError::BoundCheckOutOfRange));
         }
         self.get(&connection.slot_ref.child_instance_id)
             .unwrap()
-            .add_parent_slot(&connection.slot_ref);
+            .add_parent_slot(connection.slot_ref.clone());
         let history_item = vec![
             RHistoryItem::<TSchema>::BlockActionMarker,
             RHistoryItem::AddChild(connection.slot_ref.clone()),
@@ -336,12 +334,12 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
         history.into_iter().for_each(|action| match action {
             RHistoryItem::RemoveChildFromSlot(slot_ref) => {
                 let host = self.get(&slot_ref.host_instance_id).unwrap();
-                host.add_child_to_slot(&slot_ref);
+                host.add_child_to_slot(slot_ref.clone());
                 self.append_history_item(RHistoryItem::AddChild(slot_ref), tag);
             }
             RHistoryItem::RemoveParent(slot_ref) => {
                 let child = self.get(&slot_ref.child_instance_id).unwrap();
-                child.add_parent_slot(&slot_ref);
+                child.add_parent_slot(slot_ref.clone());
                 self.append_history_item(RHistoryItem::AddParent(slot_ref), tag);
             }
             RHistoryItem::AddParent(slot_ref) => {
@@ -413,7 +411,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RGraphEnvironment
     ) -> Result<Uid, Error>
     where
         Self: Sized,
-        RGSOWrapper<T, Self::Schema>: RInstantiable<Schema = Self::Schema>,
+        RGSOWrapper<T, Self::Schema>: RInstantiable<Schema = Self::Schema> + RFieldEditable,
     {
         self.history.borrow_mut().redo.clear();
         self.instantiate_element_tagged(element, &TaggedAction::Normal)
@@ -493,8 +491,8 @@ pub trait RGSO: std::fmt::Debug + Clone + RFieldEditable {
     }
     fn get_slots(&self) -> &HashMap<Uid, RActiveSlot>;
     fn get_parent_slots(&self) -> RwSignal<Vec<SlotRef>>;
-    fn add_parent_slot(&self, slot_ref: &SlotRef) -> &Self;
-    fn add_child_to_slot(&self, slot_ref: &SlotRef) -> &Self;
+    fn add_parent_slot(&self, slot_ref: SlotRef) -> &Self;
+    fn add_child_to_slot(&self, slot_ref: SlotRef) -> &Self;
     fn remove_child_from_slot(&self, slot_ref: &SlotRef) -> &Self;
     fn remove_parent(&self, parent_id: &Uid, slot_id: Option<&Uid>) -> Vec<SlotRef>;
     fn set_history(&mut self, history: Option<RHistoryRef<Self::Schema>>);
@@ -563,10 +561,11 @@ pub struct RGSOWrapper<T, TSchema: RGSO> {
     id: Uid,
     slots: HashMap<Uid, RActiveSlot>,
     parent_slots: RwSignal<Vec<SlotRef>>,
-    pub data: T,
+    pub data: HashMap<Uid, RwSignal<PrimitiveValues>>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
     template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
     pub history: Option<RHistoryRef<TSchema>>,
+    _phantom: PhantomData<T>,
 }
 impl<T: std::fmt::Debug, TSchema: RGSO> std::fmt::Debug for RGSOWrapper<T, TSchema> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -580,15 +579,20 @@ impl<T: std::fmt::Debug, TSchema: RGSO> std::fmt::Debug for RGSOWrapper<T, TSche
 }
 
 impl<T: Clone + std::fmt::Debug, TSchema: RGSO> RGSOWrapper<T, TSchema> {}
-impl<T: Clone + std::fmt::Debug + RFieldEditable, TSchema: RGSO> RFieldEditable
-    for RGSOWrapper<T, TSchema>
-{
+impl<T: Clone + std::fmt::Debug, TSchema: RGSO> RFieldEditable for RGSOWrapper<T, TSchema> {
     fn apply_field_edit(&self, field_edit: FieldEdit) {
-        self.data.apply_field_edit(field_edit);
+        self.data
+            .get(&field_edit.field_id)
+            .unwrap()
+            .set(field_edit.value);
+        // self.data.apply_field_edit(field_edit);
     }
 }
 
-impl<T: Clone + std::fmt::Debug + RFieldEditable, TSchema: RGSO> RGSO for RGSOWrapper<T, TSchema> {
+impl<T: Clone + std::fmt::Debug, TSchema: RGSO> RGSO for RGSOWrapper<T, TSchema>
+where
+    RGSOWrapper<T, TSchema>: RFieldEditable,
+{
     type Schema = TSchema;
     fn get_id(&self) -> &Uid {
         &self.id
@@ -610,7 +614,7 @@ impl<T: Clone + std::fmt::Debug + RFieldEditable, TSchema: RGSO> RGSO for RGSOWr
         self.template
     }
 
-    fn add_parent_slot(&self, slot_ref: &SlotRef) -> &Self {
+    fn add_parent_slot(&self, slot_ref: SlotRef) -> &Self {
         self.parent_slots.update(|parent_slots| {
             parent_slots.push(slot_ref.clone());
         });
@@ -655,7 +659,7 @@ impl<T: Clone + std::fmt::Debug + RFieldEditable, TSchema: RGSO> RGSO for RGSOWr
         self.history = history;
     }
 
-    fn add_child_to_slot(&self, slot_ref: &SlotRef) -> &Self {
+    fn add_child_to_slot(&self, slot_ref: SlotRef) -> &Self {
         self.slots
             .get(&slot_ref.slot_id)
             .unwrap()
@@ -671,14 +675,15 @@ pub struct RGSOWrapperBuilder<T> {
     id: Uid,
     slots: HashMap<Uid, RActiveSlot>,
     parent_slots: RwSignal<Vec<SlotRef>>,
-    pub data: T,
+    pub data: HashMap<Uid, RwSignal<Option<RwSignal<PrimitiveValues>>>>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
     template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
+    _phantom: PhantomData<T>,
 }
 
 impl<T: Clone + std::fmt::Debug> RGSOWrapperBuilder<T> {
     pub fn new(
-        data: T,
+        data: HashMap<Uid, RwSignal<Option<RwSignal<PrimitiveValues>>>>,
         slots: Option<HashMap<Uid, RActiveSlot>>,
         operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
         template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
@@ -690,6 +695,7 @@ impl<T: Clone + std::fmt::Debug> RGSOWrapperBuilder<T> {
             data,
             operative,
             template,
+            _phantom: PhantomData,
         }
     }
     fn replace_slots(&mut self, new_slots: HashMap<Uid, RActiveSlot>) -> &mut Self {
@@ -713,29 +719,41 @@ impl<T: Clone + std::fmt::Debug> RGSOWrapperBuilder<T> {
         self
     }
 }
-impl<F, T, TSchema: RGSO> Producable<RGSOWrapper<T, TSchema>> for RGSOWrapperBuilder<F>
-where
-    F: Producable<T>,
-{
+impl<T, TSchema: RGSO> Producable<RGSOWrapper<T, TSchema>> for RGSOWrapperBuilder<T> {
     fn produce(&self) -> RGSOWrapper<T, TSchema> {
         RGSOWrapper::<T, TSchema> {
             history: None,
             id: self.id,
             slots: self.slots.clone(),
             parent_slots: self.parent_slots,
-            data: self.data.produce(),
+            data: self
+                .data
+                .iter()
+                .map(|(id, build_data)| (*id, build_data.get().unwrap()))
+                .collect::<HashMap<Uid, RwSignal<PrimitiveValues>>>(),
             operative: self.operative,
             template: self.template,
+            _phantom: PhantomData,
         }
     }
 }
 
 impl<F> Verifiable for RGSOWrapperBuilder<F>
-where
-    F: Verifiable,
+// where
+// F: Verifiable,
 {
     fn verify(&self) -> Result<(), Error> {
-        self.data.verify()?;
+        // self.data.verify()?;
+        let field_errors = self
+            .data
+            .values()
+            .filter_map(|field_val| {
+                if field_val.with(|field_val| field_val.is_none()) {
+                    return Some(Error::new(ElementCreationError::RequiredFieldIsEmpty));
+                }
+                None
+            })
+            .collect::<Vec<_>>();
         let slot_errors = self
             .slots
             .values()
@@ -747,32 +765,32 @@ where
                 }
             })
             .collect::<Vec<_>>();
-        if slot_errors.is_empty() {
-            return Ok(());
+        if !slot_errors.is_empty() {
+            return Err(Error::new(ElementCreationError::BoundCheckOutOfRange));
         }
-        // TODO make this return all of the errors
-        Err(Error::new(ElementCreationError::BoundCheckOutOfRange))
+        if !field_errors.is_empty() {
+            return Err(Error::new(ElementCreationError::RequiredFieldIsEmpty));
+        }
+        Ok(())
     }
 }
 
-impl<F, T, TSchema: RGSO> Finalizable<RGSOWrapper<T, TSchema>> for RGSOWrapperBuilder<F> where
-    F: Verifiable + Producable<T>
-{
-}
+impl<T, TSchema: RGSO> Finalizable<RGSOWrapper<T, TSchema>> for RGSOWrapperBuilder<T> {}
 
 pub trait RBuildable
 where
     Self: Sized + 'static,
     RGSOWrapper<Self, Self::Schema>: RInstantiable<Schema = Self::Schema>,
 {
-    type Builder: Finalizable<RGSOWrapper<Self, Self::Schema>>;
+    // type Builder: Finalizable<RGSOWrapper<Self, Self::Schema>>;
     type Schema: RGSO;
 
-    fn initiate_build() -> RGSOBuilder<Self::Builder, RGSOWrapper<Self, Self::Schema>, Self::Schema>;
+    fn initiate_build(
+    ) -> RGSOBuilder<RGSOWrapperBuilder<Self>, RGSOWrapper<Self, Self::Schema>, Self::Schema>;
     fn get_operative_id() -> Uid;
 }
 
-pub trait RInstantiable: std::fmt::Debug + Any {
+trait RInstantiable: std::fmt::Debug + Any {
     type Schema: RGSO;
 
     fn instantiate(&self, history: RHistoryRef<Self::Schema>) -> Self::Schema;
@@ -881,13 +899,12 @@ where
     }
 }
 
-pub fn r_integrate_child<F, T, C, TSchema: RGSO>(
-    builder: &mut RGSOBuilder<RGSOWrapperBuilder<F>, RGSOWrapper<T, TSchema>, TSchema>,
+pub fn r_integrate_child<T, C, TSchema: RGSO>(
+    builder: &mut RGSOBuilder<RGSOWrapperBuilder<T>, RGSOWrapper<T, TSchema>, TSchema>,
     mut child: RInstantiableWrapper<RGSOWrapper<C, TSchema>, TSchema>,
     slot_id: Uid,
-) -> &mut RGSOBuilder<RGSOWrapperBuilder<F>, RGSOWrapper<T, TSchema>, TSchema>
+) -> &mut RGSOBuilder<RGSOWrapperBuilder<T>, RGSOWrapper<T, TSchema>, TSchema>
 where
-    F: Verifiable + Producable<T> + Clone + std::fmt::Debug,
     T: Clone + std::fmt::Debug,
     RGSOWrapper<C, TSchema>: RInstantiable<Schema = TSchema> + 'static,
 {
@@ -906,13 +923,12 @@ where
     builder
 }
 
-pub fn r_integrate_child_id<'a, F, T, TSchema: RGSO>(
-    builder: &'a mut RGSOBuilder<RGSOWrapperBuilder<F>, RGSOWrapper<T, TSchema>, TSchema>,
+pub fn r_integrate_child_id<'a, T, TSchema: RGSO>(
+    builder: &'a mut RGSOBuilder<RGSOWrapperBuilder<T>, RGSOWrapper<T, TSchema>, TSchema>,
     child_id: &Uid,
     slot_id: Uid,
-) -> &'a mut RGSOBuilder<RGSOWrapperBuilder<F>, RGSOWrapper<T, TSchema>, TSchema>
+) -> &'a mut RGSOBuilder<RGSOWrapperBuilder<T>, RGSOWrapper<T, TSchema>, TSchema>
 where
-    F: Verifiable + Producable<T> + Clone + std::fmt::Debug,
     T: Clone + std::fmt::Debug,
 {
     builder
@@ -932,14 +948,15 @@ where
 
 impl<T, TSchema: RGSO + 'static> RInstantiable for RGSOWrapper<T, TSchema>
 where
-    T: Clone + std::fmt::Debug + RIntoSchema<Schema = TSchema> + RFieldEditable + 'static,
+    T: Clone + std::fmt::Debug + RIntoSchema<Schema = TSchema> + 'static, // + RIntoSchema<Schema = TSchema> + RFieldEditable + 'static,
+    RGSOWrapper<T, TSchema>: RFieldEditable,
 {
     type Schema = TSchema;
 
     fn instantiate(&self, history: RHistoryRef<TSchema>) -> Self::Schema {
         let mut new_self = self.clone();
         new_self.set_history(Some(history));
-        T::into_schema(new_self)
+        T::into_schema(self.clone())
     }
 
     fn get_instance_id(&self) -> &Uid {

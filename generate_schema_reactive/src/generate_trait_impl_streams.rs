@@ -29,10 +29,15 @@ pub(crate) fn generate_trait_impl_streams(
             let inner_method_stream = method_impl.iter().map(|method_impl_part| {
                 match method_impl_part {
                     TraitMethodImplPath::Field(field_id) => {
-                        let field_name = &instantiable.get_locked_fields_digest(constraint_schema).unwrap().field_constraints[field_id].tag.name;
-                        let field_ident = Ident::new(field_name, proc_macro2::Span::call_site());
+                        // let field_name = &instantiable.get_locked_fields_digest(constraint_schema).unwrap().field_constraints[field_id].tag.name;
+                        // let field_ident = Ident::new(field_name, proc_macro2::Span::call_site());
                         quote!{
-                            self.data.#field_ident
+                            // self.data.#field_ident
+                            match self.data.get(&#field_id).unwrap().get() {
+
+                                base_types::primitives::PrimitiveValues::#return_type(val) => val,
+                                _ => panic!()
+                            }
                         }
                     },
                     TraitMethodImplPath::TraitMethod { trait_id: _, trait_method_id: _ } => todo!(),
@@ -44,7 +49,7 @@ pub(crate) fn generate_trait_impl_streams(
            quote! {
             fn #method_name(&self, 
                 env: &dyn base_types::traits::reactive::RGraphEnvironment<Types=base_types::primitives::PrimitiveTypes, Values=base_types::primitives::PrimitiveValues, Schema = Schema>
-                ) -> leptos::RwSignal<#return_type> {
+                ) -> #return_type {
                     #(#inner_method_stream)*
                     
                 }
