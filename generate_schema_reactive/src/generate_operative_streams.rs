@@ -116,7 +116,7 @@ pub(crate) fn generate_operative_streams(
                     .iter()
                     .map(|ri| ri.instance_id)
                     .collect::<Vec<_>>();
-            quote! {rt::RActiveSlot {
+            quote! {base_types::traits::reactive::RActiveSlot {
                 slot: &CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap().operative_slots.get(&#slot_id).unwrap(),
                 slotted_instances: leptos::RwSignal::new(vec![#(#slotted_instances,)*]),
             }}
@@ -160,19 +160,19 @@ pub(crate) fn generate_operative_streams(
                 fn #setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self;
             }
 
-            impl #building_manipulate_field_trait_name for rt::RGSOBuilder<rt::RGSOWrapperBuilder<#struct_builder_name>, rt::RGSOWrapper<#struct_name, Schema>, Schema> {
+            impl #building_manipulate_field_trait_name for base_types::traits::reactive::RGSOBuilder<base_types::traits::reactive::RGSOWrapperBuilder<#struct_builder_name>, base_types::traits::reactive::RGSOWrapper<#struct_name, Schema>, Schema> {
                 fn #setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self {
                     self.wip_instance.data.#field_name.set(Some(new_val));
                     self
                 }
             }
-            impl #editing_manipulate_field_trait_name for rt::RGSOWrapper<#struct_name, Schema> {
+            impl #editing_manipulate_field_trait_name for base_types::traits::reactive::RGSOWrapper<#struct_name, Schema> {
                 fn #setter_fn_name(&self, new_val: #field_value_type) -> &Self {
                     let instance_id = self.get_id().clone();
                     self.history
                         .as_ref()
                         .unwrap()
-                        .borrow_mut().undo.push(vec![rt::RHistoryItem::EditField(bt::HistoryFieldEdit {
+                        .borrow_mut().undo.push(vec![base_types::traits::reactive::RHistoryItem::EditField(base_types::traits::HistoryFieldEdit {
                             instance_id: instance_id,
                             field_id: #field_id,
                             prev_value: self.data.#field_name.get().into_primitive_value(),
@@ -208,6 +208,9 @@ pub(crate) fn generate_operative_streams(
             ),
             proc_macro2::Span::call_site(),
         );
+        let get_slot_trait_name = proc_macro2::Ident::new(&format!("{}{}SlotGet", struct_name, slot.slot.tag.name), proc_macro2::Span::call_site());
+        let get_slot_fn_name = proc_macro2::Ident::new(&format!("get_{}_slot", slot.slot.tag.name.to_lowercase()), proc_macro2::Span::call_site());
+
         let slot_marker_trait = proc_macro2::Ident::new(&format!("{}{}", struct_name, slot.slot.tag.name), proc_macro2::Span::call_site());
 
         let building_add_new_stream =            match &slot.slot.operative_descriptor {
@@ -216,7 +219,7 @@ pub(crate) fn generate_operative_streams(
                     constraint_schema.operative_library.get(lib_op_id).unwrap(),
                 ));
                 quote! {
-                    fn #add_new_fn_name(&mut self, new_item: rt::RInstantiableWrapper<rt::RGSOWrapper<#item_name, Schema>, Schema> ) -> &mut Self
+                    fn #add_new_fn_name(&mut self, new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapper<#item_name, Schema>, Schema> ) -> &mut Self
                 }
             }
             OperativeVariants::TraitOperative(trait_op) => {
@@ -236,9 +239,9 @@ pub(crate) fn generate_operative_streams(
                 let trait_names = trait_names.join(" + ");
                 let trait_names = Ident::new(&trait_names, proc_macro2::Span::call_site());
                 quote! {
-                    fn #add_new_fn_name<T>(&mut self, new_item: rt::RInstantiableWrapper<rt::RGSOWrapper<T, Schema>, Schema>) -> &mut Self
-                        where rt::RGSOWrapper<T, Schema>: #trait_names,
-                          T: Clone + rt::RFieldEditable + std::fmt::Debug + rt::RIntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
+                    fn #add_new_fn_name<T>(&mut self, new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapper<T, Schema>, Schema>) -> &mut Self
+                        where base_types::traits::reactive::RGSOWrapper<T, Schema>: #trait_names,
+                          T: Clone + base_types::traits::reactive::RFieldEditable + std::fmt::Debug + base_types::traits::reactive::RIntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
                 }
             }
         };
@@ -250,7 +253,7 @@ pub(crate) fn generate_operative_streams(
                         constraint_schema.operative_library.get(lib_op_id).unwrap(),
                     ));
                     quote! {
-                        fn #add_new_fn_name(&self, #is_mut new_item: rt::RInstantiableWrapper<rt::RGSOWrapper<#item_name, Schema>, Schema> ) -> rt::RInstantiableWrapper<rt::RGSOWrapper<#item_name, Schema>, Schema>
+                        fn #add_new_fn_name(&self, #is_mut new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapper<#item_name, Schema>, Schema> ) -> base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapper<#item_name, Schema>, Schema>
                     }
                 }
                 OperativeVariants::TraitOperative(trait_op) => {
@@ -270,9 +273,9 @@ pub(crate) fn generate_operative_streams(
                     let trait_names = trait_names.join(" + ");
                     let trait_names = Ident::new(&trait_names, proc_macro2::Span::call_site());
                     quote! {
-                        fn #add_new_fn_name<T>(&self, #is_mut new_item: rt::RInstantiableWrapper<rt::RGSOWrapper<T, Schema>, Schema>) -> rt::RInstantiableWrapper<rt::RGSOWrapper<T, Schema>, Schema>
-                            where rt::RGSOWrapper<T, Schema>: #trait_names,
-                              T: Clone + rt::RFieldEditable + std::fmt::Debug + rt::RIntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
+                        fn #add_new_fn_name<T>(&self, #is_mut new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapper<T, Schema>, Schema>) -> base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapper<T, Schema>, Schema>
+                            where base_types::traits::reactive::RGSOWrapper<T, Schema>: #trait_names,
+                              T: Clone + base_types::traits::reactive::RFieldEditable + std::fmt::Debug + base_types::traits::reactive::RIntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
                     }
                 }
             }
@@ -310,6 +313,17 @@ pub(crate) fn generate_operative_streams(
 
         quote! {
             trait #slot_marker_trait {}
+
+            trait #get_slot_trait_name {
+                fn #get_slot_fn_name(&self) -> &base_types::traits::reactive::RActiveSlot;
+            }
+
+            impl #get_slot_trait_name for base_types::traits::reactive::RGSOWrapper<#struct_name, Schema> {
+                fn #get_slot_fn_name(&self) -> &base_types::traits::reactive::RActiveSlot {
+                    self.get_slot_by_id(&#slot_id).unwrap()
+                }
+            }
+
             #(#integrable_stream)*
             pub trait #building_manipulate_slot_trait_name {
                 #building_add_new_stream;
@@ -317,22 +331,22 @@ pub(crate) fn generate_operative_streams(
             }
             pub trait #editing_manipulate_slot_trait_name {
                 #editing_add_new_stream_declaration;
-                fn #add_existing_fn_name(&self, existing_id: &base_types::common::Uid) -> bt::ConnectionAction;
+                fn #add_existing_fn_name(&self, existing_id: &base_types::common::Uid) -> base_types::traits::ConnectionAction;
             }
 
-            impl #building_manipulate_slot_trait_name for rt::RGSOBuilder<rt::RGSOWrapperBuilder<#struct_builder_name>, rt::RGSOWrapper<#struct_name, Schema>, Schema> {
+            impl #building_manipulate_slot_trait_name for base_types::traits::reactive::RGSOBuilder<base_types::traits::reactive::RGSOWrapperBuilder<#struct_builder_name>, base_types::traits::reactive::RGSOWrapper<#struct_name, Schema>, Schema> {
                 #building_add_new_stream {
-                    rt::r_integrate_child(self, new_item, #slot_id);
+                    base_types::traits::reactive::r_integrate_child(self, new_item, #slot_id);
                     self
                 }
                 fn #add_existing_fn_name(&mut self, existing_id: &base_types::common::Uid) -> &mut Self {
-                    rt::r_integrate_child_id(self, existing_id, #slot_id);
+                    base_types::traits::reactive::r_integrate_child_id(self, existing_id, #slot_id);
                     self
                 }
             }
-            impl #editing_manipulate_slot_trait_name for rt::RGSOWrapper<#struct_name, Schema> {
+            impl #editing_manipulate_slot_trait_name for base_types::traits::reactive::RGSOWrapper<#struct_name, Schema> {
                 #editing_add_new_stream_impl {
-                    let slot_ref = bt::SlotRef{
+                    let slot_ref = base_types::traits::SlotRef{
                         host_instance_id: self.get_id().clone(),
                         child_instance_id: new_item.get_instantiable_instance().get_id().clone(),
                         slot_id: #slot_id.clone(),
@@ -341,18 +355,17 @@ pub(crate) fn generate_operative_streams(
                     new_item.parent_updates.push((self.get_id().clone(),slot_ref));
                     new_item
                 }
-                fn #add_existing_fn_name(&self, existing_id: &base_types::common::Uid) -> bt::ConnectionAction {
-                    let slot_ref = bt::SlotRef{
+                fn #add_existing_fn_name(&self, existing_id: &base_types::common::Uid) -> base_types::traits::ConnectionAction {
+                    let slot_ref = base_types::traits::SlotRef{
                         host_instance_id: self.get_id().clone(),
                         child_instance_id: *existing_id,
                         slot_id: #slot_id.clone(),
                     };
-                    bt::ConnectionAction {
+                    base_types::traits::ConnectionAction {
                         slot_ref: slot_ref,
                     }
                     
                 }
-                
             }
         }
     });
@@ -368,8 +381,8 @@ pub(crate) fn generate_operative_streams(
             #(#fulfilled_field_names: leptos::RwSignal<#fulfilled_field_value_types>,)*
         }
 
-        impl rt::RFieldEditable for #struct_name {
-            fn apply_field_edit(&self, field_edit: bt::FieldEdit) {
+        impl base_types::traits::reactive::RFieldEditable for #struct_name {
+            fn apply_field_edit(&self, field_edit: base_types::traits::FieldEdit) {
                 match field_edit.field_id {
                     #(#unfulfilled_field_ids => {
                         match field_edit.value {
@@ -384,22 +397,22 @@ pub(crate) fn generate_operative_streams(
             }
         }
 
-        impl rt::RIntoSchema for #struct_name {
+        impl base_types::traits::reactive::RIntoSchema for #struct_name {
             type Schema = Schema;
-            fn into_schema(instantiable: rt::RGSOWrapper<Self, Schema>) -> Self::Schema {
+            fn into_schema(instantiable: base_types::traits::reactive::RGSOWrapper<Self, Schema>) -> Self::Schema {
                 Schema::#struct_name(instantiable.to_owned())
             }
         }
 
-        impl rt::RBuildable for #struct_name {
+        impl base_types::traits::reactive::RBuildable for #struct_name {
             type Schema = Schema;
-            type Builder = rt::RGSOWrapperBuilder<#struct_builder_name>;
+            type Builder = base_types::traits::reactive::RGSOWrapperBuilder<#struct_builder_name>;
 
-            fn initiate_build() -> rt::RGSOBuilder<Self::Builder, rt::RGSOWrapper<Self, Schema>, Schema> {
+            fn initiate_build() -> base_types::traits::reactive::RGSOBuilder<Self::Builder, base_types::traits::reactive::RGSOWrapper<Self, Schema>, Schema> {
                 let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
                 let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
-                rt::RGSOBuilder::<Self::Builder, rt::RGSOWrapper<Self, Schema>, Schema>::new(
-                        rt::RGSOWrapperBuilder::new(
+                base_types::traits::reactive::RGSOBuilder::<Self::Builder, base_types::traits::reactive::RGSOWrapper<Self, Schema>, Schema>::new(
+                        base_types::traits::reactive::RGSOWrapperBuilder::new(
                             #struct_builder_name::default(),
                             #active_slot_tokens,
                             // std::rc::Rc::new(#operative_tag),
@@ -418,10 +431,10 @@ pub(crate) fn generate_operative_streams(
         pub struct #struct_builder_name {
             #(#[validate(custom(function = "validate_signal_is_some"))] #unfulfilled_field_names: leptos::RwSignal<Option<#unfulfilled_field_value_types>>,)*
         }
-        impl bt::Finalizable<#struct_name> for #struct_builder_name {
+        impl base_types::traits::Finalizable<#struct_name> for #struct_builder_name {
             fn finalize(&self) -> Result<#struct_name, anyhow::Error> {
                 <Self as validator::Validate>::validate(self)?;
-                Ok(<Self as bt::Producable<#struct_name>>::produce(self))
+                Ok(<Self as base_types::traits::Producable<#struct_name>>::produce(self))
                 // Ok(#struct_name {
                 //     #(#unfulfilled_field_names: self.#unfulfilled_field_names.as_ref().unwrap().clone(),)*
                 //     #(#fulfilled_field_names: #fulfilled_field_values,)*
@@ -429,7 +442,7 @@ pub(crate) fn generate_operative_streams(
             }
         }
 
-        impl bt::Producable<#struct_name> for #struct_builder_name {
+        impl base_types::traits::Producable<#struct_name> for #struct_builder_name {
             fn produce(&self) -> #struct_name {
                 #struct_name {
                     #(#unfulfilled_field_names: leptos::RwSignal::new(self.#unfulfilled_field_names.get().as_ref().unwrap().clone()),)*
@@ -437,7 +450,7 @@ pub(crate) fn generate_operative_streams(
                 }
             }
         }
-        impl bt::Verifiable for #struct_builder_name {
+        impl base_types::traits::Verifiable for #struct_builder_name {
             fn verify(&self) -> Result<(), anyhow::Error> {
                 self.validate()?;
                 Ok(())

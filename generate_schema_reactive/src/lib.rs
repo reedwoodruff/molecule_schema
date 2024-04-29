@@ -35,7 +35,7 @@ pub fn generate_concrete_schema_reactive(_input: TokenStream) -> TokenStream {
             let return_type = utils::get_primitive_type(&method_def.return_type);    
             quote! {
                 fn #method_name(&self, 
-                    env: &dyn rt::RGraphEnvironment<Types=base_types::primitives::PrimitiveTypes, Values=base_types::primitives::PrimitiveValues, Schema = Schema>
+                    env: &dyn base_types::traits::reactive::RGraphEnvironment<Types=base_types::primitives::PrimitiveTypes, Values=base_types::primitives::PrimitiveValues, Schema = Schema>
                     ) -> leptos::RwSignal<#return_type>;
             }
         });
@@ -68,8 +68,8 @@ pub fn generate_concrete_schema_reactive(_input: TokenStream) -> TokenStream {
 
     quote! {
         use base_types::utils::IntoPrimitiveValue;
-        use base_types::{traits as bt};
-        use base_types::traits::{reactive as rt};
+        // use base_types::{traits as bt};
+        // use base_types::traits::{reactive as rt};
         use base_types::traits::reactive::{RGSO, RGraphEnvironment, RBuildable, RBaseGraphEnvironment};
         use validator::Validate;
         use leptos::{RwSignal, SignalSet, SignalGet, SignalUpdate, SignalWith};
@@ -93,11 +93,11 @@ pub fn generate_concrete_schema_reactive(_input: TokenStream) -> TokenStream {
 
         #[derive(Debug, Clone)]
         pub enum Schema {
-            #(#all_lib_op_names(rt::RGSOWrapper<#all_lib_op_names, Schema>),)*
+            #(#all_lib_op_names(base_types::traits::reactive::RGSOWrapper<#all_lib_op_names, Schema>),)*
         }
 
-        impl rt::RFieldEditable for Schema {
-            fn apply_field_edit(&self, field_edit: bt::FieldEdit) {
+        impl base_types::traits::reactive::RFieldEditable for Schema {
+            fn apply_field_edit(&self, field_edit: base_types::traits::FieldEdit) {
                 match self {
                 #(Self::#all_lib_op_names(item) => item.apply_field_edit(field_edit),)*
                 _ => panic!(),
@@ -105,7 +105,7 @@ pub fn generate_concrete_schema_reactive(_input: TokenStream) -> TokenStream {
             }
         }
 
-        impl rt::RGSO for Schema {
+        impl base_types::traits::reactive::RGSO for Schema {
             type Schema = Self;
             fn get_operative(&self) -> &'static base_types::constraint_schema::LibraryOperative<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
                 match &self {
@@ -125,43 +125,43 @@ pub fn generate_concrete_schema_reactive(_input: TokenStream) -> TokenStream {
                     _ => panic!(),
                 }
             }
-            fn get_slots(&self) -> &HashMap<Uid, rt::RActiveSlot>{
+            fn get_slots(&self) -> &std::collections::HashMap<base_types::common::Uid, base_types::traits::reactive::RActiveSlot>{
                 match self {
                     #(Self::#all_lib_op_names(item) => item.get_slots(),)*
                     _ => panic!(),
                 }
             }
-            fn get_parent_slots(&self) -> leptos::RwSignal<Vec<bt::SlotRef>>{
+            fn get_parent_slots(&self) -> leptos::RwSignal<Vec<base_types::traits::SlotRef>>{
                 match self {
                     #(Self::#all_lib_op_names(item) => item.get_parent_slots(),)*
                     _ => panic!(),
                 }
             }
-            fn add_parent_slot(& self, slot_ref: &bt::SlotRef) ->  &Self {
+            fn add_parent_slot(& self, slot_ref: &base_types::traits::SlotRef) ->  &Self {
                 match self {
                     #(Self::#all_lib_op_names(item) => {item.add_parent_slot(slot_ref); self},)*
                     _ => panic!(),
                 }
             }
-            fn remove_child_from_slot(& self, slot_ref: &bt::SlotRef) -> & Self{
+            fn remove_child_from_slot(& self, slot_ref: &base_types::traits::SlotRef) -> & Self{
                 match self {
                     #(Self::#all_lib_op_names(item) => {item.remove_child_from_slot(slot_ref); self},)*
                     _ => panic!(),
                 }
             }
-            fn remove_parent(& self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> Vec<bt::SlotRef> {
+            fn remove_parent(& self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> Vec<base_types::traits::SlotRef> {
                 match self {
                     #(Self::#all_lib_op_names(item) => item.remove_parent(parent_id, slot_id),)*
                     _ => panic!(),
                 }
             }
-            fn set_history(&mut self, history: Option<rt::RHistoryRef<Self>>) {
+            fn set_history(&mut self, history: Option<base_types::traits::reactive::RHistoryRef<Self>>) {
                 match self {
                     #(Self::#all_lib_op_names(item) => item.set_history(history),)*
                     _ => panic!(),
                 }
             }
-            fn add_child_to_slot(& self, slot_ref: &bt::SlotRef) -> & Self {
+            fn add_child_to_slot(& self, slot_ref: &base_types::traits::SlotRef) -> & Self {
                 match self {
                     #(Self::#all_lib_op_names(item) => {item.add_child_to_slot(slot_ref); self},)*
                     _ => panic!(),

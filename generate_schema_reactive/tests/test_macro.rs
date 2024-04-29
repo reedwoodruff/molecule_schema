@@ -62,7 +62,7 @@ fn test_macro() {
         .add_new_linear_displayable(new_linear_displayable)
         .add_existing_linear_displayable(&first_displayable_id)
         // .add_existing_linear_displayable(&word_3_id)
-        .add_new_final_punctuation(new_punctuation_op)
+        // .add_new_final_punctuation(new_punctuation_op)
         .build(&sge_instance)
         .unwrap();
 

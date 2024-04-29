@@ -34,7 +34,7 @@ pub struct RHistoryContainer<TSchema: RGSO> {
     pub redo: RHistoryStack<TSchema>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RBaseGraphEnvironment<TSchema: RGSO + 'static> {
     pub created_instances: RwSignal<HashMap<Uid, TSchema>>,
     pub constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
@@ -71,14 +71,14 @@ impl<TSchema: RGSO + 'static> RBaseGraphEnvironment<TSchema> {
 }
 
 impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
-    fn push_history_item(&mut self, history_item: Vec<RHistoryItem<TSchema>>, tag: &TaggedAction) {
+    fn push_history_item(&self, history_item: Vec<RHistoryItem<TSchema>>, tag: &TaggedAction) {
         match tag {
             TaggedAction::Normal => self.history.borrow_mut().undo.push(history_item),
             TaggedAction::Undo => self.history.borrow_mut().redo.push(history_item),
             TaggedAction::Redo => self.history.borrow_mut().undo.push(history_item),
         }
     }
-    fn append_history_item(&mut self, history_item: RHistoryItem<TSchema>, tag: &TaggedAction) {
+    fn append_history_item(&self, history_item: RHistoryItem<TSchema>, tag: &TaggedAction) {
         match tag {
             TaggedAction::Normal => self
                 .history
@@ -159,7 +159,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
         self.append_history_item(RHistoryItem::Delete(removed_value), tag);
     }
     fn instantiate_element_tagged<T: std::fmt::Debug + Clone + 'static>(
-        &mut self,
+        &self,
         element: RInstantiableWrapper<RGSOWrapper<T, TSchema>, TSchema>,
         tag: &TaggedAction,
     ) -> Result<Uid, Error>
@@ -241,7 +241,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
         Ok(id)
     }
     fn create_connection_tagged(
-        &mut self,
+        &self,
         connection: ConnectionAction,
         tag: &TaggedAction,
     ) -> Result<(), Error> {
@@ -403,12 +403,12 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RGraphEnvironment
             .with(|created_instances| created_instances.get(id).cloned());
         test
     }
-    fn create_connection(&mut self, connection: ConnectionAction) -> Result<(), Error> {
+    fn create_connection(&self, connection: ConnectionAction) -> Result<(), Error> {
         self.history.borrow_mut().redo.clear();
         self.create_connection_tagged(connection, &TaggedAction::Normal)
     }
     fn instantiate_element<T: std::fmt::Debug + Clone + 'static>(
-        &mut self,
+        &self,
         element: RInstantiableWrapper<RGSOWrapper<T, Self::Schema>, Self::Schema>,
     ) -> Result<Uid, Error>
     where
@@ -454,9 +454,9 @@ pub trait RGraphEnvironment {
     type Schema: RGSO + 'static;
 
     fn get(&self, id: &Uid) -> Option<Self::Schema>;
-    fn create_connection(&mut self, connection: ConnectionAction) -> Result<(), Error>;
+    fn create_connection(&self, connection: ConnectionAction) -> Result<(), Error>;
     fn instantiate_element<T>(
-        &mut self,
+        &self,
         element: RInstantiableWrapper<RGSOWrapper<T, Self::Schema>, Self::Schema>,
     ) -> Result<Uid, Error>
     where
