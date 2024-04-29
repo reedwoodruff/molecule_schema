@@ -17,6 +17,7 @@ mod utils;
 pub fn generate_concrete_schema(_input: TokenStream) -> TokenStream {
     // let graph_environment = syn::parse_macro_input!(input as syn::Expr); 
 
+    // let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> = constraint_schema::constraint_schema("/home/reed/dev/molecule_schema/resources/schema.json");
     let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> = constraint_schema::constraint_schema!();
 
     // The goal here is as follows:
@@ -76,7 +77,7 @@ pub fn generate_concrete_schema(_input: TokenStream) -> TokenStream {
 
         lazy_static!{
             static ref CONSTRAINT_SCHEMA: base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> 
-            = constraint_schema::constraint_schema!();
+            = constraint_schema();
         }
         
 

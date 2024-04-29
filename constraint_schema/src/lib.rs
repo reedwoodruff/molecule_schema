@@ -3,15 +3,15 @@ use base_types::{
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 use proc_macro::TokenStream;
+use syn::parse_macro_input;
 
 // #[macro_use]
 // extern crate lazy_static;
 
 #[proc_macro]
-pub fn constraint_schema(_input: TokenStream) -> proc_macro::TokenStream {
-    let data = std::fs::read_to_string(
-        "/home/reed/dev/molecule_schema/constraint_schema/resources/schema.json",
-    );
+pub fn constraint_schema(input: TokenStream) -> proc_macro::TokenStream {
+    // let static_str = parse_macro_input!(input as syn::LitStr);
+    let data = std::fs::read_to_string("/home/reed/dev/molecule_schema/resources/schema.json");
     let data = data.expect("schema json must be present");
     let _constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
         serde_json::from_str::<ConstraintSchema<PrimitiveTypes, PrimitiveValues>>(&data)

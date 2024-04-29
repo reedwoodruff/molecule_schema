@@ -3,8 +3,8 @@ name = "generate_schema_reactive"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-proc-macro = true
+# [lib]
+# proc-macro = true
 
 [dev-dependencies]
 generate_schema_reactive = { path = "../generate_schema_reactive/" }

@@ -1,10 +1,13 @@
-use proc_macro::TokenStream;
+use proc_macro2::TokenStream;
 
 use quote::quote;
 
 use base_types::constraint_schema::*;
 
 use base_types::primitives::*;
+use std::env;
+use std::fs;
+use std::path::Path;
 
 
 use crate::utils::get_variant_name;
@@ -13,11 +16,16 @@ mod generate_operative_streams;
     mod generate_trait_impl_streams;
 mod utils;
 
-#[proc_macro]
-pub fn generate_concrete_schema_reactive(_input: TokenStream) -> TokenStream {
+pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
     // let graph_environment = syn::parse_macro_input!(input as syn::Expr); 
+    // let out_dir = env::var_os("OUT_DIR").unwrap();
+    // let dest_path = Path::new(&out_dir).join("schema.rs");
+    
 
-    let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> = constraint_schema::constraint_schema!();
+    let raw_json_data = std::fs::read_to_string(schema_location.to_str().unwrap());
+    let raw_json_data = raw_json_data.expect("schema json must be present");
+    let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues>= serde_json::from_str(&raw_json_data).expect("Schema formatted incorrectly");
+    // let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> = constraint_schema::constraint_schema!(schema_location.to_str().unwrap());
 
     // The goal here is as follows:
     // 1. Map the constraint objects to individual structs which have:
@@ -66,7 +74,7 @@ pub fn generate_concrete_schema_reactive(_input: TokenStream) -> TokenStream {
 
 
 
-    quote! {
+    let final_output = quote! {
         use base_types::utils::IntoPrimitiveValue;
         // use base_types::{traits as bt};
         // use base_types::traits::{reactive as rt};
@@ -82,7 +90,8 @@ pub fn generate_concrete_schema_reactive(_input: TokenStream) -> TokenStream {
 
         lazy_static!{
             static ref CONSTRAINT_SCHEMA: base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> 
-            = constraint_schema::constraint_schema!();
+            // = constraint_schema::constraint_schema!();
+            = serde_json::from_str::<base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues>>(#raw_json_data).expect("Schema formatted incorrectly");
         }
         
 
@@ -171,8 +180,11 @@ pub fn generate_concrete_schema_reactive(_input: TokenStream) -> TokenStream {
         }
 
             
-    }
-    .into()
+    };
+    
+    final_output.to_string()
+
+    // println!("cargo::rerun-if-changed={}", schema_location..to_string());
 }
 
 
