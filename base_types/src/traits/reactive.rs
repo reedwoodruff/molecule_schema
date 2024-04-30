@@ -136,7 +136,6 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
         self.created_instances
             .update(|prev| removed_value = prev.remove(id));
         let mut removed_value = removed_value.unwrap();
-        // removed_value.set_history(None);
         self.append_history_item(RHistoryItem::Delete(removed_value), tag);
     }
     fn instantiate_element_tagged<T: std::fmt::Debug + Clone + 'static>(
@@ -146,7 +145,6 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
     ) -> Result<Uid, Error>
     where
         Self: Sized,
-        // RGSOWrapper<T, TSchema>: RInstantiable<Schema = TSchema> + RFieldEditable,
         T: RIntoSchema<Schema = TSchema>,
     {
         for child_update in element.child_updates.iter() {
@@ -447,7 +445,6 @@ pub trait RGraphEnvironment {
 pub enum RHistoryItem<TSchema: RGSO> {
     RemoveChildFromSlot(SlotRef),
     RemoveParent(SlotRef),
-    // AddChildToSlot(),
     AddParent(SlotRef),
     AddChild(SlotRef),
     Delete(TSchema),
@@ -522,7 +519,6 @@ impl RActiveSlot {
 pub struct RGSOWrapper<T, TSchema: RGSO + 'static> {
     id: Uid,
     pub data: HashMap<Uid, RwSignal<PrimitiveValues>>,
-    // pub history: Option<RHistoryRef<TSchema>>,
     pub graph: Rc<RBaseGraphEnvironment<TSchema>>,
     slots: HashMap<Uid, RActiveSlot>,
     parent_slots: RwSignal<Vec<SlotRef>>,
@@ -728,8 +724,6 @@ impl<F> Verifiable for RGSOWrapperBuilder<F> {
     }
 }
 
-// impl<T, TSchema: RGSO> Finalizable<RGSOWrapper<T, TSchema>> for RGSOWrapperBuilder<T> {}
-
 pub trait RBuildable: Clone + std::fmt::Debug
 where
     Self: Sized + 'static,
@@ -804,9 +798,8 @@ where
 
 impl<T, TSchema: RGSO> RGSOBuilder<T, TSchema>
 where
-    // F: RProducable<T> + Verifiable + RInstantiable<Schema = TSchema> + Clone,
     RGSOWrapperBuilder<T>: RProducable<RGSOWrapper<T, TSchema>>,
-    T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static, // T: RInstantiable<Schema = TSchema> + 'static,
+    T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
 {
     pub fn build(
         &mut self,
@@ -898,26 +891,6 @@ where
     builder
 }
 
-// impl<T, TSchema: RGSO + 'static> RInstantiable for RGSOWrapper<T, TSchema>
-// where
-//     T: Clone + std::fmt::Debug + RIntoSchema<Schema = TSchema> + 'static,
-//     RGSOWrapper<T, TSchema>: RFieldEditable,
-// {
-//     type Schema = TSchema;
-
-//     fn instantiate(&self, history: RHistoryRef<TSchema>) -> Self::Schema {
-//         let mut new_self = self.clone();
-//         new_self.set_history(Some(history));
-//         T::into_schema(self.clone())
-//     }
-
-//     fn get_instance_id(&self) -> &Uid {
-//         self.get_id()
-//     }
-//     fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues> {
-//         self.template
-//     }
-// }
 impl<T, TSchema: RGSO + 'static> RInstantiable for RGSOWrapperBuilder<T>
 where
     T: Clone + std::fmt::Debug + RIntoSchema<Schema = TSchema> + 'static,
@@ -926,9 +899,6 @@ where
     type Schema = TSchema;
 
     fn instantiate(&self, graph: Rc<RBaseGraphEnvironment<Self::Schema>>) -> Self::Schema {
-        // self.finalize();
-        // let mut new_self = self.clone();
-        // new_self.set_history(Some(history));
         T::into_schema(self.produce(graph))
     }
 

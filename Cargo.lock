@@ -203,18 +203,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "constraint_schema"
-version = "0.1.0"
-dependencies = [
- "base_types",
- "proc-macro2",
- "quote",
- "serde",
- "serde_json",
- "syn 2.0.60",
-]
-
-[[package]]
 name = "convert_case"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -416,7 +404,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "base_types",
- "constraint_schema",
  "generate_schema_reactive",
  "lazy_static",
  "leptos",
@@ -821,7 +808,6 @@ version = "0.1.0"
 dependencies = [
  "base_types",
  "console_error_panic_hook",
- "constraint_schema",
  "im",
  "leptos",
  "reactive_types",

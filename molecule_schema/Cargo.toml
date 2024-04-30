@@ -12,7 +12,6 @@ reactive_types = { path = "../reactive_types/" }
 im = "15.1.0"
 leptos = { version = "0.6", features = ["csr"] }
 base_types = { path = "../base_types", features = ["serde"] }
-constraint_schema = { path = "../constraint_schema" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # leptonic = "0.5.0"

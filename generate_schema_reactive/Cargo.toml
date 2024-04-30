@@ -18,7 +18,6 @@ features = [
 ]
 
 [dependencies]
-constraint_schema = { path = "../constraint_schema" }
 base_types = { path = "../base_types", features = [
   "to_tokens",
   "reactive",
