@@ -2,14 +2,13 @@ use anyhow::{Error, Result};
 use std::fmt;
 
 use std::{any::Any, cell::RefCell, collections::HashMap, marker::PhantomData, rc::Rc};
-use strum_macros::Display;
 
 use crate::constraint_schema::{
     LibraryOperative, LibraryTemplate, OperativeSlot, OperativeVariants, SlotBounds,
 };
 use crate::constraint_schema_item::ConstraintSchemaItem;
 use crate::{
-    common::{ConstraintTraits, Tag, Uid},
+    common::{ConstraintTraits, Uid},
     constraint_schema::{
         ConstraintSchema,
         // LibraryOperative, LibraryTemplate, OperativeSlot, SlotBounds,
@@ -53,21 +52,6 @@ impl<TSchema: RGSO + 'static> RBaseGraphEnvironment<TSchema> {
             })),
         }
     }
-    // pub fn new_without_schema() -> Self {
-    //     Self {
-    //         history: Rc::new(RefCell::new(RHistoryContainer {
-    //             undo: Vec::new(),
-    //             redo: Vec::new(),
-    //         })),
-    //         created_instances: RwSignal::new(HashMap::new()),
-    //         constraint_schema: ConstraintSchema {
-    //             template_library: HashMap::new(),
-    //             instance_library: HashMap::new(),
-    //             operative_library: HashMap::new(),
-    //             traits: HashMap::new(),
-    //         },
-    //     }
-    // }
 }
 
 impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
@@ -140,14 +124,6 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
                     slotted_instances.iter().for_each(|slotted_instance_id| {
                         self.check_and_delete_children_tagged(slotted_instance_id, Some(id), tag);
                     });
-                    // .iter()
-                    // .for_each(|slotted_instance_id| {
-                    //     self.check_and_delete_children_tagged(
-                    //         slotted_instance_id,
-                    //         Some(id),
-                    //         tag,
-                    //     );
-                    // });
                 })
             });
         }
@@ -168,10 +144,9 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
         RGSOWrapper<T, TSchema>: RInstantiable<Schema = TSchema> + RFieldEditable,
     {
         for child_update in element.child_updates.iter() {
-            let mut parent = element.prereq_instantiables.iter().find(|prereq_inst| {
+            let parent = element.prereq_instantiables.iter().find(|prereq_inst| {
                 *prereq_inst.get_instance_id() == child_update.1.host_instance_id
             });
-            // let mut operative_descriptor;
             let operative_descriptor = if parent.is_none() {
                 &RGSO::get_template(&element.instantiable_instance)
                     .operative_slots
@@ -327,7 +302,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
 
         Ok(())
     }
-    fn process_history_tagged(&mut self, history: Vec<RHistoryItem<TSchema>>, tag: &TaggedAction) {
+    fn process_history_tagged(&self, history: Vec<RHistoryItem<TSchema>>, tag: &TaggedAction) {
         if !history.is_empty() {
             self.push_history_item(vec![RHistoryItem::BlockActionMarker], tag);
         }
@@ -422,12 +397,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RGraphEnvironment
         self.delete_tagged(id, &TaggedAction::Normal)
     }
 
-    // fn get_mut(&mut self, id: &Uid) -> Option<&mut Self::Schema> {
-    //     self.created_instances
-    //         .with(|created_instances| created_instances.get_mut(id))
-    // }
-
-    fn undo(&mut self) {
+    fn undo(&self) {
         let undo_item = self.history.borrow_mut().undo.pop();
         if undo_item.is_none() {
             return;
@@ -436,7 +406,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RGraphEnvironment
         self.process_history_tagged(undo_item, &TaggedAction::Undo);
     }
 
-    fn redo(&mut self) {
+    fn redo(&self) {
         let redo_item = self.history.borrow_mut().redo.pop();
         if redo_item.is_none() {
             return;
@@ -461,11 +431,10 @@ pub trait RGraphEnvironment {
         RGSOWrapper<T, Self::Schema>: RInstantiable<Schema = Self::Schema>,
         Self: Sized,
         T: std::fmt::Debug + Clone + 'static;
-    // fn get_mut(&mut self, id: &Uid) -> Option<&mut Self::Schema>;
     fn get_constraint_schema(&self) -> &ConstraintSchema<Self::Types, Self::Values>;
     fn delete(&mut self, id: &Uid) -> Result<(), Error>;
-    fn undo(&mut self);
-    fn redo(&mut self);
+    fn undo(&self);
+    fn redo(&self);
 }
 
 #[derive(Debug, Clone)]
@@ -505,20 +474,7 @@ pub struct RActiveSlot {
     pub slot: &'static OperativeSlot,
     pub slotted_instances: RwSignal<Vec<Uid>>,
 }
-// #[cfg(feature = "to_tokens")]
-// impl quote::ToTokens for RActiveSlot {
-//     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-//         let slotted_instances = self.slotted_instances.clone();
-//         let slot = self.slot.clone();
-//         tokens.extend(quote::quote! {
-//             base_types::traits::ActiveSlot {
-//                 slotted_instances: vec![#(#slotted_instances,)*],
-//                 slot: #slot,
-//             }
 
-//         })
-//     }
-// }
 impl RActiveSlot {
     pub fn check_current_conformity(&self) -> bool {
         let len = self
@@ -559,12 +515,12 @@ impl RActiveSlot {
 #[derive(Clone)]
 pub struct RGSOWrapper<T, TSchema: RGSO> {
     id: Uid,
+    pub data: HashMap<Uid, RwSignal<PrimitiveValues>>,
+    pub history: Option<RHistoryRef<TSchema>>,
     slots: HashMap<Uid, RActiveSlot>,
     parent_slots: RwSignal<Vec<SlotRef>>,
-    pub data: HashMap<Uid, RwSignal<PrimitiveValues>>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
     template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
-    pub history: Option<RHistoryRef<TSchema>>,
     _phantom: PhantomData<T>,
 }
 impl<T: std::fmt::Debug, TSchema: RGSO> std::fmt::Debug for RGSOWrapper<T, TSchema> {
@@ -585,7 +541,6 @@ impl<T: Clone + std::fmt::Debug, TSchema: RGSO> RFieldEditable for RGSOWrapper<T
             .get(&field_edit.field_id)
             .unwrap()
             .set(field_edit.value);
-        // self.data.apply_field_edit(field_edit);
     }
 }
 
@@ -698,10 +653,10 @@ impl<T: Clone + std::fmt::Debug> RGSOWrapperBuilder<T> {
             _phantom: PhantomData,
         }
     }
-    fn replace_slots(&mut self, new_slots: HashMap<Uid, RActiveSlot>) -> &mut Self {
-        self.slots = new_slots;
-        self
-    }
+    // fn replace_slots(&mut self, new_slots: HashMap<Uid, RActiveSlot>) -> &mut Self {
+    //     self.slots = new_slots;
+    //     self
+    // }
     fn add_instance_to_slot(&mut self, slot_id: &Uid, instance_id: Uid) -> &mut Self {
         self.slots
             .get_mut(slot_id)
@@ -712,12 +667,12 @@ impl<T: Clone + std::fmt::Debug> RGSOWrapperBuilder<T> {
             });
         self
     }
-    fn add_instance_to_parent_slot(&mut self, slot_ref: SlotRef) -> &mut Self {
-        self.parent_slots.update(|parent_slots| {
-            parent_slots.push(slot_ref);
-        });
-        self
-    }
+    // fn add_instance_to_parent_slot(&mut self, slot_ref: SlotRef) -> &mut Self {
+    //     self.parent_slots.update(|parent_slots| {
+    //         parent_slots.push(slot_ref);
+    //     });
+    //     self
+    // }
 }
 impl<T, TSchema: RGSO> Producable<RGSOWrapper<T, TSchema>> for RGSOWrapperBuilder<T> {
     fn produce(&self) -> RGSOWrapper<T, TSchema> {
@@ -738,10 +693,7 @@ impl<T, TSchema: RGSO> Producable<RGSOWrapper<T, TSchema>> for RGSOWrapperBuilde
     }
 }
 
-impl<F> Verifiable for RGSOWrapperBuilder<F>
-// where
-// F: Verifiable,
-{
+impl<F> Verifiable for RGSOWrapperBuilder<F> {
     fn verify(&self) -> Result<(), Error> {
         // self.data.verify()?;
         let field_errors = self
@@ -782,7 +734,6 @@ where
     Self: Sized + 'static,
     RGSOWrapper<Self, Self::Schema>: RInstantiable<Schema = Self::Schema>,
 {
-    // type Builder: Finalizable<RGSOWrapper<Self, Self::Schema>>;
     type Schema: RGSO;
 
     fn initiate_build(
@@ -790,7 +741,7 @@ where
     fn get_operative_id() -> Uid;
 }
 
-trait RInstantiable: std::fmt::Debug + Any {
+pub trait RInstantiable: std::fmt::Debug + Any {
     type Schema: RGSO;
 
     fn instantiate(&self, history: RHistoryRef<Self::Schema>) -> Self::Schema;
@@ -939,7 +890,6 @@ where
         child_instance_id: *child_id,
         host_instance_id: builder.wip_instance.id,
     };
-    // child.add_parent_slot(slot_ref);
     builder.child_updates.update(|child_updates| {
         child_updates.push((*child_id, slot_ref));
     });
@@ -948,7 +898,7 @@ where
 
 impl<T, TSchema: RGSO + 'static> RInstantiable for RGSOWrapper<T, TSchema>
 where
-    T: Clone + std::fmt::Debug + RIntoSchema<Schema = TSchema> + 'static, // + RIntoSchema<Schema = TSchema> + RFieldEditable + 'static,
+    T: Clone + std::fmt::Debug + RIntoSchema<Schema = TSchema> + 'static,
     RGSOWrapper<T, TSchema>: RFieldEditable,
 {
     type Schema = TSchema;
