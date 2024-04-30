@@ -164,9 +164,15 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                     _ => panic!(),
                 }
             }
-            fn set_history(&mut self, history: Option<base_types::traits::reactive::RHistoryRef<Self>>) {
+            // fn set_history(&mut self, history: Option<base_types::traits::reactive::RHistoryRef<Self>>) {
+            //     match self {
+            //         #(Self::#all_lib_op_names(item) => item.set_history(history),)*
+            //         _ => panic!(),
+            //     }
+            // }
+            fn get_graph(&self) -> std::rc::Rc<base_types::traits::reactive::RBaseGraphEnvironment<Schema>> {
                 match self {
-                    #(Self::#all_lib_op_names(item) => item.set_history(history),)*
+                    #(Self::#all_lib_op_names(item) => item.get_graph(),)*
                     _ => panic!(),
                 }
             }

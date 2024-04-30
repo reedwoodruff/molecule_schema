@@ -169,16 +169,14 @@ pub(crate) fn generate_operative_streams(
             impl #field_editing_manipulate_field_trait_name for base_types::traits::reactive::RGSOWrapper<#struct_name, Schema> {
                 fn #field_setter_fn_name(&self, new_val: #field_value_type) -> &Self {
                     let instance_id = self.get_id().clone();
-                    self.history
-                        .as_ref()
-                        .unwrap()
+                    self.get_graph().history
                         .borrow_mut().undo.push(vec![base_types::traits::reactive::RHistoryItem::EditField(base_types::traits::HistoryFieldEdit {
                             instance_id: instance_id,
                             field_id: #field_id,
                             prev_value: self.data.get(&#field_id).unwrap().get(),
                             new_value: new_val.clone().into_primitive_value(), 
                         })]);
-                    self.history.as_ref().unwrap().borrow_mut().redo.clear();
+                    self.get_graph().history.borrow_mut().redo.clear();
                     self.data.get(&#field_id).unwrap().set(new_val.into_primitive_value());
                     self
                 }
@@ -225,7 +223,7 @@ pub(crate) fn generate_operative_streams(
                     constraint_schema.operative_library.get(lib_op_id).unwrap(),
                 ));
                 quote! {
-                    fn #add_new_fn_name(&mut self, new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapper<#item_name, Schema>, Schema> ) -> &mut Self
+                    fn #add_new_fn_name(&mut self, new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<#item_name>, Schema> ) -> &mut Self
                 }
             }
             OperativeVariants::TraitOperative(trait_op) => {
@@ -245,7 +243,7 @@ pub(crate) fn generate_operative_streams(
                 let trait_names = trait_names.join(" + ");
                 let trait_names = Ident::new(&trait_names, proc_macro2::Span::call_site());
                 quote! {
-                    fn #add_new_fn_name<T>(&mut self, new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapper<T, Schema>, Schema>) -> &mut Self
+                    fn #add_new_fn_name<T>(&mut self, new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<T>, Schema>) -> &mut Self
                         where base_types::traits::reactive::RGSOWrapper<T, Schema>: #trait_names,
                           T: Clone + std::fmt::Debug + base_types::traits::reactive::RIntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
                 }
@@ -259,7 +257,7 @@ pub(crate) fn generate_operative_streams(
                         constraint_schema.operative_library.get(lib_op_id).unwrap(),
                     ));
                     quote! {
-                        fn #add_new_fn_name(&self, #is_mut new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapper<#item_name, Schema>, Schema> ) -> base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapper<#item_name, Schema>, Schema>
+                        fn #add_new_fn_name(&self, #is_mut new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<#item_name>, Schema> ) -> base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<#item_name>, Schema>
                     }
                 }
                 OperativeVariants::TraitOperative(trait_op) => {
@@ -279,7 +277,7 @@ pub(crate) fn generate_operative_streams(
                     let trait_names = trait_names.join(" + ");
                     let trait_names = Ident::new(&trait_names, proc_macro2::Span::call_site());
                     quote! {
-                        fn #add_new_fn_name<T>(&self, #is_mut new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapper<T, Schema>, Schema>) -> base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapper<T, Schema>, Schema>
+                        fn #add_new_fn_name<T>(&self, #is_mut new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<T>, Schema>) -> base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<T>, Schema>
                             where base_types::traits::reactive::RGSOWrapper<T, Schema>: #trait_names,
                               T: Clone + std::fmt::Debug + base_types::traits::reactive::RIntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
                     }
