@@ -154,7 +154,7 @@ pub(crate) fn generate_operative_streams(
                 fn #field_setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self;
             }
 
-            impl #building_manipulate_field_trait_name for base_types::traits::reactive::RGSOBuilder<base_types::traits::reactive::RGSOWrapperBuilder<#struct_name>, base_types::traits::reactive::RGSOWrapper<#struct_name, Schema>, Schema> {
+            impl #building_manipulate_field_trait_name for base_types::traits::reactive::RGSOBuilder<#struct_name, Schema> {
                 fn #field_setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self {
                     let signal = self.wip_instance.data.get(&#field_id).unwrap();
                     let is_none = signal.with(|val| val.is_none());
@@ -338,7 +338,7 @@ pub(crate) fn generate_operative_streams(
                 fn #add_existing_fn_name(&self, existing_id: &base_types::common::Uid) -> base_types::traits::ConnectionAction;
             }
 
-            impl #building_manipulate_slot_trait_name for base_types::traits::reactive::RGSOBuilder<base_types::traits::reactive::RGSOWrapperBuilder<#struct_name>, base_types::traits::reactive::RGSOWrapper<#struct_name, Schema>, Schema> {
+            impl #building_manipulate_slot_trait_name for base_types::traits::reactive::RGSOBuilder<#struct_name, Schema> {
                 #building_add_new_stream {
                     base_types::traits::reactive::r_integrate_child(self, new_item, #slot_id);
                     self
@@ -391,12 +391,12 @@ pub(crate) fn generate_operative_streams(
         impl base_types::traits::reactive::RBuildable for #struct_name {
             type Schema = Schema;
 
-            fn initiate_build() -> base_types::traits::reactive::RGSOBuilder<base_types::traits::reactive::RGSOWrapperBuilder<#struct_name>, base_types::traits::reactive::RGSOWrapper<Self, Schema>, Schema> {
+            fn initiate_build() -> base_types::traits::reactive::RGSOBuilder<#struct_name, Schema> {
                 let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
                 let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
                 let mut field_hashmap = std::collections::HashMap::new();
                 #(field_hashmap.insert(#unfulfilled_field_ids, RwSignal::new(None));)*
-                base_types::traits::reactive::RGSOBuilder::<base_types::traits::reactive::RGSOWrapperBuilder<#struct_name>, base_types::traits::reactive::RGSOWrapper<Self, Schema>, Schema>::new(
+                base_types::traits::reactive::RGSOBuilder::<#struct_name, Schema>::new(
                         base_types::traits::reactive::RGSOWrapperBuilder::new(
                             field_hashmap,
                             #active_slot_tokens,
