@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, ops::Deref};
 
 use crate::common::*;
 
@@ -11,6 +11,7 @@ use strum_macros::{Display, EnumIter, EnumString};
 #[derive(Clone, Debug, PartialEq, Hash, Eq, EnumString, EnumIter, Default, Display)]
 pub enum PrimitiveTypes {
     #[default]
+    EmptyTuple,
     Bool,
     Char,
     Int,
@@ -23,6 +24,9 @@ pub enum PrimitiveTypes {
 impl quote::ToTokens for PrimitiveTypes {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let ts = match *self {
+            PrimitiveTypes::EmptyTuple => {
+                quote::quote! {base_types::primitives::PrimitiveTypes::EmptyTuple}
+            }
             PrimitiveTypes::Bool => quote::quote! { base_types::primitives::PrimitiveTypes::Bool },
             PrimitiveTypes::Char => quote::quote! { base_types::primitives::PrimitiveTypes::Char },
             PrimitiveTypes::Int => quote::quote! { base_types::primitives::PrimitiveTypes::Int },
@@ -115,3 +119,24 @@ impl Display for PrimitiveValues {
     }
 }
 impl ConstraintTraits for PrimitiveValues {}
+impl PrimitiveValues {
+    pub fn get_primitive_type(&self) -> PrimitiveTypes {
+        match self {
+            PrimitiveValues::Int(_) => PrimitiveTypes::Int,
+            PrimitiveValues::Float(_) => PrimitiveTypes::Float,
+            PrimitiveValues::String(_) => PrimitiveTypes::String,
+            PrimitiveValues::Bool(_) => PrimitiveTypes::Bool,
+            PrimitiveValues::Char(_) => PrimitiveTypes::Char,
+            PrimitiveValues::Option(val) => match val.deref() {
+                Some(val) => val.get_primitive_type(),
+                None => PrimitiveTypes::Option(Box::new(PrimitiveTypes::EmptyTuple)),
+            },
+            PrimitiveValues::List(val) => {
+                PrimitiveTypes::List(Box::new(match val.deref().iter().next() {
+                    Some(val) => val.get_primitive_type(),
+                    None => PrimitiveTypes::EmptyTuple,
+                }))
+            }
+        }
+    }
+}

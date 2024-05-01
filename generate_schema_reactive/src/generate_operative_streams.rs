@@ -49,6 +49,7 @@ pub(crate) fn generate_operative_streams(
     let field_digest = instantiable
         .get_locked_fields_digest(constraint_schema)
         .unwrap();
+    // let locked_fields = field_digest.locked_fields;
     let unfulfilled_fields = field_digest.get_unfulfilled_fields();
     let unfulfilled_field_ids = unfulfilled_fields.iter().map(|field| field.tag.id).collect::<Vec<_>>();
     let unfulfilled_field_names = unfulfilled_fields
@@ -65,8 +66,8 @@ pub(crate) fn generate_operative_streams(
         .collect::<Vec<_>>();
 
 
-    let fulfilled_fields = field_digest.locked_fields;
-    let fulfilled_field_names = fulfilled_fields
+    let locked_fields = field_digest.locked_fields;
+    let locked_field_names = locked_fields
         .values()
         .map(|field| {
             syn::Ident::new(
@@ -75,7 +76,7 @@ pub(crate) fn generate_operative_streams(
             )
         })
         .collect::<Vec<_>>();
-    let fulfilled_field_value_types = fulfilled_fields
+    let locked_field_value_types = locked_fields
         .values()
         .map(|field| {
             let value_type = &constraint_schema.template_library[&template_tag.id]
@@ -84,7 +85,7 @@ pub(crate) fn generate_operative_streams(
             get_primitive_type(value_type)
         })
         .collect::<Vec<_>>();
-    let fulfilled_field_values = fulfilled_fields
+    let locked_field_values = locked_fields
         .values()
         .map(|field| get_primitive_value(&field.fulfilled_field.value));
 
@@ -121,6 +122,29 @@ pub(crate) fn generate_operative_streams(
             Some(std::collections::HashMap::from([#((#active_slot_ids, #active_slots),)*]))
         }
     };
+
+    let get_locked_fields_stream = locked_fields.iter().map(|(field_id, locked_field_digest)| {
+        let field_getter_fn_name = proc_macro2::Ident::new(
+            &format!("get_{}_field", locked_field_digest.fulfilled_field.field_constraint_name.to_lowercase()),
+            proc_macro2::Span::call_site(),
+        );
+        let field_getting_manipulate_field_trait_name = proc_macro2::Ident::new(
+            &format!("{}{}FieldGetter", struct_name, locked_field_digest.fulfilled_field.field_constraint_name),
+            proc_macro2::Span::call_site(),
+        );
+        let field_value_type = get_primitive_type(&locked_field_digest.fulfilled_field.value.get_primitive_type());
+        let locked_return_val = get_primitive_value(&locked_field_digest.fulfilled_field.value);
+        quote!{
+            pub trait field_getting_manipulate_field_trait_name {
+                fn #field_getter_fn_name(&self) -> #field_value_type;                
+            }
+            impl #field_getting_manipulate_field_trait_name for base_types::traits::reactive::RGSOWrapper<#struct_name, Schema> {
+                fn #field_getter_fn_name(&self) -> #field_value_type {
+                    #locked_return_val
+                }
+            }
+        }
+    });
 
     let manipulate_fields_stream = unfulfilled_fields.iter().map(|field| {
         let field_id = field.tag.id;
@@ -412,6 +436,7 @@ pub(crate) fn generate_operative_streams(
 
         #(#manipulate_fields_stream)*
         #(#manipulate_slots_stream)*
+        #(#get_locked_fields_stream)*
 
         #trait_impl_streams
     }
