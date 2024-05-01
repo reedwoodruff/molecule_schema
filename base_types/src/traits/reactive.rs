@@ -24,7 +24,7 @@ use leptos::{RwSignal, SignalGet, SignalSet, SignalUpdate, SignalWith};
 
 pub trait RProducable<T> {
     type Schema: RGSO<Schema = Self::Schema>;
-    fn produce(&self, graph: Rc<RBaseGraphEnvironment<Self::Schema>>) -> T;
+    fn produce(&self) -> T;
 }
 
 pub trait RFieldEditable {
@@ -140,7 +140,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
     }
     fn instantiate_element_tagged<T: std::fmt::Debug + Clone + 'static>(
         &self,
-        element: RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>, TSchema>,
+        element: RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>>,
         tag: &TaggedAction,
     ) -> Result<Uid, Error>
     where
@@ -212,7 +212,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
             self.append_history_item(RHistoryItem::AddChild(parent_update.1.clone()), &tag);
         });
         element.flatten().into_iter().for_each(|instantiable| {
-            let instantiated = instantiable.instantiate(Rc::new(self.clone()));
+            let instantiated = instantiable.instantiate();
             self.append_history_item(RHistoryItem::Create(*instantiable.get_id()), &tag);
             self.created_instances.update(|prev| {
                 prev.insert(*instantiable.get_id(), instantiated);
@@ -387,7 +387,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RGraphEnvironment
     }
     fn instantiate_element<T>(
         &self,
-        element: RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>, Self::Schema>,
+        element: RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>>,
     ) -> Result<Uid, Error>
     where
         Self: Sized,
@@ -430,7 +430,7 @@ pub trait RGraphEnvironment {
     fn create_connection(&self, connection: ConnectionAction) -> Result<(), Error>;
     fn instantiate_element<T>(
         &self,
-        element: RInstantiableWrapper<RGSOWrapperBuilder<T, Self::Schema>, Self::Schema>,
+        element: RInstantiableWrapper<RGSOWrapperBuilder<T, Self::Schema>>,
     ) -> Result<Uid, Error>
     where
         Self: Sized,
@@ -680,13 +680,12 @@ impl<T, TSchema: RGSO<Schema = TSchema>> RProducable<RGSOWrapper<T, TSchema>>
     for RGSOWrapperBuilder<T, TSchema>
 {
     type Schema = TSchema;
-    fn produce(&self, graph: Rc<RBaseGraphEnvironment<TSchema>>) -> RGSOWrapper<T, TSchema> {
+    fn produce(&self) -> RGSOWrapper<T, TSchema> {
         RGSOWrapper::<T, TSchema> {
-            // history: None,
             id: self.id,
             slots: self.slots.clone(),
             parent_slots: self.parent_slots,
-            graph,
+            graph: self.graph.clone(),
             data: self
                 .data
                 .iter()
@@ -746,44 +745,43 @@ where
     fn get_operative_id() -> Uid;
 }
 
-pub trait RInstantiable: std::fmt::Debug + Any {
+pub trait RInstantiable: std::fmt::Debug {
     type Schema: RGSO<Schema = Self::Schema>;
 
-    fn instantiate(&self, graph: Rc<RBaseGraphEnvironment<Self::Schema>>) -> Self::Schema;
+    fn instantiate(&self) -> Self::Schema;
     fn get_id(&self) -> &Uid;
     fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
 }
 type RInstantiableElements<TSchema> = Vec<Rc<dyn RInstantiable<Schema = TSchema>>>;
 
 #[derive(Debug, Clone)]
-pub struct RInstantiableWrapper<T, TSchema>
+pub struct RInstantiableWrapper<T>
 where
-    T: RInstantiable<Schema = TSchema>,
+    T: RInstantiable,
 {
-    prereq_instantiables: RInstantiableElements<TSchema>,
+    prereq_instantiables: RInstantiableElements<T::Schema>,
     instantiable_instance: T,
     pub parent_updates: Vec<(Uid, SlotRef)>,
     child_updates: Vec<(Uid, SlotRef)>,
 }
 
-impl<T, TSchema> RInstantiableWrapper<T, TSchema>
+impl<T> RInstantiableWrapper<T>
 where
-    T: RInstantiable<Schema = TSchema> + 'static,
+    T: RInstantiable + 'static,
 {
-    pub fn flatten(mut self) -> RInstantiableElements<TSchema> {
+    pub fn flatten(mut self) -> RInstantiableElements<T::Schema> {
         self.prereq_instantiables
             .push(Rc::new(self.instantiable_instance));
         self.prereq_instantiables
     }
-    pub fn get_prereq_instantiables(&self) -> &RInstantiableElements<TSchema> {
+    pub fn get_prereq_instantiables(&self) -> &RInstantiableElements<T::Schema> {
         &self.prereq_instantiables
     }
     pub fn get_instantiable_instance(&self) -> &T {
         &self.instantiable_instance
     }
 }
-impl<T, TSchema: RGSO<Schema = TSchema>>
-    RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>, TSchema>
+impl<T, TSchema: RGSO<Schema = TSchema>> RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>>
 where
     RGSOWrapperBuilder<T, TSchema>: RInstantiable<Schema = TSchema>,
 {
@@ -798,8 +796,8 @@ where
 
 #[derive(Debug)]
 pub struct RGSOBuilder<T, TSchema: RGSO<Schema = TSchema> + 'static>
-where
-    RGSOWrapperBuilder<T, TSchema>: RProducable<RGSOWrapper<T, TSchema>>,
+// where
+// RGSOWrapperBuilder<T, TSchema>: RProducable<RGSOWrapper<T, TSchema>>,
 {
     instantiables: RwSignal<Vec<Rc<dyn RInstantiable<Schema = TSchema>>>>,
     child_updates: RwSignal<Vec<(Uid, SlotRef)>>,
@@ -814,9 +812,7 @@ where
     RGSOWrapperBuilder<T, TSchema>: RProducable<RGSOWrapper<T, TSchema>>,
     T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
 {
-    pub fn build(
-        &mut self,
-    ) -> Result<RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>, TSchema>, Error> {
+    pub fn build(&mut self) -> Result<RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>>, Error> {
         let mut error = None;
         self.parent_updates.with(|parent_updates| {
             parent_updates.iter().for_each(|parent_update| {
@@ -860,7 +856,7 @@ where
 
 pub fn r_integrate_child<T, C, TSchema: RGSO<Schema = TSchema>>(
     builder: &mut RGSOBuilder<T, TSchema>,
-    mut child: RInstantiableWrapper<RGSOWrapperBuilder<C, TSchema>, TSchema>,
+    mut child: RInstantiableWrapper<RGSOWrapperBuilder<C, TSchema>>,
     slot_id: Uid,
 ) -> &mut RGSOBuilder<T, TSchema>
 where
@@ -911,8 +907,8 @@ where
 {
     type Schema = TSchema;
 
-    fn instantiate(&self, graph: Rc<RBaseGraphEnvironment<Self::Schema>>) -> Self::Schema {
-        T::into_schema(self.produce(graph))
+    fn instantiate(&self) -> Self::Schema {
+        T::into_schema(self.produce())
     }
 
     fn get_id(&self) -> &Uid {

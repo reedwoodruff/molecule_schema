@@ -247,7 +247,7 @@ pub(crate) fn generate_operative_streams(
                     constraint_schema.operative_library.get(lib_op_id).unwrap(),
                 ));
                 quote! {
-                    fn #add_new_fn_name(&mut self, new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<#item_name>, Schema> ) -> &mut Self
+                    fn #add_new_fn_name(&mut self, new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<#item_name, Schema>> ) -> &mut Self
                 }
             }
             OperativeVariants::TraitOperative(trait_op) => {
@@ -267,7 +267,7 @@ pub(crate) fn generate_operative_streams(
                 let trait_names = trait_names.join(" + ");
                 let trait_names = Ident::new(&trait_names, proc_macro2::Span::call_site());
                 quote! {
-                    fn #add_new_fn_name<T>(&mut self, new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<T>, Schema>) -> &mut Self
+                    fn #add_new_fn_name<T>(&mut self, new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<T, Schema>>) -> &mut Self
                         where base_types::traits::reactive::RGSOWrapper<T, Schema>: #trait_names,
                           T: Clone + std::fmt::Debug + base_types::traits::reactive::RIntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
                 }
@@ -281,7 +281,7 @@ pub(crate) fn generate_operative_streams(
                         constraint_schema.operative_library.get(lib_op_id).unwrap(),
                     ));
                     quote! {
-                        fn #add_new_fn_name(&self, #is_mut new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<#item_name>, Schema> ) -> base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<#item_name>, Schema>
+                        fn #add_new_fn_name(&self, #is_mut new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<#item_name, Schema>> ) -> base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<#item_name, Schema>>
                     }
                 }
                 OperativeVariants::TraitOperative(trait_op) => {
@@ -301,7 +301,7 @@ pub(crate) fn generate_operative_streams(
                     let trait_names = trait_names.join(" + ");
                     let trait_names = Ident::new(&trait_names, proc_macro2::Span::call_site());
                     quote! {
-                        fn #add_new_fn_name<T>(&self, #is_mut new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<T>, Schema>) -> base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<T>, Schema>
+                        fn #add_new_fn_name<T>(&self, #is_mut new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<T, Schema>>) -> base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<T, Schema>>
                             where base_types::traits::reactive::RGSOWrapper<T, Schema>: #trait_names,
                               T: Clone + std::fmt::Debug + base_types::traits::reactive::RIntoSchema<Schema=Schema> + #slot_marker_trait + 'static,
                     }
@@ -415,7 +415,7 @@ pub(crate) fn generate_operative_streams(
         impl base_types::traits::reactive::RBuildable for #struct_name {
             type Schema = Schema;
 
-            fn initiate_build() -> base_types::traits::reactive::RGSOBuilder<#struct_name, Schema> {
+            fn initiate_build(graph: std::rc::Rc<base_types::traits::reactive::RBaseGraphEnvironment<Self::Schema>>) -> base_types::traits::reactive::RGSOBuilder<#struct_name, Schema> {
                 let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
                 let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
                 let mut field_hashmap = std::collections::HashMap::new();
@@ -426,7 +426,9 @@ pub(crate) fn generate_operative_streams(
                             #active_slot_tokens,
                             &operative_ref,
                             &template_ref,
+                            graph.clone(),
                             ),
+                        graph,
                     )
             }
             fn get_operative_id() -> base_types::common::Uid {
