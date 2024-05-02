@@ -1,3 +1,6 @@
+use base_types::common::Uid;
+use base_types::constraint_schema_item::ConstraintSchemaItem;
+use base_types::utils::get_primitive_value;
 use proc_macro2::TokenStream;
 
 use quote::quote;
@@ -5,27 +8,68 @@ use quote::quote;
 use base_types::constraint_schema::*;
 
 use base_types::primitives::*;
+use quote::ToTokens;
+use utils::get_all_subclasses;
+use utils::get_operative_subclass_enum_name;
+use utils::get_slot_trait_enum_name;
+use utils::get_template_slot_enum_name;
+use utils::get_template_get_slot_fn_name;
+use utils::get_template_get_slots_trait_name;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::Path;
 
 
-use crate::utils::get_variant_name;
+use crate::utils::get_all_operatives_which_implement_trait_set;
+use crate::utils::get_operative_wrapped_name;
+use crate::utils::get_primitive_type;
+use crate::utils::get_template_get_field_fn_name;
+use crate::utils::get_template_get_field_trait_name;
+use crate::utils::get_operative_variant_name;
+use crate::utils::get_template_get_slot_fn_name_id_only;
 
 mod generate_operative_streams;
     mod generate_trait_impl_streams;
 mod utils;
+mod output_traits;
+
+pub struct FieldFnDetails {
+    fn_name: TokenStream,
+    fn_signature: TokenStream,
+    field_return_type: TokenStream,
+}
+pub struct SlotFnDetails {
+    fn_name: TokenStream,
+    fn_signature: TokenStream,
+    return_enum_type: TokenStream,
+    is_trait_slot: bool,
+    id_only_signature: TokenStream,
+    id_only_name: TokenStream,
+}
+pub struct IntermediateFieldTraitInfo {
+    trait_name: TokenStream,
+    trait_fns: HashMap<Uid, FieldFnDetails>,
+}
+pub struct IntermediateSlotTraitInfo {
+    trait_name: TokenStream,
+    trait_fns: HashMap<Uid, SlotFnDetails>,
+}
+pub struct MetaData {
+    template_field_trait_info: HashMap<Uid, IntermediateFieldTraitInfo>,
+    template_slots_trait_info: HashMap<Uid, IntermediateSlotTraitInfo>,
+}
 
 pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
-    // let graph_environment = syn::parse_macro_input!(input as syn::Expr); 
-    // let out_dir = env::var_os("OUT_DIR").unwrap();
-    // let dest_path = Path::new(&out_dir).join("schema.rs");
-    
+    let mut meta = MetaData {
+        template_field_trait_info: HashMap::new(),
+        template_slots_trait_info: HashMap::new(),
+    };
 
     let raw_json_data = std::fs::read_to_string(schema_location.to_str().unwrap());
     let raw_json_data = raw_json_data.expect("schema json must be present");
     let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues>= serde_json::from_str(&raw_json_data).expect("Schema formatted incorrectly");
-    // let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> = constraint_schema::constraint_schema!(schema_location.to_str().unwrap());
+
 
     // The goal here is as follows:
     // 1. Map the constraint objects to individual structs which have:
@@ -36,6 +80,145 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
     //      - Helper methods for adding and removing edges (but not mandatory ones)
     //  2. Create an enum with a variant for each struct
 
+    // Creates traits which represent geting the fields for each template
+    // This should be implemented by every operative which is a subclass of the template
+    let get_template_fields_traits_streams = constraint_schema_generated.template_library.values().map(|template| {
+        let mut fns_map = HashMap::new();
+        let fn_streams = template.field_constraints.values().map(|field_constraint| {
+            let field_getter_fn_name = get_template_get_field_fn_name(&field_constraint.tag.name);
+            let value_type = get_primitive_type(&field_constraint.value_type);
+            let stream = quote!{ fn #field_getter_fn_name(&self) -> #value_type };
+            fns_map.insert(field_constraint.tag.id, FieldFnDetails { fn_name: field_getter_fn_name.clone().into_token_stream(), fn_signature: stream.clone(), field_return_type: value_type });
+            stream
+        }).collect::<Vec<_>>();
+        let get_fields_trait_name = get_template_get_field_trait_name(&template.tag.name);
+        meta.template_field_trait_info.insert(template.tag.id, IntermediateFieldTraitInfo { trait_name: get_fields_trait_name.clone().into_token_stream(), trait_fns:fns_map   });
+        quote!{
+            pub trait #get_fields_trait_name {
+                #(#fn_streams;)*
+            }
+        }
+    }).collect::<Vec<_>>();
+
+    // Creates traits which represent getting the operative slots for every template
+    // This should be implemented by every operative which is a subclass of the template
+    let get_template_slots_traits_streams = constraint_schema_generated.template_library.values().map(|template| {
+        let mut fns_map = HashMap::new();
+        let fn_streams = template.operative_slots.values().map(|operative_slot| {
+           let slot_getter_fn_name = get_template_get_slot_fn_name( &operative_slot.tag.name);
+           let return_enum_type = get_template_slot_enum_name(&constraint_schema_generated, operative_slot);
+           let stream = quote!{ fn #slot_getter_fn_name(&self) -> Vec<#return_enum_type> };
+            let id_only_slot_getter_fn_name = get_template_get_slot_fn_name_id_only(&operative_slot.tag.name);
+            let id_only_stream =quote!{ fn #id_only_slot_getter_fn_name(&self) -> &base_types::traits::reactive::RActiveSlot};
+            let is_trait_slot = match operative_slot.operative_descriptor {
+                OperativeVariants::LibraryOperative(_) => false,
+                OperativeVariants::TraitOperative(_) => true,
+            }; 
+            fns_map.insert(operative_slot.tag.id, SlotFnDetails { fn_name: slot_getter_fn_name.clone().into_token_stream(), fn_signature: stream.clone(), id_only_signature: id_only_stream.clone(), id_only_name: id_only_slot_getter_fn_name.into_token_stream(), return_enum_type, is_trait_slot });
+           quote!{#stream;#id_only_stream;}
+        }).collect::<Vec<_>>();
+        let get_slots_trait_name = get_template_get_slots_trait_name(&template.tag.name);
+        meta.template_slots_trait_info.insert(template.tag.id, IntermediateSlotTraitInfo { trait_name: get_slots_trait_name.clone().into_token_stream(), trait_fns: fns_map, });
+        quote! {
+            pub trait #get_slots_trait_name {
+                #(#fn_streams)*
+            }
+        }
+    }).collect::<Vec<_>>();
+
+    // Gets all operatives which have subclasses, and creates an enum with each subclass as a variant
+    // Each enum should implement the field getter and slot getter of the root template so as not to have to match as much as an end consumer
+    let subclass_enums_stream = constraint_schema_generated.operative_library.values().filter_map(|operative| {
+        let template_id = operative.get_template_id();
+       let subclass_op_names = get_all_subclasses(&constraint_schema_generated, &operative.tag.id ).iter().map(|op| get_operative_variant_name(&op.tag.name)).collect::<Vec<_>>();
+       let subclass_op_names2 = subclass_op_names.clone();
+       let enum_name = get_operative_subclass_enum_name(&constraint_schema_generated, &operative.tag.id );
+       let op_wrapped_name = get_all_subclasses(&constraint_schema_generated, &operative.tag.id ).iter().map(|op| get_operative_wrapped_name(&op.tag.name)).collect::<Vec<_>>();
+       let IntermediateFieldTraitInfo{trait_name: field_trait_name, trait_fns: field_trait_fns} = &meta.template_field_trait_info.get(&template_id).unwrap();
+       let field_trait_fns_streams = field_trait_fns.values().map(|item| item.fn_signature.clone()).collect::<Vec<_>>();
+       let field_trait_fns_names = field_trait_fns.values().map(|item| item.fn_name.clone()).collect::<Vec<_>>();
+       let IntermediateSlotTraitInfo { trait_name: slot_trait_name, trait_fns: slot_trait_fns } = meta.template_slots_trait_info.get(&template_id).unwrap();
+       let slot_trait_fns_streams = slot_trait_fns.values().map(|item| item.fn_signature.clone()).collect::<Vec<_>>();
+       let slot_trait_fns_names = slot_trait_fns.values().map(|item| item.fn_name.clone()).collect::<Vec<_>>();
+       let id_only_fns_streams = slot_trait_fns.values().map(|item| item.id_only_signature.clone()).collect::<Vec<_>>();
+       let id_only_fns_names = slot_trait_fns.values().map(|item| item.id_only_name.clone()).collect::<Vec<_>>();
+       
+       let field_match_code = quote!{
+           match self {
+               #(#enum_name::#subclass_op_names(val) => val.#field_trait_fns_names(),)*
+           }
+       };
+       let slot_match_code = quote!{
+           match self {
+               #(#enum_name::#subclass_op_names(val) => val.#slot_trait_fns_names(),)*
+           }
+       };
+       let id_only_match_code = quote!{
+           match self {
+               #(#enum_name::#subclass_op_names(val) => val.#id_only_fns_names(),)*
+           }
+       };
+
+       if subclass_op_names.len() <= 1 {
+           None
+       } else {
+           Some(quote!{
+               pub enum #enum_name {
+                   #(#subclass_op_names(#op_wrapped_name),)*
+               }
+               impl #field_trait_name for #enum_name {
+                   #(#field_trait_fns_streams {
+                       #field_match_code
+                   })*
+               }
+               impl #slot_trait_name for #enum_name {
+                   #(#slot_trait_fns_streams {
+                       #slot_match_code
+                   })*
+                   #(#id_only_fns_streams {
+                       #id_only_match_code
+                   })*
+               }
+           })
+       }
+       
+    });
+
+    // Checks every trait-op slot, finds all unique trait combos, and creates an enum which represents all operatives which fulfill these trait combos
+    let slot_trait_enums_stream = constraint_schema_generated.template_library.values().filter_map(|template| {
+            let trait_ops = template.operative_slots.values().filter_map(|slot| {match &slot.operative_descriptor {
+                OperativeVariants::LibraryOperative(_) => None,
+                OperativeVariants::TraitOperative(trait_op) => Some(trait_op),
+            }}).collect::<Vec<_>>();
+            if trait_ops.is_empty() {
+                return None
+            } else {
+                Some(trait_ops)
+            }
+        }
+    ).flatten().fold(Vec::new(), |mut acc, trait_op| {
+        let mut sorted = trait_op.trait_ids.clone();
+        sorted.sort();
+        if acc.contains(&sorted) {
+            acc
+        } else {
+            acc.push(sorted);
+            acc
+        }
+    }).iter().map(|unique_trait_combo| {
+        let enum_name = get_slot_trait_enum_name(&constraint_schema_generated, unique_trait_combo);
+        let fulfilling_ops = get_all_operatives_which_implement_trait_set(&constraint_schema_generated, unique_trait_combo);
+        let fulfilling_ops_names = fulfilling_ops.iter().map(|op| get_operative_variant_name(&op.tag.name));
+        let fulfilling_ops_wrapped_names = fulfilling_ops.iter().map(|op| get_operative_wrapped_name(&op.tag.name));
+
+        quote!{
+            pub enum #enum_name {
+                #(#fulfilling_ops_names(#fulfilling_ops_wrapped_names),)*
+            }
+        }
+    }).collect::<Vec<_>>();
+
+    // Creates the traits as defined in the schema
     let trait_definition_streams = constraint_schema_generated.traits.values().map(| trait_def| {
         let trait_name = syn::Ident::new(&trait_def.tag.name, proc_macro2::Span::call_site());
         let fn_streams = trait_def.methods.values().map(|method_def| {
@@ -61,27 +244,24 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
     //     generate_operative_streams::generate_operative_streams(Box::new(el), &reference_constraint_schema)
     // }).collect::<Vec<_>>();
     let library_operative_streams = constraint_schema_generated.operative_library.values().map(|el| {
-        generate_operative_streams::generate_operative_streams(Box::new(el), &reference_constraint_schema)
+        generate_operative_streams::generate_operative_streams(Box::new(el), &reference_constraint_schema, &meta)
     }).collect::<Vec<_>>();
     let instance_streams = constraint_schema_generated.instance_library.values().map(|el| {
-        generate_operative_streams::generate_operative_streams(Box::new(el), &reference_constraint_schema)
+        generate_operative_streams::generate_operative_streams(Box::new(el), &reference_constraint_schema, &meta)
     })
     .collect::<Vec<_>>();
 
     let all_lib_op_names = constraint_schema_generated.operative_library.values().map(|el| {
-        get_variant_name(&Box::new(el))
+        get_operative_variant_name(&el.tag.name)
     }).collect::<Vec<_>>();
 
 
 
     let final_output = quote! {
         use base_types::utils::IntoPrimitiveValue;
-        // use base_types::{traits as bt};
-        // use base_types::traits::{reactive as rt};
         use base_types::traits::reactive::{RGSO, RGraphEnvironment, RBuildable, RBaseGraphEnvironment};
         use validator::Validate;
         use leptos::{RwSignal, SignalSet, SignalGet, SignalUpdate, SignalWith};
-        // use base_types::traits::Buildable;
         use lazy_static::lazy_static;
 
         fn validate_signal_is_some<T>(signal: &leptos::RwSignal<Option<T>>) -> Result<(), validator::ValidationError> {
@@ -96,7 +276,10 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         
 
         #(#trait_definition_streams)*
-        // #(#template_streams)*
+        #(#get_template_fields_traits_streams)*
+        #(#get_template_slots_traits_streams)*
+        #(#subclass_enums_stream)*
+        #(#slot_trait_enums_stream)*
         #(#library_operative_streams)*
         #(#instance_streams)*
 
@@ -164,12 +347,6 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                     _ => panic!(),
                 }
             }
-            // fn set_history(&mut self, history: Option<base_types::traits::reactive::RHistoryRef<Self>>) {
-            //     match self {
-            //         #(Self::#all_lib_op_names(item) => item.set_history(history),)*
-            //         _ => panic!(),
-            //     }
-            // }
             fn get_graph(&self) -> std::rc::Rc<base_types::traits::reactive::RBaseGraphEnvironment<Schema>> {
                 match self {
                     #(Self::#all_lib_op_names(item) => item.get_graph(),)*
@@ -190,7 +367,6 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
     
     final_output.to_string()
 
-    // println!("cargo::rerun-if-changed={}", schema_location..to_string());
 }
 
 

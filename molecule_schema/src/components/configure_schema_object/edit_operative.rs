@@ -302,7 +302,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                 <strong>Name</strong>
                 <br/>
                 <div class="flex">
-                <TextInput value=active_object.get().tag.name/>
+                    <TextInput value=active_object.get().tag.name/>
 
                 </div>
                 <hr/>
@@ -345,7 +345,11 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                         }>unlock</button>
                     </div>
                 </For>
-                <For each=move || unfulfilled_field_constraints.get() key=move |item| item.tag.id let:item>
+                <For
+                    each=move || unfulfilled_field_constraints.get()
+                    key=move |item| item.tag.id
+                    let:item
+                >
                     <div>
                         {item.tag.name} <ButtonShow show_text="Begin Lock" hide_text="Cancel">
 
@@ -356,6 +360,9 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                     let item_clone = item.clone();
                                     let on_click_lock = Callback::new(move |_| {
                                         let new_val = match item.value_type.get() {
+                                            PrimitiveTypes::EmptyTuple => {
+                                                PrimitiveValues::Option(Box::new(None))
+                                            }
                                             PrimitiveTypes::Int => {
                                                 PrimitiveValues::Int(value.get().parse().unwrap())
                                             }
@@ -385,9 +392,11 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                             });
                                     });
                                     view! {
-                                        <TextInput value = value />
+                                        <TextInput value=value/>
 
-                                    <button on:click=move |e| on_click_lock.call(e)>Lock</button>
+                                        <button on:click=move |e| {
+                                            on_click_lock.call(e)
+                                        }>Lock</button>
                                     }
                                 }
                             }
@@ -659,7 +668,11 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                     on_select=on_select_trait_impl
                 />
                 <br/>
-                <For each=move ||active_trait_impl_method_paths.get() key=move |item| item.0 let:item>
+                <For
+                    each=move || active_trait_impl_method_paths.get()
+                    key=move |item| item.0
+                    let:item
+                >
 
                     {
                         let click_closure = move |_| {
@@ -766,7 +779,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                         })
                                 }>delete impl</button> <br/> trait methods:
                                 <For
-                                    each=move||methods.get()
+                                    each=move || methods.get()
                                     key=move |(method_id, _path)| *method_id
                                     children=move |(method_id, path)| {
                                         let method_def = trait_def

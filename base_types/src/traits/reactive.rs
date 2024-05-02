@@ -20,7 +20,7 @@ use super::{
     ConnectionAction, ElementCreationError, ElementDeletionError, FieldEdit, Finalizable,
     HistoryFieldEdit, SlotRef, TaggedAction, Verifiable,
 };
-use leptos::{RwSignal, SignalGet, SignalSet, SignalUpdate, SignalWith};
+use leptos::{RwSignal, SignalGet, SignalSet, SignalUpdate, SignalWith, SignalWithUntracked};
 
 pub trait RProducable<T> {
     type Schema: RGSO<Schema = Self::Schema>;
@@ -102,7 +102,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
 
         if let Some(parent_id) = parent_id {
             let child_parent_slots = self.get(id).unwrap().get_parent_slots();
-            child_parent_slots.with(|child_parent_slots| {
+            child_parent_slots.with_untracked(|child_parent_slots| {
                 let remaining_parents = child_parent_slots
                     .iter()
                     .filter(|slot_ref| slot_ref.host_instance_id != *parent_id)
@@ -125,7 +125,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
 
         if should_delete {
             self.get(id).unwrap().get_slots().values().for_each(|slot| {
-                slot.slotted_instances.with(|slotted_instances| {
+                slot.slotted_instances.with_untracked(|slotted_instances| {
                     slotted_instances.iter().for_each(|slotted_instance_id| {
                         self.check_and_delete_children_tagged(slotted_instance_id, Some(id), tag);
                     });
@@ -284,7 +284,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
     fn delete_tagged(&mut self, id: &Uid, tag: &TaggedAction) -> Result<(), Error> {
         let parent_slots = self.get(id).unwrap().get_parent_slots();
 
-        let can_delete = parent_slots.with(|parent_slots| {
+        let can_delete = parent_slots.with_untracked(|parent_slots| {
             parent_slots.iter().all(|parent_slot| {
                 self.get(&parent_slot.host_instance_id)
                     .unwrap()
@@ -297,7 +297,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
             return Err(Error::new(ElementDeletionError::RequiredByParentSlot));
         }
         self.push_history_item(vec![RHistoryItem::BlockActionMarker], &tag);
-        parent_slots.with(|parent_slots| {
+        parent_slots.with_untracked(|parent_slots| {
             parent_slots.iter().for_each(|parent_slot| {
                 self.get(&parent_slot.host_instance_id)
                     .unwrap()
@@ -378,7 +378,7 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RGraphEnvironment
     fn get(&self, id: &Uid) -> Option<Self::Schema> {
         let test = self
             .created_instances
-            .with(|created_instances| created_instances.get(id).cloned());
+            .with_untracked(|created_instances| created_instances.get(id).cloned());
         test
     }
     fn create_connection(&self, connection: ConnectionAction) -> Result<(), Error> {

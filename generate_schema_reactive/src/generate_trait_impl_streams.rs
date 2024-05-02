@@ -16,7 +16,7 @@ pub(crate) fn generate_trait_impl_streams(
     >,
     constraint_schema: &ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
 ) -> proc_macro2::TokenStream {
-    let instantiable_name = crate::get_variant_name(instantiable);
+    let instantiable_name = crate::get_operative_variant_name(&instantiable.get_tag().name);
     let trait_impl_digest = instantiable.get_trait_impl_digest(constraint_schema);
 
     let trait_impl_stream = trait_impl_digest.trait_impls.iter().map(|(trait_id, trait_impl)| {

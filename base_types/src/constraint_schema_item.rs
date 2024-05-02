@@ -19,6 +19,36 @@ pub trait ConstraintSchemaItem {
     fn get_tag(&self) -> &Tag;
     fn get_local_trait_impls(&self) -> &HashMap<TraitId, TraitImpl>;
     fn get_local_slotted_instances(&self) -> Option<&HashMap<Uid, SlottedInstances>>;
+    fn check_ancestry(
+        &self,
+        schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
+        ancestor_id_in_question: &Uid,
+    ) -> bool {
+        if self.get_tag().id == *ancestor_id_in_question {
+            return true;
+        }
+
+        let template = schema
+            .template_library
+            .get(&self.get_template_id())
+            .unwrap()
+            .clone();
+        if template.get_template_id() == ancestor_id_in_question {
+            return true;
+        }
+        let mut next_parent_id = self.get_parent_operative_id().cloned();
+        while let Some(parent_id) = next_parent_id {
+            if let Some(parent_operative) = schema.operative_library.get(&parent_id).cloned() {
+                if parent_operative.get_tag().id == *ancestor_id_in_question {
+                    return true;
+                }
+                next_parent_id = parent_operative.get_parent_operative_id().cloned();
+            } else {
+                panic!("Ancestor not found in schema");
+            }
+        }
+        false
+    }
     fn get_local_locked_fields(
         &self,
     ) -> Option<&HashMap<FieldId, LockedFieldConstraint<Self::TValues>>>;

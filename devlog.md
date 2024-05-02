@@ -371,3 +371,33 @@ Base entity candidates:
 
 ## April 25, 2024
 I am really loathe to maintain reactive and non-reactive versions of everything, but that's the route I've opted for right now. Maybe at some point I could write a macro to annotate non-reactive structs to create reactive versions, but I think it would still be required to manually update any functionality by hand. Idk, I hope there's a better solution eventually, as this adds serious friction to changing and improving things over time as the changes need to be mirrored multiple times.
+
+## May 1, 2024
+Thinking through the interface for interacting with various kinds of slots.
+Two kinds of slots exist:
+- library-operative-specific (can only hold instances of a particular library operative)
+- trait-specific (can hold any instances which conform to its trait bounds)
+
+For library-operatiave-specific, the question is arising how to handle inheritance/subclasses.
+For example, if you have a slot which accepts an operative Animal, and a subclass operative "DogAnimal" is created based on the Animal operative (which must mean that Dog *at least* fulfills every contract which Animal does, but that it *could* be made more specific by locking a particular field or by locking instances into slots)
+The current implementation is looking for the particular struct created for Animal, but I think a more flexible solution is in order.
+I'm considering creating an enum for each case when multiple operatives are acceptable.
+This would be helpful for when you are attempting to access a member of a given slot. Since a slot which can hold Animal can also hold any subclass of animal, you can't just assume that the node in question is Animal. Instead you could return an enum of all subclasses of Animal.
+This seems to have the potential to get wildly out of hand. For example, Animal could have multiple subclasses (e.g. DogAnimal, BirdAnimal), and then those subclasses could have subclasses (e.g. BirdAnimal: SparrowBirdAnimal).
+So if you had a slot which returns an Animal, you'd actually be returning an enum of all nodes in a potentially deep tree.
+
+On the other hand, this specialization functionality is ill-suited to this kind of usage. It seems like what I described above would be better suited to using an "Animal" trait.
+However there's nothing stopping a schema author from falling into this specialization trap.
+
+The case seems more straightforward for applying this same solution to trait-specific slots.
+You could have an enum which has members that correspond to all operatives which implement the given set of traits.
+You could then also implement the trait on the enum itself, saving the end user from having to match on a potentially large list if they only needed the functionality provided by the trait or set of traits.
+
+I think it would not be possible in the library-operative-specific case to fully carry across this nice user experience.
+For example, with Animal, you might have a field "name" which is unlocked and therefore you have a method which can set it.
+But with SparrowBirdAnimal, you might have locked this field.
+So there's not really any way to generalize over all of the methods even though they all share an ancestor.
+It might be possible to look into providing a subset of those methods (for example, all of the get-related ones) on the resultant enum.
+But in order to make any changes you'd need to do a deep match.
+
+Once again, though, I think that that pattern is antipattern. The idea should be to build in a composable fashion. The details of how to do that in this case escape me at the present. 

@@ -9,10 +9,9 @@ use base_types::constraint_schema_item::ConstraintSchemaItem;
 use base_types::primitives::*;
 use base_types::{constraint_schema::*, };
 
-
-use crate::generate_trait_impl_streams;
+use crate::{generate_trait_impl_streams, IntermediateFieldTraitInfo, IntermediateSlotTraitInfo, MetaData, SlotFnDetails};
 use crate::utils::{
-    get_primitive_type, get_primitive_value, get_variant_builder_name, get_variant_name,
+    get_all_operatives_which_implement_trait_set, get_all_subclasses, get_operative_subclass_enum_name, get_operative_variant_name, get_operative_wrapped_name, get_primitive_type, get_primitive_value, get_template_get_field_fn_name
 };
 
 pub(crate) fn generate_operative_streams(
@@ -20,12 +19,13 @@ pub(crate) fn generate_operative_streams(
         &dyn ConstraintSchemaItem<TTypes = PrimitiveTypes, TValues = PrimitiveValues>,
     >,
     constraint_schema: &ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
+    meta: &MetaData,
 ) -> proc_macro2::TokenStream {
     let _field_names = Vec::<syn::Ident>::new();
     let _field_names_setters = Vec::<syn::Ident>::new();
     let _field_values = Vec::<proc_macro2::TokenStream>::new();
     let _initial_values = Vec::<proc_macro2::TokenStream>::new();
-    let struct_name = get_variant_name(&instantiable);
+    let struct_name = get_operative_variant_name(&instantiable.get_tag().name);
     let _item_trait_stream = crate::generate_trait_impl_streams::generate_trait_impl_streams(
         &instantiable,
         constraint_schema,
@@ -146,6 +146,94 @@ pub(crate) fn generate_operative_streams(
         }
     });
 
+    let get_fields_and_slots_stream = {
+       let IntermediateFieldTraitInfo{trait_name: field_trait_name, trait_fns: field_trait_fns} = &meta.template_field_trait_info.get(reference_template_id).unwrap();
+       let field_trait_fns_streams = field_trait_fns.values().map(|item| item.fn_signature.clone()).collect::<Vec<_>>();
+       let field_trait_fns_names = field_trait_fns.values().map(|item| item.fn_name.clone()).collect::<Vec<_>>();
+       let field_ids = field_trait_fns.keys().collect::<Vec<_>>();
+       let field_value_types = field_trait_fns.values().map(|item| item.field_return_type.clone()).collect::<Vec<_>>();
+
+       let IntermediateSlotTraitInfo { trait_name: slot_trait_name, trait_fns: slot_trait_fns } = meta.template_slots_trait_info.get(reference_template_id).unwrap();
+       let wrapped_name = get_operative_wrapped_name(&instantiable.get_tag().name);
+       let slot_stream = slot_trait_fns.iter().map(|(id, SlotFnDetails { fn_name, fn_signature, return_enum_type, is_trait_slot, id_only_signature, id_only_name })| {
+           let fn_streams = match &constraint_schema.template_library.get(reference_template_id).unwrap().operative_slots.get(id).unwrap().operative_descriptor {
+            OperativeVariants::LibraryOperative(slot_op_id) => {
+               let operative_subclass_enum_name = get_operative_subclass_enum_name(constraint_schema, &slot_op_id);
+               let subclasses = get_all_subclasses(constraint_schema, &slot_op_id );
+               let slot_op_struct_name = get_operative_variant_name(&constraint_schema.operative_library.get(&slot_op_id).unwrap().tag.name);
+               let subclasses_names = subclasses.iter().map(|sub| get_operative_variant_name(&sub.get_tag().name)).collect::<Vec<_>>();
+               let slot_variants_match = if subclasses_names.len() <= 1 {
+                   quote!{
+                       Schema::#slot_op_struct_name(wrapper) => wrapper,
+                       _ => panic!()
+                   }
+               } else {
+                 quote!{
+                     #(Schema::#subclasses_names(wrapper) => #operative_subclass_enum_name::#subclasses_names(wrapper),)*
+                     _ => panic!(),
+                 }  
+               };
+                quote!{
+                   #fn_signature {
+                       leptos::logging::log!("ran_lib!");
+                       // self.get_slots().get(&#id).unwrap().slotted_instances.get().iter().map(|slotted_instance_id| {
+                       //     match self.graph.get(slotted_instance_id).unwrap(){
+                       //         #slot_variants_match
+                       //     }
+                       // }).collect::<Vec<_>>()
+                       self.get_slots().get(&#id).unwrap().slotted_instances.with(|slotted_instances| slotted_instances.iter().map(|slotted_instance_id| {
+                           match self.graph.get(slotted_instance_id).unwrap(){
+                               #slot_variants_match
+                           }
+                       }).collect::<Vec<_>>())
+                   }
+                   #id_only_signature {
+                       self.get_slots().get(&#id).unwrap()
+                   }
+               }},
+
+            OperativeVariants::TraitOperative(trait_op) => {
+               let trait_fulfillers = get_all_operatives_which_implement_trait_set(constraint_schema, &trait_op.trait_ids);
+               let trait_fulfiller_names = trait_fulfillers.iter().map(|op| {get_operative_variant_name(&op.tag.name)}).collect::<Vec<_>>();
+                quote!{
+                    #fn_signature {
+                       leptos::logging::log!("ran_trait!");
+                       self.get_slots().get(&#id).unwrap().slotted_instances.with(|slotted_instances| slotted_instances.iter().map(|slotted_instance_id| {
+                           match self.graph.get(slotted_instance_id).unwrap(){
+                               #(Schema::#trait_fulfiller_names(wrapper) => #return_enum_type::#trait_fulfiller_names(wrapper),)*
+                               _ => panic!()
+                           }
+                       }).collect::<Vec<_>>())
+                    }
+                   #id_only_signature {
+                       self.get_slots().get(&#id).unwrap()
+                   }
+                }
+                
+            },
+        };
+        fn_streams
+       }).collect::<Vec<_>>();
+       let slot_stream = quote!{
+           impl #slot_trait_name for #wrapped_name {
+               #(#slot_stream)*
+           }
+       };
+
+
+       quote!{
+           impl #field_trait_name for #wrapped_name {
+               #(#field_trait_fns_streams {
+                    match self.data.get(&#field_ids).unwrap().get() {
+                        base_types::primitives::PrimitiveValues::#field_value_types(val) => val,
+                        _ => panic!()
+                    }
+               })*
+           }
+           #slot_stream
+       }
+    };
+
     let manipulate_fields_stream = unfulfilled_fields.iter().map(|field| {
         let field_id = field.tag.id;
         let field_value_type = get_primitive_type(&field.value_type);
@@ -164,15 +252,12 @@ pub(crate) fn generate_operative_streams(
             proc_macro2::Span::call_site(),
         );
 
-        let field_getter_fn_name = proc_macro2::Ident::new(
-            &format!("get_{}_field", field.tag.name.to_lowercase()),
-            proc_macro2::Span::call_site(),
-        );
+        // let field_getter_fn_name = get_template_get_field_fn_name(&field.tag.name);
 
         quote! {
             pub trait #field_editing_manipulate_field_trait_name {
                 fn #field_setter_fn_name(&self, new_val: #field_value_type) -> &Self;
-                fn #field_getter_fn_name(&self) -> #field_value_type;
+                // fn #field_getter_fn_name(&self) -> #field_value_type;
             }
             pub trait #building_manipulate_field_trait_name {
                 fn #field_setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self;
@@ -204,12 +289,12 @@ pub(crate) fn generate_operative_streams(
                     self.data.get(&#field_id).unwrap().set(new_val.into_primitive_value());
                     self
                 }
-                fn #field_getter_fn_name(&self) -> #field_value_type {
-                    match self.data.get(&#field_id).unwrap().get() {
-                        base_types::primitives::PrimitiveValues::#field_value_type(val) => val,
-                        _ => panic!()
-                    }
-                }
+                // fn #field_getter_fn_name(&self) -> #field_value_type {
+                //     match self.data.get(&#field_id).unwrap().get() {
+                //         base_types::primitives::PrimitiveValues::#field_value_type(val) => val,
+                //         _ => panic!()
+                //     }
+                // }
             }
         }
     });
@@ -236,16 +321,16 @@ pub(crate) fn generate_operative_streams(
             ),
             proc_macro2::Span::call_site(),
         );
-        let get_slot_trait_name = proc_macro2::Ident::new(&format!("{}{}SlotGet", struct_name, slot.slot.tag.name), proc_macro2::Span::call_site());
-        let get_slot_fn_name = proc_macro2::Ident::new(&format!("get_{}_slot", slot.slot.tag.name.to_lowercase()), proc_macro2::Span::call_site());
+        // let get_slot_trait_name = proc_macro2::Ident::new(&format!("{}{}SlotGet", struct_name, slot.slot.tag.name), proc_macro2::Span::call_site());
+        // let get_slot_fn_name = proc_macro2::Ident::new(&format!("get_{}_slot", slot.slot.tag.name.to_lowercase()), proc_macro2::Span::call_site());
 
         let slot_marker_trait = proc_macro2::Ident::new(&format!("{}{}", struct_name, slot.slot.tag.name), proc_macro2::Span::call_site());
 
         let building_add_new_stream =            match &slot.slot.operative_descriptor {
             OperativeVariants::LibraryOperative(lib_op_id) => {
-                let item_name = get_variant_name(&Box::new(
-                    constraint_schema.operative_library.get(lib_op_id).unwrap(),
-                ));
+                let item_name = get_operative_variant_name(&
+                    constraint_schema.operative_library.get(lib_op_id).unwrap().tag.name,
+                );
                 quote! {
                     fn #add_new_fn_name(&mut self, new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<#item_name, Schema>> ) -> &mut Self
                 }
@@ -277,9 +362,9 @@ pub(crate) fn generate_operative_streams(
             
             match &slot.slot.operative_descriptor {
                 OperativeVariants::LibraryOperative(lib_op_id) => {
-                    let item_name = get_variant_name(&Box::new(
-                        constraint_schema.operative_library.get(lib_op_id).unwrap(),
-                    ));
+                    let item_name = get_operative_variant_name(
+                        &constraint_schema.operative_library.get(lib_op_id).unwrap().tag.name,
+                    );
                     quote! {
                         fn #add_new_fn_name(&self, #is_mut new_item: base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<#item_name, Schema>> ) -> base_types::traits::reactive::RInstantiableWrapper<base_types::traits::reactive::RGSOWrapperBuilder<#item_name, Schema>>
                     }
@@ -331,7 +416,7 @@ pub(crate) fn generate_operative_streams(
             };
 
             let streams = to_integrate_operatives.iter().map(|operative| {
-                let operative_name = get_variant_name(&Box::new(operative));
+                let operative_name = get_operative_variant_name(&operative.tag.name);
                 quote!{
                     impl #slot_marker_trait for #operative_name {}
                 }
@@ -342,15 +427,15 @@ pub(crate) fn generate_operative_streams(
         quote! {
             trait #slot_marker_trait {}
 
-            trait #get_slot_trait_name {
-                fn #get_slot_fn_name(&self) -> &base_types::traits::reactive::RActiveSlot;
-            }
+            // trait #get_slot_trait_name {
+            //     fn #get_slot_fn_name(&self) -> &base_types::traits::reactive::RActiveSlot;
+            // }
 
-            impl #get_slot_trait_name for base_types::traits::reactive::RGSOWrapper<#struct_name, Schema> {
-                fn #get_slot_fn_name(&self) -> &base_types::traits::reactive::RActiveSlot {
-                    self.get_slot_by_id(&#slot_id).unwrap()
-                }
-            }
+            // impl #get_slot_trait_name for base_types::traits::reactive::RGSOWrapper<#struct_name, Schema> {
+            //     fn #get_slot_fn_name(&self) -> &base_types::traits::reactive::RActiveSlot {
+            //         self.get_slot_by_id(&#slot_id).unwrap()
+            //     }
+            // }
 
             #(#integrable_stream)*
             pub trait #building_manipulate_slot_trait_name {
@@ -397,6 +482,10 @@ pub(crate) fn generate_operative_streams(
             }
         }
     });
+    // let manipulate_slots_streams = all_slots.iter().map(|slot_digest| {
+    //     slot_digest.related_instances
+        
+    // });
 
     let trait_impl_streams =
         generate_trait_impl_streams::generate_trait_impl_streams(&instantiable, constraint_schema);
@@ -441,5 +530,6 @@ pub(crate) fn generate_operative_streams(
         #(#get_locked_fields_stream)*
 
         #trait_impl_streams
+        #get_fields_and_slots_stream
     }
 }
