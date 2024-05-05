@@ -138,88 +138,88 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
         let mut removed_value = removed_value.unwrap();
         self.append_history_item(RHistoryItem::Delete(removed_value), tag);
     }
-    fn instantiate_element_tagged<T: std::fmt::Debug + Clone + 'static>(
-        &self,
-        element: RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>>,
-        tag: &TaggedAction,
-    ) -> Result<Uid, Error>
-    where
-        Self: Sized,
-        T: RIntoSchema<Schema = TSchema>,
-    {
-        for child_update in element.child_updates.iter() {
-            let parent = element
-                .prereq_instantiables
-                .iter()
-                .find(|prereq_inst| *prereq_inst.get_id() == child_update.1.host_instance_id);
-            let operative_descriptor = if parent.is_none() {
-                &element
-                    .instantiable_instance
-                    .get_template()
-                    .operative_slots
-                    .get(&child_update.1.slot_id)
-                    .unwrap()
-                    .operative_descriptor
-            } else {
-                &parent
-                    .unwrap()
-                    .get_template()
-                    .operative_slots
-                    .get(&child_update.1.slot_id)
-                    .unwrap()
-                    .operative_descriptor
-            };
-            match operative_descriptor {
-                OperativeVariants::LibraryOperative(lib_op_id) => {
-                    if *lib_op_id
-                        != self
-                            .get(&child_update.0)
-                            .unwrap()
-                            .get_operative()
-                            .get_tag()
-                            .id
-                    {
-                        return Err(Error::new(ElementCreationError::ChildElementIsWrongType));
-                    };
-                }
-                OperativeVariants::TraitOperative(trait_op) => {
-                    let child_digest = self
-                        .get(&child_update.0)
-                        .unwrap()
-                        .get_operative()
-                        .get_trait_impl_digest(self.constraint_schema);
-                    let matches_trait_bounds = trait_op
-                        .trait_ids
-                        .iter()
-                        .all(|trait_id| child_digest.trait_impls.contains_key(trait_id));
-                    if !matches_trait_bounds {
-                        return Err(Error::new(ElementCreationError::ChildElementIsWrongType));
-                    }
-                }
-            }
-        }
-        let id = *element.get_instantiable_instance().get_id();
-        self.push_history_item(vec![RHistoryItem::BlockActionMarker], &tag);
+    // fn instantiate_element_tagged<T: std::fmt::Debug + Clone + 'static>(
+    //     &self,
+    //     element: RGSOBuilder<RGSOWrapperBuilder<T, TSchema>>,
+    //     tag: &TaggedAction,
+    // ) -> Result<Uid, Error>
+    // where
+    //     Self: Sized,
+    //     T: RIntoSchema<Schema = TSchema>,
+    // {
+    //     for child_update in element.child_updates.iter() {
+    //         let parent = element
+    //             .prereq_instantiables
+    //             .iter()
+    //             .find(|prereq_inst| *prereq_inst.get_id() == child_update.1.host_instance_id);
+    //         let operative_descriptor = if parent.is_none() {
+    //             &element
+    //                 .instantiable_instance
+    //                 .get_template()
+    //                 .operative_slots
+    //                 .get(&child_update.1.slot_id)
+    //                 .unwrap()
+    //                 .operative_descriptor
+    //         } else {
+    //             &parent
+    //                 .unwrap()
+    //                 .get_template()
+    //                 .operative_slots
+    //                 .get(&child_update.1.slot_id)
+    //                 .unwrap()
+    //                 .operative_descriptor
+    //         };
+    //         match operative_descriptor {
+    //             OperativeVariants::LibraryOperative(lib_op_id) => {
+    //                 if *lib_op_id
+    //                     != self
+    //                         .get(&child_update.0)
+    //                         .unwrap()
+    //                         .get_operative()
+    //                         .get_tag()
+    //                         .id
+    //                 {
+    //                     return Err(Error::new(ElementCreationError::ChildElementIsWrongType));
+    //                 };
+    //             }
+    //             OperativeVariants::TraitOperative(trait_op) => {
+    //                 let child_digest = self
+    //                     .get(&child_update.0)
+    //                     .unwrap()
+    //                     .get_operative()
+    //                     .get_trait_impl_digest(self.constraint_schema);
+    //                 let matches_trait_bounds = trait_op
+    //                     .trait_ids
+    //                     .iter()
+    //                     .all(|trait_id| child_digest.trait_impls.contains_key(trait_id));
+    //                 if !matches_trait_bounds {
+    //                     return Err(Error::new(ElementCreationError::ChildElementIsWrongType));
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     let id = *element.get_instantiable_instance().get_id();
+    //     self.push_history_item(vec![RHistoryItem::BlockActionMarker], &tag);
 
-        element.child_updates.iter().for_each(|child_update| {
-            let child = self.get(&child_update.0).unwrap();
-            child.add_parent_slot(child_update.1.clone());
-            self.append_history_item(RHistoryItem::AddParent(child_update.1.clone()), &tag);
-        });
-        element.parent_updates.iter().for_each(|parent_update| {
-            let parent = self.get(&parent_update.0).unwrap();
-            parent.add_child_to_slot(parent_update.1.clone());
-            self.append_history_item(RHistoryItem::AddChild(parent_update.1.clone()), &tag);
-        });
-        element.flatten().into_iter().for_each(|instantiable| {
-            let instantiated = instantiable.instantiate();
-            self.append_history_item(RHistoryItem::Create(*instantiable.get_id()), &tag);
-            self.created_instances.update(|prev| {
-                prev.insert(*instantiable.get_id(), instantiated);
-            });
-        });
-        Ok(id)
-    }
+    //     element.child_updates.iter().for_each(|child_update| {
+    //         let child = self.get(&child_update.0).unwrap();
+    //         child.add_parent_slot(child_update.1.clone());
+    //         self.append_history_item(RHistoryItem::AddParent(child_update.1.clone()), &tag);
+    //     });
+    //     element.parent_updates.iter().for_each(|parent_update| {
+    //         let parent = self.get(&parent_update.0).unwrap();
+    //         parent.add_child_to_slot(parent_update.1.clone());
+    //         self.append_history_item(RHistoryItem::AddChild(parent_update.1.clone()), &tag);
+    //     });
+    //     element.flatten().into_iter().for_each(|instantiable| {
+    //         let instantiated = instantiable.instantiate();
+    //         self.append_history_item(RHistoryItem::Create(*instantiable.get_id()), &tag);
+    //         self.created_instances.update(|prev| {
+    //             prev.insert(*instantiable.get_id(), instantiated);
+    //         });
+    //     });
+    //     Ok(id)
+    // }
     fn create_connection_tagged(
         &self,
         connection: ConnectionAction,
@@ -385,17 +385,17 @@ impl<TSchema: RGSO<Schema = TSchema> + 'static> RGraphEnvironment
         self.history.borrow_mut().redo.clear();
         self.create_connection_tagged(connection, &TaggedAction::Normal)
     }
-    fn instantiate_element<T>(
-        &self,
-        element: RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>>,
-    ) -> Result<Uid, Error>
-    where
-        Self: Sized,
-        T: std::fmt::Debug + Clone + RIntoSchema<Schema = Self::Schema> + 'static,
-    {
-        self.history.borrow_mut().redo.clear();
-        self.instantiate_element_tagged(element, &TaggedAction::Normal)
-    }
+    // fn instantiate_element<T>(
+    //     &self,
+    //     element: RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>>,
+    // ) -> Result<Uid, Error>
+    // where
+    //     Self: Sized,
+    //     T: std::fmt::Debug + Clone + RIntoSchema<Schema = Self::Schema> + 'static,
+    // {
+    //     self.history.borrow_mut().redo.clear();
+    //     self.instantiate_element_tagged(element, &TaggedAction::Normal)
+    // }
 
     fn delete(&mut self, id: &Uid) -> Result<(), Error> {
         self.history.borrow_mut().redo.clear();
@@ -428,13 +428,13 @@ pub trait RGraphEnvironment {
 
     fn get(&self, id: &Uid) -> Option<Self::Schema>;
     fn create_connection(&self, connection: ConnectionAction) -> Result<(), Error>;
-    fn instantiate_element<T>(
-        &self,
-        element: RInstantiableWrapper<RGSOWrapperBuilder<T, Self::Schema>>,
-    ) -> Result<Uid, Error>
-    where
-        Self: Sized,
-        T: std::fmt::Debug + Clone + RIntoSchema<Schema = Self::Schema> + 'static;
+    // fn instantiate_element<T>(
+    //     &self,
+    //     element: RInstantiableWrapper<RGSOWrapperBuilder<T, Self::Schema>>,
+    // ) -> Result<Uid, Error>
+    // where
+    //     Self: Sized,
+    //     T: std::fmt::Debug + Clone + RIntoSchema<Schema = Self::Schema> + 'static;
     fn get_constraint_schema(&self) -> &ConstraintSchema<Self::Types, Self::Values>;
     fn delete(&mut self, id: &Uid) -> Result<(), Error>;
     fn undo(&self);
@@ -742,57 +742,61 @@ where
     fn initiate_build(
         graph: Rc<RBaseGraphEnvironment<Self::Schema>>,
     ) -> RGSOBuilder<Self, Self::Schema>;
+    fn initiate_edit(
+        id: Uid,
+        graph: Rc<RBaseGraphEnvironment<Self::Schema>>,
+    ) -> RGSOBuilder<Self, Self::Schema>;
     fn get_operative_id() -> Uid;
 }
 
 pub trait RInstantiable: std::fmt::Debug {
     type Schema: RGSO<Schema = Self::Schema>;
 
-    fn instantiate(&self) -> Self::Schema;
+    fn instantiate(&self) -> Option<Self::Schema>;
     fn get_id(&self) -> &Uid;
     fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
 }
 type RInstantiableElements<TSchema> = Vec<Rc<dyn RInstantiable<Schema = TSchema>>>;
 
-#[derive(Debug, Clone)]
-pub struct RInstantiableWrapper<T>
-where
-    T: RInstantiable,
-{
-    prereq_instantiables: RInstantiableElements<T::Schema>,
-    instantiable_instance: T,
-    pub parent_updates: Vec<(Uid, SlotRef)>,
-    child_updates: Vec<(Uid, SlotRef)>,
-}
+// #[derive(Debug, Clone)]
+// pub struct RInstantiableWrapper<T>
+// where
+//     T: RInstantiable,
+// {
+//     prereq_instantiables: RInstantiableElements<T::Schema>,
+//     instantiable_instance: T,
+//     pub parent_updates: Vec<(Uid, SlotRef)>,
+//     child_updates: Vec<(Uid, SlotRef)>,
+// }
 
-impl<T> RInstantiableWrapper<T>
-where
-    T: RInstantiable + 'static,
-{
-    pub fn flatten(mut self) -> RInstantiableElements<T::Schema> {
-        self.prereq_instantiables
-            .push(Rc::new(self.instantiable_instance));
-        self.prereq_instantiables
-    }
-    pub fn get_prereq_instantiables(&self) -> &RInstantiableElements<T::Schema> {
-        &self.prereq_instantiables
-    }
-    pub fn get_instantiable_instance(&self) -> &T {
-        &self.instantiable_instance
-    }
-}
-impl<T, TSchema: RGSO<Schema = TSchema>> RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>>
-where
-    RGSOWrapperBuilder<T, TSchema>: RInstantiable<Schema = TSchema>,
-{
-    pub fn add_parent_slot(&mut self, parent_slot: SlotRef) {
-        self.instantiable_instance
-            .parent_slots
-            .update(|parent_slots| {
-                parent_slots.push(parent_slot);
-            });
-    }
-}
+// impl<T> RInstantiableWrapper<T>
+// where
+//     T: RInstantiable + 'static,
+// {
+//     pub fn flatten(mut self) -> RInstantiableElements<T::Schema> {
+//         self.prereq_instantiables
+//             .push(Rc::new(self.instantiable_instance));
+//         self.prereq_instantiables
+//     }
+//     pub fn get_prereq_instantiables(&self) -> &RInstantiableElements<T::Schema> {
+//         &self.prereq_instantiables
+//     }
+//     pub fn get_instantiable_instance(&self) -> &T {
+//         &self.instantiable_instance
+//     }
+// }
+// impl<T, TSchema: RGSO<Schema = TSchema>> RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>>
+// where
+//     RGSOWrapperBuilder<T, TSchema>: RInstantiable<Schema = TSchema>,
+// {
+//     pub fn add_parent_slot(&mut self, parent_slot: SlotRef) {
+//         self.instantiable_instance
+//             .parent_slots
+//             .update(|parent_slots| {
+//                 parent_slots.push(parent_slot);
+//             });
+//     }
+// }
 
 #[derive(Debug)]
 pub struct RGSOBuilder<T, TSchema: RGSO<Schema = TSchema> + 'static>
@@ -800,9 +804,13 @@ pub struct RGSOBuilder<T, TSchema: RGSO<Schema = TSchema> + 'static>
 // RGSOWrapperBuilder<T, TSchema>: RProducable<RGSOWrapper<T, TSchema>>,
 {
     instantiables: RwSignal<Vec<Rc<dyn RInstantiable<Schema = TSchema>>>>,
-    child_updates: RwSignal<Vec<(Uid, SlotRef)>>,
-    parent_updates: RwSignal<Vec<(Uid, SlotRef)>>,
-    pub wip_instance: RGSOWrapperBuilder<T, TSchema>,
+    add_child_updates: RwSignal<Vec<(Uid, SlotRef)>>,
+    add_parent_updates: RwSignal<Vec<(Uid, SlotRef)>>,
+    remove_child_updates: RwSignal<Vec<(Uid, SlotRef)>>,
+    remove_parent_updates: RwSignal<Vec<(Uid, SlotRef)>>,
+    field_updates: RwSignal<Vec<(Uid, HistoryFieldEdit)>>,
+    pub wip_instance: Option<RGSOWrapperBuilder<T, TSchema>>,
+    id: Uid,
     graph: Rc<RBaseGraphEnvironment<TSchema>>,
     _phantom: PhantomData<T>,
 }
@@ -812,93 +820,198 @@ where
     RGSOWrapperBuilder<T, TSchema>: RProducable<RGSOWrapper<T, TSchema>>,
     T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
 {
-    pub fn build(&mut self) -> Result<RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>>, Error> {
-        let mut error = None;
-        self.parent_updates.with(|parent_updates| {
-            parent_updates.iter().for_each(|parent_update| {
-                let can_add_one = self
-                    .graph
-                    .get(&parent_update.0)
-                    .unwrap()
-                    .get_slot_by_id(&parent_update.1.slot_id)
-                    .unwrap()
-                    .can_add_one();
-                if !can_add_one {
-                    error = Some(Err(Error::new(ElementCreationError::BoundCheckOutOfRange)));
-                }
-            })
-        });
-        if let Some(err) = error {
-            return err;
-        }
-        self.wip_instance.verify()?;
-        Ok(RInstantiableWrapper {
-            child_updates: self.child_updates.get(),
-            parent_updates: self.parent_updates.clone().get(),
-            instantiable_instance: self.wip_instance.clone(),
-            prereq_instantiables: self.instantiables.get(),
-        })
+    pub fn get_graph(&self) -> Rc<RBaseGraphEnvironment<TSchema>> {
+        self.graph.clone()
     }
+    // pub fn build(&mut self) -> Result<RInstantiableWrapper<RGSOWrapperBuilder<T, TSchema>>, Error> {
+    //     let mut error = None;
+    //     self.parent_updates.with(|parent_updates| {
+    //         parent_updates.iter().for_each(|parent_update| {
+    //             let can_add_one = self
+    //                 .graph
+    //                 .get(&parent_update.0)
+    //                 .unwrap()
+    //                 .get_slot_by_id(&parent_update.1.slot_id)
+    //                 .unwrap()
+    //                 .can_add_one();
+    //             if !can_add_one {
+    //                 error = Some(Err(Error::new(ElementCreationError::BoundCheckOutOfRange)));
+    //             }
+    //         })
+    //     });
+    //     if let Some(err) = error {
+    //         return err;
+    //     }
+    //     if let Some(instance) = self.wip_instance {
+    //         instance.verify()?;
+    //     }
+    //     Ok(RInstantiableWrapper {
+    //         child_updates: self.child_updates.get(),
+    //         parent_updates: self.parent_updates.clone().get(),
+    //         instantiable_instance: self.wip_instance.clone(),
+    //         prereq_instantiables: self.instantiables.get(),
+    //     })
+    // }
     pub fn new(
-        builder_wrapper_instance: RGSOWrapperBuilder<T, TSchema>,
+        builder_wrapper_instance: Option<RGSOWrapperBuilder<T, TSchema>>,
+        id: Uid,
         graph: Rc<RBaseGraphEnvironment<TSchema>>,
     ) -> Self {
         Self {
             graph,
             instantiables: RwSignal::new(vec![]),
             wip_instance: builder_wrapper_instance,
-            child_updates: RwSignal::new(Vec::new()),
-            parent_updates: RwSignal::new(Vec::new()),
+            id,
+            add_child_updates: RwSignal::new(Vec::new()),
+            add_parent_updates: RwSignal::new(Vec::new()),
+            remove_child_updates: RwSignal::new(Vec::new()),
+            remove_parent_updates: RwSignal::new(Vec::new()),
             _phantom: PhantomData,
+            field_updates: RwSignal::new(Vec::new()),
         }
+    }
+    pub fn add_child_to_slot<
+        C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static,
+    >(
+        &mut self,
+        slot_ref: SlotRef,
+        instantiable: Option<RGSOBuilder<C, TSchema>>,
+    ) {
+        if let Some(instance) = &self.wip_instance {
+            let slot = instance.slots.get(&slot_ref.slot_id).unwrap();
+            slot.slotted_instances.update(|prev| {
+                prev.push(slot_ref.child_instance_id);
+            });
+        } else {
+            self.add_child_updates
+                .update(|prev| prev.push((slot_ref.host_instance_id.clone(), slot_ref)));
+        }
+        if let Some(instantiable) = instantiable {
+            self.incorporate(instantiable);
+        }
+    }
+    pub fn add_parent<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
+        &mut self,
+        slot_ref: SlotRef,
+        instantiable: Option<RGSOBuilder<C, TSchema>>,
+    ) {
+        if let Some(instance) = &self.wip_instance {
+            instance
+                .parent_slots
+                .update(|prev| prev.push(slot_ref.clone()))
+        } else {
+            self.add_parent_updates
+                .update(|prev| prev.push((slot_ref.child_instance_id.clone(), slot_ref)));
+        }
+        if let Some(instantiable) = instantiable {
+            self.incorporate(instantiable);
+        }
+    }
+    pub fn edit_field(&mut self, field_id: Uid, value: PrimitiveValues) {
+        if let Some(instance) = &self.wip_instance {
+            let signal = instance.data.get(&field_id).unwrap();
+            let is_none = signal.with(|val| val.is_none());
+            if is_none {
+                signal.set(Some(RwSignal::new(value)));
+            } else {
+                signal.update(|prev| prev.unwrap().set(value))
+            }
+        } else {
+            self.field_updates.update(|prev| {
+                prev.push((
+                    *self.get_id(),
+                    HistoryFieldEdit {
+                        instance_id: *self.get_id(),
+                        field_id: field_id,
+                        new_value: value,
+                        prev_value: PrimitiveValues::Bool(false),
+                    },
+                ))
+            })
+        }
+    }
+    fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
+        &mut self,
+        other_builder: RGSOBuilder<C, TSchema>,
+    ) {
+        self.add_child_updates
+            .update(|child_updates| child_updates.extend(other_builder.add_child_updates.get()));
+        self.add_parent_updates
+            .update(|parent_updates| parent_updates.extend(other_builder.add_parent_updates.get()));
+        self.remove_child_updates
+            .update(|child_updates| child_updates.extend(other_builder.remove_child_updates.get()));
+        self.remove_parent_updates.update(|parent_updates| {
+            parent_updates.extend(other_builder.remove_parent_updates.get())
+        });
+        self.instantiables
+            .update(|prev| prev.push(Rc::new(other_builder)));
+    }
+}
+impl<T, TSchema: RGSO<Schema = TSchema>> RInstantiable for RGSOBuilder<T, TSchema>
+where
+    T: std::fmt::Debug + Clone,
+    RGSOWrapperBuilder<T, TSchema>: RInstantiable<Schema = TSchema>,
+{
+    type Schema = TSchema;
+
+    fn instantiate(&self) -> Option<Self::Schema> {
+        self.wip_instance.clone()?.instantiate()
+    }
+
+    fn get_id(&self) -> &Uid {
+        &self.id
+    }
+
+    fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues> {
+        todo!()
     }
 }
 
-pub fn r_integrate_child<T, C, TSchema: RGSO<Schema = TSchema>>(
-    builder: &mut RGSOBuilder<T, TSchema>,
-    mut child: RInstantiableWrapper<RGSOWrapperBuilder<C, TSchema>>,
-    slot_id: Uid,
-) -> &mut RGSOBuilder<T, TSchema>
-where
-    T: Clone + std::fmt::Debug,
-    RGSOWrapperBuilder<C, TSchema>: RInstantiable<Schema = TSchema> + 'static,
-{
-    builder
-        .wip_instance
-        .add_instance_to_slot(&slot_id, child.get_instantiable_instance().id);
-    let slot_ref = SlotRef {
-        slot_id,
-        child_instance_id: *child.get_instantiable_instance().get_id(),
-        host_instance_id: builder.wip_instance.id,
-    };
-    child.add_parent_slot(slot_ref);
-    builder.instantiables.update(|instantiables| {
-        instantiables.extend(child.flatten());
-    });
-    builder
-}
+// pub fn r_integrate_child<T, C, TSchema: RGSO<Schema = TSchema>>(
+//     builder: &mut RGSOBuilder<T, TSchema>,
+//     mut child: RInstantiableWrapper<RGSOWrapperBuilder<C, TSchema>>,
+//     slot_id: Uid,
+// ) -> &mut RGSOBuilder<T, TSchema>
+// where
+//     T: Clone + std::fmt::Debug,
+//     RGSOWrapperBuilder<C, TSchema>: RInstantiable<Schema = TSchema> + 'static,
+// {
+//     builder
+//         .wip_instance
+//         .add_instance_to_slot(&slot_id, child.get_instantiable_instance().id);
+//     let slot_ref = SlotRef {
+//         slot_id,
+//         child_instance_id: *child.get_instantiable_instance().get_id(),
+//         host_instance_id: builder.wip_instance.id,
+//     };
+//     child.add_parent_slot(slot_ref);
+//     builder.instantiables.update(|instantiables| {
+//         instantiables.extend(child.flatten());
+//     });
+//     builder
+// }
 
-pub fn r_integrate_child_id<'a, T, TSchema: RGSO<Schema = TSchema>>(
-    builder: &'a mut RGSOBuilder<T, TSchema>,
-    child_id: &Uid,
-    slot_id: Uid,
-) -> &'a mut RGSOBuilder<T, TSchema>
-where
-    T: Clone + std::fmt::Debug,
-{
-    builder
-        .wip_instance
-        .add_instance_to_slot(&slot_id, *child_id);
-    let slot_ref = SlotRef {
-        slot_id,
-        child_instance_id: *child_id,
-        host_instance_id: builder.wip_instance.id,
-    };
-    builder.child_updates.update(|child_updates| {
-        child_updates.push((*child_id, slot_ref));
-    });
-    builder
-}
+// pub fn r_integrate_child_id<'a, T, TSchema: RGSO<Schema = TSchema>>(
+//     builder: &'a mut RGSOBuilder<T, TSchema>,
+//     child_id: &Uid,
+//     slot_id: Uid,
+// ) -> &'a mut RGSOBuilder<T, TSchema>
+// where
+//     T: Clone + std::fmt::Debug,
+// {
+//     builder
+//         .wip_instance
+//         .add_instance_to_slot(&slot_id, *child_id);
+//     let slot_ref = SlotRef {
+//         slot_id,
+//         child_instance_id: *child_id,
+//         host_instance_id: builder.wip_instance.id,
+//     };
+//     builder.child_updates.update(|child_updates| {
+//         child_updates.push((*child_id, slot_ref));
+//     });
+//     builder
+// }
 
 impl<T, TSchema: RGSO<Schema = TSchema> + 'static> RInstantiable for RGSOWrapperBuilder<T, TSchema>
 where
@@ -907,8 +1020,8 @@ where
 {
     type Schema = TSchema;
 
-    fn instantiate(&self) -> Self::Schema {
-        T::into_schema(self.produce())
+    fn instantiate(&self) -> Option<Self::Schema> {
+        Some(T::into_schema(self.produce()))
     }
 
     fn get_id(&self) -> &Uid {
@@ -925,4 +1038,26 @@ where
 {
     type Schema: RGSO<Schema = Self::Schema>;
     fn into_schema(instantiable: RGSOWrapper<Self, Self::Schema>) -> Self::Schema;
+}
+
+pub trait REditable<T>
+where
+    Self: Sized,
+{
+    type Schema: RGSO<Schema = Self::Schema>;
+    fn initiate_edit(&self) -> RGSOBuilder<T, Self::Schema>;
+}
+impl<T, TSchema: RGSO<Schema = TSchema>> REditable<T> for RGSOWrapper<T, TSchema>
+where
+    T: Clone
+        + std::fmt::Debug
+        + RIntoSchema<Schema = TSchema>
+        + RBuildable<Schema = TSchema>
+        + 'static,
+    RGSOWrapper<T, TSchema>: RFieldEditable,
+{
+    type Schema = TSchema;
+    fn initiate_edit(&self) -> RGSOBuilder<T, Self::Schema> {
+        T::initiate_edit(*self.get_id(), self.get_graph())
+    }
 }

@@ -259,7 +259,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
 
     let final_output = quote! {
         use base_types::utils::IntoPrimitiveValue;
-        use base_types::traits::reactive::{RGSO, RGraphEnvironment, RBuildable, RBaseGraphEnvironment};
+        use base_types::traits::reactive::{RGSO, RInstantiable, RGraphEnvironment, RBuildable, RBaseGraphEnvironment};
         use validator::Validate;
         use leptos::{RwSignal, SignalSet, SignalGet, SignalUpdate, SignalWith};
         use lazy_static::lazy_static;

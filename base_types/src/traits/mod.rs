@@ -15,6 +15,7 @@ use crate::{
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 
+pub mod blueprint;
 #[cfg(feature = "reactive")]
 pub mod reactive;
 
