@@ -48,7 +48,7 @@ pub(crate) fn generate_trait_impl_streams(
              
            quote! {
             fn #method_name(&self, 
-                env: &dyn base_types::traits::reactive::RGraphEnvironment<Types=base_types::primitives::PrimitiveTypes, Values=base_types::primitives::PrimitiveValues, Schema = Schema>
+                env: &dyn RGraphEnvironment<Types=base_types::primitives::PrimitiveTypes, Values=base_types::primitives::PrimitiveValues, Schema = Schema>
                 ) -> #return_type {
                     #(#inner_method_stream)*
                     
@@ -56,7 +56,7 @@ pub(crate) fn generate_trait_impl_streams(
             }
         });
         quote! {
-            impl #trait_name for base_types::traits::reactive::RGSOWrapper<#instantiable_name, Schema> {
+            impl #trait_name for RGSOWrapper<#instantiable_name, Schema> {
                 #(#fn_streams)*
             }
         }

@@ -36,7 +36,7 @@ pub(crate) fn get_operative_variant_name(operative_name: &str) -> syn::Ident {
 pub(crate) fn get_operative_wrapped_name(operative_name: &str) -> TokenStream {
     let op_name = get_operative_variant_name(operative_name);
 
-    quote! {base_types::traits::reactive::RGSOWrapper<#op_name, Schema>}
+    quote! {RGSOWrapper<#op_name, Schema>}
 }
 
 pub(crate) fn get_template_get_field_fn_name(field_name: &str) -> syn::Ident {

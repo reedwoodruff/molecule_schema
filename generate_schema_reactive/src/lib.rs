@@ -30,7 +30,7 @@ use crate::utils::get_operative_variant_name;
 use crate::utils::get_template_get_slot_fn_name_id_only;
 
 mod generate_operative_streams;
-    mod generate_trait_impl_streams;
+mod generate_trait_impl_streams;
 mod utils;
 mod output_traits;
 
@@ -65,6 +65,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         template_field_trait_info: HashMap::new(),
         template_slots_trait_info: HashMap::new(),
     };
+
+    let trait_file_contents = include_str!("../src/output_traits.rs");
+    let trait_file_stream: TokenStream = trait_file_contents.parse().unwrap();
 
     let raw_json_data = std::fs::read_to_string(schema_location.to_str().unwrap());
     let raw_json_data = raw_json_data.expect("schema json must be present");
@@ -109,7 +112,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
            let return_enum_type = get_template_slot_enum_name(&constraint_schema_generated, operative_slot);
            let stream = quote!{ fn #slot_getter_fn_name(&self) -> Vec<#return_enum_type> };
             let id_only_slot_getter_fn_name = get_template_get_slot_fn_name_id_only(&operative_slot.tag.name);
-            let id_only_stream =quote!{ fn #id_only_slot_getter_fn_name(&self) -> &base_types::traits::reactive::RActiveSlot};
+            let id_only_stream =quote!{ fn #id_only_slot_getter_fn_name(&self) -> &RActiveSlot};
             let is_trait_slot = match operative_slot.operative_descriptor {
                 OperativeVariants::LibraryOperative(_) => false,
                 OperativeVariants::TraitOperative(_) => true,
@@ -226,7 +229,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
             let return_type = utils::get_primitive_type(&method_def.return_type);    
             quote! {
                 fn #method_name(&self, 
-                    env: &dyn base_types::traits::reactive::RGraphEnvironment<Types=base_types::primitives::PrimitiveTypes, Values=base_types::primitives::PrimitiveValues, Schema = Schema>
+                    env: &dyn RGraphEnvironment<Types=base_types::primitives::PrimitiveTypes, Values=base_types::primitives::PrimitiveValues, Schema = Schema>
                     ) -> #return_type;
             }
         });
@@ -258,10 +261,21 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
 
 
     let final_output = quote! {
-        use base_types::utils::IntoPrimitiveValue;
-        use base_types::traits::reactive::{RGSO, RInstantiable, RGraphEnvironment, RBuildable, RBaseGraphEnvironment};
-        use validator::Validate;
-        use leptos::{RwSignal, SignalSet, SignalGet, SignalUpdate, SignalWith};
+        pub mod prelude {
+        pub use super::Schema;
+        pub use super::CONSTRAINT_SCHEMA;
+        #trait_file_stream
+        #(#library_operative_streams)*
+        #(#get_template_fields_traits_streams)*
+        #(#get_template_slots_traits_streams)*
+        #(#subclass_enums_stream)*
+        #(#slot_trait_enums_stream)*
+        #(#trait_definition_streams)*
+        }
+        // use base_types::utils::IntoPrimitiveValue;
+        // use {RGSO, RInstantiable, RGraphEnvironment, RBuildable, RBaseGraphEnvironment};
+        // use validator::Validate;
+        // use leptos::{RwSignal, SignalSet, SignalGet, SignalUpdate, SignalWith};
         use lazy_static::lazy_static;
 
         fn validate_signal_is_some<T>(signal: &leptos::RwSignal<Option<T>>) -> Result<(), validator::ValidationError> {
@@ -269,26 +283,20 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         }
 
         lazy_static!{
-            static ref CONSTRAINT_SCHEMA: base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> 
+            pub static ref CONSTRAINT_SCHEMA: base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> 
             // = constraint_schema::constraint_schema!();
             = serde_json::from_str::<base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues>>(#raw_json_data).expect("Schema formatted incorrectly");
         }
         
 
-        #(#trait_definition_streams)*
-        #(#get_template_fields_traits_streams)*
-        #(#get_template_slots_traits_streams)*
-        #(#subclass_enums_stream)*
-        #(#slot_trait_enums_stream)*
-        #(#library_operative_streams)*
         #(#instance_streams)*
 
         #[derive(Debug, Clone)]
         pub enum Schema {
-            #(#all_lib_op_names(base_types::traits::reactive::RGSOWrapper<#all_lib_op_names, Schema>),)*
+            #(#all_lib_op_names(RGSOWrapper<#all_lib_op_names, Schema>),)*
         }
 
-        impl base_types::traits::reactive::RFieldEditable for Schema {
+        impl RFieldEditable for Schema {
             fn apply_field_edit(&self, field_edit: base_types::traits::FieldEdit) {
                 match self {
                 #(Self::#all_lib_op_names(item) => item.apply_field_edit(field_edit),)*
@@ -297,7 +305,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
             }
         }
 
-        impl base_types::traits::reactive::RGSO for Schema {
+        impl RGSO for Schema {
             type Schema = Self;
             fn get_operative(&self) -> &'static base_types::constraint_schema::LibraryOperative<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
                 match &self {
@@ -317,7 +325,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                     _ => panic!(),
                 }
             }
-            fn get_slots(&self) -> &std::collections::HashMap<base_types::common::Uid, base_types::traits::reactive::RActiveSlot>{
+            fn get_slots(&self) -> &std::collections::HashMap<base_types::common::Uid, RActiveSlot>{
                 match self {
                     #(Self::#all_lib_op_names(item) => item.get_slots(),)*
                     _ => panic!(),
@@ -347,7 +355,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                     _ => panic!(),
                 }
             }
-            fn get_graph(&self) -> std::rc::Rc<base_types::traits::reactive::RBaseGraphEnvironment<Schema>> {
+            fn get_graph(&self) -> std::rc::Rc<RBaseGraphEnvironment<Schema>> {
                 match self {
                     #(Self::#all_lib_op_names(item) => item.get_graph(),)*
                     _ => panic!(),

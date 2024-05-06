@@ -21,11 +21,11 @@ pub mod reactive;
 
 mod tests;
 
-type LibOp = LibraryOperative<PrimitiveTypes, PrimitiveValues>;
-type LibTemplate = LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
+pub type LibOp = LibraryOperative<PrimitiveTypes, PrimitiveValues>;
+pub type LibTemplate = LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
 
 #[derive(Debug, Display)]
-enum ElementCreationError {
+pub enum ElementCreationError {
     RequiredFieldIsEmpty,
     BoundCheckOutOfRange,
     ChildElementIsWrongType,
@@ -34,12 +34,13 @@ enum ElementCreationError {
 impl std::error::Error for ElementCreationError {}
 
 #[derive(Debug, Display)]
-enum ElementDeletionError {
+pub enum ElementDeletionError {
     RequiredByParentSlot,
 }
 impl std::error::Error for ElementDeletionError {}
 
-enum TaggedAction {
+#[derive(Debug)]
+pub enum TaggedAction {
     Normal,
     Undo,
     Redo,

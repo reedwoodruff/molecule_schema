@@ -106,7 +106,7 @@ pub(crate) fn generate_operative_streams(
                     .iter()
                     .map(|ri| ri.instance_id)
                     .collect::<Vec<_>>();
-            quote! {base_types::traits::reactive::RActiveSlot {
+            quote! {RActiveSlot {
                 slot: &CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap().operative_slots.get(&#slot_id).unwrap(),
                 slotted_instances: leptos::RwSignal::new(vec![#(#slotted_instances,)*]),
             }}
@@ -139,7 +139,7 @@ pub(crate) fn generate_operative_streams(
             pub trait field_getting_manipulate_field_trait_name {
                 fn #field_getter_fn_name(&self) -> #field_value_type;                
             }
-            impl #field_getting_manipulate_field_trait_name for base_types::traits::reactive::RGSOWrapper<#struct_name, Schema> {
+            impl #field_getting_manipulate_field_trait_name for RGSOWrapper<#struct_name, Schema> {
                 fn #field_getter_fn_name(&self) -> #field_value_type {
                     #locked_return_val
                 }
@@ -176,7 +176,6 @@ pub(crate) fn generate_operative_streams(
                };
                 quote!{
                    #fn_signature {
-                       leptos::logging::log!("ran_lib!");
                        // self.get_slots().get(&#id).unwrap().slotted_instances.get().iter().map(|slotted_instance_id| {
                        //     match self.graph.get(slotted_instance_id).unwrap(){
                        //         #slot_variants_match
@@ -198,7 +197,6 @@ pub(crate) fn generate_operative_streams(
                let trait_fulfiller_names = trait_fulfillers.iter().map(|op| {get_operative_variant_name(&op.tag.name)}).collect::<Vec<_>>();
                 quote!{
                     #fn_signature {
-                       leptos::logging::log!("ran_trait!");
                        self.get_slots().get(&#id).unwrap().slotted_instances.with(|slotted_instances| slotted_instances.iter().map(|slotted_instance_id| {
                            match self.graph.get(slotted_instance_id).unwrap(){
                                #(Schema::#trait_fulfiller_names(wrapper) => #return_enum_type::#trait_fulfiller_names(wrapper),)*
@@ -264,7 +262,7 @@ pub(crate) fn generate_operative_streams(
                 fn #field_setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self;
             }
 
-            impl #building_manipulate_field_trait_name for base_types::traits::reactive::RGSOBuilder<#struct_name, Schema> {
+            impl #building_manipulate_field_trait_name for RGSOBuilder<#struct_name, Schema> {
                 fn #field_setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self {
                     let value = new_val.into_primitive_value();
                     self.edit_field(#field_id, value);
@@ -279,13 +277,13 @@ pub(crate) fn generate_operative_streams(
                     self
                 }
             }
-            // impl #field_editing_manipulate_field_trait_name for base_types::traits::reactive::RGSOWrapper<#struct_name, Schema> {
-            //     fn #field_setter_fn_name(&self, new_val: #field_value_type) -> &base_types::traits::reactiveRGSOBuilder<#struct_name, Schema> {
+            // impl #field_editing_manipulate_field_trait_name for RGSOWrapper<#struct_name, Schema> {
+            //     fn #field_setter_fn_name(&self, new_val: #field_value_type) -> &SOBuilder<#struct_name, Schema> {
 
-            //         base_types::traits::reactiveRGSOBuilder<#struct_name, Schema>::new();
+            //         SOBuilder<#struct_name, Schema>::new();
             //         let instance_id = self.get_id().clone();
             //         self.get_graph().history
-            //             .borrow_mut().undo.push(vec![base_types::traits::reactive::RHistoryItem::EditField(base_types::traits::HistoryFieldEdit {
+            //             .borrow_mut().undo.push(vec![RHistoryItem::EditField(base_types::traits::HistoryFieldEdit {
             //                 instance_id: instance_id,
             //                 field_id: #field_id,
             //                 prev_value: self.data.get(&#field_id).unwrap().get(),
@@ -300,144 +298,145 @@ pub(crate) fn generate_operative_streams(
     });
 
     let manipulate_slots_stream = all_slots.iter().map(|slot| {
+        let slot_name = &slot.slot.tag.name;
         let slot_id = slot.slot.tag.id;
-        let building_manipulate_slot_trait_name = proc_macro2::Ident::new(
-            &format!("{}{}Slot", struct_name, slot.slot.tag.name),
+        let add_new_fn_name = proc_macro2::Ident::new(
+            &format!("add_new_{}", slot.slot.tag.name.to_lowercase()),
             proc_macro2::Span::call_site(),
         );
-        let editing_manipulate_slot_trait_name = proc_macro2::Ident::new(
-            &format!("{}{}SlotExisting", struct_name, slot.slot.tag.name),
+        let add_existing_fn_name = proc_macro2::Ident::new(
+            &format!(
+                "add_existing_{}",
+                slot.slot.tag.name.to_lowercase()
+            ),
+            proc_macro2::Span::call_site(),
+        );
+        let remove_from_slot_fn_name = proc_macro2::Ident::new(
+            &format!("remove_from_{}", slot.slot.tag.name.to_lowercase()),
             proc_macro2::Span::call_site(),
         );
 
-        // let get_slot_trait_name = proc_macro2::Ident::new(&format!("{}{}SlotGet", struct_name, slot.slot.tag.name), proc_macro2::Span::call_site());
-        // let get_slot_fn_name = proc_macro2::Ident::new(&format!("get_{}_slot", slot.slot.tag.name.to_lowercase()), proc_macro2::Span::call_site());
+        // let mut implementations = Vec::new();
 
-        // let slot_marker_trait = proc_macro2::Ident::new(&format!("{}{}", struct_name, slot.slot.tag.name), proc_macro2::Span::call_site());
-        let mut implementations = Vec::new();
-        let mut declarations = Vec::new();
-        let mut get_single_slot_item_declaration_and_implementation = |item_id: &Uid| {
+        let get_single_slot_item_implementation = |item_id: &Uid| -> TokenStream {
             let item_name_string = constraint_schema.operative_library.get(&item_id).unwrap().tag.name.clone();
             let item_name = get_operative_variant_name(&
                 item_name_string
             );
-            let add_new_fn_name = proc_macro2::Ident::new(
-                &format!("add_new_{}_{}", slot.slot.tag.name.to_lowercase(), item_name_string),
-                proc_macro2::Span::call_site(),
-            );
-            let add_existing_fn_name = proc_macro2::Ident::new(
-                &format!(
-                    "add_existing_{}_{}",
-                    slot.slot.tag.name.to_lowercase(), item_name_string
-                ),
-                proc_macro2::Span::call_site(),
-            );
-            declarations.push(quote! {
-                fn #add_new_fn_name(&mut self, 
-                    builder_closure: impl Fn(base_types::traits::reactive::RGSOBuilder<#item_name, Schema>) -> &mut base_types::traits::reactive::RGSOBuilder<#item_name, Schema>
-                ) -> &mut Self;
-                fn #add_existing_fn_name(&mut self, 
-                    existing_item_id: base_types::common::Uid,
-                    builder_closure: impl Fn(base_types::traits::reactive::RGSOBuilder<#item_name, Schema>) -> &mut base_types::traits::reactive::RGSOBuilder<#item_name, Schema>
-                ) -> &mut Self;
-            });
-            implementations.push(quote!{
-                fn #add_new_fn_name(&mut self, 
-                    builder_closure: impl Fn(base_types::traits::reactive::RGSOBuilder<#item_name, Schema>) -> &mut base_types::traits::reactive::RGSOBuilder<#item_name, Schema>
-                ) -> &mut Self {
-                    let new_builder = #item_name::initiate_build(self.get_graph());
-                    let edge_to_this_element = base_types::traits::SlotRef {
-                        host_instance_id: self.get_id().clone(),
-                        child_instance_id: new_builder.get_id().clone(),
-                        slot_id: #slot_id,
-                    };
-                    new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
-                    let manipulated_builder = builder_closure(new_builder);
-                    self.add_child_to_slot(edge_to_this_element, Some(manipulated_builder));
-                    self
+            quote!{
+                impl RGSOBuilder<#struct_name, Schema> {
+                    pub fn #add_new_fn_name(&mut self, 
+                        builder_closure: impl Fn(&mut RGSOBuilder<#item_name, Schema>) -> &mut RGSOBuilder<#item_name, Schema>
+                    ) -> &mut Self {
+                        let mut new_builder = #item_name::initiate_build(self.get_graph());
+                        let edge_to_this_element = base_types::traits::SlotRef {
+                            host_instance_id: self.get_id().clone(),
+                            child_instance_id: new_builder.get_id().clone(),
+                            slot_id: #slot_id,
+                        };
+                        new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
+                        let manipulated_builder = builder_closure(&mut new_builder);
+                        self.add_child_to_slot(edge_to_this_element, Some(new_builder));
+                        self
+                    }
+                    pub fn #add_existing_fn_name(&mut self,
+                        existing_item_id: &base_types::common::Uid,
+                        builder_closure: impl Fn(&mut RGSOBuilder<#item_name, Schema>) -> &mut RGSOBuilder<#item_name, Schema>
+                    ) -> &mut Self {
+                        let mut new_builder = #item_name::initiate_edit(existing_item_id.clone(), self.get_graph());
+                        let edge_to_this_element = base_types::traits::SlotRef {
+                            host_instance_id: self.get_id().clone(),
+                            child_instance_id: new_builder.get_id().clone(),
+                            slot_id: #slot_id,
+                        };
+                        new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
+                        let manipulated_builder = builder_closure(&mut new_builder);
+                        self.add_child_to_slot(edge_to_this_element, Some(new_builder));
+                        self
+                    }
                 }
-                fn #add_existing_fn_name(&mut self,
-                    existing_item_id: base_types::common::Uid,
-                    builder_closure: impl Fn(base_types::traits::reactive::RGSOBuilder<#item_name, Schema>) -> &mut base_types::traits::reactive::RGSOBuilder<#item_name, Schema>
-                ) -> &mut Self {
-                    let new_builder = #item_name::initiate_edit(existing_item_id.clone(), self.get_graph());
-                    let edge_to_this_element = base_types::traits::SlotRef {
-                        host_instance_id: self.get_id().clone(),
-                        child_instance_id: new_builder.get_id().clone(),
-                        slot_id: #slot_id,
-                    };
-                    new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
-                    let manipulated_builder = builder_closure(new_builder);
-                    self.add_child_to_slot(edge_to_this_element, Some(manipulated_builder));
-                    self
+            }
+        };
+        let get_multiple_slot_item_implementation = |items: &[LibraryOperative<PrimitiveTypes, PrimitiveValues>]| -> TokenStream {
+            let marker_trait_name = Ident::new(&format!("{}{}AcceptableChildrenMarker", struct_name, slot_name), proc_macro2::Span::call_site());
+            let marker_impls = items.iter().map(|item| {
+                let item_name = get_operative_variant_name(&item.get_tag().name);
+                quote!{
+                    impl #marker_trait_name for #item_name {}
                 }
             });
+            quote!{
+                trait #marker_trait_name {}
+                #(#marker_impls)*
+                impl RGSOBuilder<#struct_name, Schema> {
+                    pub fn #add_new_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self, 
+                        builder_closure: impl Fn(&mut RGSOBuilder<T, Schema>) -> &mut RGSOBuilder<T, Schema>
+                    ) -> &mut Self {
+                        let mut new_builder = T::initiate_build(self.get_graph());
+                        let edge_to_this_element = base_types::traits::SlotRef {
+                            host_instance_id: self.get_id().clone(),
+                            child_instance_id: new_builder.get_id().clone(),
+                            slot_id: #slot_id,
+                        };
+                        new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
+                        builder_closure(&mut new_builder);
+                        self.add_child_to_slot(edge_to_this_element, Some(new_builder));
+                        self
+                    }
+                    pub fn #add_existing_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
+                        existing_item_id: &base_types::common::Uid,
+                        builder_closure: impl Fn(&mut RGSOBuilder<T, Schema>) -> &mut RGSOBuilder<T, Schema>
+                    ) -> &mut Self {
+                        let mut new_builder = T::initiate_edit(existing_item_id.clone(), self.get_graph());
+                        let edge_to_this_element = base_types::traits::SlotRef {
+                            host_instance_id: self.get_id().clone(),
+                            child_instance_id: new_builder.get_id().clone(),
+                            slot_id: #slot_id,
+                        };
+                        new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
+                        builder_closure(&mut new_builder);
+                        self.add_child_to_slot(edge_to_this_element, Some(new_builder));
+                        self
+                    }
+                }
+            }
         };
 
-        match &slot.slot.operative_descriptor {
+        let add_to_slot_stream = match &slot.slot.operative_descriptor {
             OperativeVariants::LibraryOperative(lib_op_id) => {
-                get_single_slot_item_declaration_and_implementation(lib_op_id);
+                let subclasses = get_all_subclasses(constraint_schema, &lib_op_id);
+                if subclasses.len() <= 1 {
+                    get_single_slot_item_implementation(lib_op_id)
+                } else {
+                    get_multiple_slot_item_implementation(&subclasses)
+                }
             }
             OperativeVariants::TraitOperative(trait_op) => {
-                get_all_operatives_which_implement_trait_set(constraint_schema, &trait_op.trait_ids).iter()
-                    .map(|op| op.tag.id)
-                    .for_each(|id| get_single_slot_item_declaration_and_implementation(&id));
-                // operative_ids.for_each(|id| get_single_slot_item_declaration_and_implementation(&id));
-        }};
-
+                let ops_which_impl_traits = get_all_operatives_which_implement_trait_set(constraint_schema, &trait_op.trait_ids);
+                if ops_which_impl_traits.len() == 0 {
+                    quote!{}
+                } else if ops_which_impl_traits.len() == 1 {
+                    get_single_slot_item_implementation(&ops_which_impl_traits.iter().next().unwrap().get_tag().id)
+                } else {
+                    get_multiple_slot_item_implementation(&ops_which_impl_traits)
+                }
+            }
+        };
         quote! {
-
-            // trait #get_slot_trait_name {
-            //     fn #get_slot_fn_name(&self) -> &base_types::traits::reactive::RActiveSlot;
-            // }
-
-            // impl #get_slot_trait_name for base_types::traits::reactive::RGSOWrapper<#struct_name, Schema> {
-            //     fn #get_slot_fn_name(&self) -> &base_types::traits::reactive::RActiveSlot {
-            //         self.get_slot_by_id(&#slot_id).unwrap()
-            //     }
-            // }
-
-            // #(#integrable_stream)*
-            pub trait #building_manipulate_slot_trait_name {
-                #(#declarations)*
+            impl RGSOBuilder<#struct_name, Schema> {
+                pub fn #remove_from_slot_fn_name(&mut self, child_id: &Uid) -> &mut Self {
+                    self.remove_child_from_slot(base_types::traits::SlotRef{
+                        host_instance_id: self.get_id().clone(),
+                        child_instance_id: child_id.clone(),
+                        slot_id: #slot_id,
+                    });
+                    self
+                }
             }
-            // pub trait #editing_manipulate_slot_trait_name {
-            //     #editing_add_new_stream_declaration;
-            //     fn #add_existing_fn_name(&self, existing_id: &base_types::common::Uid) -> base_types::traits::ConnectionAction;
-            // }
 
-            impl #building_manipulate_slot_trait_name for base_types::traits::reactive::RGSOBuilder<#struct_name, Schema> {
-                #(#implementations)*
-            }
-            // impl #editing_manipulate_slot_trait_name for base_types::traits::reactive::RGSOWrapper<#struct_name, Schema> {
-            //     #editing_add_new_stream_impl {
-            //         let slot_ref = base_types::traits::SlotRef{
-            //             host_instance_id: self.get_id().clone(),
-            //             child_instance_id: new_item.get_instantiable_instance().get_id().clone(),
-            //             slot_id: #slot_id.clone(),
-            //         };
-            //         new_item.add_parent_slot(slot_ref.clone());
-            //         new_item.parent_updates.push((self.get_id().clone(),slot_ref));
-            //         new_item
-            //     }
-            //     fn #add_existing_fn_name(&self, existing_id: &base_types::common::Uid) -> base_types::traits::ConnectionAction {
-            //         let slot_ref = base_types::traits::SlotRef{
-            //             host_instance_id: self.get_id().clone(),
-            //             child_instance_id: *existing_id,
-            //             slot_id: #slot_id.clone(),
-            //         };
-            //         base_types::traits::ConnectionAction {
-            //             slot_ref: slot_ref,
-            //         }
-                    
-            //     }
-            // }
+            #add_to_slot_stream
         }
     });
-    // let manipulate_slots_streams = all_slots.iter().map(|slot_digest| {
-    //     slot_digest.related_instances
-        
-    // });
 
     let trait_impl_streams =
         generate_trait_impl_streams::generate_trait_impl_streams(&instantiable, constraint_schema);
@@ -446,41 +445,41 @@ pub(crate) fn generate_operative_streams(
         #[derive(Clone, Debug, Default)]
         pub struct #struct_name {}
 
-        impl base_types::traits::reactive::RIntoSchema for #struct_name {
+        impl RIntoSchema for #struct_name {
             type Schema = Schema;
-            fn into_schema(instantiable: base_types::traits::reactive::RGSOWrapper<Self, Schema>) -> Self::Schema {
+            fn into_schema(instantiable: RGSOWrapper<Self, Schema>) -> Self::Schema {
                 Schema::#struct_name(instantiable.to_owned())
             }
         }
 
-        impl base_types::traits::reactive::RBuildable for #struct_name {
+        impl RBuildable for #struct_name {
             type Schema = Schema;
 
-            fn initiate_build(graph: std::rc::Rc<base_types::traits::reactive::RBaseGraphEnvironment<Self::Schema>>) -> base_types::traits::reactive::RGSOBuilder<#struct_name, Schema> {
+            fn initiate_build(graph: std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>) -> RGSOBuilder<#struct_name, Schema> {
                 let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
                 let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
                 let mut field_hashmap = std::collections::HashMap::new();
                 #(field_hashmap.insert(#unfulfilled_field_ids, RwSignal::new(None));)*
-                let wrapper_builder = base_types::traits::reactive::RGSOWrapperBuilder::new(
+                let wrapper_builder = RGSOWrapperBuilder::new(
                             field_hashmap,
                             #active_slot_tokens,
                             &operative_ref,
                             &template_ref,
                             graph.clone(),
                             );
-                let id = wrapper_builder.get_id();
-                base_types::traits::reactive::RGSOBuilder::<#struct_name, Schema>::new(
+                let id = wrapper_builder.get_id().clone();
+                RGSOBuilder::<#struct_name, Schema>::new(
                         Some(wrapper_builder),
-                        *id,
+                        id,
                         graph,
                     )
             }
-            fn initiate_edit(id: base_types::common::Uid, graph: std::rc::Rc<base_types::traits::reactive::RBaseGraphEnvironment<Self::Schema>>) -> base_types::traits::reactive::RGSOBuilder<#struct_name, Schema> {
+            fn initiate_edit(id: base_types::common::Uid, graph: std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>) -> RGSOBuilder<#struct_name, Schema> {
                 // let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
                 // let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
                 // let mut field_hashmap = std::collections::HashMap::new();
                 // #(field_hashmap.insert(#unfulfilled_field_ids, RwSignal::new(None));)*
-                base_types::traits::reactive::RGSOBuilder::<#struct_name, Schema>::new(
+                RGSOBuilder::<#struct_name, Schema>::new(
                         None,
                             id,
                         graph,
