@@ -15,7 +15,7 @@ pub enum PrimitiveTypes {
     Bool,
     Char,
     Int,
-    Float,
+    // Float,
     String,
     Option(Box<PrimitiveTypes>),
     List(Box<PrimitiveTypes>),
@@ -30,9 +30,9 @@ impl quote::ToTokens for PrimitiveTypes {
             PrimitiveTypes::Bool => quote::quote! { base_types::primitives::PrimitiveTypes::Bool },
             PrimitiveTypes::Char => quote::quote! { base_types::primitives::PrimitiveTypes::Char },
             PrimitiveTypes::Int => quote::quote! { base_types::primitives::PrimitiveTypes::Int },
-            PrimitiveTypes::Float => {
-                quote::quote! { base_types::primitives::PrimitiveTypes::Float }
-            }
+            // PrimitiveTypes::Float => {
+            //     quote::quote! { base_types::primitives::PrimitiveTypes::Float }
+            // }
             PrimitiveTypes::String => {
                 quote::quote! { base_types::primitives::PrimitiveTypes::String }
             }
@@ -51,7 +51,7 @@ impl PrimitiveTypes {
     pub fn get_type_options() -> HashMap<PrimitiveTypes, String> {
         let mut map = HashMap::new();
         map.insert(PrimitiveTypes::Int, "Int".to_string());
-        map.insert(PrimitiveTypes::Float, "Float".to_string());
+        // map.insert(PrimitiveTypes::Float, "Float".to_string());
         map.insert(PrimitiveTypes::String, "String".to_string());
         map.insert(PrimitiveTypes::Bool, "Bool".to_string());
         map.insert(PrimitiveTypes::Char, "Char".to_string());
@@ -77,10 +77,10 @@ impl PrimitiveTypes {
 impl ConstraintTraits for PrimitiveTypes {}
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum PrimitiveValues {
     Int(u32),
-    Float(f32),
+    // Float(f32),
     String(String),
     Bool(bool),
     Char(char),
@@ -98,7 +98,7 @@ impl Display for PrimitiveValues {
             PrimitiveValues::Char(val) => write!(f, "{}", val),
             PrimitiveValues::Int(val) => write!(f, "{}", val,),
             PrimitiveValues::String(val) => write!(f, "{}", val),
-            PrimitiveValues::Float(val) => write!(f, "{}", val),
+            // PrimitiveValues::Float(val) => write!(f, "{}", val),
             PrimitiveValues::Bool(val) => write!(f, "{}", val),
             PrimitiveValues::Option(val) => {
                 if let Some(val) = val.as_ref() {
@@ -123,7 +123,7 @@ impl PrimitiveValues {
     pub fn get_primitive_type(&self) -> PrimitiveTypes {
         match self {
             PrimitiveValues::Int(_) => PrimitiveTypes::Int,
-            PrimitiveValues::Float(_) => PrimitiveTypes::Float,
+            // PrimitiveValues::Float(_) => PrimitiveTypes::Float,
             PrimitiveValues::String(_) => PrimitiveTypes::String,
             PrimitiveValues::Bool(_) => PrimitiveTypes::Bool,
             PrimitiveValues::Char(_) => PrimitiveTypes::Char,

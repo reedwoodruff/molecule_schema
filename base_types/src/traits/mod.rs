@@ -39,7 +39,7 @@ pub enum ElementDeletionError {
 }
 impl std::error::Error for ElementDeletionError {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum TaggedAction {
     Normal,
     Undo,
@@ -476,7 +476,7 @@ pub enum HistoryItem<TSchema: GSO> {
     EditField(HistoryFieldEdit),
     BlockActionMarker,
 }
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct HistoryFieldEdit {
     pub instance_id: Uid,
     pub field_id: Uid,
@@ -519,7 +519,7 @@ pub trait GSO: std::fmt::Debug + Clone + FieldEditable {
     fn set_history(&mut self, history: Option<HistoryRef<Self::Schema>>);
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SlotRef {
     pub host_instance_id: Uid,
     pub child_instance_id: Uid,

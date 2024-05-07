@@ -7,7 +7,7 @@ use crate::{
 pub fn get_primitive_value(ty: &PrimitiveValues) -> proc_macro2::TokenStream {
     match ty {
         PrimitiveValues::Int(val) => quote::quote! {#val},
-        PrimitiveValues::Float(val) => quote::quote! {#val},
+        // PrimitiveValues::Float(val) => quote::quote! {#val},
         PrimitiveValues::String(val) => quote::quote! {#val},
         PrimitiveValues::Bool(val) => quote::quote! {#val},
         PrimitiveValues::Char(val) => quote::quote! {#val},
@@ -50,11 +50,11 @@ impl IntoPrimitiveValue for u32 {
     }
 }
 
-impl IntoPrimitiveValue for f32 {
-    fn into_primitive_value(self) -> PrimitiveValues {
-        PrimitiveValues::Float(self)
-    }
-}
+// impl IntoPrimitiveValue for f32 {
+//     fn into_primitive_value(self) -> PrimitiveValues {
+//         PrimitiveValues::Float(self)
+//     }
+// }
 
 impl IntoPrimitiveValue for String {
     fn into_primitive_value(self) -> PrimitiveValues {

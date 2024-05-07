@@ -1,5 +1,3 @@
-
-
 use base_types::common::Uid;
 use base_types::traits::{ActiveSlot};
 
@@ -455,7 +453,7 @@ pub(crate) fn generate_operative_streams(
         impl RBuildable for #struct_name {
             type Schema = Schema;
 
-            fn initiate_build(graph: std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>) -> RGSOBuilder<#struct_name, Schema> {
+            fn initiate_build(graph: &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>) -> RGSOBuilder<#struct_name, Schema> {
                 let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
                 let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
                 let mut field_hashmap = std::collections::HashMap::new();
@@ -471,10 +469,10 @@ pub(crate) fn generate_operative_streams(
                 RGSOBuilder::<#struct_name, Schema>::new(
                         Some(wrapper_builder),
                         id,
-                        graph,
+                        graph.clone(),
                     )
             }
-            fn initiate_edit(id: base_types::common::Uid, graph: std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>) -> RGSOBuilder<#struct_name, Schema> {
+            fn initiate_edit(id: base_types::common::Uid, graph: &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>) -> RGSOBuilder<#struct_name, Schema> {
                 // let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
                 // let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
                 // let mut field_hashmap = std::collections::HashMap::new();
@@ -482,7 +480,7 @@ pub(crate) fn generate_operative_streams(
                 RGSOBuilder::<#struct_name, Schema>::new(
                         None,
                             id,
-                        graph,
+                        graph.clone(),
                     )
             }
             fn get_operative_id() -> base_types::common::Uid {

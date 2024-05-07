@@ -169,7 +169,7 @@ pub(crate) fn get_primitive_type(ty: &PrimitiveTypes) -> proc_macro2::TokenStrea
     match ty {
         PrimitiveTypes::String => quote! {String},
         PrimitiveTypes::Int => quote! {u32},
-        PrimitiveTypes::Float => quote! {f32},
+        // PrimitiveTypes::Float => quote! {f32},
         PrimitiveTypes::Bool => quote! {bool},
         PrimitiveTypes::Char => quote! {char},
         PrimitiveTypes::Option(inner) => {
@@ -186,7 +186,7 @@ pub(crate) fn get_primitive_type(ty: &PrimitiveTypes) -> proc_macro2::TokenStrea
 pub(crate) fn get_primitive_value(ty: &PrimitiveValues) -> proc_macro2::TokenStream {
     match ty {
         PrimitiveValues::Int(val) => quote! {#val},
-        PrimitiveValues::Float(val) => quote! {#val},
+        // PrimitiveValues::Float(val) => quote! {#val},
         PrimitiveValues::String(val) => quote! {#val},
         PrimitiveValues::Bool(val) => quote! {#val},
         PrimitiveValues::Char(val) => quote! {#val},

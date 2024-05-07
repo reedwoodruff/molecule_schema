@@ -66,7 +66,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         template_slots_trait_info: HashMap::new(),
     };
 
-    let trait_file_contents = include_str!("../src/output_traits.rs");
+    let trait_file_contents = include_str!("../src/output_traits/mod.rs");
     let trait_file_stream: TokenStream = trait_file_contents.parse().unwrap();
 
     let raw_json_data = std::fs::read_to_string(schema_location.to_str().unwrap());
@@ -262,8 +262,8 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
 
     let final_output = quote! {
         pub mod prelude {
-        pub use super::Schema;
-        pub use super::CONSTRAINT_SCHEMA;
+        // pub use super::Schema;
+        // pub use super::CONSTRAINT_SCHEMA;
         #trait_file_stream
         #(#library_operative_streams)*
         #(#get_template_fields_traits_streams)*
@@ -271,7 +271,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         #(#subclass_enums_stream)*
         #(#slot_trait_enums_stream)*
         #(#trait_definition_streams)*
-        }
+
         // use base_types::utils::IntoPrimitiveValue;
         // use {RGSO, RInstantiable, RGraphEnvironment, RBuildable, RBaseGraphEnvironment};
         // use validator::Validate;
@@ -337,12 +337,11 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                     _ => panic!(),
                 }
             }
-            fn add_parent_slot(& self, slot_ref: base_types::traits::SlotRef) ->  &Self {
-                match self {
-                    #(Self::#all_lib_op_names(item) => {item.add_parent_slot(slot_ref); self},)*
-                    _ => panic!(),
-                }
-            }
+            
+        }
+
+        impl EditRGSO for Schema {
+        
             fn remove_child_from_slot(& self, slot_ref: &base_types::traits::SlotRef) -> & Self{
                 match self {
                     #(Self::#all_lib_op_names(item) => {item.remove_child_from_slot(slot_ref); self},)*
@@ -355,7 +354,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                     _ => panic!(),
                 }
             }
-            fn get_graph(&self) -> std::rc::Rc<RBaseGraphEnvironment<Schema>> {
+            fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<Schema>> {
                 match self {
                     #(Self::#all_lib_op_names(item) => item.get_graph(),)*
                     _ => panic!(),
@@ -367,9 +366,16 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                     _ => panic!(),
                 }
             }
+            fn add_parent_slot(& self, slot_ref: base_types::traits::SlotRef) ->  &Self {
+                match self {
+                    #(Self::#all_lib_op_names(item) => {item.add_parent_slot(slot_ref); self},)*
+                    _ => panic!(),
+                }
+            }
             
         }
 
+        }
             
     };
     
