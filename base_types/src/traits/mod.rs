@@ -267,7 +267,7 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
             OperativeVariants::LibraryOperative(expected_id) => {
                 if *expected_id
                     != self
-                        .get_mut(&connection.slot_ref.child_instance_id)
+                        .get_mut(&connection.slot_ref.target_instance_id)
                         .unwrap()
                         .get_operative()
                         .get_tag()
@@ -278,7 +278,7 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
             }
             OperativeVariants::TraitOperative(trait_op) => {
                 let child_digest = self
-                    .get(&connection.slot_ref.child_instance_id)
+                    .get(&connection.slot_ref.target_instance_id)
                     .unwrap()
                     .get_operative()
                     .get_trait_impl_digest(self.constraint_schema);
@@ -301,7 +301,7 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
         } else {
             return Err(Error::new(ElementCreationError::BoundCheckOutOfRange));
         }
-        self.get_mut(&connection.slot_ref.child_instance_id)
+        self.get_mut(&connection.slot_ref.target_instance_id)
             .unwrap()
             .add_parent_slot(&connection.slot_ref);
         let history_item = vec![
@@ -347,12 +347,12 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
                 self.append_history_item(HistoryItem::AddChild(slot_ref), tag);
             }
             HistoryItem::RemoveParent(slot_ref) => {
-                let child = self.get_mut(&slot_ref.child_instance_id).unwrap();
+                let child = self.get_mut(&slot_ref.target_instance_id).unwrap();
                 child.add_parent_slot(&slot_ref);
                 self.append_history_item(HistoryItem::AddParent(slot_ref), tag);
             }
             HistoryItem::AddParent(slot_ref) => {
-                let child = self.get_mut(&slot_ref.child_instance_id).unwrap();
+                let child = self.get_mut(&slot_ref.target_instance_id).unwrap();
                 child.remove_parent(&slot_ref.host_instance_id, Some(&slot_ref.slot_id));
                 self.append_history_item(HistoryItem::RemoveParent(slot_ref), tag);
             }
@@ -522,7 +522,7 @@ pub trait GSO: std::fmt::Debug + Clone + FieldEditable {
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SlotRef {
     pub host_instance_id: Uid,
-    pub child_instance_id: Uid,
+    pub target_instance_id: Uid,
     pub slot_id: Uid,
 }
 
@@ -667,7 +667,7 @@ impl<T: Clone + std::fmt::Debug + FieldEditable, TSchema: GSO> GSO for GSOWrappe
             .get_mut(&slot_ref.slot_id)
             .unwrap()
             .slotted_instances
-            .retain(|slotted_instance_id| *slotted_instance_id != slot_ref.child_instance_id);
+            .retain(|slotted_instance_id| *slotted_instance_id != slot_ref.target_instance_id);
         // self.history
         //     .as_mut()
         //     .unwrap()
@@ -713,7 +713,7 @@ impl<T: Clone + std::fmt::Debug + FieldEditable, TSchema: GSO> GSO for GSOWrappe
             .get_mut(&slot_ref.slot_id)
             .unwrap()
             .slotted_instances
-            .push(slot_ref.child_instance_id);
+            .push(slot_ref.target_instance_id);
         self
     }
 }
@@ -969,7 +969,7 @@ where
         .add_instance_to_slot(&slot_id, child.get_instantiable_instance().id);
     let slot_ref = SlotRef {
         slot_id,
-        child_instance_id: *child.get_instantiable_instance().get_instance_id(),
+        target_instance_id: *child.get_instantiable_instance().get_instance_id(),
         host_instance_id: builder.wip_instance.id,
     };
     child.add_parent_slot(slot_ref);
@@ -991,7 +991,7 @@ where
         .add_instance_to_slot(&slot_id, *child_id);
     let slot_ref = SlotRef {
         slot_id,
-        child_instance_id: *child_id,
+        target_instance_id: *child_id,
         host_instance_id: builder.wip_instance.id,
     };
     // child.add_parent_slot(slot_ref);

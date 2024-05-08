@@ -19,6 +19,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path::Path;
+use std::str::FromStr;
 
 
 use crate::utils::get_all_operatives_which_implement_trait_set;
@@ -34,12 +35,12 @@ mod generate_trait_impl_streams;
 mod utils;
 mod output_traits;
 
-pub struct FieldFnDetails {
+ struct FieldFnDetails {
     fn_name: TokenStream,
     fn_signature: TokenStream,
     field_return_type: TokenStream,
 }
-pub struct SlotFnDetails {
+ struct SlotFnDetails {
     fn_name: TokenStream,
     fn_signature: TokenStream,
     return_enum_type: TokenStream,
@@ -47,17 +48,56 @@ pub struct SlotFnDetails {
     id_only_signature: TokenStream,
     id_only_name: TokenStream,
 }
-pub struct IntermediateFieldTraitInfo {
+ struct IntermediateFieldTraitInfo {
     trait_name: TokenStream,
     trait_fns: HashMap<Uid, FieldFnDetails>,
 }
-pub struct IntermediateSlotTraitInfo {
+ struct IntermediateSlotTraitInfo {
     trait_name: TokenStream,
     trait_fns: HashMap<Uid, SlotFnDetails>,
 }
-pub struct MetaData {
+struct MetaData {
     template_field_trait_info: HashMap<Uid, IntermediateFieldTraitInfo>,
     template_slots_trait_info: HashMap<Uid, IntermediateSlotTraitInfo>,
+}
+
+fn impl_RGSO_for_enum(enum_name: TokenStream, members: Vec<syn::Ident> ) -> TokenStream {
+    quote!{
+        impl RGSO for #enum_name {
+            type Schema = Schema;
+            fn operative(&self) -> &'static base_types::constraint_schema::LibraryOperative<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
+                match &self {
+                #(Self::#members(item) => item.operative(),)*
+                _ => panic!(),
+                }
+            }
+            fn get_id(&self) -> &base_types::common::Uid {
+                match self {
+                    #(Self::#members(item) => item.get_id(),)*
+                    _ => panic!(),
+                }
+            }
+            fn template(&self) -> &'static base_types::constraint_schema::LibraryTemplate<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
+                match self {
+                    #(Self::#members(item) => item.template(),)*
+                    _ => panic!(),
+                }
+            }
+            fn outgoing_slots(&self) -> &std::collections::HashMap<base_types::common::Uid, RActiveSlot>{
+                match self {
+                    #(Self::#members(item) => item.outgoing_slots(),)*
+                    _ => panic!(),
+                }
+            }
+            fn incoming_slots(&self) -> leptos::RwSignal<Vec<base_types::traits::SlotRef>>{
+                match self {
+                    #(Self::#members(item) => item.incoming_slots(),)*
+                    _ => panic!(),
+                }
+            }
+    
+        }
+    }
 }
 
 pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
@@ -161,7 +201,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                #(#enum_name::#subclass_op_names(val) => val.#id_only_fns_names(),)*
            }
        };
-
+       let rgso_impl = impl_RGSO_for_enum(enum_name.clone(), subclass_op_names.clone());
        if subclass_op_names.len() <= 1 {
            None
        } else {
@@ -183,51 +223,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                        #id_only_match_code
                    })*
                }
-                impl RGSO for #enum_name {
-                    type Schema = Schema;
-                    fn get_operative(&self) -> &'static base_types::constraint_schema::LibraryOperative<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
-                        match &self {
-                        #(Self::#subclass_op_names(item) => item.get_operative(),)*
-                        _ => panic!(),
-                        }
-                    }
-                    fn get_id(&self) -> &base_types::common::Uid {
-                        match self {
-                            #(Self::#subclass_op_names(item) => item.get_id(),)*
-                            _ => panic!(),
-                        }
-                    }
-                    fn get_template(&self) -> &'static base_types::constraint_schema::LibraryTemplate<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
-                        match self {
-                            #(Self::#subclass_op_names(item) => item.get_template(),)*
-                            _ => panic!(),
-                        }
-                    }
-                    fn get_slots(&self) -> &std::collections::HashMap<base_types::common::Uid, RActiveSlot>{
-                        match self {
-                            #(Self::#subclass_op_names(item) => item.get_slots(),)*
-                            _ => panic!(),
-                        }
-                    }
-                    fn get_parent_slots(&self) -> leptos::RwSignal<Vec<base_types::traits::SlotRef>>{
-                        match self {
-                            #(Self::#subclass_op_names(item) => item.get_parent_slots(),)*
-                            _ => panic!(),
-                        }
-                    }
-            
-                }
-                impl RFieldEditable for #enum_name {
-                    fn apply_field_edit(&self, field_edit: base_types::traits::FieldEdit) {
-                        match self {
-                        #(Self::#subclass_op_names(item) => item.apply_field_edit(field_edit),)*
-                        _ => panic!(),
-                        }
-                    }
-                }
+               #rgso_impl
            })
        }
-       
     });
 
     // Checks every trait-op slot, finds all unique trait combos, and creates an enum which represents all operatives which fulfill these trait combos
@@ -256,54 +254,14 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         let fulfilling_ops = get_all_operatives_which_implement_trait_set(&constraint_schema_generated, unique_trait_combo);
         let fulfilling_ops_names = fulfilling_ops.iter().map(|op| get_operative_variant_name(&op.tag.name)).collect::<Vec<_>>();
         let fulfilling_ops_wrapped_names = fulfilling_ops.iter().map(|op| get_operative_wrapped_name(&op.tag.name));
+        let rgso_impl = impl_RGSO_for_enum(enum_name.clone().into_token_stream(), fulfilling_ops_names.clone());
 
         quote!{
             #[derive(Debug, Clone)]
             pub enum #enum_name {
                 #(#fulfilling_ops_names(#fulfilling_ops_wrapped_names),)*
             }
-            impl RGSO for #enum_name {
-                type Schema = Schema;
-                fn get_operative(&self) -> &'static base_types::constraint_schema::LibraryOperative<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
-                    match &self {
-                    #(Self::#fulfilling_ops_names(item) => item.get_operative(),)*
-                    _ => panic!(),
-                    }
-                }
-                fn get_id(&self) -> &base_types::common::Uid {
-                    match self {
-                        #(Self::#fulfilling_ops_names(item) => item.get_id(),)*
-                        _ => panic!(),
-                    }
-                }
-                fn get_template(&self) -> &'static base_types::constraint_schema::LibraryTemplate<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
-                    match self {
-                        #(Self::#fulfilling_ops_names(item) => item.get_template(),)*
-                        _ => panic!(),
-                    }
-                }
-                fn get_slots(&self) -> &std::collections::HashMap<base_types::common::Uid, RActiveSlot>{
-                    match self {
-                        #(Self::#fulfilling_ops_names(item) => item.get_slots(),)*
-                        _ => panic!(),
-                    }
-                }
-                fn get_parent_slots(&self) -> leptos::RwSignal<Vec<base_types::traits::SlotRef>>{
-                    match self {
-                        #(Self::#fulfilling_ops_names(item) => item.get_parent_slots(),)*
-                        _ => panic!(),
-                    }
-                }
-        
-            }
-            impl RFieldEditable for #enum_name {
-                fn apply_field_edit(&self, field_edit: base_types::traits::FieldEdit) {
-                    match self {
-                    #(Self::#fulfilling_ops_names(item) => item.apply_field_edit(field_edit),)*
-                    _ => panic!(),
-                    }
-                }
-            }
+            #rgso_impl
         }
     }).collect::<Vec<_>>();
 
@@ -344,7 +302,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         get_operative_variant_name(&el.tag.name)
     }).collect::<Vec<_>>();
 
+    let schema_name = syn::Ident::new(&"Schema", proc_macro2::Span::call_site());
 
+    let schema_rgso_impl = impl_RGSO_for_enum(schema_name.into_token_stream(), all_lib_op_names.clone());
 
     let final_output = quote! {
         pub mod prelude {
@@ -356,10 +316,6 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         #(#slot_trait_enums_stream)*
         #(#trait_definition_streams)*
 
-        // use base_types::utils::IntoPrimitiveValue;
-        // use {RGSO, RInstantiable, RGraphEnvironment, RBuildable, RBaseGraphEnvironment};
-        // use validator::Validate;
-        // use leptos::{RwSignal, SignalSet, SignalGet, SignalUpdate, SignalWith};
         use lazy_static::lazy_static;
 
         fn validate_signal_is_some<T>(signal: &leptos::RwSignal<Option<T>>) -> Result<(), validator::ValidationError> {
@@ -389,52 +345,19 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
             }
         }
 
-        impl RGSO for Schema {
-            type Schema = Self;
-            fn get_operative(&self) -> &'static base_types::constraint_schema::LibraryOperative<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
-                match &self {
-                #(Self::#all_lib_op_names(item) => item.get_operative(),)*
-                _ => panic!(),
-                }
-            }
-            fn get_id(&self) -> &base_types::common::Uid {
-                match self {
-                    #(Self::#all_lib_op_names(item) => item.get_id(),)*
-                    _ => panic!(),
-                }
-            }
-            fn get_template(&self) -> &'static base_types::constraint_schema::LibraryTemplate<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
-                match self {
-                    #(Self::#all_lib_op_names(item) => item.get_template(),)*
-                    _ => panic!(),
-                }
-            }
-            fn get_slots(&self) -> &std::collections::HashMap<base_types::common::Uid, RActiveSlot>{
-                match self {
-                    #(Self::#all_lib_op_names(item) => item.get_slots(),)*
-                    _ => panic!(),
-                }
-            }
-            fn get_parent_slots(&self) -> leptos::RwSignal<Vec<base_types::traits::SlotRef>>{
-                match self {
-                    #(Self::#all_lib_op_names(item) => item.get_parent_slots(),)*
-                    _ => panic!(),
-                }
-            }
-            
-        }
+        #schema_rgso_impl
 
         impl EditRGSO for Schema {
         
-            fn remove_child_from_slot(& self, slot_ref: &base_types::traits::SlotRef) -> & Self{
+            fn remove_outgoing(& self, slot_ref: &base_types::traits::SlotRef) -> & Self{
                 match self {
-                    #(Self::#all_lib_op_names(item) => {item.remove_child_from_slot(slot_ref); self},)*
+                    #(Self::#all_lib_op_names(item) => {item.remove_outgoing(slot_ref); self},)*
                     _ => panic!(),
                 }
             }
-            fn remove_parent(& self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> Vec<base_types::traits::SlotRef> {
+            fn remove_incoming(& self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> Vec<base_types::traits::SlotRef> {
                 match self {
-                    #(Self::#all_lib_op_names(item) => item.remove_parent(parent_id, slot_id),)*
+                    #(Self::#all_lib_op_names(item) => item.remove_incoming(parent_id, slot_id),)*
                     _ => panic!(),
                 }
             }
@@ -444,15 +367,15 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                     _ => panic!(),
                 }
             }
-            fn add_child_to_slot(& self, slot_ref: base_types::traits::SlotRef) -> & Self {
+            fn add_outgoing(& self, slot_ref: base_types::traits::SlotRef) -> & Self {
                 match self {
-                    #(Self::#all_lib_op_names(item) => {item.add_child_to_slot(slot_ref); self},)*
+                    #(Self::#all_lib_op_names(item) => {item.add_outgoing(slot_ref); self},)*
                     _ => panic!(),
                 }
             }
-            fn add_parent_slot(& self, slot_ref: base_types::traits::SlotRef) ->  &Self {
+            fn add_incoming(& self, slot_ref: base_types::traits::SlotRef) ->  &Self {
                 match self {
-                    #(Self::#all_lib_op_names(item) => {item.add_parent_slot(slot_ref); self},)*
+                    #(Self::#all_lib_op_names(item) => {item.add_incoming(slot_ref); self},)*
                     _ => panic!(),
                 }
             }

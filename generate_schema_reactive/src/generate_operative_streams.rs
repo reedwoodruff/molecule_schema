@@ -173,14 +173,14 @@ pub(crate) fn generate_operative_streams(
                };
                 quote!{
                    #fn_signature {
-                       self.get_slots().get(&#id).unwrap().slotted_instances.with(|slotted_instances| slotted_instances.iter().map(|slotted_instance_id| {
+                       self.outgoing_slots().get(&#id).unwrap().slotted_instances.with(|slotted_instances| slotted_instances.iter().map(|slotted_instance_id| {
                            match self.graph.get(slotted_instance_id).unwrap(){
                                #slot_variants_match
                            }
                        }).collect::<Vec<_>>())
                    }
                    #id_only_signature {
-                       self.get_slots().get(&#id).unwrap()
+                       self.outgoing_slots().get(&#id).unwrap()
                    }
                }},
 
@@ -189,7 +189,7 @@ pub(crate) fn generate_operative_streams(
                let trait_fulfiller_names = trait_fulfillers.iter().map(|op| {get_operative_variant_name(&op.tag.name)}).collect::<Vec<_>>();
                 quote!{
                     #fn_signature {
-                       self.get_slots().get(&#id).unwrap().slotted_instances.with(|slotted_instances| slotted_instances.iter().map(|slotted_instance_id| {
+                       self.outgoing_slots().get(&#id).unwrap().slotted_instances.with(|slotted_instances| slotted_instances.iter().map(|slotted_instance_id| {
                            match self.graph.get(slotted_instance_id).unwrap(){
                                #(Schema::#trait_fulfiller_names(wrapper) => #return_enum_type::#trait_fulfiller_names(wrapper),)*
                                _ => panic!()
@@ -197,7 +197,7 @@ pub(crate) fn generate_operative_streams(
                        }).collect::<Vec<_>>())
                     }
                    #id_only_signature {
-                       self.get_slots().get(&#id).unwrap()
+                       self.outgoing_slots().get(&#id).unwrap()
                    }
                 }
                 
@@ -291,12 +291,12 @@ pub(crate) fn generate_operative_streams(
                         let mut new_builder = #item_name::initiate_build(self.get_graph());
                         let edge_to_this_element = base_types::traits::SlotRef {
                             host_instance_id: self.get_id().clone(),
-                            child_instance_id: new_builder.get_id().clone(),
+                            target_instance_id: new_builder.get_id().clone(),
                             slot_id: #slot_id,
                         };
-                        new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
+                        new_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
                         let manipulated_builder = builder_closure(&mut new_builder);
-                        self.add_child_to_slot(&#slot_id, BlueprintId::Existing(edge_to_this_element.child_instance_id.clone()), Some(new_builder));
+                        self.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder));
                         self
                     }
                     pub fn #add_existing_fn_name(&mut self,
@@ -309,20 +309,20 @@ pub(crate) fn generate_operative_streams(
                                 let mut new_builder = #item_name::initiate_edit(id.clone(), self.get_graph());
                                 let edge_to_this_element = base_types::traits::SlotRef {
                                     host_instance_id: self.get_id().clone(),
-                                    child_instance_id: new_builder.get_id().clone(),
+                                    target_instance_id: new_builder.get_id().clone(),
                                     slot_id: #slot_id,
                                 };
-                                new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
+                                new_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
                                 let manipulated_builder = builder_closure(&mut new_builder);
-                                self.add_child_to_slot(&#slot_id, existing_item_id.clone(), Some(new_builder));
+                                self.add_outgoing(&#slot_id, existing_item_id.clone(), Some(new_builder));
                             }
                             BlueprintId::Temporary(str_id) => {
                                 let host_id = match &self.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
                                     None => BlueprintId::Existing(self.get_id().clone()),
                                 };
-                                self.temp_add_parent(BlueprintId::Temporary(str_id.clone()), TempAddParentSlotRef {host_instance_id: host_id, slot_id:#slot_id });
-                                self.add_child_to_slot::<#struct_name>(&#slot_id, existing_item_id.clone(), None);
+                                self.temp_add_incoming(BlueprintId::Temporary(str_id.clone()), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
+                                self.add_outgoing::<#struct_name>(&#slot_id, existing_item_id.clone(), None);
                             }
                         }
                         self
@@ -331,7 +331,7 @@ pub(crate) fn generate_operative_streams(
             }
         };
         let get_multiple_slot_item_implementation = |items: &[LibraryOperative<PrimitiveTypes, PrimitiveValues>]| -> TokenStream {
-            let marker_trait_name = Ident::new(&format!("{}{}AcceptableChildrenMarker", struct_name, slot_name), proc_macro2::Span::call_site());
+            let marker_trait_name = Ident::new(&format!("{}{}AcceptableTargetMarker", struct_name, slot_name), proc_macro2::Span::call_site());
             let marker_impls = items.iter().map(|item| {
                 let item_name = get_operative_variant_name(&item.get_tag().name);
                 quote!{
@@ -348,12 +348,12 @@ pub(crate) fn generate_operative_streams(
                         let mut new_builder = T::initiate_build(self.get_graph());
                         let edge_to_this_element = base_types::traits::SlotRef {
                             host_instance_id: self.get_id().clone(),
-                            child_instance_id: new_builder.get_id().clone(),
+                            target_instance_id: new_builder.get_id().clone(),
                             slot_id: #slot_id,
                         };
-                        new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
+                        new_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
                         builder_closure(&mut new_builder);
-                        self.add_child_to_slot(&#slot_id, BlueprintId::Existing(edge_to_this_element.child_instance_id.clone()), Some(new_builder));
+                        self.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder));
                         self
                     }
                     pub fn #add_existing_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
@@ -366,20 +366,20 @@ pub(crate) fn generate_operative_streams(
                                 let mut new_builder = T::initiate_edit(id.clone(), self.get_graph());
                                 let edge_to_this_element = base_types::traits::SlotRef {
                                     host_instance_id: self.get_id().clone(),
-                                    child_instance_id: new_builder.get_id().clone(),
+                                    target_instance_id: new_builder.get_id().clone(),
                                     slot_id: #slot_id,
                                 };
-                                new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
+                                new_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
                                 let manipulated_builder = builder_closure(&mut new_builder);
-                                self.add_child_to_slot(&#slot_id, existing_item_id.clone(), Some(new_builder));
+                                self.add_outgoing(&#slot_id, existing_item_id.clone(), Some(new_builder));
                             }
                             BlueprintId::Temporary(str_id) => {
                                 let host_id = match &self.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
                                     None => BlueprintId::Existing(self.get_id().clone()),
                                 };
-                                self.temp_add_parent(BlueprintId::Temporary(str_id.clone()), TempAddParentSlotRef {host_instance_id: host_id, slot_id:#slot_id });
-                                self.add_child_to_slot::<T>(&#slot_id, existing_item_id.clone(), None);
+                                self.temp_add_incoming(BlueprintId::Temporary(str_id.clone()), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
+                                self.add_outgoing::<T>(&#slot_id, existing_item_id.clone(), None);
                             }
                         }
                         self
@@ -410,10 +410,10 @@ pub(crate) fn generate_operative_streams(
         };
         quote! {
             impl RGSOBuilder<#struct_name, Schema> {
-                pub fn #remove_from_slot_fn_name(&mut self, child_id: &Uid) -> &mut Self {
-                    self.remove_child_from_slot(base_types::traits::SlotRef{
+                pub fn #remove_from_slot_fn_name(&mut self, target_id: &Uid) -> &mut Self {
+                    self.remove_outgoing(base_types::traits::SlotRef{
                         host_instance_id: self.get_id().clone(),
-                        child_instance_id: child_id.clone(),
+                        target_instance_id: target_id.clone(),
                         slot_id: #slot_id,
                     });
                     self
