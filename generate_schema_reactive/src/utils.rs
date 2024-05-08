@@ -101,6 +101,12 @@ pub(crate) fn get_operative_subclass_enum_name(
         .into_token_stream()
     }
 }
+pub(crate) fn get_all_slots_enum_name(template_name: &str, slot_name: &str) -> syn::Ident {
+    syn::Ident::new(
+        &format!("{}{}", slot_name, template_name,),
+        proc_macro2::Span::call_site(),
+    )
+}
 pub(crate) fn get_all_subclasses(
     constraint_schema: &ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
     operative_id: &Uid,

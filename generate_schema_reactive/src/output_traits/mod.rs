@@ -215,30 +215,32 @@ pub trait RGraphEnvironment {
     fn redo(&self);
 }
 
-// #[derive(Debug, Clone)]
-// pub enum RHistoryItem<TSchema: RGSO<Schema = TSchema>> {
-//     RemoveChildFromSlot(SlotRef),
-//     RemoveParent(SlotRef),
-//     AddParent(SlotRef),
-//     AddChild(SlotRef),
-//     Delete(TSchema),
-//     Create(Uid),
-//     EditField(HistoryFieldEdit),
-//     BlockActionMarker,
-// }
 pub trait RGSO: std::fmt::Debug + Clone {
     type Schema: EditRGSO<Schema = Self::Schema>;
     /// Instance ID
     fn get_id(&self) -> &Uid;
     fn operative(&self) -> &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>;
     fn template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
-    fn slot_by_id(&self, slot_id: &Uid) -> Option<&RActiveSlot> {
-        self.outgoing_slots().get(slot_id)
+    fn slot_by_id<E: Into<Uid>>(&self, slot_id: E) -> Option<&RActiveSlot> {
+        self.outgoing_slots().get(&slot_id.into())
     }
     fn outgoing_slots(&self) -> &HashMap<Uid, RActiveSlot>;
     fn incoming_slots(&self) -> RwSignal<Vec<SlotRef>>;
-    // fn get_incoming_slot_by_id<T, E>(&self, slot_variant: E) -> Vec<T>;
-    // fn get_incoming_slot_ids_by_id<T, E>(&self, slot_variant: E) -> Vec<T>;
+    fn incoming_slot_ids_by_id<E: Into<Uid>>(&self, slot_variant: E) -> Vec<SlotRef> {
+        let slot_variant = &slot_variant.into();
+        self.incoming_slots().with(|incoming_slots| {
+            incoming_slots
+                .iter()
+                .filter(|slot| &slot.slot_id == slot_variant)
+                .cloned()
+                .collect::<Vec<_>>()
+        })
+    }
+}
+impl From<RActiveSlot> for Uid {
+    fn from(value: RActiveSlot) -> Self {
+        todo!()
+    }
 }
 trait EditRGSO: RGSO + RFieldEditable {
     fn add_incoming(&self, slot_ref: SlotRef) -> &Self;

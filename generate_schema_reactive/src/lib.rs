@@ -9,6 +9,7 @@ use base_types::constraint_schema::*;
 
 use base_types::primitives::*;
 use quote::ToTokens;
+use utils::get_all_slots_enum_name;
 use utils::get_all_subclasses;
 use utils::get_operative_subclass_enum_name;
 use utils::get_slot_trait_enum_name;
@@ -284,6 +285,35 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         }
     });
 
+    // Gather all slots and create an enum which maps to their ids
+    // This to be used when searching an instance's incoming slots
+    let all_slots_enum_prep = constraint_schema_generated.template_library.values().fold((Vec::<syn::Ident>::new(), Vec::<Uid>::new()), |mut agg, template| {
+        let slots = template.operative_slots.values().fold((Vec::<syn::Ident>::new(), Vec::<Uid>::new() ),|mut inner_agg, slot| {
+            inner_agg.0.push(get_all_slots_enum_name(&template.tag.name, &slot.tag.name));
+            inner_agg.1.push(slot.tag.id);
+            inner_agg
+        });
+        agg.0.extend(slots.0);
+        agg.1.extend(slots.1);
+        agg
+    });
+    let all_slots_enum = {
+        let variant_names = all_slots_enum_prep.0;
+        let variant_ids = all_slots_enum_prep.1;
+        quote!{
+            pub enum AllSlots {
+                #(#variant_names,)*
+            }
+            impl From<AllSlots> for Uid {
+                fn from(value: AllSlots) -> Self {
+                    match value {
+                        #(AllSlots::#variant_names => #variant_ids,)*
+                    }
+                }
+            }
+        }
+    };
+
     let reference_constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues> = constraint_schema_generated.clone();
 
 
@@ -328,7 +358,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
             = serde_json::from_str::<base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues>>(#raw_json_data).expect("Schema formatted incorrectly");
         }
         
-
+        #all_slots_enum
         #(#instance_streams)*
 
         #[derive(Debug, Clone)]
