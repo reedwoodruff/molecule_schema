@@ -166,6 +166,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
            None
        } else {
            Some(quote!{
+            #[derive(Debug, Clone)]
                pub enum #enum_name {
                    #(#subclass_op_names(#op_wrapped_name),)*
                }
@@ -182,6 +183,48 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                        #id_only_match_code
                    })*
                }
+                impl RGSO for #enum_name {
+                    type Schema = Schema;
+                    fn get_operative(&self) -> &'static base_types::constraint_schema::LibraryOperative<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
+                        match &self {
+                        #(Self::#subclass_op_names(item) => item.get_operative(),)*
+                        _ => panic!(),
+                        }
+                    }
+                    fn get_id(&self) -> &base_types::common::Uid {
+                        match self {
+                            #(Self::#subclass_op_names(item) => item.get_id(),)*
+                            _ => panic!(),
+                        }
+                    }
+                    fn get_template(&self) -> &'static base_types::constraint_schema::LibraryTemplate<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
+                        match self {
+                            #(Self::#subclass_op_names(item) => item.get_template(),)*
+                            _ => panic!(),
+                        }
+                    }
+                    fn get_slots(&self) -> &std::collections::HashMap<base_types::common::Uid, RActiveSlot>{
+                        match self {
+                            #(Self::#subclass_op_names(item) => item.get_slots(),)*
+                            _ => panic!(),
+                        }
+                    }
+                    fn get_parent_slots(&self) -> leptos::RwSignal<Vec<base_types::traits::SlotRef>>{
+                        match self {
+                            #(Self::#subclass_op_names(item) => item.get_parent_slots(),)*
+                            _ => panic!(),
+                        }
+                    }
+            
+                }
+                impl RFieldEditable for #enum_name {
+                    fn apply_field_edit(&self, field_edit: base_types::traits::FieldEdit) {
+                        match self {
+                        #(Self::#subclass_op_names(item) => item.apply_field_edit(field_edit),)*
+                        _ => panic!(),
+                        }
+                    }
+                }
            })
        }
        
@@ -211,12 +254,55 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
     }).iter().map(|unique_trait_combo| {
         let enum_name = get_slot_trait_enum_name(&constraint_schema_generated, unique_trait_combo);
         let fulfilling_ops = get_all_operatives_which_implement_trait_set(&constraint_schema_generated, unique_trait_combo);
-        let fulfilling_ops_names = fulfilling_ops.iter().map(|op| get_operative_variant_name(&op.tag.name));
+        let fulfilling_ops_names = fulfilling_ops.iter().map(|op| get_operative_variant_name(&op.tag.name)).collect::<Vec<_>>();
         let fulfilling_ops_wrapped_names = fulfilling_ops.iter().map(|op| get_operative_wrapped_name(&op.tag.name));
 
         quote!{
+            #[derive(Debug, Clone)]
             pub enum #enum_name {
                 #(#fulfilling_ops_names(#fulfilling_ops_wrapped_names),)*
+            }
+            impl RGSO for #enum_name {
+                type Schema = Schema;
+                fn get_operative(&self) -> &'static base_types::constraint_schema::LibraryOperative<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
+                    match &self {
+                    #(Self::#fulfilling_ops_names(item) => item.get_operative(),)*
+                    _ => panic!(),
+                    }
+                }
+                fn get_id(&self) -> &base_types::common::Uid {
+                    match self {
+                        #(Self::#fulfilling_ops_names(item) => item.get_id(),)*
+                        _ => panic!(),
+                    }
+                }
+                fn get_template(&self) -> &'static base_types::constraint_schema::LibraryTemplate<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
+                    match self {
+                        #(Self::#fulfilling_ops_names(item) => item.get_template(),)*
+                        _ => panic!(),
+                    }
+                }
+                fn get_slots(&self) -> &std::collections::HashMap<base_types::common::Uid, RActiveSlot>{
+                    match self {
+                        #(Self::#fulfilling_ops_names(item) => item.get_slots(),)*
+                        _ => panic!(),
+                    }
+                }
+                fn get_parent_slots(&self) -> leptos::RwSignal<Vec<base_types::traits::SlotRef>>{
+                    match self {
+                        #(Self::#fulfilling_ops_names(item) => item.get_parent_slots(),)*
+                        _ => panic!(),
+                    }
+                }
+        
+            }
+            impl RFieldEditable for #enum_name {
+                fn apply_field_edit(&self, field_edit: base_types::traits::FieldEdit) {
+                    match self {
+                    #(Self::#fulfilling_ops_names(item) => item.apply_field_edit(field_edit),)*
+                    _ => panic!(),
+                    }
+                }
             }
         }
     }).collect::<Vec<_>>();
@@ -262,8 +348,6 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
 
     let final_output = quote! {
         pub mod prelude {
-        // pub use super::Schema;
-        // pub use super::CONSTRAINT_SCHEMA;
         #trait_file_stream
         #(#library_operative_streams)*
         #(#get_template_fields_traits_streams)*

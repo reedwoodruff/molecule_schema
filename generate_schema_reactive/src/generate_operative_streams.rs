@@ -108,7 +108,6 @@ pub(crate) fn generate_operative_streams(
                 slot: &CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap().operative_slots.get(&#slot_id).unwrap(),
                 slotted_instances: leptos::RwSignal::new(vec![#(#slotted_instances,)*]),
             }}
-            // active_slot
         })
         .collect::<Vec<_>>();
     let active_slot_ids = all_slots
@@ -174,11 +173,6 @@ pub(crate) fn generate_operative_streams(
                };
                 quote!{
                    #fn_signature {
-                       // self.get_slots().get(&#id).unwrap().slotted_instances.get().iter().map(|slotted_instance_id| {
-                       //     match self.graph.get(slotted_instance_id).unwrap(){
-                       //         #slot_variants_match
-                       //     }
-                       // }).collect::<Vec<_>>()
                        self.get_slots().get(&#id).unwrap().slotted_instances.with(|slotted_instances| slotted_instances.iter().map(|slotted_instance_id| {
                            match self.graph.get(slotted_instance_id).unwrap(){
                                #slot_variants_match
@@ -249,13 +243,7 @@ pub(crate) fn generate_operative_streams(
             proc_macro2::Span::call_site(),
         );
 
-        // let field_getter_fn_name = get_template_get_field_fn_name(&field.tag.name);
-
         quote! {
-            // pub trait #field_editing_manipulate_field_trait_name {
-            //     fn #field_setter_fn_name(&self, new_val: #field_value_type) -> &Self;
-            //     // fn #field_getter_fn_name(&self) -> #field_value_type;
-            // }
             pub trait #building_manipulate_field_trait_name {
                 fn #field_setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self;
             }
@@ -264,34 +252,9 @@ pub(crate) fn generate_operative_streams(
                 fn #field_setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self {
                     let value = new_val.into_primitive_value();
                     self.edit_field(#field_id, value);
-                    // let signal = self.wip_instance.data.get(&#field_id).unwrap();
-                    // let is_none = signal.with(|val| val.is_none());
-                    // if is_none {
-                    //     signal.set(Some(RwSignal::new(new_val.into_primitive_value())));
-                    // } else {
-                    //     signal.update(|prev| prev.unwrap().set(new_val.into_primitive_value()))
-                    // }
-                    // self
                     self
                 }
             }
-            // impl #field_editing_manipulate_field_trait_name for RGSOWrapper<#struct_name, Schema> {
-            //     fn #field_setter_fn_name(&self, new_val: #field_value_type) -> &SOBuilder<#struct_name, Schema> {
-
-            //         SOBuilder<#struct_name, Schema>::new();
-            //         let instance_id = self.get_id().clone();
-            //         self.get_graph().history
-            //             .borrow_mut().undo.push(vec![RHistoryItem::EditField(base_types::traits::HistoryFieldEdit {
-            //                 instance_id: instance_id,
-            //                 field_id: #field_id,
-            //                 prev_value: self.data.get(&#field_id).unwrap().get(),
-            //                 new_value: new_val.clone().into_primitive_value(), 
-            //             })]);
-            //         self.get_graph().history.borrow_mut().redo.clear();
-            //         self.data.get(&#field_id).unwrap().set(new_val.into_primitive_value());
-            //         self
-            //     }
-            // }
         }
     });
 
@@ -314,7 +277,6 @@ pub(crate) fn generate_operative_streams(
             proc_macro2::Span::call_site(),
         );
 
-        // let mut implementations = Vec::new();
 
         let get_single_slot_item_implementation = |item_id: &Uid| -> TokenStream {
             let item_name_string = constraint_schema.operative_library.get(&item_id).unwrap().tag.name.clone();
@@ -334,22 +296,35 @@ pub(crate) fn generate_operative_streams(
                         };
                         new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
                         let manipulated_builder = builder_closure(&mut new_builder);
-                        self.add_child_to_slot(edge_to_this_element, Some(new_builder));
+                        self.add_child_to_slot(&#slot_id, BlueprintId::Existing(edge_to_this_element.child_instance_id.clone()), Some(new_builder));
                         self
                     }
                     pub fn #add_existing_fn_name(&mut self,
-                        existing_item_id: &base_types::common::Uid,
+                        existing_item_id: impl Into<BlueprintId>,
                         builder_closure: impl Fn(&mut RGSOBuilder<#item_name, Schema>) -> &mut RGSOBuilder<#item_name, Schema>
                     ) -> &mut Self {
-                        let mut new_builder = #item_name::initiate_edit(existing_item_id.clone(), self.get_graph());
-                        let edge_to_this_element = base_types::traits::SlotRef {
-                            host_instance_id: self.get_id().clone(),
-                            child_instance_id: new_builder.get_id().clone(),
-                            slot_id: #slot_id,
-                        };
-                        new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
-                        let manipulated_builder = builder_closure(&mut new_builder);
-                        self.add_child_to_slot(edge_to_this_element, Some(new_builder));
+                        let existing_item_id: BlueprintId = existing_item_id.into();
+                        match &existing_item_id {
+                            BlueprintId::Existing(id) => {
+                                let mut new_builder = #item_name::initiate_edit(id.clone(), self.get_graph());
+                                let edge_to_this_element = base_types::traits::SlotRef {
+                                    host_instance_id: self.get_id().clone(),
+                                    child_instance_id: new_builder.get_id().clone(),
+                                    slot_id: #slot_id,
+                                };
+                                new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
+                                let manipulated_builder = builder_closure(&mut new_builder);
+                                self.add_child_to_slot(&#slot_id, existing_item_id.clone(), Some(new_builder));
+                            }
+                            BlueprintId::Temporary(str_id) => {
+                                let host_id = match &self.wip_instance {
+                                    Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
+                                    None => BlueprintId::Existing(self.get_id().clone()),
+                                };
+                                self.temp_add_parent(BlueprintId::Temporary(str_id.clone()), TempAddParentSlotRef {host_instance_id: host_id, slot_id:#slot_id });
+                                self.add_child_to_slot::<#struct_name>(&#slot_id, existing_item_id.clone(), None);
+                            }
+                        }
                         self
                     }
                 }
@@ -378,22 +353,35 @@ pub(crate) fn generate_operative_streams(
                         };
                         new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
                         builder_closure(&mut new_builder);
-                        self.add_child_to_slot(edge_to_this_element, Some(new_builder));
+                        self.add_child_to_slot(&#slot_id, BlueprintId::Existing(edge_to_this_element.child_instance_id.clone()), Some(new_builder));
                         self
                     }
                     pub fn #add_existing_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
-                        existing_item_id: &base_types::common::Uid,
+                        existing_item_id: impl Into<BlueprintId>,
                         builder_closure: impl Fn(&mut RGSOBuilder<T, Schema>) -> &mut RGSOBuilder<T, Schema>
                     ) -> &mut Self {
-                        let mut new_builder = T::initiate_edit(existing_item_id.clone(), self.get_graph());
-                        let edge_to_this_element = base_types::traits::SlotRef {
-                            host_instance_id: self.get_id().clone(),
-                            child_instance_id: new_builder.get_id().clone(),
-                            slot_id: #slot_id,
-                        };
-                        new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
-                        builder_closure(&mut new_builder);
-                        self.add_child_to_slot(edge_to_this_element, Some(new_builder));
+                        let existing_item_id: BlueprintId = existing_item_id.into();
+                        match &existing_item_id {
+                            BlueprintId::Existing(id) => {
+                                let mut new_builder = T::initiate_edit(id.clone(), self.get_graph());
+                                let edge_to_this_element = base_types::traits::SlotRef {
+                                    host_instance_id: self.get_id().clone(),
+                                    child_instance_id: new_builder.get_id().clone(),
+                                    slot_id: #slot_id,
+                                };
+                                new_builder.add_parent::<#struct_name>(edge_to_this_element.clone(), None);
+                                let manipulated_builder = builder_closure(&mut new_builder);
+                                self.add_child_to_slot(&#slot_id, existing_item_id.clone(), Some(new_builder));
+                            }
+                            BlueprintId::Temporary(str_id) => {
+                                let host_id = match &self.wip_instance {
+                                    Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
+                                    None => BlueprintId::Existing(self.get_id().clone()),
+                                };
+                                self.temp_add_parent(BlueprintId::Temporary(str_id.clone()), TempAddParentSlotRef {host_instance_id: host_id, slot_id:#slot_id });
+                                self.add_child_to_slot::<T>(&#slot_id, existing_item_id.clone(), None);
+                            }
+                        }
                         self
                     }
                 }
@@ -473,10 +461,6 @@ pub(crate) fn generate_operative_streams(
                     )
             }
             fn initiate_edit(id: base_types::common::Uid, graph: &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>) -> RGSOBuilder<#struct_name, Schema> {
-                // let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
-                // let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
-                // let mut field_hashmap = std::collections::HashMap::new();
-                // #(field_hashmap.insert(#unfulfilled_field_ids, RwSignal::new(None));)*
                 RGSOBuilder::<#struct_name, Schema>::new(
                         None,
                             id,
