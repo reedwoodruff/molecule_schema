@@ -156,11 +156,11 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         ctx.schema.operative_library.with(|lib| {
             lib.iter()
                 .filter_map(|(id, lib_item)| {
-                    if lib_item.check_ancestry(&schema_clone, &active_object.get().tag.id.get()) {
-                        None
-                    } else {
-                        Some((*id, lib_item.tag.name.get()))
-                    }
+                    // if lib_item.check_ancestry(&schema_clone, &active_object.get().tag.id.get()) {
+                    //     None
+                    // } else {
+                    Some((*id, lib_item.tag.name.get()))
+                    // }
                 })
                 .collect::<Vec<_>>()
         })
@@ -378,7 +378,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
 
                 <strong>Name</strong>
                 <div class="flex">
-                    <TextInput value=active_object.get().tag.name />
+                    <TextInput value=active_object.get().tag.name/>
 
                 </div>
                 <hr/>
@@ -413,7 +413,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                         >;
                         view! {
                             <div class="flex">
-                                <TextInput value=item.tag.name />
+                                <TextInput value=item.tag.name/>
 
                                 <TypedSelectInput
                                     options=field_type_options.into()
@@ -609,7 +609,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     add_trait_operative_ids.set(None)
                 }>Clear selected traits</button>
 
-                <TextInput value=new_trait_operative_name />
+                <TextInput value=new_trait_operative_name/>
 
                 <button
                     on:click=on_click_add_trait_operative
@@ -632,7 +632,11 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     on_select=on_select_trait_impl
                 />
                 <br/>
-                <For each=move || active_trait_impl_method_paths.get() key=move |item| item.0 let:item>
+                <For
+                    each=move || active_trait_impl_method_paths.get()
+                    key=move |item| item.0
+                    let:item
+                >
 
                     {
                         let click_closure = move |_| {
@@ -684,7 +688,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                         })
                                 }>delete impl</button> <br/> trait methods:
                                 <For
-                                    each=move ||methods.get()
+                                    each=move || methods.get()
                                     key=move |(method_id, _path)| *method_id
                                     children=move |(method_id, path)| {
                                         let method_def = trait_def

@@ -113,6 +113,47 @@ where
     let schema_clone = ctx.schema.clone();
     let element_clone = element.clone();
 
+    let mut ancestor_is_already_displayed = false;
+    match &element.0 {
+        TreeTypes::Instance => {
+            let item = ctx
+                .schema
+                .instance_library
+                .with(|instance_library| instance_library.get(&element.1).unwrap().clone());
+            path.iter().for_each(|el| {
+                if item.check_ancestry(&ctx.schema, &el.1) {
+                    ancestor_is_already_displayed = true;
+                }
+            })
+        }
+        TreeTypes::Template => {
+            let item = ctx
+                .schema
+                .template_library
+                .with(|template_library| template_library.get(&element.1).unwrap().clone());
+            path.iter().for_each(|el| {
+                if item.check_ancestry(&ctx.schema, &el.1) {
+                    ancestor_is_already_displayed = true;
+                }
+            })
+        }
+        TreeTypes::LibraryOperative => {
+            let item = ctx
+                .schema
+                .operative_library
+                .with(|operative_library| operative_library.get(&element.1).unwrap().clone());
+            path.iter().for_each(|el| {
+                if item.check_ancestry(&ctx.schema, &el.1) {
+                    ancestor_is_already_displayed = true;
+                }
+            })
+        }
+        TreeTypes::TraitOperative(_) => {}
+    }
+    if ancestor_is_already_displayed {
+        return view! { <div class="tree-node-container container_slot_unfulfilled">Recursion Buster</div> }.into_view();
+    }
+
     let on_click_tree_data_1 = on_click_tree_data.clone();
     let on_click_tree_data_2 = on_click_tree_data_1.clone();
     let on_click_tree_data_3 = on_click_tree_data_1.clone();
@@ -296,7 +337,7 @@ where
                 }
 
             </For>
-            <For each=move||all_slots.get() key=move |item| item.clone() let:child>
+            <For each=move || all_slots.get() key=move |item| item.clone() let:child>
 
                 {
                     let on_click_tree_data_3 = on_click_tree_data_3.clone();
@@ -400,4 +441,5 @@ where
         // </For>
         </div>
     }
+    .into_view()
 }

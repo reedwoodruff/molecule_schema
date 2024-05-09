@@ -153,7 +153,15 @@ pub(crate) fn generate_operative_streams(
 
        let IntermediateSlotTraitInfo { trait_name: slot_trait_name, trait_fns: slot_trait_fns } = meta.template_slots_trait_info.get(reference_template_id).unwrap();
        let wrapped_name = get_operative_wrapped_name(&instantiable.get_tag().name);
-       let slot_stream = slot_trait_fns.iter().map(|(id, SlotFnDetails { fn_name, fn_signature, return_enum_type, is_trait_slot, id_only_signature, id_only_name })| {
+       let slot_stream = slot_trait_fns.iter().map(|(id, SlotFnDetails { fn_name, fn_signature, return_enum_type, is_trait_slot, id_only_signature, id_only_name, is_single_slot_bound })| {
+        let id_only_body = match is_single_slot_bound {
+            true => quote!{self.outgoing_slots().get(&#id).unwrap().slotted_instances.get().first().unwrap().clone()},
+            false => quote!{self.outgoing_slots().get(&#id).unwrap().slotted_instances.get()},
+        };
+        let collection_stream = match is_single_slot_bound {
+            true => quote!{.next().unwrap()},
+            false => quote!{.collect::<Vec<_>>()},
+        };
            let fn_streams = match &constraint_schema.template_library.get(reference_template_id).unwrap().operative_slots.get(id).unwrap().operative_descriptor {
             OperativeVariants::LibraryOperative(slot_op_id) => {
                let operative_subclass_enum_name = get_operative_subclass_enum_name(constraint_schema, &slot_op_id);
@@ -177,10 +185,12 @@ pub(crate) fn generate_operative_streams(
                            match self.graph.get(slotted_instance_id).unwrap(){
                                #slot_variants_match
                            }
-                       }).collect::<Vec<_>>())
+                       })
+                        #collection_stream
+                    )
                    }
                    #id_only_signature {
-                       self.outgoing_slots().get(&#id).unwrap()
+                       #id_only_body
                    }
                }},
 
@@ -194,10 +204,12 @@ pub(crate) fn generate_operative_streams(
                                #(Schema::#trait_fulfiller_names(wrapper) => #return_enum_type::#trait_fulfiller_names(wrapper),)*
                                _ => panic!()
                            }
-                       }).collect::<Vec<_>>())
+                       })
+                        #collection_stream
+                    )
                     }
                    #id_only_signature {
-                       self.outgoing_slots().get(&#id).unwrap()
+                       #id_only_body
                    }
                 }
                 
@@ -316,6 +328,12 @@ pub(crate) fn generate_operative_streams(
                                 let manipulated_builder = builder_closure(&mut new_builder);
                                 self.add_outgoing(&#slot_id, existing_item_id.clone(), Some(new_builder));
                             }
+                            // NOTE: This case of adding an edge to an element which is being defined elsewhere in the same blueprint currently has a gotcha:
+                            // Any edits defined in the closure are not actually applied.
+                            // All edits besides the incoming slot currently need to be done in the initial definition
+                            // It would be possible to change this, but would require building some more infrastructure
+                            // to defer the processing of the builder until it is certain that the item in question has already been defined
+                            // or convert the instructions in the builder into temp equivalents which would also be applied upon exectute
                             BlueprintId::Temporary(str_id) => {
                                 let host_id = match &self.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
@@ -373,6 +391,12 @@ pub(crate) fn generate_operative_streams(
                                 let manipulated_builder = builder_closure(&mut new_builder);
                                 self.add_outgoing(&#slot_id, existing_item_id.clone(), Some(new_builder));
                             }
+                            // NOTE: This case of adding an edge to an element which is being defined elsewhere in the same blueprint currently has a gotcha:
+                            // Any edits defined in the closure are not actually applied.
+                            // All edits besides the incoming slot currently need to be done in the initial definition
+                            // It would be possible to change this, but would require building some more infrastructure
+                            // to defer the processing of the builder until it is certain that the item in question has already been defined
+                            // or convert the instructions in the builder into temp equivalents which would also be applied upon exectute
                             BlueprintId::Temporary(str_id) => {
                                 let host_id = match &self.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),

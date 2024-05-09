@@ -44,6 +44,16 @@ impl Into<BlueprintId> for &Uid {
         BlueprintId::Existing(self.clone())
     }
 }
+impl Into<BlueprintId> for &str {
+    fn into(self) -> BlueprintId {
+        BlueprintId::Temporary(self.to_string())
+    }
+}
+impl Into<BlueprintId> for String {
+    fn into(self) -> BlueprintId {
+        BlueprintId::Temporary(self)
+    }
+}
 
 impl BlueprintId {
     fn new_temporary(name: &str) -> Self {

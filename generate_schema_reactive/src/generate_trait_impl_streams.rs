@@ -1,12 +1,9 @@
-
-
 use proc_macro2::Ident;
 use quote::quote;
 
 use base_types::constraint_schema::*;
 use base_types::constraint_schema_item::ConstraintSchemaItem;
 use base_types::primitives::*;
-
 
 use crate::utils;
 
@@ -19,14 +16,18 @@ pub(crate) fn generate_trait_impl_streams(
     let instantiable_name = crate::get_operative_variant_name(&instantiable.get_tag().name);
     let trait_impl_digest = instantiable.get_trait_impl_digest(constraint_schema);
 
-    let trait_impl_stream = trait_impl_digest.trait_impls.iter().map(|(trait_id, trait_impl)| {
-        let trait_def = &constraint_schema.traits[trait_id];
-        let trait_name = syn::Ident::new(&trait_def.tag.name, proc_macro2::Span::call_site());
-        let fn_streams = trait_def.methods.values().map(|method_def| {
-            let method_name = syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
-            let return_type = utils::get_primitive_type(&method_def.return_type);    
-            let method_impl = &trait_impl.trait_impl[&method_def.tag.id];
-            let inner_method_stream = method_impl.iter().map(|method_impl_part| {
+    let trait_impl_stream = trait_impl_digest
+        .trait_impls
+        .iter()
+        .map(|(trait_id, trait_impl)| {
+            let trait_def = &constraint_schema.traits[trait_id];
+            let trait_name = syn::Ident::new(&trait_def.tag.name, proc_macro2::Span::call_site());
+            let fn_streams = trait_def.methods.values().map(|method_def| {
+                let method_name =
+                    syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
+                let return_type = utils::get_primitive_type(&method_def.return_type);
+                let method_impl = &trait_impl.trait_impl[&method_def.tag.id];
+                let inner_method_stream = method_impl.iter().map(|method_impl_part| {
                 match method_impl_part {
                     TraitMethodImplPath::Field(field_id) => {
                         // let field_name = &instantiable.get_locked_fields_digest(constraint_schema).unwrap().field_constraints[field_id].tag.name;
@@ -45,22 +46,19 @@ pub(crate) fn generate_trait_impl_streams(
                 }
             });
 
-             
-           quote! {
-            fn #method_name(&self, 
-                env: &dyn RGraphEnvironment<Types=base_types::primitives::PrimitiveTypes, Values=base_types::primitives::PrimitiveValues, Schema = Schema>
-                ) -> #return_type {
-                    #(#inner_method_stream)*
-                    
+                quote! {
+                fn #method_name(&self,) -> #return_type {
+                        #(#inner_method_stream)*
+
+                    }
+                }
+            });
+            quote! {
+                impl #trait_name for RGSOWrapper<#instantiable_name, Schema> {
+                    #(#fn_streams)*
                 }
             }
         });
-        quote! {
-            impl #trait_name for RGSOWrapper<#instantiable_name, Schema> {
-                #(#fn_streams)*
-            }
-        }
-    });
     quote! {
         #(#trait_impl_stream)*
     }

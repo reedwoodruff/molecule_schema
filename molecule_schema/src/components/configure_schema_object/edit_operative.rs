@@ -366,9 +366,6 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                             PrimitiveTypes::Int => {
                                                 PrimitiveValues::Int(value.get().parse().unwrap())
                                             }
-                                            PrimitiveTypes::Float => {
-                                                PrimitiveValues::Float(value.get().parse().unwrap())
-                                            }
                                             PrimitiveTypes::String => {
                                                 PrimitiveValues::String(value.get().parse().unwrap())
                                             }
@@ -392,6 +389,10 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                             });
                                     });
                                     view! {
+                                        // PrimitiveTypes::Float => {
+                                        // PrimitiveValues::Float(value.get().parse().unwrap())
+                                        // }
+
                                         <TextInput value=value/>
 
                                         <button on:click=move |e| {

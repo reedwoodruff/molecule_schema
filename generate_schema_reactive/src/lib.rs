@@ -48,6 +48,7 @@ mod output_traits;
     is_trait_slot: bool,
     id_only_signature: TokenStream,
     id_only_name: TokenStream,
+    is_single_slot_bound: bool,
 }
  struct IntermediateFieldTraitInfo {
     trait_name: TokenStream,
@@ -149,17 +150,32 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
     let get_template_slots_traits_streams = constraint_schema_generated.template_library.values().map(|template| {
         let mut fns_map = HashMap::new();
         let fn_streams = template.operative_slots.values().map(|operative_slot| {
-           let slot_getter_fn_name = get_template_get_slot_fn_name( &operative_slot.tag.name);
-           let return_enum_type = get_template_slot_enum_name(&constraint_schema_generated, operative_slot);
-           let stream = quote!{ fn #slot_getter_fn_name(&self) -> Vec<#return_enum_type> };
+            let is_single_slot_bound = matches!(operative_slot.bounds, SlotBounds::Single);
+            let slot_getter_fn_name = get_template_get_slot_fn_name( &operative_slot.tag.name);
+            let return_enum_type = get_template_slot_enum_name(&constraint_schema_generated, operative_slot);
+            let stream = match is_single_slot_bound {
+                true => quote!{ fn #slot_getter_fn_name(&self) -> #return_enum_type },
+                false => quote!{ fn #slot_getter_fn_name(&self) -> Vec<#return_enum_type> },
+            };
             let id_only_slot_getter_fn_name = get_template_get_slot_fn_name_id_only(&operative_slot.tag.name);
-            let id_only_stream =quote!{ fn #id_only_slot_getter_fn_name(&self) -> &RActiveSlot};
+            let id_only_stream = match is_single_slot_bound {
+                true => quote!{ fn #id_only_slot_getter_fn_name(&self) -> base_types::common::Uid},
+                false => quote!{ fn #id_only_slot_getter_fn_name(&self) -> Vec<base_types::common::Uid>},
+            };
             let is_trait_slot = match operative_slot.operative_descriptor {
                 OperativeVariants::LibraryOperative(_) => false,
                 OperativeVariants::TraitOperative(_) => true,
             }; 
-            fns_map.insert(operative_slot.tag.id, SlotFnDetails { fn_name: slot_getter_fn_name.clone().into_token_stream(), fn_signature: stream.clone(), id_only_signature: id_only_stream.clone(), id_only_name: id_only_slot_getter_fn_name.into_token_stream(), return_enum_type, is_trait_slot });
-           quote!{#stream;#id_only_stream;}
+            fns_map.insert(operative_slot.tag.id, 
+                SlotFnDetails { 
+                    fn_name: slot_getter_fn_name.clone().into_token_stream(), 
+                    fn_signature: stream.clone(), 
+                    id_only_signature: id_only_stream.clone(), 
+                    id_only_name: id_only_slot_getter_fn_name.into_token_stream(), 
+                    return_enum_type, is_trait_slot ,
+                    is_single_slot_bound
+                });
+            quote!{#stream;#id_only_stream;}
         }).collect::<Vec<_>>();
         let get_slots_trait_name = get_template_get_slots_trait_name(&template.tag.name);
         meta.template_slots_trait_info.insert(template.tag.id, IntermediateSlotTraitInfo { trait_name: get_slots_trait_name.clone().into_token_stream(), trait_fns: fns_map, });
@@ -206,11 +222,17 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
        if subclass_op_names.len() <= 1 {
            None
        } else {
+        // TODO: Make this enum implement all traits implemented by the superclass by passing the method call down to its variants
            Some(quote!{
             #[derive(Debug, Clone)]
                pub enum #enum_name {
                    #(#subclass_op_names(#op_wrapped_name),)*
                }
+                impl PartialEq for #enum_name {
+                    fn eq(&self, other: &Self) -> bool {
+                        self.get_id() == self.get_id()
+                    }
+                }
                impl #field_trait_name for #enum_name {
                    #(#field_trait_fns_streams {
                        #field_match_code
@@ -257,10 +279,16 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         let fulfilling_ops_wrapped_names = fulfilling_ops.iter().map(|op| get_operative_wrapped_name(&op.tag.name));
         let rgso_impl = impl_RGSO_for_enum(enum_name.clone().into_token_stream(), fulfilling_ops_names.clone());
 
+        // TODO: Make this enum implement all of these traits by passing the method call down to its variants
         quote!{
             #[derive(Debug, Clone)]
             pub enum #enum_name {
                 #(#fulfilling_ops_names(#fulfilling_ops_wrapped_names),)*
+            }
+            impl PartialEq for #enum_name {
+                fn eq(&self, other: &Self) -> bool {
+                    self.get_id() == self.get_id()
+                }
             }
             #rgso_impl
         }
@@ -273,9 +301,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
             let method_name = syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
             let return_type = utils::get_primitive_type(&method_def.return_type);    
             quote! {
-                fn #method_name(&self, 
-                    env: &dyn RGraphEnvironment<Types=base_types::primitives::PrimitiveTypes, Values=base_types::primitives::PrimitiveValues, Schema = Schema>
-                    ) -> #return_type;
+                fn #method_name(&self) -> #return_type;
             }
         });
         quote! {
@@ -364,6 +390,11 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         #[derive(Debug, Clone)]
         pub enum Schema {
             #(#all_lib_op_names(RGSOWrapper<#all_lib_op_names, Schema>),)*
+        }
+        impl PartialEq for Schema {
+            fn eq(&self, other: &Self) -> bool {
+                self.get_id() == self.get_id()
+            }
         }
 
         impl RFieldEditable for Schema {
