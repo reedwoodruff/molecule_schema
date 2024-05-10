@@ -195,10 +195,25 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
        let enum_name = get_operative_subclass_enum_name(&constraint_schema_generated, &operative.tag.id );
        let op_wrapped_name = get_all_subclasses(&constraint_schema_generated, &operative.tag.id ).iter().map(|op| get_operative_wrapped_name(&op.tag.name)).collect::<Vec<_>>();
        let IntermediateFieldTraitInfo{trait_name: field_trait_name, trait_fns: field_trait_fns} = &meta.template_field_trait_info.get(&template_id).unwrap();
-       let field_trait_fns_streams = field_trait_fns.values().map(|item| item.fn_signature.clone()).collect::<Vec<_>>();
-       let field_trait_fns_names = field_trait_fns.values().map(|item| item.fn_name.clone()).collect::<Vec<_>>();
-       let IntermediateSlotTraitInfo { trait_name: slot_trait_name, trait_fns: slot_trait_fns } = meta.template_slots_trait_info.get(&template_id).unwrap();
+       let field_streams = field_trait_fns.iter().fold(Vec::new(), |mut agg, (id, FieldFnDetails { fn_signature, fn_name, ..})| {
+            let intermediate = &subclass_op_names.iter().fold(Vec::new(), |mut agg, subclass| {
+                agg.push(quote!{#enum_name::#subclass(val) => val.#fn_name(),});
+                agg
+            });      
+            agg.push(quote!{
+               #fn_signature {
+                   match self {
+                       #(#intermediate)*
+                       _ => panic!(),
+                   }
+               } 
+            });
+            agg
+       });
+       // let field_trait_fns_streams = field_trait_fns.values().map(|item| item.fn_signature.clone()).collect::<Vec<_>>();
+       // let field_trait_fns_names = field_trait_fns.values().map(|item| item.fn_name.clone()).collect::<Vec<_>>();
 
+       let IntermediateSlotTraitInfo { trait_name: slot_trait_name, trait_fns: slot_trait_fns } = meta.template_slots_trait_info.get(&template_id).unwrap();
        let slot_streams  = slot_trait_fns.iter().fold(Vec::new(),|mut agg, (id, SlotFnDetails { fn_name, fn_signature, return_enum_type, is_trait_slot, id_only_signature, id_only_name, is_single_slot_bound })| {
            let intermediate = &subclass_op_names.iter().fold((Vec::new(), Vec::new()), |mut agg, subclass| {
                agg.0.push(quote!{#enum_name::#subclass(val) => val.#fn_name(),});
@@ -224,12 +239,12 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
            agg
        });
        
-       let field_match_code = quote!{
-           match self {
-               #(#enum_name::#subclass_op_names(val) => val.#field_trait_fns_names(),)*
-               _ => panic!(),
-           }
-       };
+       // let field_match_code = quote!{
+       //     match self {
+       //         #(#enum_name::#subclass_op_names(val) => val.#field_trait_fns_names(),)*
+       //         _ => panic!(),
+       //     }
+       // };
        let rgso_impl = impl_RGSO_for_enum(enum_name.clone(), subclass_op_names.clone());
        if subclass_op_names.len() <= 1 {
            None
@@ -246,9 +261,10 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                     }
                 }
                impl #field_trait_name for #enum_name {
-                   #(#field_trait_fns_streams {
-                       #field_match_code
-                   })*
+                   // #(#field_trait_fns_streams {
+                   //     #field_match_code
+                   // })*
+                   #(#field_streams)*
                }
                impl #slot_trait_name for #enum_name {
                    #(#slot_streams)*

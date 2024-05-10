@@ -639,10 +639,10 @@ struct TempAddOutgoingSlotRef {
 }
 
 pub struct ExecutionResult {
-    temp_id_map: std::collections::HashMap<String, Uid>,
+    pub temp_id_map: std::collections::HashMap<String, Uid>,
 }
 impl ExecutionResult {
-    fn get_final_id(&self, temp_id: &str) -> Option<&Uid> {
+    pub fn get_final_id(&self, temp_id: &str) -> Option<&Uid> {
         self.temp_id_map.get(temp_id)
     }
 }
@@ -651,6 +651,7 @@ impl ExecutionResult {
 pub struct RGSOBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
     instantiables:
         RwSignal<Vec<std::rc::Rc<std::cell::RefCell<dyn RInstantiable<Schema = TSchema>>>>>,
+    cumulative_errors: RwSignal<std::vec::Vec<ElementCreationError>>,
     add_outgoing_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
     add_incoming_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
     remove_outgoing_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
@@ -721,6 +722,8 @@ where
         self.field_updates.update(|prev| {
             prev.extend(other_builder.field_updates.get());
         });
+        self.cumulative_errors
+            .update(|prev| prev.extend(other_builder.cumulative_errors.get()));
     }
     pub fn set_temp_id(&mut self, temp_id: &str) -> &mut Self {
         if let Some(wip_instance) = &mut self.wip_instance {
@@ -758,6 +761,7 @@ where
     fn get_blueprint(
         mut self,
     ) -> Result<(Blueprint<TSchema>, ExecutionResult), ElementCreationError> {
+        let mut all_errors = self.cumulative_errors.get();
         let mut new_instantiables = self.instantiables.get();
         if let Some(instance) = &self.wip_instance {
             new_instantiables.push(std::rc::Rc::new(std::cell::RefCell::new(instance.clone())));
@@ -774,72 +778,101 @@ where
             .collect::<std::collections::HashMap<_, _>>();
 
         // Perform any incoming or outgoing updates for temporary ids
-        self.temp_add_incoming_updates.with(|updates| {
-            updates.iter().for_each(|update| {
-                let final_host_id = match &update.1.host_instance_id {
-                    BlueprintId::Existing(existing_id) => *existing_id,
-                    BlueprintId::Temporary(temp_id) => temp_id_map.get(temp_id).unwrap().clone(),
-                };
-                match &update.0 {
-                    BlueprintId::Existing(existing_id) => {
-                        self.add_incoming_updates.update(|prev| {
-                            prev.insert((
-                                existing_id.clone(),
-                                SlotRef {
-                                    target_instance_id: existing_id.clone(),
-                                    host_instance_id: final_host_id,
-                                    slot_id: update.1.slot_id,
-                                },
-                            ));
-                        });
+        let temp_incoming_execution_errors = self.temp_add_incoming_updates.with(|updates| {
+            updates
+                .iter()
+                .filter_map(|update| {
+                    let final_host_id = match &update.1.host_instance_id {
+                        BlueprintId::Existing(existing_id) => Ok(*existing_id),
+                        BlueprintId::Temporary(temp_id) => temp_id_map.get(temp_id).cloned().ok_or(
+                            ElementCreationError::NonexistentTempId {
+                                temp_id: temp_id.clone(),
+                            },
+                        ),
+                    };
+                    if let Some(error) = final_host_id.clone().err() {
+                        return Some(error);
                     }
-                    BlueprintId::Temporary(temp_id) => {
-                        if let Some(instantiable) = new_instantiables
-                            .iter_mut()
-                            .find(|instantiable| instantiable.borrow().get_temp_id() == temp_id)
-                        {
-                            instantiable
-                                .as_ref()
-                                .borrow_mut()
-                                .add_incoming(&final_host_id, &update.1.slot_id);
+                    let final_host_id = final_host_id.unwrap();
+                    match &update.0 {
+                        BlueprintId::Existing(existing_id) => {
+                            self.add_incoming_updates.update(|prev| {
+                                prev.insert((
+                                    existing_id.clone(),
+                                    SlotRef {
+                                        target_instance_id: existing_id.clone(),
+                                        host_instance_id: final_host_id,
+                                        slot_id: update.1.slot_id,
+                                    },
+                                ));
+                            });
                         }
-                    }
-                };
-            });
-        });
-        self.temp_add_outgoing_updates.with(|updates| {
-            updates.iter().for_each(|update| {
-                let final_target_id = match &update.1.target_instance_id {
-                    BlueprintId::Existing(existing_id) => *existing_id,
-                    BlueprintId::Temporary(temp_id) => temp_id_map.get(temp_id).unwrap().clone(),
-                };
-                match &update.0 {
-                    BlueprintId::Existing(existing_id) => {
-                        self.add_outgoing_updates.update(|prev| {
-                            prev.insert((
-                                existing_id.clone(),
-                                SlotRef {
-                                    target_instance_id: final_target_id,
-                                    host_instance_id: existing_id.clone(),
-                                    slot_id: update.1.slot_id,
-                                },
-                            ));
-                        });
-                    }
-                    BlueprintId::Temporary(temp_id) => {
-                        if let Some(instantiable) = new_instantiables
-                            .iter_mut()
-                            .find(|instantiable| instantiable.borrow().get_temp_id() == temp_id)
-                        {
-                            instantiable
-                                .as_ref()
-                                .borrow_mut()
-                                .add_outgoing(&final_target_id, &update.1.slot_id);
+                        BlueprintId::Temporary(temp_id) => {
+                            if let Some(instantiable) = new_instantiables
+                                .iter_mut()
+                                .find(|instantiable| instantiable.borrow().get_temp_id() == temp_id)
+                            {
+                                instantiable
+                                    .as_ref()
+                                    .borrow_mut()
+                                    .add_incoming(&final_host_id, &update.1.slot_id);
+                            }
                         }
-                    }
-                };
-            });
+                    };
+                    None
+                })
+                .collect::<Vec<_>>()
         });
+        all_errors.extend(temp_incoming_execution_errors);
+
+        let temp_outgoing_execution_errors = self.temp_add_outgoing_updates.with(|updates| {
+            updates
+                .iter()
+                .filter_map(|update| {
+                    let final_target_id = match &update.1.target_instance_id {
+                        BlueprintId::Existing(existing_id) => Ok(*existing_id),
+                        BlueprintId::Temporary(temp_id) => temp_id_map
+                            .get(temp_id)
+                            .ok_or(ElementCreationError::NonexistentTempId {
+                                temp_id: temp_id.clone(),
+                            })
+                            .cloned(),
+                    };
+                    if let Some(error) = final_target_id.clone().err() {
+                        return Some(error);
+                    }
+                    let final_target_id = final_target_id.unwrap().clone();
+
+                    match &update.0 {
+                        BlueprintId::Existing(existing_id) => {
+                            self.add_outgoing_updates.update(|prev| {
+                                prev.insert((
+                                    existing_id.clone(),
+                                    SlotRef {
+                                        target_instance_id: final_target_id,
+                                        host_instance_id: existing_id.clone(),
+                                        slot_id: update.1.slot_id,
+                                    },
+                                ));
+                            });
+                        }
+                        BlueprintId::Temporary(temp_id) => {
+                            if let Some(instantiable) = new_instantiables
+                                .iter_mut()
+                                .find(|instantiable| instantiable.borrow().get_temp_id() == temp_id)
+                            {
+                                instantiable
+                                    .as_ref()
+                                    .borrow_mut()
+                                    .add_outgoing(&final_target_id, &update.1.slot_id);
+                            }
+                        }
+                    };
+                    None
+                })
+                .collect::<Vec<_>>()
+        });
+        all_errors.extend(temp_outgoing_execution_errors);
 
         let to_delete = self.to_delete_recursive.get();
         to_delete.iter().for_each(|to_delete_id| {
@@ -966,8 +999,10 @@ where
                 agg
             },
         );
-        if !instantiation_errors.is_empty() {
-            return Err(ElementCreationError::Stack(instantiation_errors));
+
+        all_errors.extend(instantiation_errors);
+        if !all_errors.is_empty() {
+            return Err(ElementCreationError::Stack(all_errors));
         }
 
         Ok((
@@ -999,6 +1034,7 @@ where
             instantiables: RwSignal::new(vec![]),
             wip_instance: builder_wrapper_instance,
             id,
+            cumulative_errors: RwSignal::new(std::vec::Vec::new()),
             add_outgoing_updates: RwSignal::new(std::collections::HashSet::new()),
             add_incoming_updates: RwSignal::new(std::collections::HashSet::new()),
             remove_outgoing_updates: RwSignal::new(std::collections::HashSet::new()),
@@ -1010,6 +1046,16 @@ where
             deleted_instances: RwSignal::new(std::collections::HashSet::new()),
             to_delete_recursive: RwSignal::new(std::collections::HashSet::new()),
         }
+    }
+    fn raw_add_outgoing_to_updates(&mut self, slot_ref: SlotRef) {
+        self.add_outgoing_updates.update(|prev| {
+            prev.insert((slot_ref.host_instance_id.clone(), slot_ref));
+        });
+    }
+    fn raw_add_incoming_to_updates(&mut self, slot_ref: SlotRef) {
+        self.add_incoming_updates.update(|prev| {
+            prev.insert((slot_ref.target_instance_id.clone(), slot_ref));
+        });
     }
     fn add_outgoing<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
         &mut self,
@@ -1043,15 +1089,10 @@ where
         } else {
             match &target_id {
                 BlueprintId::Existing(existing_target_id) => {
-                    self.add_outgoing_updates.update(|prev| {
-                        prev.insert((
-                            self.id.clone(),
-                            SlotRef {
-                                host_instance_id: self.id.clone(),
-                                target_instance_id: existing_target_id.clone(),
-                                slot_id: slot_id.clone(),
-                            },
-                        ));
+                    self.raw_add_outgoing_to_updates(SlotRef {
+                        host_instance_id: self.id.clone(),
+                        target_instance_id: existing_target_id.clone(),
+                        slot_id: slot_id.clone(),
                     });
                 }
                 BlueprintId::Temporary(temp_target_id) => self.temp_add_outgoing(
@@ -1164,6 +1205,9 @@ where
             .update(|temp_add_outgoing_updates| {
                 temp_add_outgoing_updates.insert((target_id, temp_slot_ref));
             });
+    }
+    fn add_error(&mut self, error: ElementCreationError) {
+        self.cumulative_errors.update(|prev| prev.push(error));
     }
 }
 

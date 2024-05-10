@@ -124,6 +124,23 @@ pub(crate) fn get_all_subclasses(
         .cloned()
         .collect()
 }
+pub(crate) fn get_all_superclasses(
+    constraint_schema: &ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
+    operative_id: &Uid,
+) -> Vec<LibraryOperative<PrimitiveTypes, PrimitiveValues>> {
+    let root = constraint_schema
+        .operative_library
+        .get(operative_id)
+        .unwrap();
+    let mut next_to_check = root.get_parent_operative_id();
+    let mut all_supers = vec![];
+    while let Some(next_id) = next_to_check {
+        let super_el = constraint_schema.operative_library.get(&next_id).unwrap();
+        all_supers.push(super_el.clone());
+        next_to_check = super_el.get_parent_operative_id();
+    }
+    all_supers
+}
 pub fn get_slot_trait_enum_name(
     constraint_schema: &ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
     trait_operative: &[Uid],

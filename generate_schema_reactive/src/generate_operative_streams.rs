@@ -10,7 +10,7 @@ use base_types::{constraint_schema::*, };
 
 use crate::{generate_trait_impl_streams, IntermediateFieldTraitInfo, IntermediateSlotTraitInfo, MetaData, SlotFnDetails};
 use crate::utils::{
-    get_all_operatives_which_implement_trait_set, get_all_subclasses, get_operative_subclass_enum_name, get_operative_variant_name, get_operative_wrapped_name, get_primitive_type, get_primitive_value, get_template_get_field_fn_name
+    get_all_operatives_which_implement_trait_set, get_all_subclasses, get_all_superclasses, get_operative_subclass_enum_name, get_operative_variant_name, get_operative_wrapped_name, get_primitive_type, get_primitive_value, get_template_get_field_fn_name
 };
 
 pub(crate) fn generate_operative_streams(
@@ -277,9 +277,16 @@ pub(crate) fn generate_operative_streams(
             &format!("add_new_{}", slot.slot.tag.name.to_lowercase()),
             proc_macro2::Span::call_site(),
         );
-        let add_existing_fn_name = proc_macro2::Ident::new(
+        let add_existing_and_edit_fn_name = proc_macro2::Ident::new(
             &format!(
-                "add_existing_{}",
+                "add_existing_{}_and_edit",
+                slot.slot.tag.name.to_lowercase()
+            ),
+            proc_macro2::Span::call_site(),
+        );
+        let add_existing_or_temp_fn_name = proc_macro2::Ident::new(
+            &format!(
+                "add_existing_or_temp_{}",
                 slot.slot.tag.name.to_lowercase()
             ),
             proc_macro2::Span::call_site(),
@@ -290,17 +297,113 @@ pub(crate) fn generate_operative_streams(
         );
 
 
-        let get_single_slot_item_implementation = |item_id: &Uid| -> TokenStream {
-            let item_name_string = constraint_schema.operative_library.get(&item_id).unwrap().tag.name.clone();
-            let item_name = get_operative_variant_name(&
-                item_name_string
-            );
-            quote!{
-                impl RGSOBuilder<#struct_name, Schema> {
+        let get_slot_item_implementation = |items: &[LibraryOperative<PrimitiveTypes, PrimitiveValues>]| -> TokenStream {
+            let single_item_id = if items.len() == 1 {
+                Some(items.first().unwrap())
+            } else {
+                None
+            };
+            let marker_trait_name = Ident::new(&format!("{}{}AcceptableTargetMarker", struct_name, slot_name), proc_macro2::Span::call_site());
+            let mut marker_impls = items.iter().map(|item| {
+                let item_name = get_operative_variant_name(&item.get_tag().name);
+                quote!{
+                    impl #marker_trait_name for #item_name {}
+                }
+            }).collect::<Vec<_>>();
+
+            let marker_trait_stream = if single_item_id.is_none() {
+                vec![quote! {
+                    trait #marker_trait_name {}
+                    #(#marker_impls)*
+                }]
+            } else {
+                vec![]
+            };
+            
+            let item_or_t = if let Some(item) = single_item_id {
+                let item_name_string = item.tag.name.clone();
+                get_operative_variant_name(&
+                    item_name_string
+                )
+            } else {
+                syn::Ident::new("T", proc_macro2::Span::call_site())
+            };
+
+            let add_new_fn_signature = if let Some(item) = single_item_id {
+                quote!{
                     pub fn #add_new_fn_name(&mut self, 
-                        builder_closure: impl Fn(&mut RGSOBuilder<#item_name, Schema>) -> &mut RGSOBuilder<#item_name, Schema>
-                    ) -> &mut Self {
-                        let mut new_builder = #item_name::initiate_build(self.get_graph());
+                        builder_closure: impl Fn(&mut RGSOBuilder<#item_or_t, Schema>) -> &mut RGSOBuilder<#item_or_t, Schema>
+                    ) -> &mut Self
+                 }
+            } else {
+                quote!{
+                    pub fn #add_new_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self, 
+                        builder_closure: impl Fn(&mut RGSOBuilder<T, Schema>) -> &mut RGSOBuilder<T, Schema>
+                    ) -> &mut Self                 
+                }
+            };
+            let add_existing_and_edit_fn_signature = if let Some(item) = single_item_id {
+                quote!{
+                    pub fn #add_existing_and_edit_fn_name(&mut self,
+                        existing_item_id: &Uid,
+                        builder_closure: impl Fn(&mut RGSOBuilder<#item_or_t, Schema>) -> &mut RGSOBuilder<#item_or_t, Schema>
+                    ) -> &mut Self
+                }
+            } else {
+                quote!{
+                    pub fn #add_existing_and_edit_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
+                        existing_item_id: &Uid,
+                        builder_closure: impl Fn(&mut RGSOBuilder<T, Schema>) -> &mut RGSOBuilder<T, Schema>
+                    ) -> &mut Self    
+                }
+            };
+            let add_existing_or_temp_fn_signature = if let Some(item) = single_item_id {
+                quote!{
+                    pub fn #add_existing_or_temp_fn_name(&mut self,
+                        existing_item_id: impl Into<BlueprintId>,
+                    ) -> &mut Self
+                }
+            } else {
+                quote!{
+                    pub fn #add_existing_or_temp_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
+                        existing_item_id: impl Into<BlueprintId>,
+                    ) -> &mut Self                
+                }
+            };
+            // let super_types = get_all_superclasses(constraint_schema, item_id);
+            let all_unacceptable_types = constraint_schema.operative_library.values().filter_map(|op| 
+                if items.iter().find(|super_el| super_el.tag.id == op.tag.id ).is_none() {
+                    return Some(op)
+                } else {
+                    return None
+                }
+            );
+            let unacceptable_type_names = all_unacceptable_types.clone().map(|op| get_operative_variant_name(&op.tag.name)).collect::<Vec<_>>();
+            let unacceptable_string_names = all_unacceptable_types.map(|op| op.tag.name.clone()).collect::<Vec<_>>();
+            let acceptable_type_names = items.iter().map(|op| get_operative_variant_name(&op.tag.name)).collect::<Vec<_>>();
+            let expected_type_names_string = items.iter().map(|op| op.tag.name.clone()).collect::<Vec<_>>().join(", ");
+            let mismatch_error_handling = quote!{
+                let error = if let Some(existing_item) = self.graph.get(&existing_item_id) {
+                    match existing_item {
+                        #(Schema::#acceptable_type_names(_) => None,)*
+                        #(Schema::#unacceptable_type_names(_) => {
+                            Some(base_types::traits::ElementCreationError::OutgoingElementIsWrongType{expected: #expected_type_names_string.to_string(), recieved: #unacceptable_string_names.to_string() })
+                        },)*
+                    }
+                } else {
+                    Some(base_types::traits::ElementCreationError::OutgoingElementDoesntExist{id: existing_item_id.clone()})
+                };
+                if error.is_some() {
+                    self.add_error(error.unwrap());
+                }
+            };
+
+            quote!{
+                #(#marker_trait_stream)*
+                impl RGSOBuilder<#struct_name, Schema> {
+                    #add_new_fn_signature
+                    {
+                        let mut new_builder = #item_or_t::initiate_build(self.get_graph());
                         let edge_to_this_element = base_types::traits::SlotRef {
                             host_instance_id: self.get_id().clone(),
                             target_instance_id: new_builder.get_id().clone(),
@@ -311,103 +414,49 @@ pub(crate) fn generate_operative_streams(
                         self.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder));
                         self
                     }
-                    pub fn #add_existing_fn_name(&mut self,
-                        existing_item_id: impl Into<BlueprintId>,
-                        builder_closure: impl Fn(&mut RGSOBuilder<#item_name, Schema>) -> &mut RGSOBuilder<#item_name, Schema>
-                    ) -> &mut Self {
-                        let existing_item_id: BlueprintId = existing_item_id.into();
-                        match &existing_item_id {
-                            BlueprintId::Existing(id) => {
-                                let mut new_builder = #item_name::initiate_edit(id.clone(), self.get_graph());
-                                let edge_to_this_element = base_types::traits::SlotRef {
-                                    host_instance_id: self.get_id().clone(),
-                                    target_instance_id: new_builder.get_id().clone(),
-                                    slot_id: #slot_id,
-                                };
-                                new_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
-                                let manipulated_builder = builder_closure(&mut new_builder);
-                                self.add_outgoing(&#slot_id, existing_item_id.clone(), Some(new_builder));
-                            }
-                            // NOTE: This case of adding an edge to an element which is being defined elsewhere in the same blueprint currently has a gotcha:
-                            // Any edits defined in the closure are not actually applied.
-                            // All edits besides the incoming slot currently need to be done in the initial definition
-                            // It would be possible to change this, but would require building some more infrastructure
-                            // to defer the processing of the builder until it is certain that the item in question has already been defined
-                            // or convert the instructions in the builder into temp equivalents which would also be applied upon exectute
-                            BlueprintId::Temporary(str_id) => {
-                                let host_id = match &self.wip_instance {
-                                    Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
-                                    None => BlueprintId::Existing(self.get_id().clone()),
-                                };
-                                self.temp_add_incoming(BlueprintId::Temporary(str_id.clone()), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
-                                self.add_outgoing::<#struct_name>(&#slot_id, existing_item_id.clone(), None);
-                            }
-                        }
-                        self
-                    }
-                }
-            }
-        };
-        let get_multiple_slot_item_implementation = |items: &[LibraryOperative<PrimitiveTypes, PrimitiveValues>]| -> TokenStream {
-            let marker_trait_name = Ident::new(&format!("{}{}AcceptableTargetMarker", struct_name, slot_name), proc_macro2::Span::call_site());
-            let marker_impls = items.iter().map(|item| {
-                let item_name = get_operative_variant_name(&item.get_tag().name);
-                quote!{
-                    impl #marker_trait_name for #item_name {}
-                }
-            });
-            quote!{
-                trait #marker_trait_name {}
-                #(#marker_impls)*
-                impl RGSOBuilder<#struct_name, Schema> {
-                    pub fn #add_new_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self, 
-                        builder_closure: impl Fn(&mut RGSOBuilder<T, Schema>) -> &mut RGSOBuilder<T, Schema>
-                    ) -> &mut Self {
-                        let mut new_builder = T::initiate_build(self.get_graph());
+                    #add_existing_and_edit_fn_signature
+                     {
+                        let existing_item_id = existing_item_id.clone();
+                        #mismatch_error_handling
+
+                        let mut new_builder = #item_or_t::initiate_edit(existing_item_id.clone(), self.get_graph());
                         let edge_to_this_element = base_types::traits::SlotRef {
                             host_instance_id: self.get_id().clone(),
                             target_instance_id: new_builder.get_id().clone(),
                             slot_id: #slot_id,
                         };
                         new_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
-                        builder_closure(&mut new_builder);
-                        self.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder));
+                        let manipulated_builder = builder_closure(&mut new_builder);
+                        self.add_outgoing(&#slot_id, BlueprintId::Existing(existing_item_id.clone()), Some(new_builder));
                         self
                     }
-                    pub fn #add_existing_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
-                        existing_item_id: impl Into<BlueprintId>,
-                        builder_closure: impl Fn(&mut RGSOBuilder<T, Schema>) -> &mut RGSOBuilder<T, Schema>
-                    ) -> &mut Self {
-                        let existing_item_id: BlueprintId = existing_item_id.into();
-                        match &existing_item_id {
-                            BlueprintId::Existing(id) => {
-                                let mut new_builder = T::initiate_edit(id.clone(), self.get_graph());
+
+                    #add_existing_or_temp_fn_signature {
+                        let existing_item_blueprint_id: BlueprintId = existing_item_id.into();
+                        match &existing_item_blueprint_id {
+                            BlueprintId::Existing(existing_item_id) => {
+                                #mismatch_error_handling
                                 let edge_to_this_element = base_types::traits::SlotRef {
                                     host_instance_id: self.get_id().clone(),
-                                    target_instance_id: new_builder.get_id().clone(),
+                                    target_instance_id: existing_item_id.clone(),
                                     slot_id: #slot_id,
                                 };
-                                new_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
-                                let manipulated_builder = builder_closure(&mut new_builder);
-                                self.add_outgoing(&#slot_id, existing_item_id.clone(), Some(new_builder));
+                                self.raw_add_incoming_to_updates(edge_to_this_element);
+                                self.add_outgoing::<#item_or_t>(&#slot_id, existing_item_blueprint_id.clone(), None);
+                                self
                             }
-                            // NOTE: This case of adding an edge to an element which is being defined elsewhere in the same blueprint currently has a gotcha:
-                            // Any edits defined in the closure are not actually applied.
-                            // All edits besides the incoming slot currently need to be done in the initial definition
-                            // It would be possible to change this, but would require building some more infrastructure
-                            // to defer the processing of the builder until it is certain that the item in question has already been defined
-                            // or convert the instructions in the builder into temp equivalents which would also be applied upon exectute
                             BlueprintId::Temporary(str_id) => {
                                 let host_id = match &self.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
                                     None => BlueprintId::Existing(self.get_id().clone()),
                                 };
                                 self.temp_add_incoming(BlueprintId::Temporary(str_id.clone()), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
-                                self.add_outgoing::<T>(&#slot_id, existing_item_id.clone(), None);
+                                self.add_outgoing::<#item_or_t>(&#slot_id, existing_item_blueprint_id.clone(), None);
+                                self
                             }
                         }
-                        self
                     }
+                        
                 }
             }
         };
@@ -416,9 +465,10 @@ pub(crate) fn generate_operative_streams(
             OperativeVariants::LibraryOperative(lib_op_id) => {
                 let subclasses = get_all_subclasses(constraint_schema, &lib_op_id);
                 if subclasses.len() <= 1 {
-                    get_single_slot_item_implementation(lib_op_id)
+                    let item = constraint_schema.operative_library.get(lib_op_id).unwrap().clone();
+                    get_slot_item_implementation(&vec![item])
                 } else {
-                    get_multiple_slot_item_implementation(&subclasses)
+                    get_slot_item_implementation(&subclasses)
                 }
             }
             OperativeVariants::TraitOperative(trait_op) => {
@@ -426,9 +476,9 @@ pub(crate) fn generate_operative_streams(
                 if ops_which_impl_traits.len() == 0 {
                     quote!{}
                 } else if ops_which_impl_traits.len() == 1 {
-                    get_single_slot_item_implementation(&ops_which_impl_traits.iter().next().unwrap().get_tag().id)
+                    get_slot_item_implementation(&vec![ops_which_impl_traits.iter().next().unwrap().clone()])
                 } else {
-                    get_multiple_slot_item_implementation(&ops_which_impl_traits)
+                    get_slot_item_implementation(&ops_which_impl_traits)
                 }
             }
         };

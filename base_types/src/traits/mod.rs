@@ -25,12 +25,13 @@ pub type LibOp = LibraryOperative<PrimitiveTypes, PrimitiveValues>;
 pub type LibTemplate = LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
 
 type Error = ElementCreationError;
-#[derive(Debug, Display)]
+#[derive(Debug, Display, Clone)]
 pub enum ElementCreationError {
     RequiredFieldIsEmpty,
     BoundCheckOutOfRange(String),
-    ChildElementIsWrongType,
-    ChildElementDoesntExist,
+    OutgoingElementIsWrongType { expected: String, recieved: String },
+    OutgoingElementDoesntExist { id: Uid },
+    NonexistentTempId { temp_id: String },
     DeletionError,
     Stack(Vec<ElementCreationError>),
 }
@@ -81,364 +82,364 @@ impl<TSchema: GSO + 'static> BaseGraphEnvironment<TSchema> {
     // }
 }
 
-impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
-    fn push_history_item(&mut self, history_item: Vec<HistoryItem<TSchema>>, tag: &TaggedAction) {
-        match tag {
-            TaggedAction::Normal => self.history.borrow_mut().undo.push(history_item),
-            TaggedAction::Undo => self.history.borrow_mut().redo.push(history_item),
-            TaggedAction::Redo => self.history.borrow_mut().undo.push(history_item),
-        }
-    }
-    fn append_history_item(&mut self, history_item: HistoryItem<TSchema>, tag: &TaggedAction) {
-        match tag {
-            TaggedAction::Normal => self
-                .history
-                .borrow_mut()
-                .undo
-                .last_mut()
-                .unwrap()
-                .push(history_item),
-            TaggedAction::Undo => self
-                .history
-                .borrow_mut()
-                .redo
-                .last_mut()
-                .unwrap()
-                .push(history_item),
-            TaggedAction::Redo => self
-                .history
-                .borrow_mut()
-                .undo
-                .last_mut()
-                .unwrap()
-                .push(history_item),
-        }
-    }
-    fn check_and_delete_children_tagged(
-        &mut self,
-        id: &Uid,
-        parent_id: Option<&Uid>,
-        tag: &TaggedAction,
-    ) {
-        let mut should_delete = parent_id.is_none();
+// impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
+//     fn push_history_item(&mut self, history_item: Vec<HistoryItem<TSchema>>, tag: &TaggedAction) {
+//         match tag {
+//             TaggedAction::Normal => self.history.borrow_mut().undo.push(history_item),
+//             TaggedAction::Undo => self.history.borrow_mut().redo.push(history_item),
+//             TaggedAction::Redo => self.history.borrow_mut().undo.push(history_item),
+//         }
+//     }
+//     fn append_history_item(&mut self, history_item: HistoryItem<TSchema>, tag: &TaggedAction) {
+//         match tag {
+//             TaggedAction::Normal => self
+//                 .history
+//                 .borrow_mut()
+//                 .undo
+//                 .last_mut()
+//                 .unwrap()
+//                 .push(history_item),
+//             TaggedAction::Undo => self
+//                 .history
+//                 .borrow_mut()
+//                 .redo
+//                 .last_mut()
+//                 .unwrap()
+//                 .push(history_item),
+//             TaggedAction::Redo => self
+//                 .history
+//                 .borrow_mut()
+//                 .undo
+//                 .last_mut()
+//                 .unwrap()
+//                 .push(history_item),
+//         }
+//     }
+//     fn check_and_delete_children_tagged(
+//         &mut self,
+//         id: &Uid,
+//         parent_id: Option<&Uid>,
+//         tag: &TaggedAction,
+//     ) {
+//         let mut should_delete = parent_id.is_none();
 
-        if let Some(parent_id) = parent_id {
-            let child_parent_slots = self.get(id).unwrap().get_parent_slots();
-            let remaining_parents = child_parent_slots
-                .iter()
-                .filter(|slot_ref| slot_ref.host_instance_id != *parent_id)
-                .collect::<Vec<_>>();
-            if remaining_parents.is_empty() {
-                should_delete = true;
-            }
-        }
+//         if let Some(parent_id) = parent_id {
+//             let child_parent_slots = self.get(id).unwrap().get_parent_slots();
+//             let remaining_parents = child_parent_slots
+//                 .iter()
+//                 .filter(|slot_ref| slot_ref.host_instance_id != *parent_id)
+//                 .collect::<Vec<_>>();
+//             if remaining_parents.is_empty() {
+//                 should_delete = true;
+//             }
+//         }
 
-        if !should_delete && parent_id.is_some() {
-            let removed_slot_refs = self
-                .get_mut(id)
-                .unwrap()
-                .remove_parent(parent_id.unwrap(), None);
-            removed_slot_refs.into_iter().for_each(|slot_ref| {
-                self.append_history_item(HistoryItem::RemoveParent(slot_ref), tag);
-            })
-        }
+//         if !should_delete && parent_id.is_some() {
+//             let removed_slot_refs = self
+//                 .get_mut(id)
+//                 .unwrap()
+//                 .remove_parent(parent_id.unwrap(), None);
+//             removed_slot_refs.into_iter().for_each(|slot_ref| {
+//                 self.append_history_item(HistoryItem::RemoveParent(slot_ref), tag);
+//             })
+//         }
 
-        if should_delete {
-            self.get(id)
-                .unwrap()
-                .get_slots()
-                .clone()
-                .values()
-                .for_each(|slot| {
-                    slot.slotted_instances
-                        .iter()
-                        .for_each(|slotted_instance_id| {
-                            self.check_and_delete_children_tagged(
-                                slotted_instance_id,
-                                Some(id),
-                                tag,
-                            );
-                        });
-                });
-        }
-        let mut removed_value = self.created_instances.remove(id).unwrap();
-        removed_value.set_history(None);
-        self.append_history_item(HistoryItem::Delete(removed_value), tag);
-    }
-    fn instantiate_element_tagged<T: std::fmt::Debug + Clone + 'static>(
-        &mut self,
-        element: InstantiableWrapper<GSOWrapper<T, TSchema>, TSchema>,
-        tag: &TaggedAction,
-    ) -> Result<Uid, Error>
-    where
-        Self: Sized,
-        GSOWrapper<T, TSchema>: Instantiable<Schema = TSchema>,
-    {
-        // Assumption here that when instantiating with this method,
-        // the only child updates will be with regards to parents which are now being created
-        for child_update in element.child_updates.iter() {
-            let mut parent = element.prereq_instantiables.iter().find(|prereq_inst| {
-                *prereq_inst.get_instance_id() == child_update.1.host_instance_id
-            });
-            let mut operative_descriptor;
-            if parent.is_none() {
-                operative_descriptor = &element
-                    .instantiable_instance
-                    .get_template()
-                    .operative_slots
-                    .get(&child_update.1.slot_id)
-                    .unwrap()
-                    .operative_descriptor;
-            } else {
-                operative_descriptor = &parent
-                    .unwrap()
-                    .get_template()
-                    .operative_slots
-                    .get(&child_update.1.slot_id)
-                    .unwrap()
-                    .operative_descriptor;
-            }
-            match operative_descriptor {
-                OperativeVariants::LibraryOperative(lib_op_id) => {
-                    if *lib_op_id
-                        != self
-                            .get(&child_update.0)
-                            .unwrap()
-                            .get_operative()
-                            .get_tag()
-                            .id
-                    {
-                        return Err(ElementCreationError::ChildElementIsWrongType);
-                    };
-                }
-                OperativeVariants::TraitOperative(trait_op) => {
-                    let child_digest = self
-                        .get(&child_update.0)
-                        .unwrap()
-                        .get_operative()
-                        .get_trait_impl_digest(self.constraint_schema);
-                    let matches_trait_bounds = trait_op
-                        .trait_ids
-                        .iter()
-                        .all(|trait_id| child_digest.trait_impls.contains_key(trait_id));
-                    if !matches_trait_bounds {
-                        return Err(ElementCreationError::ChildElementIsWrongType);
-                    }
-                }
-            }
-        }
-        let id = *element.get_instantiable_instance().get_instance_id();
-        self.push_history_item(vec![HistoryItem::BlockActionMarker], &tag);
+//         if should_delete {
+//             self.get(id)
+//                 .unwrap()
+//                 .get_slots()
+//                 .clone()
+//                 .values()
+//                 .for_each(|slot| {
+//                     slot.slotted_instances
+//                         .iter()
+//                         .for_each(|slotted_instance_id| {
+//                             self.check_and_delete_children_tagged(
+//                                 slotted_instance_id,
+//                                 Some(id),
+//                                 tag,
+//                             );
+//                         });
+//                 });
+//         }
+//         let mut removed_value = self.created_instances.remove(id).unwrap();
+//         removed_value.set_history(None);
+//         self.append_history_item(HistoryItem::Delete(removed_value), tag);
+//     }
+//     fn instantiate_element_tagged<T: std::fmt::Debug + Clone + 'static>(
+//         &mut self,
+//         element: InstantiableWrapper<GSOWrapper<T, TSchema>, TSchema>,
+//         tag: &TaggedAction,
+//     ) -> Result<Uid, Error>
+//     where
+//         Self: Sized,
+//         GSOWrapper<T, TSchema>: Instantiable<Schema = TSchema>,
+//     {
+//         // Assumption here that when instantiating with this method,
+//         // the only child updates will be with regards to parents which are now being created
+//         for child_update in element.child_updates.iter() {
+//             let mut parent = element.prereq_instantiables.iter().find(|prereq_inst| {
+//                 *prereq_inst.get_instance_id() == child_update.1.host_instance_id
+//             });
+//             let mut operative_descriptor;
+//             if parent.is_none() {
+//                 operative_descriptor = &element
+//                     .instantiable_instance
+//                     .get_template()
+//                     .operative_slots
+//                     .get(&child_update.1.slot_id)
+//                     .unwrap()
+//                     .operative_descriptor;
+//             } else {
+//                 operative_descriptor = &parent
+//                     .unwrap()
+//                     .get_template()
+//                     .operative_slots
+//                     .get(&child_update.1.slot_id)
+//                     .unwrap()
+//                     .operative_descriptor;
+//             }
+//             match operative_descriptor {
+//                 OperativeVariants::LibraryOperative(lib_op_id) => {
+//                     if *lib_op_id
+//                         != self
+//                             .get(&child_update.0)
+//                             .unwrap()
+//                             .get_operative()
+//                             .get_tag()
+//                             .id
+//                     {
+//                         return Err(ElementCreationError::OutgoingElementIsWrongType);
+//                     };
+//                 }
+//                 OperativeVariants::TraitOperative(trait_op) => {
+//                     let child_digest = self
+//                         .get(&child_update.0)
+//                         .unwrap()
+//                         .get_operative()
+//                         .get_trait_impl_digest(self.constraint_schema);
+//                     let matches_trait_bounds = trait_op
+//                         .trait_ids
+//                         .iter()
+//                         .all(|trait_id| child_digest.trait_impls.contains_key(trait_id));
+//                     if !matches_trait_bounds {
+//                         return Err(ElementCreationError::OutgoingElementIsWrongType);
+//                     }
+//                 }
+//             }
+//         }
+//         let id = *element.get_instantiable_instance().get_instance_id();
+//         self.push_history_item(vec![HistoryItem::BlockActionMarker], &tag);
 
-        element.child_updates.iter().for_each(|child_update| {
-            let child = self.get_mut(&child_update.0).unwrap();
-            child.add_parent_slot(&child_update.1.clone());
-            self.append_history_item(HistoryItem::AddParent(child_update.1.clone()), &tag);
-        });
-        element.parent_updates.iter().for_each(|parent_update| {
-            let parent = self.get_mut(&parent_update.0).unwrap();
-            parent.add_child_to_slot(&parent_update.1);
-            self.append_history_item(HistoryItem::AddChild(parent_update.1.clone()), &tag);
-        });
-        element.flatten().into_iter().for_each(|instantiable| {
-            let instantiated = instantiable.instantiate(self.history.clone());
-            self.append_history_item(HistoryItem::Create(*instantiable.get_instance_id()), &tag);
-            self.created_instances
-                .insert(*instantiable.get_instance_id(), instantiated);
-        });
-        Ok(id)
-    }
-    fn create_connection_tagged(
-        &mut self,
-        connection: ConnectionAction,
-        tag: &TaggedAction,
-    ) -> Result<(), Error> {
-        match &self
-            .get(&connection.slot_ref.host_instance_id)
-            .unwrap()
-            .get_slot_by_id(&connection.slot_ref.slot_id)
-            .unwrap()
-            .slot
-            .operative_descriptor
-        {
-            OperativeVariants::LibraryOperative(expected_id) => {
-                if *expected_id
-                    != self
-                        .get_mut(&connection.slot_ref.target_instance_id)
-                        .unwrap()
-                        .get_operative()
-                        .get_tag()
-                        .id
-                {
-                    return Err(ElementCreationError::ChildElementIsWrongType);
-                }
-            }
-            OperativeVariants::TraitOperative(trait_op) => {
-                let child_digest = self
-                    .get(&connection.slot_ref.target_instance_id)
-                    .unwrap()
-                    .get_operative()
-                    .get_trait_impl_digest(self.constraint_schema);
-                let matches_trait_bounds = trait_op
-                    .trait_ids
-                    .iter()
-                    .all(|trait_id| child_digest.trait_impls.contains_key(trait_id));
-                if !matches_trait_bounds {
-                    return Err(ElementCreationError::ChildElementIsWrongType);
-                }
-            }
-        }
-        let parent = self.get_mut(&connection.slot_ref.host_instance_id).unwrap();
-        if parent
-            .get_slot_by_id(&connection.slot_ref.slot_id)
-            .unwrap()
-            .can_add_one()
-        {
-            parent.add_child_to_slot(&connection.slot_ref);
-        } else {
-            return Err(ElementCreationError::BoundCheckOutOfRange("".to_string()));
-        }
-        self.get_mut(&connection.slot_ref.target_instance_id)
-            .unwrap()
-            .add_parent_slot(&connection.slot_ref);
-        let history_item = vec![
-            HistoryItem::<TSchema>::BlockActionMarker,
-            HistoryItem::AddChild(connection.slot_ref.clone()),
-            HistoryItem::AddParent(connection.slot_ref.clone()),
-        ];
-        self.push_history_item(history_item, &tag);
-        Ok(())
-    }
-    fn delete_tagged(&mut self, id: &Uid, tag: &TaggedAction) -> Result<(), Error> {
-        let parent_slots = self.get(id).unwrap().get_parent_slots().clone();
+//         element.child_updates.iter().for_each(|child_update| {
+//             let child = self.get_mut(&child_update.0).unwrap();
+//             child.add_parent_slot(&child_update.1.clone());
+//             self.append_history_item(HistoryItem::AddParent(child_update.1.clone()), &tag);
+//         });
+//         element.parent_updates.iter().for_each(|parent_update| {
+//             let parent = self.get_mut(&parent_update.0).unwrap();
+//             parent.add_child_to_slot(&parent_update.1);
+//             self.append_history_item(HistoryItem::AddChild(parent_update.1.clone()), &tag);
+//         });
+//         element.flatten().into_iter().for_each(|instantiable| {
+//             let instantiated = instantiable.instantiate(self.history.clone());
+//             self.append_history_item(HistoryItem::Create(*instantiable.get_instance_id()), &tag);
+//             self.created_instances
+//                 .insert(*instantiable.get_instance_id(), instantiated);
+//         });
+//         Ok(id)
+//     }
+//     fn create_connection_tagged(
+//         &mut self,
+//         connection: ConnectionAction,
+//         tag: &TaggedAction,
+//     ) -> Result<(), Error> {
+//         match &self
+//             .get(&connection.slot_ref.host_instance_id)
+//             .unwrap()
+//             .get_slot_by_id(&connection.slot_ref.slot_id)
+//             .unwrap()
+//             .slot
+//             .operative_descriptor
+//         {
+//             OperativeVariants::LibraryOperative(expected_id) => {
+//                 if *expected_id
+//                     != self
+//                         .get_mut(&connection.slot_ref.target_instance_id)
+//                         .unwrap()
+//                         .get_operative()
+//                         .get_tag()
+//                         .id
+//                 {
+//                     return Err(ElementCreationError::OutgoingElementIsWrongType);
+//                 }
+//             }
+//             OperativeVariants::TraitOperative(trait_op) => {
+//                 let child_digest = self
+//                     .get(&connection.slot_ref.target_instance_id)
+//                     .unwrap()
+//                     .get_operative()
+//                     .get_trait_impl_digest(self.constraint_schema);
+//                 let matches_trait_bounds = trait_op
+//                     .trait_ids
+//                     .iter()
+//                     .all(|trait_id| child_digest.trait_impls.contains_key(trait_id));
+//                 if !matches_trait_bounds {
+//                     return Err(ElementCreationError::OutgoingElementIsWrongType);
+//                 }
+//             }
+//         }
+//         let parent = self.get_mut(&connection.slot_ref.host_instance_id).unwrap();
+//         if parent
+//             .get_slot_by_id(&connection.slot_ref.slot_id)
+//             .unwrap()
+//             .can_add_one()
+//         {
+//             parent.add_child_to_slot(&connection.slot_ref);
+//         } else {
+//             return Err(ElementCreationError::BoundCheckOutOfRange("".to_string()));
+//         }
+//         self.get_mut(&connection.slot_ref.target_instance_id)
+//             .unwrap()
+//             .add_parent_slot(&connection.slot_ref);
+//         let history_item = vec![
+//             HistoryItem::<TSchema>::BlockActionMarker,
+//             HistoryItem::AddChild(connection.slot_ref.clone()),
+//             HistoryItem::AddParent(connection.slot_ref.clone()),
+//         ];
+//         self.push_history_item(history_item, &tag);
+//         Ok(())
+//     }
+//     fn delete_tagged(&mut self, id: &Uid, tag: &TaggedAction) -> Result<(), Error> {
+//         let parent_slots = self.get(id).unwrap().get_parent_slots().clone();
 
-        let can_delete = parent_slots.iter().all(|parent_slot| {
-            self.get(&parent_slot.host_instance_id)
-                .unwrap()
-                .get_slot_by_id(&parent_slot.slot_id)
-                .unwrap()
-                .can_remove_one()
-        });
-        if !can_delete {
-            // return Err(ElementDeletionError::RequiredByParentSlot);
-            return Err(ElementCreationError::DeletionError);
-        }
-        self.push_history_item(vec![HistoryItem::BlockActionMarker], &tag);
-        parent_slots.iter().for_each(|parent_slot| {
-            self.get_mut(&parent_slot.host_instance_id)
-                .unwrap()
-                .remove_child_from_slot(parent_slot);
-        });
+//         let can_delete = parent_slots.iter().all(|parent_slot| {
+//             self.get(&parent_slot.host_instance_id)
+//                 .unwrap()
+//                 .get_slot_by_id(&parent_slot.slot_id)
+//                 .unwrap()
+//                 .can_remove_one()
+//         });
+//         if !can_delete {
+//             // return Err(ElementDeletionError::RequiredByParentSlot);
+//             return Err(ElementCreationError::DeletionError);
+//         }
+//         self.push_history_item(vec![HistoryItem::BlockActionMarker], &tag);
+//         parent_slots.iter().for_each(|parent_slot| {
+//             self.get_mut(&parent_slot.host_instance_id)
+//                 .unwrap()
+//                 .remove_child_from_slot(parent_slot);
+//         });
 
-        self.check_and_delete_children_tagged(id, None, tag);
+//         self.check_and_delete_children_tagged(id, None, tag);
 
-        Ok(())
-    }
-    fn process_history_tagged(&mut self, history: Vec<HistoryItem<TSchema>>, tag: &TaggedAction) {
-        if !history.is_empty() {
-            self.push_history_item(vec![HistoryItem::BlockActionMarker], tag);
-        }
-        history.into_iter().for_each(|action| match action {
-            HistoryItem::RemoveChildFromSlot(slot_ref) => {
-                let host = self.get_mut(&slot_ref.host_instance_id).unwrap();
-                host.add_child_to_slot(&slot_ref);
-                self.append_history_item(HistoryItem::AddChild(slot_ref), tag);
-            }
-            HistoryItem::RemoveParent(slot_ref) => {
-                let child = self.get_mut(&slot_ref.target_instance_id).unwrap();
-                child.add_parent_slot(&slot_ref);
-                self.append_history_item(HistoryItem::AddParent(slot_ref), tag);
-            }
-            HistoryItem::AddParent(slot_ref) => {
-                let child = self.get_mut(&slot_ref.target_instance_id).unwrap();
-                child.remove_parent(&slot_ref.host_instance_id, Some(&slot_ref.slot_id));
-                self.append_history_item(HistoryItem::RemoveParent(slot_ref), tag);
-            }
-            HistoryItem::AddChild(slot_ref) => {
-                let host = self.get_mut(&slot_ref.host_instance_id).unwrap();
-                host.remove_child_from_slot(&slot_ref);
-                self.append_history_item(HistoryItem::RemoveChildFromSlot(slot_ref), tag);
-            }
-            HistoryItem::Delete(mut deleted_node) => {
-                let deleted_node_id = *deleted_node.get_id();
-                deleted_node.set_history(Some(self.history.clone()));
-                self.created_instances
-                    .insert(deleted_node_id.clone(), deleted_node);
-                self.append_history_item(HistoryItem::Create(deleted_node_id), tag);
-            }
-            HistoryItem::Create(node_id) => {
-                let created_node = self.created_instances.remove(&node_id).unwrap();
-                self.append_history_item(HistoryItem::Delete(created_node), tag);
-            }
-            HistoryItem::EditField(field_edit) => {
-                self.created_instances
-                    .get_mut(&field_edit.instance_id)
-                    .unwrap()
-                    .apply_field_edit(FieldEdit {
-                        field_id: field_edit.field_id.clone(),
-                        value: field_edit.prev_value.clone(),
-                    });
-                self.append_history_item(HistoryItem::EditField(field_edit.reverse()), tag);
-            }
-            HistoryItem::BlockActionMarker => {}
-        })
-    }
-}
-impl<TSchema: GSO<Schema = TSchema> + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> {
-    type Schema = TSchema;
-    type Types = PrimitiveTypes;
-    type Values = PrimitiveValues;
+//         Ok(())
+//     }
+//     fn process_history_tagged(&mut self, history: Vec<HistoryItem<TSchema>>, tag: &TaggedAction) {
+//         if !history.is_empty() {
+//             self.push_history_item(vec![HistoryItem::BlockActionMarker], tag);
+//         }
+//         history.into_iter().for_each(|action| match action {
+//             HistoryItem::RemoveChildFromSlot(slot_ref) => {
+//                 let host = self.get_mut(&slot_ref.host_instance_id).unwrap();
+//                 host.add_child_to_slot(&slot_ref);
+//                 self.append_history_item(HistoryItem::AddChild(slot_ref), tag);
+//             }
+//             HistoryItem::RemoveParent(slot_ref) => {
+//                 let child = self.get_mut(&slot_ref.target_instance_id).unwrap();
+//                 child.add_parent_slot(&slot_ref);
+//                 self.append_history_item(HistoryItem::AddParent(slot_ref), tag);
+//             }
+//             HistoryItem::AddParent(slot_ref) => {
+//                 let child = self.get_mut(&slot_ref.target_instance_id).unwrap();
+//                 child.remove_parent(&slot_ref.host_instance_id, Some(&slot_ref.slot_id));
+//                 self.append_history_item(HistoryItem::RemoveParent(slot_ref), tag);
+//             }
+//             HistoryItem::AddChild(slot_ref) => {
+//                 let host = self.get_mut(&slot_ref.host_instance_id).unwrap();
+//                 host.remove_child_from_slot(&slot_ref);
+//                 self.append_history_item(HistoryItem::RemoveChildFromSlot(slot_ref), tag);
+//             }
+//             HistoryItem::Delete(mut deleted_node) => {
+//                 let deleted_node_id = *deleted_node.get_id();
+//                 deleted_node.set_history(Some(self.history.clone()));
+//                 self.created_instances
+//                     .insert(deleted_node_id.clone(), deleted_node);
+//                 self.append_history_item(HistoryItem::Create(deleted_node_id), tag);
+//             }
+//             HistoryItem::Create(node_id) => {
+//                 let created_node = self.created_instances.remove(&node_id).unwrap();
+//                 self.append_history_item(HistoryItem::Delete(created_node), tag);
+//             }
+//             HistoryItem::EditField(field_edit) => {
+//                 self.created_instances
+//                     .get_mut(&field_edit.instance_id)
+//                     .unwrap()
+//                     .apply_field_edit(FieldEdit {
+//                         field_id: field_edit.field_id.clone(),
+//                         value: field_edit.prev_value.clone(),
+//                     });
+//                 self.append_history_item(HistoryItem::EditField(field_edit.reverse()), tag);
+//             }
+//             HistoryItem::BlockActionMarker => {}
+//         })
+//     }
+// }
+// impl<TSchema: GSO<Schema = TSchema> + 'static> GraphEnvironment for BaseGraphEnvironment<TSchema> {
+//     type Schema = TSchema;
+//     type Types = PrimitiveTypes;
+//     type Values = PrimitiveValues;
 
-    fn get_constraint_schema(&self) -> &ConstraintSchema<Self::Types, Self::Values> {
-        &self.constraint_schema
-    }
+//     fn get_constraint_schema(&self) -> &ConstraintSchema<Self::Types, Self::Values> {
+//         &self.constraint_schema
+//     }
 
-    fn get(&self, id: &Uid) -> Option<&Self::Schema> {
-        self.created_instances.get(id)
-    }
-    fn create_connection(&mut self, connection: ConnectionAction) -> Result<(), Error> {
-        self.history.borrow_mut().redo.clear();
-        self.create_connection_tagged(connection, &TaggedAction::Normal)
-    }
-    fn instantiate_element<T: std::fmt::Debug + Clone + 'static>(
-        &mut self,
-        element: InstantiableWrapper<GSOWrapper<T, Self::Schema>, Self::Schema>,
-    ) -> Result<Uid, Error>
-    where
-        Self: Sized,
-        GSOWrapper<T, Self::Schema>: Instantiable<Schema = Self::Schema>,
-    {
-        self.history.borrow_mut().redo.clear();
-        self.instantiate_element_tagged(element, &TaggedAction::Normal)
-    }
+//     fn get(&self, id: &Uid) -> Option<&Self::Schema> {
+//         self.created_instances.get(id)
+//     }
+//     fn create_connection(&mut self, connection: ConnectionAction) -> Result<(), Error> {
+//         self.history.borrow_mut().redo.clear();
+//         self.create_connection_tagged(connection, &TaggedAction::Normal)
+//     }
+//     fn instantiate_element<T: std::fmt::Debug + Clone + 'static>(
+//         &mut self,
+//         element: InstantiableWrapper<GSOWrapper<T, Self::Schema>, Self::Schema>,
+//     ) -> Result<Uid, Error>
+//     where
+//         Self: Sized,
+//         GSOWrapper<T, Self::Schema>: Instantiable<Schema = Self::Schema>,
+//     {
+//         self.history.borrow_mut().redo.clear();
+//         self.instantiate_element_tagged(element, &TaggedAction::Normal)
+//     }
 
-    fn delete(&mut self, id: &Uid) -> Result<(), Error> {
-        self.history.borrow_mut().redo.clear();
-        self.delete_tagged(id, &TaggedAction::Normal)
-    }
+//     fn delete(&mut self, id: &Uid) -> Result<(), Error> {
+//         self.history.borrow_mut().redo.clear();
+//         self.delete_tagged(id, &TaggedAction::Normal)
+//     }
 
-    fn get_mut(&mut self, id: &Uid) -> Option<&mut Self::Schema> {
-        self.created_instances.get_mut(id)
-    }
+//     fn get_mut(&mut self, id: &Uid) -> Option<&mut Self::Schema> {
+//         self.created_instances.get_mut(id)
+//     }
 
-    fn undo(&mut self) {
-        let undo_item = self.history.borrow_mut().undo.pop();
-        if undo_item.is_none() {
-            return;
-        }
-        let undo_item = undo_item.unwrap();
-        self.process_history_tagged(undo_item, &TaggedAction::Undo);
-    }
+//     fn undo(&mut self) {
+//         let undo_item = self.history.borrow_mut().undo.pop();
+//         if undo_item.is_none() {
+//             return;
+//         }
+//         let undo_item = undo_item.unwrap();
+//         self.process_history_tagged(undo_item, &TaggedAction::Undo);
+//     }
 
-    fn redo(&mut self) {
-        let redo_item = self.history.borrow_mut().redo.pop();
-        if redo_item.is_none() {
-            return;
-        }
-        let redo_item = redo_item.unwrap();
-        self.process_history_tagged(redo_item, &TaggedAction::Redo);
-    }
-}
+//     fn redo(&mut self) {
+//         let redo_item = self.history.borrow_mut().redo.pop();
+//         if redo_item.is_none() {
+//             return;
+//         }
+//         let redo_item = redo_item.unwrap();
+//         self.process_history_tagged(redo_item, &TaggedAction::Redo);
+//     }
+// }
 
 pub trait GraphEnvironment {
     type Types: ConstraintTraits;
@@ -616,105 +617,105 @@ impl<T: std::fmt::Debug, TSchema: GSO> std::fmt::Debug for GSOWrapper<T, TSchema
     }
 }
 
-impl<T: Clone + std::fmt::Debug, TSchema: GSO> GSOWrapper<T, TSchema> {}
-impl<T: Clone + std::fmt::Debug + FieldEditable, TSchema: GSO> FieldEditable
-    for GSOWrapper<T, TSchema>
-{
-    fn apply_field_edit(&mut self, field_edit: FieldEdit) {
-        // self.data.apply_field_edit(field_edit);
-        self.data.insert(field_edit.field_id, field_edit.value);
-    }
-}
+// impl<T: Clone + std::fmt::Debug, TSchema: GSO> GSOWrapper<T, TSchema> {}
+// impl<T: Clone + std::fmt::Debug + FieldEditable, TSchema: GSO> FieldEditable
+//     for GSOWrapper<T, TSchema>
+// {
+//     fn apply_field_edit(&mut self, field_edit: FieldEdit) {
+//         // self.data.apply_field_edit(field_edit);
+//         self.data.insert(field_edit.field_id, field_edit.value);
+//     }
+// }
 
-impl<T: Clone + std::fmt::Debug + FieldEditable, TSchema: GSO> GSO for GSOWrapper<T, TSchema> {
-    type Schema = TSchema;
-    fn get_id(&self) -> &Uid {
-        &self.id
-    }
+// impl<T: Clone + std::fmt::Debug + FieldEditable, TSchema: GSO> GSO for GSOWrapper<T, TSchema> {
+//     type Schema = TSchema;
+//     fn get_id(&self) -> &Uid {
+//         &self.id
+//     }
 
-    fn get_slots(&self) -> &HashMap<Uid, ActiveSlot> {
-        &self.slots
-    }
+//     fn get_slots(&self) -> &HashMap<Uid, ActiveSlot> {
+//         &self.slots
+//     }
 
-    fn get_parent_slots(&self) -> &Vec<SlotRef> {
-        &self.parent_slots
-    }
+//     fn get_parent_slots(&self) -> &Vec<SlotRef> {
+//         &self.parent_slots
+//     }
 
-    fn get_operative(&self) -> &'static LibraryOperative<PrimitiveTypes, PrimitiveValues> {
-        &self.operative
-    }
+//     fn get_operative(&self) -> &'static LibraryOperative<PrimitiveTypes, PrimitiveValues> {
+//         &self.operative
+//     }
 
-    fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues> {
-        &self.template
-    }
+//     fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues> {
+//         &self.template
+//     }
 
-    fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
-        self.parent_slots.push(slot_ref.clone());
-        // self.history
-        //     .as_mut()
-        //     .unwrap()
-        //     .borrow_mut()
-        //     .last_mut()
-        //     .unwrap()
-        //     .push(HistoryItem::AddParent(slot_ref.clone()));
-        self
-    }
+//     fn add_parent_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+//         self.parent_slots.push(slot_ref.clone());
+//         // self.history
+//         //     .as_mut()
+//         //     .unwrap()
+//         //     .borrow_mut()
+//         //     .last_mut()
+//         //     .unwrap()
+//         //     .push(HistoryItem::AddParent(slot_ref.clone()));
+//         self
+//     }
 
-    fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
-        self.slots
-            .get_mut(&slot_ref.slot_id)
-            .unwrap()
-            .slotted_instances
-            .retain(|slotted_instance_id| *slotted_instance_id != slot_ref.target_instance_id);
-        // self.history
-        //     .as_mut()
-        //     .unwrap()
-        //     .borrow_mut()
-        //     .last_mut()
-        //     .unwrap()
-        //     .push(HistoryItem::RemoveChildFromSlot(vec![slot_ref.clone()]));
-        self
-    }
+//     fn remove_child_from_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+//         self.slots
+//             .get_mut(&slot_ref.slot_id)
+//             .unwrap()
+//             .slotted_instances
+//             .retain(|slotted_instance_id| *slotted_instance_id != slot_ref.target_instance_id);
+//         // self.history
+//         //     .as_mut()
+//         //     .unwrap()
+//         //     .borrow_mut()
+//         //     .last_mut()
+//         //     .unwrap()
+//         //     .push(HistoryItem::RemoveChildFromSlot(vec![slot_ref.clone()]));
+//         self
+//     }
 
-    fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> Vec<SlotRef> {
-        let mut removed = Vec::new();
-        self.parent_slots.retain(|slot_ref| {
-            let matches_parent = slot_ref.host_instance_id == *parent_id;
-            let matches_slot_id = if let Some(given_slot_id) = slot_id {
-                slot_ref.slot_id == *given_slot_id
-            } else {
-                true
-            };
-            if matches_parent && matches_slot_id {
-                removed.push(slot_ref.clone());
-                return false;
-            } else {
-                return true;
-            }
-        });
-        // self.history
-        //     .as_mut()
-        //     .unwrap()
-        //     .borrow_mut()
-        //     .last_mut()
-        //     .unwrap()
-        //     .push(HistoryItem::RemoveParent(removed));
-        removed
-    }
+//     fn remove_parent(&mut self, parent_id: &Uid, slot_id: Option<&Uid>) -> Vec<SlotRef> {
+//         let mut removed = Vec::new();
+//         self.parent_slots.retain(|slot_ref| {
+//             let matches_parent = slot_ref.host_instance_id == *parent_id;
+//             let matches_slot_id = if let Some(given_slot_id) = slot_id {
+//                 slot_ref.slot_id == *given_slot_id
+//             } else {
+//                 true
+//             };
+//             if matches_parent && matches_slot_id {
+//                 removed.push(slot_ref.clone());
+//                 return false;
+//             } else {
+//                 return true;
+//             }
+//         });
+//         // self.history
+//         //     .as_mut()
+//         //     .unwrap()
+//         //     .borrow_mut()
+//         //     .last_mut()
+//         //     .unwrap()
+//         //     .push(HistoryItem::RemoveParent(removed));
+//         removed
+//     }
 
-    fn set_history(&mut self, history: Option<HistoryRef<Self::Schema>>) {
-        self.history = history;
-    }
+//     fn set_history(&mut self, history: Option<HistoryRef<Self::Schema>>) {
+//         self.history = history;
+//     }
 
-    fn add_child_to_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
-        self.slots
-            .get_mut(&slot_ref.slot_id)
-            .unwrap()
-            .slotted_instances
-            .push(slot_ref.target_instance_id);
-        self
-    }
-}
+//     fn add_child_to_slot(&mut self, slot_ref: &SlotRef) -> &mut Self {
+//         self.slots
+//             .get_mut(&slot_ref.slot_id)
+//             .unwrap()
+//             .slotted_instances
+//             .push(slot_ref.target_instance_id);
+//         self
+//     }
+// }
 #[derive(Clone, Debug)]
 pub struct GSOWrapperBuilder<T> {
     id: Uid,
@@ -760,67 +761,67 @@ impl<T: Clone + std::fmt::Debug> GSOWrapperBuilder<T> {
         self
     }
 }
-impl<F, T, TSchema: GSO> Producable<GSOWrapper<T, TSchema>> for GSOWrapperBuilder<F>
-where
-    F: Producable<T>,
-{
-    fn produce(&self) -> GSOWrapper<T, TSchema> {
-        GSOWrapper::<T, TSchema> {
-            history: None,
-            id: self.id,
-            slots: self.slots.clone(),
-            parent_slots: self.parent_slots.clone(),
-            data: self
-                .data
-                .iter()
-                .map(|(id, value)| (*id, value.clone().unwrap()))
-                .collect::<HashMap<Uid, PrimitiveValues>>(),
-            operative: &self.operative,
-            template: &self.template,
-            _phantom: PhantomData,
-        }
-    }
-}
+// impl<F, T, TSchema: GSO> Producable<GSOWrapper<T, TSchema>> for GSOWrapperBuilder<F>
+// where
+//     F: Producable<T>,
+// {
+//     fn produce(&self) -> GSOWrapper<T, TSchema> {
+//         GSOWrapper::<T, TSchema> {
+//             history: None,
+//             id: self.id,
+//             slots: self.slots.clone(),
+//             parent_slots: self.parent_slots.clone(),
+//             data: self
+//                 .data
+//                 .iter()
+//                 .map(|(id, value)| (*id, value.clone().unwrap()))
+//                 .collect::<HashMap<Uid, PrimitiveValues>>(),
+//             operative: &self.operative,
+//             template: &self.template,
+//             _phantom: PhantomData,
+//         }
+//     }
+// }
 
-impl<F> Verifiable for GSOWrapperBuilder<F>
-where
-    F: Verifiable,
-{
-    fn verify(&self) -> Result<(), ElementCreationError> {
-        // self.data.verify()?;
-        let field_errors = self
-            .data
-            .values()
-            .filter_map(|field_val| {
-                if field_val.is_none() {
-                    return Some(ElementCreationError::RequiredFieldIsEmpty);
-                }
-                None
-            })
-            .collect::<Vec<_>>();
-        let slot_errors = self
-            .slots
-            .values()
-            .filter_map(|active_slot| {
-                if !active_slot.check_current_conformity() {
-                    Some(ElementCreationError::BoundCheckOutOfRange("".to_string()))
-                } else {
-                    None
-                }
-            })
-            .collect::<Vec<_>>();
-        if slot_errors.is_empty() && field_errors.is_empty() {
-            return Ok(());
-        }
-        // TODO make this return all of the errors
-        Err(ElementCreationError::BoundCheckOutOfRange("".to_string()))
-    }
-}
+// impl<F> Verifiable for GSOWrapperBuilder<F>
+// where
+//     F: Verifiable,
+// {
+//     fn verify(&self) -> Result<(), ElementCreationError> {
+//         // self.data.verify()?;
+//         let field_errors = self
+//             .data
+//             .values()
+//             .filter_map(|field_val| {
+//                 if field_val.is_none() {
+//                     return Some(ElementCreationError::RequiredFieldIsEmpty);
+//                 }
+//                 None
+//             })
+//             .collect::<Vec<_>>();
+//         let slot_errors = self
+//             .slots
+//             .values()
+//             .filter_map(|active_slot| {
+//                 if !active_slot.check_current_conformity() {
+//                     Some(ElementCreationError::BoundCheckOutOfRange("".to_string()))
+//                 } else {
+//                     None
+//                 }
+//             })
+//             .collect::<Vec<_>>();
+//         if slot_errors.is_empty() && field_errors.is_empty() {
+//             return Ok(());
+//         }
+//         // TODO make this return all of the errors
+//         Err(ElementCreationError::BoundCheckOutOfRange("".to_string()))
+//     }
+// }
 
-impl<F, T, TSchema: GSO> Finalizable<GSOWrapper<T, TSchema>> for GSOWrapperBuilder<F> where
-    F: Verifiable + Producable<T>
-{
-}
+// impl<F, T, TSchema: GSO> Finalizable<GSOWrapper<T, TSchema>> for GSOWrapperBuilder<F> where
+//     F: Verifiable + Producable<T>
+// {
+// }
 
 pub trait Buildable
 where
@@ -857,30 +858,30 @@ where
     child_updates: Vec<(Uid, SlotRef)>,
 }
 
-impl<T, TSchema> InstantiableWrapper<T, TSchema>
-where
-    T: Instantiable<Schema = TSchema> + 'static,
-{
-    pub fn flatten(mut self) -> InstantiableElements<TSchema> {
-        self.prereq_instantiables
-            .push(Rc::new(self.instantiable_instance));
-        self.prereq_instantiables
-    }
-    pub fn get_prereq_instantiables(&self) -> &InstantiableElements<TSchema> {
-        &self.prereq_instantiables
-    }
-    pub fn get_instantiable_instance(&self) -> &T {
-        &self.instantiable_instance
-    }
-}
-impl<T, TSchema: GSO> InstantiableWrapper<GSOWrapper<T, TSchema>, TSchema>
-where
-    GSOWrapper<T, TSchema>: Instantiable<Schema = TSchema>,
-{
-    pub fn add_parent_slot(&mut self, parent_slot: SlotRef) {
-        self.instantiable_instance.parent_slots.push(parent_slot);
-    }
-}
+// impl<T, TSchema> InstantiableWrapper<T, TSchema>
+// where
+//     T: Instantiable<Schema = TSchema> + 'static,
+// {
+//     pub fn flatten(mut self) -> InstantiableElements<TSchema> {
+//         self.prereq_instantiables
+//             .push(Rc::new(self.instantiable_instance));
+//         self.prereq_instantiables
+//     }
+//     pub fn get_prereq_instantiables(&self) -> &InstantiableElements<TSchema> {
+//         &self.prereq_instantiables
+//     }
+//     pub fn get_instantiable_instance(&self) -> &T {
+//         &self.instantiable_instance
+//     }
+// }
+// impl<T, TSchema: GSO> InstantiableWrapper<GSOWrapper<T, TSchema>, TSchema>
+// where
+//     GSOWrapper<T, TSchema>: Instantiable<Schema = TSchema>,
+// {
+//     pub fn add_parent_slot(&mut self, parent_slot: SlotRef) {
+//         self.instantiable_instance.parent_slots.push(parent_slot);
+//     }
+// }
 
 pub struct ConnectionAction {
     pub slot_ref: SlotRef,
@@ -909,113 +910,113 @@ where
     _phantom: PhantomData<T>,
 }
 
-impl<F, T, TSchema: GSO> GSOBuilder<F, T, TSchema>
-where
-    F: Finalizable<T>,
-    T: Instantiable<Schema = TSchema> + 'static,
-{
-    pub fn build(
-        &mut self,
-        graph: &impl GraphEnvironment<
-            Types = PrimitiveTypes,
-            Values = PrimitiveValues,
-            Schema = TSchema,
-        >,
-    ) -> Result<InstantiableWrapper<T, TSchema>, Error> {
-        for parent_update in self.parent_updates.iter() {
-            let can_add_one = graph
-                .get(&parent_update.0)
-                .unwrap()
-                .get_slot_by_id(&parent_update.1.slot_id)
-                .unwrap()
-                .can_add_one();
-            if !can_add_one {
-                return Err(ElementCreationError::BoundCheckOutOfRange("".to_string()));
-            }
-        }
+// impl<F, T, TSchema: GSO> GSOBuilder<F, T, TSchema>
+// where
+//     F: Finalizable<T>,
+//     T: Instantiable<Schema = TSchema> + 'static,
+// {
+//     pub fn build(
+//         &mut self,
+//         graph: &impl GraphEnvironment<
+//             Types = PrimitiveTypes,
+//             Values = PrimitiveValues,
+//             Schema = TSchema,
+//         >,
+//     ) -> Result<InstantiableWrapper<T, TSchema>, Error> {
+//         for parent_update in self.parent_updates.iter() {
+//             let can_add_one = graph
+//                 .get(&parent_update.0)
+//                 .unwrap()
+//                 .get_slot_by_id(&parent_update.1.slot_id)
+//                 .unwrap()
+//                 .can_add_one();
+//             if !can_add_one {
+//                 return Err(ElementCreationError::BoundCheckOutOfRange("".to_string()));
+//             }
+//         }
 
-        Ok(InstantiableWrapper {
-            child_updates: self.child_updates.clone(),
-            parent_updates: self.parent_updates.clone(),
-            instantiable_instance: self.wip_instance.finalize()?,
-            prereq_instantiables: self.instantiables.clone(),
-        })
-    }
-    pub fn new(builder_wrapper_instance: F) -> Self {
-        Self {
-            instantiables: vec![],
-            wip_instance: builder_wrapper_instance,
-            child_updates: Vec::new(),
-            parent_updates: Vec::new(),
-            _phantom: PhantomData,
-        }
-    }
-}
+//         Ok(InstantiableWrapper {
+//             child_updates: self.child_updates.clone(),
+//             parent_updates: self.parent_updates.clone(),
+//             instantiable_instance: self.wip_instance.finalize()?,
+//             prereq_instantiables: self.instantiables.clone(),
+//         })
+//     }
+//     pub fn new(builder_wrapper_instance: F) -> Self {
+//         Self {
+//             instantiables: vec![],
+//             wip_instance: builder_wrapper_instance,
+//             child_updates: Vec::new(),
+//             parent_updates: Vec::new(),
+//             _phantom: PhantomData,
+//         }
+//     }
+// }
 
-pub fn integrate_child<F, T, C, TSchema: GSO>(
-    builder: &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T, TSchema>, TSchema>,
-    mut child: InstantiableWrapper<GSOWrapper<C, TSchema>, TSchema>,
-    slot_id: Uid,
-) -> &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T, TSchema>, TSchema>
-where
-    F: Verifiable + Producable<T> + Clone + std::fmt::Debug,
-    T: Clone + std::fmt::Debug,
-    GSOWrapper<C, TSchema>: Instantiable<Schema = TSchema> + 'static,
-{
-    builder
-        .wip_instance
-        .add_instance_to_slot(&slot_id, child.get_instantiable_instance().id);
-    let slot_ref = SlotRef {
-        slot_id,
-        target_instance_id: *child.get_instantiable_instance().get_instance_id(),
-        host_instance_id: builder.wip_instance.id,
-    };
-    child.add_parent_slot(slot_ref);
-    builder.instantiables.extend(child.flatten());
-    builder
-}
+// pub fn integrate_child<F, T, C, TSchema: GSO>(
+//     builder: &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T, TSchema>, TSchema>,
+//     mut child: InstantiableWrapper<GSOWrapper<C, TSchema>, TSchema>,
+//     slot_id: Uid,
+// ) -> &mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T, TSchema>, TSchema>
+// where
+//     F: Verifiable + Producable<T> + Clone + std::fmt::Debug,
+//     T: Clone + std::fmt::Debug,
+//     GSOWrapper<C, TSchema>: Instantiable<Schema = TSchema> + 'static,
+// {
+//     builder
+//         .wip_instance
+//         .add_instance_to_slot(&slot_id, child.get_instantiable_instance().id);
+//     let slot_ref = SlotRef {
+//         slot_id,
+//         target_instance_id: *child.get_instantiable_instance().get_instance_id(),
+//         host_instance_id: builder.wip_instance.id,
+//     };
+//     child.add_parent_slot(slot_ref);
+//     builder.instantiables.extend(child.flatten());
+//     builder
+// }
 
-pub fn integrate_child_id<'a, F, T, TSchema: GSO>(
-    builder: &'a mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T, TSchema>, TSchema>,
-    child_id: &Uid,
-    slot_id: Uid,
-) -> &'a mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T, TSchema>, TSchema>
-where
-    F: Verifiable + Producable<T> + Clone + std::fmt::Debug,
-    T: Clone + std::fmt::Debug,
-{
-    builder
-        .wip_instance
-        .add_instance_to_slot(&slot_id, *child_id);
-    let slot_ref = SlotRef {
-        slot_id,
-        target_instance_id: *child_id,
-        host_instance_id: builder.wip_instance.id,
-    };
-    // child.add_parent_slot(slot_ref);
-    builder.child_updates.push((*child_id, slot_ref));
-    builder
-}
+// pub fn integrate_child_id<'a, F, T, TSchema: GSO>(
+//     builder: &'a mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T, TSchema>, TSchema>,
+//     child_id: &Uid,
+//     slot_id: Uid,
+// ) -> &'a mut GSOBuilder<GSOWrapperBuilder<F>, GSOWrapper<T, TSchema>, TSchema>
+// where
+//     F: Verifiable + Producable<T> + Clone + std::fmt::Debug,
+//     T: Clone + std::fmt::Debug,
+// {
+//     builder
+//         .wip_instance
+//         .add_instance_to_slot(&slot_id, *child_id);
+//     let slot_ref = SlotRef {
+//         slot_id,
+//         target_instance_id: *child_id,
+//         host_instance_id: builder.wip_instance.id,
+//     };
+//     // child.add_parent_slot(slot_ref);
+//     builder.child_updates.push((*child_id, slot_ref));
+//     builder
+// }
 
-impl<T, TSchema: GSO + 'static> Instantiable for GSOWrapper<T, TSchema>
-where
-    T: Clone + std::fmt::Debug + IntoSchema<Schema = TSchema> + FieldEditable + 'static,
-{
-    type Schema = TSchema;
+// impl<T, TSchema: GSO + 'static> Instantiable for GSOWrapper<T, TSchema>
+// where
+//     T: Clone + std::fmt::Debug + IntoSchema<Schema = TSchema> + FieldEditable + 'static,
+// {
+//     type Schema = TSchema;
 
-    fn instantiate(&self, history: HistoryRef<TSchema>) -> Self::Schema {
-        let mut new_self = self.clone();
-        new_self.set_history(Some(history));
-        T::into_schema(new_self)
-    }
+//     fn instantiate(&self, history: HistoryRef<TSchema>) -> Self::Schema {
+//         let mut new_self = self.clone();
+//         new_self.set_history(Some(history));
+//         T::into_schema(new_self)
+//     }
 
-    fn get_instance_id(&self) -> &Uid {
-        self.get_id()
-    }
-    fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues> {
-        self.template
-    }
-}
+//     fn get_instance_id(&self) -> &Uid {
+//         self.get_id()
+//     }
+//     fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues> {
+//         self.template
+//     }
+// }
 
 pub trait IntoSchema
 where
