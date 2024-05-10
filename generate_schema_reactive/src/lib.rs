@@ -198,24 +198,36 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
        let field_trait_fns_streams = field_trait_fns.values().map(|item| item.fn_signature.clone()).collect::<Vec<_>>();
        let field_trait_fns_names = field_trait_fns.values().map(|item| item.fn_name.clone()).collect::<Vec<_>>();
        let IntermediateSlotTraitInfo { trait_name: slot_trait_name, trait_fns: slot_trait_fns } = meta.template_slots_trait_info.get(&template_id).unwrap();
-       let slot_trait_fns_streams = slot_trait_fns.values().map(|item| item.fn_signature.clone()).collect::<Vec<_>>();
-       let slot_trait_fns_names = slot_trait_fns.values().map(|item| item.fn_name.clone()).collect::<Vec<_>>();
-       let id_only_fns_streams = slot_trait_fns.values().map(|item| item.id_only_signature.clone()).collect::<Vec<_>>();
-       let id_only_fns_names = slot_trait_fns.values().map(|item| item.id_only_name.clone()).collect::<Vec<_>>();
+
+       let slot_streams  = slot_trait_fns.iter().fold(Vec::new(),|mut agg, (id, SlotFnDetails { fn_name, fn_signature, return_enum_type, is_trait_slot, id_only_signature, id_only_name, is_single_slot_bound })| {
+           let intermediate = &subclass_op_names.iter().fold((Vec::new(), Vec::new()), |mut agg, subclass| {
+               agg.0.push(quote!{#enum_name::#subclass(val) => val.#fn_name(),});
+               agg.1.push(quote!{#enum_name::#subclass(val) => val.#id_only_name(),});
+               agg
+           });
+           let variant_streams = intermediate.0.clone();
+           let id_only_variant_streams = intermediate.1.clone();
+           agg.push(quote!{
+               #fn_signature {
+                   match self {
+                   #(#variant_streams)*
+                   _ => panic!(),
+                   }
+               }
+               #id_only_signature {
+                   match self {
+                   #(#id_only_variant_streams)*
+                   _ => panic!(),
+                   }
+               }
+           });
+           agg
+       });
        
        let field_match_code = quote!{
            match self {
                #(#enum_name::#subclass_op_names(val) => val.#field_trait_fns_names(),)*
-           }
-       };
-       let slot_match_code = quote!{
-           match self {
-               #(#enum_name::#subclass_op_names(val) => val.#slot_trait_fns_names(),)*
-           }
-       };
-       let id_only_match_code = quote!{
-           match self {
-               #(#enum_name::#subclass_op_names(val) => val.#id_only_fns_names(),)*
+               _ => panic!(),
            }
        };
        let rgso_impl = impl_RGSO_for_enum(enum_name.clone(), subclass_op_names.clone());
@@ -239,12 +251,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                    })*
                }
                impl #slot_trait_name for #enum_name {
-                   #(#slot_trait_fns_streams {
-                       #slot_match_code
-                   })*
-                   #(#id_only_fns_streams {
-                       #id_only_match_code
-                   })*
+                   #(#slot_streams)*
                }
                #rgso_impl
            })
@@ -372,13 +379,11 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         #(#slot_trait_enums_stream)*
         #(#trait_definition_streams)*
 
-        use lazy_static::lazy_static;
-
-        fn validate_signal_is_some<T>(signal: &leptos::RwSignal<Option<T>>) -> Result<(), validator::ValidationError> {
-            signal.with(|val| {if val.is_some() {return Ok(())} return Err(validator::ValidationError::new("Required field is empty"));})
+        fn validate_signal_is_some<T>(signal: &leptos::RwSignal<Option<T>>) -> Result<(), base_types::traits::ElementCreationError> {
+            signal.with(|val| {if val.is_some() {return Ok(())} return Err(base_types::traits::ElementCreationError::RequiredFieldIsEmpty);})
         }
 
-        lazy_static!{
+        lazy_static::lazy_static!{
             pub static ref CONSTRAINT_SCHEMA: base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> 
             // = constraint_schema::constraint_schema!();
             = serde_json::from_str::<base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues>>(#raw_json_data).expect("Schema formatted incorrectly");

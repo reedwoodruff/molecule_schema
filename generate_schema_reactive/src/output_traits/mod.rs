@@ -1,17 +1,11 @@
-use anyhow::{Error, Result};
-use leptos::logging::log;
-use std::borrow::BorrowMut;
-use std::collections::HashSet;
-use std::fmt;
-
-use std::{cell::RefCell, collections::HashMap, marker::PhantomData, rc::Rc};
-
+pub use base_types::common::Uid;
 use base_types::constraint_schema::{
     LibraryOperative, LibraryTemplate, OperativeSlot, OperativeVariants, SlotBounds,
 };
 use base_types::constraint_schema_item::ConstraintSchemaItem;
+
 use base_types::{
-    common::{ConstraintTraits, Uid},
+    common::ConstraintTraits,
     constraint_schema::{
         ConstraintSchema,
         // LibraryOperative, LibraryTemplate, OperativeSlot, SlotBounds,
@@ -21,8 +15,8 @@ use base_types::{
 // use RGSOBuilderModule::RGSOBuilder;
 
 use base_types::traits::{
-    ConnectionAction, ElementCreationError, ElementDeletionError, FieldEdit, Finalizable,
-    HistoryFieldEdit, SlotRef, TaggedAction, Verifiable,
+    ConnectionAction, ElementCreationError, FieldEdit, Finalizable, HistoryFieldEdit, SlotRef,
+    TaggedAction, Verifiable,
 };
 use base_types::utils::IntoPrimitiveValue;
 use leptos::{
@@ -77,18 +71,18 @@ pub struct RHistoryContainer<TSchema: EditRGSO<Schema = TSchema>> {
 
 #[derive(Debug, Clone)]
 pub struct RBaseGraphEnvironment<TSchema: EditRGSO<Schema = TSchema> + 'static> {
-    pub created_instances: RwSignal<HashMap<Uid, TSchema>>,
+    pub created_instances: RwSignal<std::collections::HashMap<Uid, TSchema>>,
     pub constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
-    pub history: Rc<RefCell<RHistoryContainer<TSchema>>>,
+    pub history: std::rc::Rc<std::cell::RefCell<RHistoryContainer<TSchema>>>,
 }
 impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
     pub fn new(
         constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
     ) -> Self {
         Self {
-            created_instances: RwSignal::new(HashMap::new()),
+            created_instances: RwSignal::new(std::collections::HashMap::new()),
             constraint_schema,
-            history: Rc::new(RefCell::new(RHistoryContainer {
+            history: std::rc::Rc::new(std::cell::RefCell::new(RHistoryContainer {
                 undo: Vec::new(),
                 redo: Vec::new(),
             })),
@@ -98,7 +92,7 @@ impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchem
 
 impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
     fn process_blueprint(&self, blueprint: Blueprint<TSchema>) {
-        log!("starting processing of blueprint");
+        leptos::logging::log!("starting processing of blueprint");
         // let blueprint_clone = blueprint.clone();
         batch(|| {
             blueprint.added_instances.into_iter().for_each(|instance| {
@@ -162,7 +156,7 @@ impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchem
                     });
                 });
         });
-        log!("finished processing of blueprint");
+        leptos::logging::log!("finished processing of blueprint");
     }
     fn push_undo(&self, blueprint: Blueprint<TSchema>) {
         self.history.as_ref().borrow_mut().undo.push(blueprint);
@@ -234,7 +228,7 @@ pub trait RGSO: std::fmt::Debug + Clone {
     fn slot_by_id<E: Into<Uid>>(&self, slot_id: E) -> Option<&RActiveSlot> {
         self.outgoing_slots().get(&slot_id.into())
     }
-    fn outgoing_slots(&self) -> &HashMap<Uid, RActiveSlot>;
+    fn outgoing_slots(&self) -> &std::collections::HashMap<Uid, RActiveSlot>;
     fn incoming_slots(&self) -> RwSignal<Vec<SlotRef>>;
     fn incoming_slot_ids_by_id<E: Into<Uid>>(&self, slot_variant: E) -> Vec<SlotRef> {
         let slot_variant = &slot_variant.into();
@@ -257,7 +251,7 @@ trait EditRGSO: RGSO + RFieldEditable {
     fn add_outgoing(&self, slot_ref: SlotRef) -> &Self;
     fn remove_outgoing(&self, slot_ref: &SlotRef) -> &Self;
     fn remove_incoming(&self, parent_id: &Uid, slot_id: Option<&Uid>) -> Vec<SlotRef>;
-    fn get_graph(&self) -> &Rc<RBaseGraphEnvironment<Self::Schema>>;
+    fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>;
 }
 
 pub trait Slotted {}
@@ -269,7 +263,7 @@ pub struct RActiveSlot {
 }
 
 impl std::fmt::Debug for RActiveSlot {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("RActiveSlot")
             .field("slot", &self.slot.tag.name)
             .field("instances", &self.slotted_instances.get())
@@ -317,18 +311,23 @@ impl RActiveSlot {
 #[derive(Clone)]
 pub struct RGSOWrapper<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
     id: Uid,
-    data: HashMap<Uid, RwSignal<PrimitiveValues>>,
-    graph: Rc<RBaseGraphEnvironment<TSchema>>,
-    outgoing_slots: HashMap<Uid, RActiveSlot>,
+    data: std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>,
+    graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
+    outgoing_slots: std::collections::HashMap<Uid, RActiveSlot>,
     incoming_slots: RwSignal<Vec<SlotRef>>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
     template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
-    _phantom: PhantomData<T>,
+    _phantom: std::marker::PhantomData<T>,
+}
+impl<T, TSchema: EditRGSO<Schema = TSchema>> PartialEq for RGSOWrapper<T, TSchema> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
 }
 impl<T: std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>> std::fmt::Debug
     for RGSOWrapper<T, TSchema>
 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GSOWrapper")
             .field("id", &self.id)
             .field(
@@ -384,7 +383,7 @@ where
         &self.id
     }
 
-    fn outgoing_slots(&self) -> &HashMap<Uid, RActiveSlot> {
+    fn outgoing_slots(&self) -> &std::collections::HashMap<Uid, RActiveSlot> {
         &self.outgoing_slots
     }
 
@@ -457,32 +456,32 @@ where
             });
         self
     }
-    fn get_graph(&self) -> &Rc<RBaseGraphEnvironment<Self::Schema>> {
+    fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>> {
         &self.graph
     }
 }
 #[derive(Clone, Debug)]
 pub struct RGSOWrapperBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
     id: Uid,
-    slots: HashMap<Uid, RActiveSlot>,
+    slots: std::collections::HashMap<Uid, RActiveSlot>,
     incoming_slots: RwSignal<Vec<SlotRef>>,
-    pub data: HashMap<Uid, RwSignal<Option<RwSignal<PrimitiveValues>>>>,
+    pub data: std::collections::HashMap<Uid, RwSignal<Option<RwSignal<PrimitiveValues>>>>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
     template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
-    graph: Rc<RBaseGraphEnvironment<TSchema>>,
+    graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
     temp_id: String,
-    _phantom: PhantomData<T>,
+    _phantom: std::marker::PhantomData<T>,
 }
 
 impl<T: Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>>
     RGSOWrapperBuilder<T, TSchema>
 {
     pub fn new(
-        data: HashMap<Uid, RwSignal<Option<RwSignal<PrimitiveValues>>>>,
-        slots: Option<HashMap<Uid, RActiveSlot>>,
+        data: std::collections::HashMap<Uid, RwSignal<Option<RwSignal<PrimitiveValues>>>>,
+        slots: Option<std::collections::HashMap<Uid, RActiveSlot>>,
         operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
         template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
-        graph: Rc<RBaseGraphEnvironment<TSchema>>,
+        graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
     ) -> Self {
         Self {
             id: uuid::Uuid::new_v4().as_u128(),
@@ -492,7 +491,7 @@ impl<T: Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>>
             operative,
             template,
             graph,
-            _phantom: PhantomData,
+            _phantom: std::marker::PhantomData,
             temp_id: uuid::Uuid::new_v4().to_string(),
         }
     }
@@ -521,22 +520,22 @@ impl<T, TSchema: EditRGSO<Schema = TSchema>> RProducable<RGSOWrapper<T, TSchema>
                 .data
                 .iter()
                 .map(|(id, build_data)| (*id, build_data.get().unwrap()))
-                .collect::<HashMap<Uid, RwSignal<PrimitiveValues>>>(),
+                .collect::<std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>>(),
             operative: self.operative,
             template: self.template,
-            _phantom: PhantomData,
+            _phantom: std::marker::PhantomData,
         }
     }
 }
 
 impl<T, TSchema: EditRGSO<Schema = TSchema>> Verifiable for RGSOWrapperBuilder<T, TSchema> {
-    fn verify(&self) -> Result<(), Error> {
+    fn verify(&self) -> Result<(), base_types::traits::ElementCreationError> {
         let field_errors = self
             .data
             .values()
             .filter_map(|field_val| {
                 if field_val.with(|field_val| field_val.is_none()) {
-                    return Some(Error::new(ElementCreationError::RequiredFieldIsEmpty));
+                    return Some(ElementCreationError::RequiredFieldIsEmpty);
                 }
                 None
             })
@@ -546,17 +545,24 @@ impl<T, TSchema: EditRGSO<Schema = TSchema>> Verifiable for RGSOWrapperBuilder<T
             .values()
             .filter_map(|active_slot| {
                 if !active_slot.check_current_conformity() {
-                    Some(Error::new(ElementCreationError::BoundCheckOutOfRange))
+                    Some(ElementCreationError::BoundCheckOutOfRange(format!(
+                        "{}: {}\nBounds: {:?}, Attempted: {}",
+                        self.operative.tag.name,
+                        active_slot.slot.tag.name,
+                        active_slot.slot.bounds,
+                        active_slot.slotted_instances.get().len()
+                    )))
                 } else {
                     None
                 }
             })
             .collect::<Vec<_>>();
-        if !slot_errors.is_empty() {
-            return Err(Error::new(ElementCreationError::BoundCheckOutOfRange));
-        }
-        if !field_errors.is_empty() {
-            return Err(Error::new(ElementCreationError::RequiredFieldIsEmpty));
+        let mut all_errors = Vec::new();
+        all_errors.extend(field_errors);
+        all_errors.extend(slot_errors);
+        if !all_errors.is_empty() {
+            leptos::logging::log!("{:#?}", all_errors);
+            return Err(ElementCreationError::Stack(all_errors));
         }
         Ok(())
     }
@@ -570,11 +576,11 @@ where
     type Schema: EditRGSO<Schema = Self::Schema>;
 
     fn initiate_build(
-        graph: &Rc<RBaseGraphEnvironment<Self::Schema>>,
+        graph: &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>,
     ) -> RGSOBuilder<Self, Self::Schema>;
     fn initiate_edit(
         id: Uid,
-        graph: &Rc<RBaseGraphEnvironment<Self::Schema>>,
+        graph: &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>,
     ) -> RGSOBuilder<Self, Self::Schema>;
     fn get_operative_id() -> Uid;
 }
@@ -582,24 +588,24 @@ where
 trait RInstantiable: std::fmt::Debug {
     type Schema: RGSO<Schema = Self::Schema>;
 
-    fn instantiate(&self) -> Self::Schema;
+    fn instantiate(&self) -> Result<Self::Schema, base_types::traits::ElementCreationError>;
     fn get_id(&self) -> &Uid;
     fn get_temp_id(&self) -> &String;
     fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
     fn add_incoming(&mut self, host_id: &Uid, slot_id: &Uid);
     fn add_outgoing(&mut self, target_id: &Uid, slot_id: &Uid);
 }
-type RInstantiableElements<TSchema> = Vec<Rc<dyn RInstantiable<Schema = TSchema>>>;
+type RInstantiableElements<TSchema> = Vec<std::rc::Rc<dyn RInstantiable<Schema = TSchema>>>;
 
 #[derive(Clone, Debug)]
 pub struct Blueprint<TSchema: EditRGSO<Schema = TSchema>> {
     added_instances: Vec<TSchema>,
     deleted_instances: Vec<TSchema>,
-    add_outgoing_updates: HashSet<(Uid, SlotRef)>,
-    remove_outgoing_updates: HashSet<(Uid, SlotRef)>,
-    add_incoming_updates: HashSet<(Uid, SlotRef)>,
-    remove_incoming_updates: HashSet<(Uid, SlotRef)>,
-    field_updates: HashSet<(Uid, HistoryFieldEdit)>,
+    add_outgoing_updates: std::collections::HashSet<(Uid, SlotRef)>,
+    remove_outgoing_updates: std::collections::HashSet<(Uid, SlotRef)>,
+    add_incoming_updates: std::collections::HashSet<(Uid, SlotRef)>,
+    remove_incoming_updates: std::collections::HashSet<(Uid, SlotRef)>,
+    field_updates: std::collections::HashSet<(Uid, HistoryFieldEdit)>,
     action_tag: Option<TaggedAction>,
 }
 impl<TSchema: EditRGSO<Schema = TSchema>> Blueprint<TSchema> {
@@ -633,7 +639,7 @@ struct TempAddOutgoingSlotRef {
 }
 
 pub struct ExecutionResult {
-    temp_id_map: HashMap<String, Uid>,
+    temp_id_map: std::collections::HashMap<String, Uid>,
 }
 impl ExecutionResult {
     fn get_final_id(&self, temp_id: &str) -> Option<&Uid> {
@@ -643,20 +649,23 @@ impl ExecutionResult {
 
 #[derive(Debug, Clone)]
 pub struct RGSOBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
-    instantiables: RwSignal<Vec<Rc<RefCell<dyn RInstantiable<Schema = TSchema>>>>>,
-    add_outgoing_updates: RwSignal<HashSet<(Uid, SlotRef)>>,
-    add_incoming_updates: RwSignal<HashSet<(Uid, SlotRef)>>,
-    remove_outgoing_updates: RwSignal<HashSet<(Uid, SlotRef)>>,
-    remove_incoming_updates: RwSignal<HashSet<(Uid, SlotRef)>>,
-    deleted_instances: RwSignal<HashSet<Uid>>,
-    to_delete_recursive: RwSignal<HashSet<Uid>>,
-    field_updates: RwSignal<HashSet<(Uid, HistoryFieldEdit)>>,
-    temp_add_incoming_updates: RwSignal<HashSet<(BlueprintId, TempAddIncomingSlotRef)>>,
-    temp_add_outgoing_updates: RwSignal<HashSet<(BlueprintId, TempAddOutgoingSlotRef)>>,
+    instantiables:
+        RwSignal<Vec<std::rc::Rc<std::cell::RefCell<dyn RInstantiable<Schema = TSchema>>>>>,
+    add_outgoing_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
+    add_incoming_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
+    remove_outgoing_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
+    remove_incoming_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
+    deleted_instances: RwSignal<std::collections::HashSet<Uid>>,
+    to_delete_recursive: RwSignal<std::collections::HashSet<Uid>>,
+    field_updates: RwSignal<std::collections::HashSet<(Uid, HistoryFieldEdit)>>,
+    temp_add_incoming_updates:
+        RwSignal<std::collections::HashSet<(BlueprintId, TempAddIncomingSlotRef)>>,
+    temp_add_outgoing_updates:
+        RwSignal<std::collections::HashSet<(BlueprintId, TempAddOutgoingSlotRef)>>,
     wip_instance: Option<RGSOWrapperBuilder<T, TSchema>>,
     id: Uid,
-    graph: Rc<RBaseGraphEnvironment<TSchema>>,
-    _phantom: PhantomData<T>,
+    graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
+    _phantom: std::marker::PhantomData<T>,
 }
 
 impl<T, TSchema: EditRGSO<Schema = TSchema>> RGSOBuilder<T, TSchema>
@@ -667,7 +676,7 @@ where
     pub fn get_id(&self) -> &Uid {
         &self.id
     }
-    pub fn execute(&self) -> Result<ExecutionResult, Error> {
+    pub fn execute(&self) -> Result<ExecutionResult, ElementCreationError> {
         let graph = self.graph.clone();
         let (blueprint, execution_result) = self.clone().get_blueprint()?;
         graph.clear_redo();
@@ -694,7 +703,7 @@ where
         self.instantiables.update(|prev| {
             prev.extend(other_builder.instantiables.get());
             if let Some(inner) = other_builder.wip_instance.clone() {
-                prev.push(Rc::new(RefCell::new(inner)));
+                prev.push(std::rc::Rc::new(std::cell::RefCell::new(inner)));
             }
         });
         self.deleted_instances.update(|prev| {
@@ -725,14 +734,14 @@ where
             remove_updates
                 .iter()
                 .filter(|update| update.0 == *id)
-                .collect::<HashSet<_>>()
+                .collect::<std::collections::HashSet<_>>()
                 .len()
         });
         let pending_incoming_additions = self.add_incoming_updates.with(|add_updates| {
             add_updates
                 .iter()
                 .filter(|update| update.0 == *id)
-                .collect::<HashSet<_>>()
+                .collect::<std::collections::HashSet<_>>()
                 .len()
         });
         if item.incoming_slots().with(|incoming_slots| {
@@ -746,10 +755,12 @@ where
         }
     }
     // Perform final calculations to gather all changes
-    fn get_blueprint(mut self) -> Result<(Blueprint<TSchema>, ExecutionResult), Error> {
+    fn get_blueprint(
+        mut self,
+    ) -> Result<(Blueprint<TSchema>, ExecutionResult), ElementCreationError> {
         let mut new_instantiables = self.instantiables.get();
         if let Some(instance) = &self.wip_instance {
-            new_instantiables.push(Rc::new(RefCell::new(instance.clone())));
+            new_instantiables.push(std::rc::Rc::new(std::cell::RefCell::new(instance.clone())));
         }
 
         let temp_id_map = new_instantiables
@@ -760,7 +771,7 @@ where
                     instantiable.borrow().get_id().clone(),
                 )
             })
-            .collect::<HashMap<_, _>>();
+            .collect::<std::collections::HashMap<_, _>>();
 
         // Perform any incoming or outgoing updates for temporary ids
         self.temp_add_incoming_updates.with(|updates| {
@@ -907,8 +918,19 @@ where
                                             .collect::<Vec<_>>()
                                             .len();
                                     if slot.1.check_bound_conformity(final_count) == false {
-                                        return Some(Error::new(
-                                            ElementCreationError::BoundCheckOutOfRange,
+                                        return Some(ElementCreationError::BoundCheckOutOfRange(
+                                            format!(
+                                                "{}: {}\nBounds: {:?}, Attempted: {}",
+                                                self.graph
+                                                    .get(&update.0)
+                                                    .unwrap()
+                                                    .operative()
+                                                    .tag
+                                                    .name,
+                                                slot.1.slot.tag.name,
+                                                slot.1.slot.bounds,
+                                                slot.1.slotted_instances.get().len()
+                                            ),
                                         ));
                                     } else {
                                         return None;
@@ -921,6 +943,7 @@ where
                                 return Some(errors);
                             }
                         })
+                        .flatten()
                         .collect::<Vec<_>>();
                     errors
                 })
@@ -928,14 +951,24 @@ where
 
         // TODO figure out how to return all errors
         if !bounds_checks.is_empty() {
+            leptos::logging::log!("{:#?}", bounds_checks);
             // return Err(Error::new(bounds_checks));
-            return Err(Error::new(ElementCreationError::BoundCheckOutOfRange));
+            return Err(ElementCreationError::Stack(bounds_checks));
         }
 
-        let mut instantiated_elements = new_instantiables
-            .iter()
-            .map(|el| el.borrow().instantiate())
-            .collect::<Vec<_>>();
+        let (instantiated_elements, instantiation_errors) = new_instantiables.iter().fold(
+            (Vec::with_capacity(new_instantiables.len()), Vec::new()),
+            |mut agg, el| {
+                match el.borrow().instantiate() {
+                    Ok(instance) => agg.0.push(instance),
+                    Err(error) => agg.1.push(error),
+                }
+                agg
+            },
+        );
+        if !instantiation_errors.is_empty() {
+            return Err(ElementCreationError::Stack(instantiation_errors));
+        }
 
         Ok((
             Blueprint::<TSchema> {
@@ -953,29 +986,29 @@ where
             },
         ))
     }
-    fn get_graph(&self) -> &Rc<RBaseGraphEnvironment<TSchema>> {
+    fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<TSchema>> {
         &self.graph
     }
     fn new(
         builder_wrapper_instance: Option<RGSOWrapperBuilder<T, TSchema>>,
         id: Uid,
-        graph: Rc<RBaseGraphEnvironment<TSchema>>,
+        graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
     ) -> Self {
         Self {
             graph,
             instantiables: RwSignal::new(vec![]),
             wip_instance: builder_wrapper_instance,
             id,
-            add_outgoing_updates: RwSignal::new(HashSet::new()),
-            add_incoming_updates: RwSignal::new(HashSet::new()),
-            remove_outgoing_updates: RwSignal::new(HashSet::new()),
-            remove_incoming_updates: RwSignal::new(HashSet::new()),
-            temp_add_incoming_updates: RwSignal::new(HashSet::new()),
-            temp_add_outgoing_updates: RwSignal::new(HashSet::new()),
-            _phantom: PhantomData,
-            field_updates: RwSignal::new(HashSet::new()),
-            deleted_instances: RwSignal::new(HashSet::new()),
-            to_delete_recursive: RwSignal::new(HashSet::new()),
+            add_outgoing_updates: RwSignal::new(std::collections::HashSet::new()),
+            add_incoming_updates: RwSignal::new(std::collections::HashSet::new()),
+            remove_outgoing_updates: RwSignal::new(std::collections::HashSet::new()),
+            remove_incoming_updates: RwSignal::new(std::collections::HashSet::new()),
+            temp_add_incoming_updates: RwSignal::new(std::collections::HashSet::new()),
+            temp_add_outgoing_updates: RwSignal::new(std::collections::HashSet::new()),
+            _phantom: std::marker::PhantomData,
+            field_updates: RwSignal::new(std::collections::HashSet::new()),
+            deleted_instances: RwSignal::new(std::collections::HashSet::new()),
+            to_delete_recursive: RwSignal::new(std::collections::HashSet::new()),
         }
     }
     fn add_outgoing<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
@@ -1142,8 +1175,9 @@ where
 {
     type Schema = TSchema;
 
-    fn instantiate(&self) -> Self::Schema {
-        T::into_schema(self.produce())
+    fn instantiate(&self) -> Result<Self::Schema, base_types::traits::ElementCreationError> {
+        self.verify()?;
+        Ok(T::into_schema(self.produce()))
     }
 
     fn get_id(&self) -> &Uid {

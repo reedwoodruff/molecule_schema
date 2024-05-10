@@ -44,7 +44,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             .collect::<Vec<_>>()
     };
 
-    let add_field = move |_| {
+    let on_click_add_field = move |_| {
         let new_field = RFieldConstraint::<PrimitiveTypes> {
             tag: RTag::new("New Field".to_string()),
             value_type: RwSignal::new(PrimitiveTypes::String),
@@ -52,6 +52,13 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         active_object.get().field_constraints.update(|prev| {
             prev.insert(new_field.tag.id.get(), new_field);
         });
+    };
+    let get_on_click_delete_field = move |field_id: Uid| {
+        move |_| {
+            active_object.get().field_constraints.update(|prev| {
+                prev.remove(&field_id);
+            })
+        }
     };
 
     let constituent_instances = move || {
@@ -396,7 +403,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             </div>
 
             <div class="flex-grow margin-right border-right">
-                <h4>Fields <button on:click=add_field>+</button></h4>
+                <h4>Fields <button on:click=on_click_add_field>+</button></h4>
                 <For each=field_constraints key=move |item| item.tag.id let:item>
 
                     {
@@ -420,6 +427,9 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                     on_select=change_field_type
                                     value=item.value_type
                                 />
+                                <button on:click=get_on_click_delete_field(
+                                    item.tag.id.get(),
+                                )>Delete Field</button>
                             </div>
                         }
                     }

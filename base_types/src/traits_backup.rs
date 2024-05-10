@@ -1,13 +1,10 @@
-use std::{
-    any::{Any, TypeId},
-    marker::PhantomData,
-};
-
-use validator::{Validate, ValidationError, ValidationErrors};
-
 use crate::{
     common::{ConstraintTraits, Tag, Uid},
     constraint_schema::ConstraintSchema,
+};
+use std::{
+    any::{Any, TypeId},
+    marker::PhantomData,
 };
 
 pub trait GraphEnvironment<TTypes: ConstraintTraits, TValues: ConstraintTraits> {

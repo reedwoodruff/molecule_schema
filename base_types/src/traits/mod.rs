@@ -1,4 +1,4 @@
-use anyhow::{Error, Result};
+// use anyhow::{Error, Result};
 use std::fmt;
 
 use std::ops::Deref;
@@ -24,20 +24,17 @@ mod tests;
 pub type LibOp = LibraryOperative<PrimitiveTypes, PrimitiveValues>;
 pub type LibTemplate = LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
 
+type Error = ElementCreationError;
 #[derive(Debug, Display)]
 pub enum ElementCreationError {
     RequiredFieldIsEmpty,
-    BoundCheckOutOfRange,
+    BoundCheckOutOfRange(String),
     ChildElementIsWrongType,
     ChildElementDoesntExist,
+    DeletionError,
+    Stack(Vec<ElementCreationError>),
 }
 impl std::error::Error for ElementCreationError {}
-
-#[derive(Debug, Display)]
-pub enum ElementDeletionError {
-    RequiredByParentSlot,
-}
-impl std::error::Error for ElementDeletionError {}
 
 #[derive(Debug, Clone)]
 pub enum TaggedAction {
@@ -211,7 +208,7 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
                             .get_tag()
                             .id
                     {
-                        return Err(Error::new(ElementCreationError::ChildElementIsWrongType));
+                        return Err(ElementCreationError::ChildElementIsWrongType);
                     };
                 }
                 OperativeVariants::TraitOperative(trait_op) => {
@@ -225,7 +222,7 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
                         .iter()
                         .all(|trait_id| child_digest.trait_impls.contains_key(trait_id));
                     if !matches_trait_bounds {
-                        return Err(Error::new(ElementCreationError::ChildElementIsWrongType));
+                        return Err(ElementCreationError::ChildElementIsWrongType);
                     }
                 }
             }
@@ -273,7 +270,7 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
                         .get_tag()
                         .id
                 {
-                    return Err(Error::new(ElementCreationError::ChildElementIsWrongType));
+                    return Err(ElementCreationError::ChildElementIsWrongType);
                 }
             }
             OperativeVariants::TraitOperative(trait_op) => {
@@ -287,7 +284,7 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
                     .iter()
                     .all(|trait_id| child_digest.trait_impls.contains_key(trait_id));
                 if !matches_trait_bounds {
-                    return Err(Error::new(ElementCreationError::ChildElementIsWrongType));
+                    return Err(ElementCreationError::ChildElementIsWrongType);
                 }
             }
         }
@@ -299,7 +296,7 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
         {
             parent.add_child_to_slot(&connection.slot_ref);
         } else {
-            return Err(Error::new(ElementCreationError::BoundCheckOutOfRange));
+            return Err(ElementCreationError::BoundCheckOutOfRange("".to_string()));
         }
         self.get_mut(&connection.slot_ref.target_instance_id)
             .unwrap()
@@ -323,7 +320,8 @@ impl<TSchema: GSO<Schema = TSchema> + 'static> BaseGraphEnvironment<TSchema> {
                 .can_remove_one()
         });
         if !can_delete {
-            return Err(Error::new(ElementDeletionError::RequiredByParentSlot));
+            // return Err(ElementDeletionError::RequiredByParentSlot);
+            return Err(ElementCreationError::DeletionError);
         }
         self.push_history_item(vec![HistoryItem::BlockActionMarker], &tag);
         parent_slots.iter().for_each(|parent_slot| {
@@ -788,14 +786,14 @@ impl<F> Verifiable for GSOWrapperBuilder<F>
 where
     F: Verifiable,
 {
-    fn verify(&self) -> Result<(), Error> {
+    fn verify(&self) -> Result<(), ElementCreationError> {
         // self.data.verify()?;
         let field_errors = self
             .data
             .values()
             .filter_map(|field_val| {
                 if field_val.is_none() {
-                    return Some(Error::new(ElementCreationError::RequiredFieldIsEmpty));
+                    return Some(ElementCreationError::RequiredFieldIsEmpty);
                 }
                 None
             })
@@ -805,7 +803,7 @@ where
             .values()
             .filter_map(|active_slot| {
                 if !active_slot.check_current_conformity() {
-                    Some(Error::new(ElementCreationError::BoundCheckOutOfRange))
+                    Some(ElementCreationError::BoundCheckOutOfRange("".to_string()))
                 } else {
                     None
                 }
@@ -815,7 +813,7 @@ where
             return Ok(());
         }
         // TODO make this return all of the errors
-        Err(Error::new(ElementCreationError::BoundCheckOutOfRange))
+        Err(ElementCreationError::BoundCheckOutOfRange("".to_string()))
     }
 }
 
@@ -837,7 +835,7 @@ where
 }
 
 pub trait Verifiable {
-    fn verify(&self) -> Result<(), Error>;
+    fn verify(&self) -> Result<(), ElementCreationError>;
 }
 pub trait Instantiable: std::fmt::Debug + Any {
     type Schema: GSO;
@@ -932,7 +930,7 @@ where
                 .unwrap()
                 .can_add_one();
             if !can_add_one {
-                return Err(Error::new(ElementCreationError::BoundCheckOutOfRange));
+                return Err(ElementCreationError::BoundCheckOutOfRange("".to_string()));
             }
         }
 
