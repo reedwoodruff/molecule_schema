@@ -227,7 +227,7 @@ pub(crate) fn generate_operative_streams(
        quote!{
            impl #field_trait_name for #wrapped_name {
                #(#field_trait_fns_streams {
-                    match self.data.get(&#field_ids).unwrap().get() {
+                    match self.fields.get(&#field_ids).unwrap().get() {
                         base_types::primitives::PrimitiveValues::#field_value_types(val) => val,
                         _ => panic!()
                     }
@@ -403,7 +403,7 @@ pub(crate) fn generate_operative_streams(
                 impl RGSOBuilder<#struct_name, Schema> {
                     #add_new_fn_signature
                     {
-                        let mut new_builder = #item_or_t::initiate_build(self.get_graph());
+                        let mut new_builder = #item_or_t::initiate_build(self.get_graph().clone());
                         let edge_to_this_element = base_types::traits::SlotRef {
                             host_instance_id: self.get_id().clone(),
                             target_instance_id: new_builder.get_id().clone(),
@@ -419,7 +419,7 @@ pub(crate) fn generate_operative_streams(
                         let existing_item_id = existing_item_id.clone();
                         #mismatch_error_handling
 
-                        let mut new_builder = #item_or_t::initiate_edit(existing_item_id.clone(), self.get_graph());
+                        let mut new_builder = #item_or_t::initiate_edit(existing_item_id.clone(), self.get_graph().clone());
                         let edge_to_this_element = base_types::traits::SlotRef {
                             host_instance_id: self.get_id().clone(),
                             target_instance_id: new_builder.get_id().clone(),
@@ -515,11 +515,12 @@ pub(crate) fn generate_operative_streams(
         impl RBuildable for #struct_name {
             type Schema = Schema;
 
-            fn initiate_build(graph: &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>) -> RGSOBuilder<#struct_name, Schema> {
+            fn initiate_build(graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>) -> RGSOBuilder<#struct_name, Schema> {
                 let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
                 let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
                 let mut field_hashmap = std::collections::HashMap::new();
                 #(field_hashmap.insert(#unfulfilled_field_ids, RwSignal::new(None));)*
+                let graph: std::rc::Rc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
                 let wrapper_builder = RGSOWrapperBuilder::new(
                             field_hashmap,
                             #active_slot_tokens,
@@ -531,14 +532,15 @@ pub(crate) fn generate_operative_streams(
                 RGSOBuilder::<#struct_name, Schema>::new(
                         Some(wrapper_builder),
                         id,
-                        graph.clone(),
+                        graph,
                     )
             }
-            fn initiate_edit(id: base_types::common::Uid, graph: &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>) -> RGSOBuilder<#struct_name, Schema> {
+            fn initiate_edit(id: base_types::common::Uid, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>) -> RGSOBuilder<#struct_name, Schema> {
+                let graph: std::rc::Rc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
                 RGSOBuilder::<#struct_name, Schema>::new(
                         None,
                             id,
-                        graph.clone(),
+                        graph,
                     )
             }
             fn get_operative_id() -> base_types::common::Uid {

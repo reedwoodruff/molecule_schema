@@ -97,7 +97,12 @@ fn impl_RGSO_for_enum(enum_name: TokenStream, members: Vec<syn::Ident> ) -> Toke
                     _ => panic!(),
                 }
             }
-    
+            fn fields(&self) -> &std::collections::HashMap<base_types::common::Uid, leptos::RwSignal<PrimitiveValues>>{
+                match self {
+                    #(Self::#members(item) => item.fields(),)*
+                    _ => panic!(),
+                }
+            }
         }
     }
 }
@@ -412,6 +417,24 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         pub enum Schema {
             #(#all_lib_op_names(RGSOWrapper<#all_lib_op_names, Schema>),)*
         }
+        #[derive(Debug, Clone)]
+        pub enum NonReactiveSchema {
+            #(#all_lib_op_names(base_types::traits::GSOWrapper<#all_lib_op_names>),)*
+        }
+        impl From<Schema> for NonReactiveSchema {
+            fn from(value: Schema) -> Self {
+                match value {
+                    #(Schema::#all_lib_op_names(val) => NonReactiveSchema::#all_lib_op_names(val.into()),)*
+                }
+            }
+        }
+        impl FromNonReactive<NonReactiveSchema> for Schema {
+            fn from_non_reactive(value: NonReactiveSchema, graph: std::rc::Rc<RBaseGraphEnvironment<Schema>>) -> Self {
+                match value {
+                    #(NonReactiveSchema::#all_lib_op_names(val) => Schema::#all_lib_op_names(saturate_wrapper(val,graph)),)*
+                }
+            }
+        }
         impl PartialEq for Schema {
             fn eq(&self, other: &Self) -> bool {
                 self.get_id() == self.get_id()
@@ -422,7 +445,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
             fn apply_field_edit(&self, field_edit: base_types::traits::FieldEdit) {
                 match self {
                 #(Self::#all_lib_op_names(item) => item.apply_field_edit(field_edit),)*
-                _ => panic!(),
+                // _ => panic!(),
                 }
             }
         }
@@ -430,35 +453,34 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         #schema_rgso_impl
 
         impl EditRGSO for Schema {
-        
             fn remove_outgoing(& self, slot_ref: &base_types::traits::SlotRef) -> & Self{
                 match self {
                     #(Self::#all_lib_op_names(item) => {item.remove_outgoing(slot_ref); self},)*
-                    _ => panic!(),
+                    // _ => panic!(),
                 }
             }
             fn remove_incoming(& self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> Vec<base_types::traits::SlotRef> {
                 match self {
                     #(Self::#all_lib_op_names(item) => item.remove_incoming(parent_id, slot_id),)*
-                    _ => panic!(),
+                    // _ => panic!(),
                 }
             }
             fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<Schema>> {
                 match self {
                     #(Self::#all_lib_op_names(item) => item.get_graph(),)*
-                    _ => panic!(),
+                    // _ => panic!(),
                 }
             }
             fn add_outgoing(& self, slot_ref: base_types::traits::SlotRef) -> & Self {
                 match self {
                     #(Self::#all_lib_op_names(item) => {item.add_outgoing(slot_ref); self},)*
-                    _ => panic!(),
+                    // _ => panic!(),
                 }
             }
             fn add_incoming(& self, slot_ref: base_types::traits::SlotRef) ->  &Self {
                 match self {
                     #(Self::#all_lib_op_names(item) => {item.add_incoming(slot_ref); self},)*
-                    _ => panic!(),
+                    // _ => panic!(),
                 }
             }
             

@@ -1,3 +1,5 @@
+// pub mod from_reactive;
+
 pub use base_types::common::Uid;
 use base_types::constraint_schema::{
     LibraryOperative, LibraryTemplate, OperativeSlot, OperativeVariants, SlotBounds,
@@ -6,13 +8,9 @@ use base_types::constraint_schema_item::ConstraintSchemaItem;
 
 use base_types::{
     common::ConstraintTraits,
-    constraint_schema::{
-        ConstraintSchema,
-        // LibraryOperative, LibraryTemplate, OperativeSlot, SlotBounds,
-    },
+    constraint_schema::ConstraintSchema,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
-// use RGSOBuilderModule::RGSOBuilder;
 
 use base_types::traits::{
     ConnectionAction, ElementCreationError, FieldEdit, Finalizable, HistoryFieldEdit, SlotRef,
@@ -22,6 +20,42 @@ use base_types::utils::IntoPrimitiveValue;
 use leptos::{
     batch, RwSignal, SignalGet, SignalSet, SignalUpdate, SignalWith, SignalWithUntracked,
 };
+
+pub trait FromNonReactive<NTSchema>
+where
+    Self: EditRGSO<Schema = Self>,
+{
+    fn from_non_reactive(value: NTSchema, graph: std::rc::Rc<RBaseGraphEnvironment<Self>>) -> Self;
+}
+fn saturate_wrapper<T: Clone + std::fmt::Debug, RTSchema: EditRGSO<Schema = RTSchema>>(
+    non_reactive: base_types::traits::GSOWrapper<T>,
+    graph: std::rc::Rc<RBaseGraphEnvironment<RTSchema>>,
+) -> RGSOWrapper<T, RTSchema> {
+    RGSOWrapper::<T, RTSchema> {
+        id: non_reactive.id,
+        graph,
+        fields: non_reactive
+            .fields
+            .into_iter()
+            .map(|(id, val)| (id, RwSignal::new(val)))
+            .collect(),
+        outgoing_slots: non_reactive
+            .outgoing_slots
+            .into_iter()
+            .map(|(id, val)| (id, val.into()))
+            .collect(),
+        incoming_slots: RwSignal::new(
+            non_reactive
+                .incoming_slots
+                .into_iter()
+                .map(|val| val.into())
+                .collect(),
+        ),
+        operative: non_reactive.operative,
+        template: non_reactive.template,
+        _phantom: std::marker::PhantomData,
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum BlueprintId {
@@ -87,6 +121,9 @@ impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchem
                 redo: Vec::new(),
             })),
         }
+    }
+    fn initialize(&self, created_instances: std::collections::HashMap<Uid, TSchema>) {
+        self.created_instances.set(created_instances);
     }
 }
 
@@ -240,6 +277,7 @@ pub trait RGSO: std::fmt::Debug + Clone {
                 .collect::<Vec<_>>()
         })
     }
+    fn fields(&self) -> &std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>;
 }
 impl From<RActiveSlot> for Uid {
     fn from(value: RActiveSlot) -> Self {
@@ -309,9 +347,19 @@ impl RActiveSlot {
 }
 
 #[derive(Clone)]
+pub struct StandaloneRGSOWrapper<T> {
+    id: Uid,
+    fields: std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>,
+    outgoing_slots: std::collections::HashMap<Uid, RActiveSlot>,
+    incoming_slots: RwSignal<Vec<SlotRef>>,
+    operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
+    template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
+    _phantom: std::marker::PhantomData<T>,
+}
+#[derive(Clone)]
 pub struct RGSOWrapper<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
     id: Uid,
-    data: std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>,
+    fields: std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>,
     graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
     outgoing_slots: std::collections::HashMap<Uid, RActiveSlot>,
     incoming_slots: RwSignal<Vec<SlotRef>>,
@@ -342,7 +390,7 @@ impl<T: std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>> std::fmt::Debug
             .field(
                 "data",
                 &self
-                    .data
+                    .fields
                     .iter()
                     .map(|(field_id, data)| {
                         (
@@ -366,7 +414,7 @@ impl<T: Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>> RFieldEdit
     for RGSOWrapper<T, TSchema>
 {
     fn apply_field_edit(&self, field_edit: FieldEdit) {
-        self.data
+        self.fields
             .get(&field_edit.field_id)
             .unwrap()
             .set(field_edit.value);
@@ -397,6 +445,9 @@ where
 
     fn template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues> {
         self.template
+    }
+    fn fields(&self) -> &std::collections::HashMap<Uid, RwSignal<PrimitiveValues>> {
+        &self.fields
     }
 }
 
@@ -516,7 +567,7 @@ impl<T, TSchema: EditRGSO<Schema = TSchema>> RProducable<RGSOWrapper<T, TSchema>
             outgoing_slots: self.slots.clone(),
             incoming_slots: self.incoming_slots,
             graph: self.graph.clone(),
-            data: self
+            fields: self
                 .data
                 .iter()
                 .map(|(id, build_data)| (*id, build_data.get().unwrap()))
@@ -576,11 +627,11 @@ where
     type Schema: EditRGSO<Schema = Self::Schema>;
 
     fn initiate_build(
-        graph: &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>,
+        graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>,
     ) -> RGSOBuilder<Self, Self::Schema>;
     fn initiate_edit(
         id: Uid,
-        graph: &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>,
+        graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>,
     ) -> RGSOBuilder<Self, Self::Schema>;
     fn get_operative_id() -> Uid;
 }
@@ -1280,6 +1331,150 @@ where
 {
     type Schema = TSchema;
     fn initiate_edit(&self) -> RGSOBuilder<T, Self::Schema> {
-        T::initiate_edit(*self.get_id(), self.get_graph())
+        T::initiate_edit(*self.get_id(), self.get_graph().clone())
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct SharedGraph<TSchema: EditRGSO<Schema = TSchema> + 'static>(
+    std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
+);
+impl<TSchema: EditRGSO<Schema = TSchema> + 'static>
+    From<std::rc::Rc<RBaseGraphEnvironment<TSchema>>> for SharedGraph<TSchema>
+{
+    fn from(value: std::rc::Rc<RBaseGraphEnvironment<TSchema>>) -> SharedGraph<TSchema> {
+        SharedGraph(value)
+    }
+}
+impl<TSchema: EditRGSO<Schema = TSchema> + 'static> From<SharedGraph<TSchema>>
+    for std::rc::Rc<RBaseGraphEnvironment<TSchema>>
+{
+    fn from(value: SharedGraph<TSchema>) -> std::rc::Rc<RBaseGraphEnvironment<TSchema>> {
+        value.0
+    }
+}
+impl<TSchema: EditRGSO<Schema = TSchema> + 'static> std::ops::Deref for SharedGraph<TSchema> {
+    type Target = std::rc::Rc<RBaseGraphEnvironment<TSchema>>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+mod from_reactive {
+    use std::{cell::RefCell, collections::HashMap, rc::Rc};
+
+    use super::SharedGraph;
+    use base_types::traits::{ActiveSlot, BaseGraphEnvironment, GSOWrapper, HistoryContainer};
+    use leptos::*;
+
+    use super::{
+        EditRGSO, FromNonReactive, RActiveSlot, RBaseGraphEnvironment, RGSOWrapper,
+        RHistoryContainer, StandaloneRGSOWrapper, RGSO,
+    };
+    impl<RTSchema: EditRGSO<Schema = RTSchema>, TSchema> From<SharedGraph<RTSchema>>
+        for BaseGraphEnvironment<TSchema>
+    where
+        RTSchema: Into<TSchema> + Clone,
+    {
+        fn from(value: SharedGraph<RTSchema>) -> Self {
+            Self {
+                created_instances: value
+                    .0
+                    .created_instances
+                    .get()
+                    .into_iter()
+                    .map(|(id, val)| (id, val.into()))
+                    .collect(),
+                constraint_schema: value.0.constraint_schema,
+            }
+        }
+    }
+    impl<RTSchema: EditRGSO<Schema = RTSchema>, TSchema> From<BaseGraphEnvironment<TSchema>>
+        for SharedGraph<RTSchema>
+    where
+        RTSchema: FromNonReactive<TSchema>,
+    {
+        fn from(value: BaseGraphEnvironment<TSchema>) -> Self {
+            let mut new_graph = RBaseGraphEnvironment::<RTSchema> {
+                created_instances: RwSignal::new(HashMap::new()),
+                constraint_schema: value.constraint_schema,
+                history: Rc::new(RefCell::new(RHistoryContainer {
+                    undo: vec![],
+                    redo: vec![],
+                })),
+            };
+            let mut rc_graph = Rc::new(new_graph);
+            let members = value.created_instances.into_iter().map(|(id, val)| {
+                (
+                    id,
+                    <RTSchema as FromNonReactive<TSchema>>::from_non_reactive(
+                        val,
+                        rc_graph.clone(),
+                    ),
+                )
+            }); // .collect(),
+            rc_graph.initialize(members.collect());
+            rc_graph.into()
+
+            // The Rc's referencing this graph cannot have been used yet as they haven't been returned
+            // So it should be safe to replace the Rc's address with the updated value.
+            // unsafe {
+            //     let rc_graph_mut =
+            //         Rc::into_raw(rc_graph.clone()) as *mut RBaseGraphEnvironment<RTSchema>;
+            //     (*rc_graph_mut).created_instances = RwSignal::new(members.collect());
+            //     *(Box::from_raw(rc_graph_mut))
+            // }
+            // rc_graph
+            // Rc::get_mut(&mut Rc::clone(&rc_graph))
+            //     .expect("Rc should only have one strong reference during initialization")
+            //     .created_instances = RwSignal::new(members.collect());
+            // Rc::try_unwrap(rc_graph).expect("Rc should only have one strong reference")
+        }
+    }
+    impl From<RActiveSlot> for base_types::traits::ActiveSlot {
+        fn from(value: RActiveSlot) -> Self {
+            Self {
+                slot: value.slot,
+                slotted_instances: value.slotted_instances.get(),
+            }
+        }
+    }
+    impl From<base_types::traits::ActiveSlot> for RActiveSlot {
+        fn from(value: base_types::traits::ActiveSlot) -> Self {
+            Self {
+                slot: value.slot,
+                slotted_instances: RwSignal::new(value.slotted_instances),
+            }
+        }
+    }
+    impl<T, RTSchema: EditRGSO<Schema = RTSchema>> From<RGSOWrapper<T, RTSchema>> for GSOWrapper<T>
+    where
+        T: Clone + std::fmt::Debug,
+    {
+        fn from(value: RGSOWrapper<T, RTSchema>) -> Self {
+            Self {
+                id: value.id,
+                fields: value
+                    .fields
+                    .into_iter()
+                    .map(|(id, val)| (id, val.get()))
+                    .collect(),
+                outgoing_slots: value
+                    .outgoing_slots
+                    .into_iter()
+                    .map(|(id, val)| (id, val.into()))
+                    .collect(),
+                incoming_slots: value
+                    .incoming_slots
+                    .get()
+                    .into_iter()
+                    .map(|val| val.into())
+                    .collect(),
+
+                operative: value.operative,
+                template: value.template,
+                _phantom: std::marker::PhantomData,
+            }
+        }
     }
 }

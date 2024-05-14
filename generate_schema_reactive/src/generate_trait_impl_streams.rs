@@ -34,7 +34,7 @@ pub(crate) fn generate_trait_impl_streams(
                         // let field_ident = Ident::new(field_name, proc_macro2::Span::call_site());
                         quote!{
                             // self.data.#field_ident
-                            match self.data.get(&#field_id).unwrap().get() {
+                            match self.fields.get(&#field_id).unwrap().get() {
 
                                 base_types::primitives::PrimitiveValues::#return_type(val) => val,
                                 _ => panic!()
