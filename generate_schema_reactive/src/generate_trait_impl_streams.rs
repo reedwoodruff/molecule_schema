@@ -1,4 +1,3 @@
-use proc_macro2::Ident;
 use quote::quote;
 
 use base_types::constraint_schema::*;

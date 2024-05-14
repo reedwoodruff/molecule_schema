@@ -30,7 +30,7 @@ pub trait ConstraintSchemaItem {
 
         let template = schema
             .template_library
-            .get(&self.get_template_id())
+            .get(self.get_template_id())
             .unwrap()
             .clone();
         if template.get_template_id() == ancestor_id_in_question {

@@ -1,5 +1,3 @@
-use base_types::common::Uid;
-use base_types::traits::{ActiveSlot};
 
 use proc_macro2::{Ident, TokenStream};
 use quote::{quote};
@@ -10,7 +8,7 @@ use base_types::{constraint_schema::*, };
 
 use crate::{generate_trait_impl_streams, IntermediateFieldTraitInfo, IntermediateSlotTraitInfo, MetaData, SlotFnDetails};
 use crate::utils::{
-    get_all_operatives_which_implement_trait_set, get_all_subclasses, get_all_superclasses, get_operative_subclass_enum_name, get_operative_variant_name, get_operative_wrapped_name, get_primitive_type, get_primitive_value, get_template_get_field_fn_name
+    get_all_operatives_which_implement_trait_set, get_all_subclasses, get_operative_subclass_enum_name, get_operative_variant_name, get_operative_wrapped_name, get_primitive_type, get_primitive_value
 };
 
 pub(crate) fn generate_operative_streams(
@@ -164,9 +162,9 @@ pub(crate) fn generate_operative_streams(
         };
            let fn_streams = match &constraint_schema.template_library.get(reference_template_id).unwrap().operative_slots.get(id).unwrap().operative_descriptor {
             OperativeVariants::LibraryOperative(slot_op_id) => {
-               let operative_subclass_enum_name = get_operative_subclass_enum_name(constraint_schema, &slot_op_id);
-               let subclasses = get_all_subclasses(constraint_schema, &slot_op_id );
-               let slot_op_struct_name = get_operative_variant_name(&constraint_schema.operative_library.get(&slot_op_id).unwrap().tag.name);
+               let operative_subclass_enum_name = get_operative_subclass_enum_name(constraint_schema, slot_op_id);
+               let subclasses = get_all_subclasses(constraint_schema, slot_op_id );
+               let slot_op_struct_name = get_operative_variant_name(&constraint_schema.operative_library.get(slot_op_id).unwrap().tag.name);
                let subclasses_names = subclasses.iter().map(|sub| get_operative_variant_name(&sub.get_tag().name)).collect::<Vec<_>>();
                let slot_variants_match = if subclasses_names.len() <= 1 {
                    quote!{
@@ -304,7 +302,7 @@ pub(crate) fn generate_operative_streams(
                 None
             };
             let marker_trait_name = Ident::new(&format!("{}{}AcceptableTargetMarker", struct_name, slot_name), proc_macro2::Span::call_site());
-            let mut marker_impls = items.iter().map(|item| {
+            let marker_impls = items.iter().map(|item| {
                 let item_name = get_operative_variant_name(&item.get_tag().name);
                 quote!{
                     impl #marker_trait_name for #item_name {}
@@ -372,10 +370,10 @@ pub(crate) fn generate_operative_streams(
             };
             // let super_types = get_all_superclasses(constraint_schema, item_id);
             let all_unacceptable_types = constraint_schema.operative_library.values().filter_map(|op| 
-                if items.iter().find(|super_el| super_el.tag.id == op.tag.id ).is_none() {
-                    return Some(op)
+                if !items.iter().any(|super_el| super_el.tag.id == op.tag.id) {
+                    Some(op)
                 } else {
-                    return None
+                    None
                 }
             );
             let unacceptable_type_names = all_unacceptable_types.clone().map(|op| get_operative_variant_name(&op.tag.name)).collect::<Vec<_>>();
@@ -463,7 +461,7 @@ pub(crate) fn generate_operative_streams(
 
         let add_to_slot_stream = match &slot.slot.operative_descriptor {
             OperativeVariants::LibraryOperative(lib_op_id) => {
-                let subclasses = get_all_subclasses(constraint_schema, &lib_op_id);
+                let subclasses = get_all_subclasses(constraint_schema, lib_op_id);
                 if subclasses.len() <= 1 {
                     let item = constraint_schema.operative_library.get(lib_op_id).unwrap().clone();
                     get_slot_item_implementation(&vec![item])
@@ -473,10 +471,10 @@ pub(crate) fn generate_operative_streams(
             }
             OperativeVariants::TraitOperative(trait_op) => {
                 let ops_which_impl_traits = get_all_operatives_which_implement_trait_set(constraint_schema, &trait_op.trait_ids);
-                if ops_which_impl_traits.len() == 0 {
+                if ops_which_impl_traits.is_empty() {
                     quote!{}
                 } else if ops_which_impl_traits.len() == 1 {
-                    get_slot_item_implementation(&vec![ops_which_impl_traits.iter().next().unwrap().clone()])
+                    get_slot_item_implementation(&vec![ops_which_impl_traits.first().unwrap().clone()])
                 } else {
                     get_slot_item_implementation(&ops_which_impl_traits)
                 }

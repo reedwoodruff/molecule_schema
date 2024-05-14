@@ -1,5 +1,5 @@
 use crate::common::*;
-use std::{collections::HashMap, marker::PhantomData, rc::Rc};
+use std::{collections::HashMap, marker::PhantomData};
 
 pub type SlotId = Uid;
 pub type TraitId = Uid;

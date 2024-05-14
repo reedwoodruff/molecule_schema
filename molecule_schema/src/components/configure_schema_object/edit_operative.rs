@@ -1,6 +1,5 @@
 use leptos::{logging::log, *};
 use std::{collections::HashMap, rc::Rc};
-use web_sys::MouseEvent;
 
 use base_types::{
     common::Uid,

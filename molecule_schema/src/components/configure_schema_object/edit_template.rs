@@ -16,7 +16,6 @@ use crate::components::{
     tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
 };
 use reactive_types::{
-    reactive_item::RConstraintSchemaItem,
     reactive_types::{
         RFieldConstraint, RLibraryOperative, ROperativeSlot, ROperativeVariants, RSlotBounds, RTag,
         RTraitMethodImplPath, RTraitOperative,

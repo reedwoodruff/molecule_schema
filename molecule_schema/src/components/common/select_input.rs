@@ -54,7 +54,7 @@ where
     };
 
     view! {
-        <select ref=select_ref value=move || cur_value() on:change=on_change>
+        <select ref=select_ref value=cur_value on:change=on_change>
             <For each=move || options2.get() key=move |item| item.0.clone() let:item>
                 <option value=item.1.clone().into()>{item.1.into()}</option>
             </For>
@@ -119,7 +119,7 @@ where
     };
 
     view! {
-        <select value=move || cur_value() on:change=on_change>
+        <select value=cur_value on:change=on_change>
             <option value="NoneOption" id="NoneOption"></option>
             <For each=move || options2.get() key=move |item| item.0.clone() let:item>
                 <option value=item.1.clone().into()>{item.1.into()}</option>

@@ -1,10 +1,7 @@
 // pub mod from_reactive;
 
 pub use base_types::common::Uid;
-use base_types::constraint_schema::{
-    LibraryOperative, LibraryTemplate, OperativeSlot, OperativeVariants, SlotBounds,
-};
-use base_types::constraint_schema_item::ConstraintSchemaItem;
+use base_types::constraint_schema::{LibraryOperative, LibraryTemplate, OperativeSlot, SlotBounds};
 
 use base_types::{
     common::ConstraintTraits,
@@ -13,8 +10,7 @@ use base_types::{
 };
 
 use base_types::traits::{
-    ConnectionAction, ElementCreationError, FieldEdit, Finalizable, HistoryFieldEdit, SlotRef,
-    TaggedAction, Verifiable,
+    ElementCreationError, FieldEdit, HistoryFieldEdit, SlotRef, TaggedAction, Verifiable,
 };
 use base_types::utils::IntoPrimitiveValue;
 use leptos::{
@@ -44,13 +40,7 @@ fn saturate_wrapper<T: Clone + std::fmt::Debug, RTSchema: EditRGSO<Schema = RTSc
             .into_iter()
             .map(|(id, val)| (id, val.into()))
             .collect(),
-        incoming_slots: RwSignal::new(
-            non_reactive
-                .incoming_slots
-                .into_iter()
-                .map(|val| val.into())
-                .collect(),
-        ),
+        incoming_slots: RwSignal::new(non_reactive.incoming_slots.into_iter().collect()),
         operative: non_reactive.operative,
         template: non_reactive.template,
         _phantom: std::marker::PhantomData,
@@ -62,26 +52,51 @@ pub enum BlueprintId {
     Existing(Uid),
     Temporary(String),
 }
-impl Into<BlueprintId> for Uid {
-    fn into(self) -> BlueprintId {
-        BlueprintId::Existing(self)
+// impl From<BlueprintId> for Uid {
+//     fn from(value: BlueprintId) -> Self {
+//         todo!()
+//     }
+// }
+impl From<Uid> for BlueprintId {
+    fn from(value: Uid) -> Self {
+        BlueprintId::Existing(value)
     }
 }
-impl Into<BlueprintId> for &Uid {
-    fn into(self) -> BlueprintId {
-        BlueprintId::Existing(self.clone())
+impl From<&Uid> for BlueprintId {
+    fn from(value: &Uid) -> Self {
+        BlueprintId::Existing(*value)
     }
 }
-impl Into<BlueprintId> for &str {
-    fn into(self) -> BlueprintId {
-        BlueprintId::Temporary(self.to_string())
+impl From<String> for BlueprintId {
+    fn from(value: String) -> Self {
+        BlueprintId::Temporary(value)
     }
 }
-impl Into<BlueprintId> for String {
-    fn into(self) -> BlueprintId {
-        BlueprintId::Temporary(self)
+impl From<&str> for BlueprintId {
+    fn from(value: &str) -> Self {
+        BlueprintId::Temporary(value.to_string())
     }
 }
+// impl Into<BlueprintId> for Uid {
+//     fn into(self) -> BlueprintId {
+//         BlueprintId::Existing(self)
+//     }
+// }
+// impl Into<BlueprintId> for &Uid {
+//     fn into(self) -> BlueprintId {
+//         BlueprintId::Existing(self.clone())
+//     }
+// }
+// impl Into<BlueprintId> for &str {
+//     fn into(self) -> BlueprintId {
+//         BlueprintId::Temporary(self.to_string())
+//     }
+// }
+// impl Into<BlueprintId> for String {
+//     fn into(self) -> BlueprintId {
+//         BlueprintId::Temporary(self)
+//     }
+// }
 
 impl BlueprintId {
     fn new_temporary(name: &str) -> Self {
@@ -142,7 +157,7 @@ impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchem
                 .into_iter()
                 .for_each(|instance| {
                     self.created_instances.update(|prev| {
-                        prev.remove(&instance.get_id());
+                        prev.remove(instance.get_id());
                     });
                 });
             blueprint
@@ -213,7 +228,7 @@ impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RGraphEnvironment
     type Values = PrimitiveValues;
 
     fn get_constraint_schema(&self) -> &ConstraintSchema<Self::Types, Self::Values> {
-        &self.constraint_schema
+        self.constraint_schema
     }
 
     fn get(&self, id: &Uid) -> Option<Self::Schema> {
@@ -396,7 +411,7 @@ impl<T: std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>> std::fmt::Debug
                         (
                             self.template
                                 .field_constraints
-                                .get(&field_id)
+                                .get(field_id)
                                 .unwrap()
                                 .tag
                                 .name
@@ -488,9 +503,9 @@ where
                 };
                 if matches_host && matches_slot_id {
                     removed.push(slot_ref.clone());
-                    return false;
+                    false
                 } else {
-                    return true;
+                    true
                 }
             });
         });
@@ -823,7 +838,7 @@ where
             .map(|instantiable| {
                 (
                     instantiable.borrow().get_temp_id().clone(),
-                    instantiable.borrow().get_id().clone(),
+                    *instantiable.borrow().get_id(),
                 )
             })
             .collect::<std::collections::HashMap<_, _>>();
@@ -849,9 +864,9 @@ where
                         BlueprintId::Existing(existing_id) => {
                             self.add_incoming_updates.update(|prev| {
                                 prev.insert((
-                                    existing_id.clone(),
+                                    *existing_id,
                                     SlotRef {
-                                        target_instance_id: existing_id.clone(),
+                                        target_instance_id: *existing_id,
                                         host_instance_id: final_host_id,
                                         slot_id: update.1.slot_id,
                                     },
@@ -892,16 +907,16 @@ where
                     if let Some(error) = final_target_id.clone().err() {
                         return Some(error);
                     }
-                    let final_target_id = final_target_id.unwrap().clone();
+                    let final_target_id = final_target_id.unwrap();
 
                     match &update.0 {
                         BlueprintId::Existing(existing_id) => {
                             self.add_outgoing_updates.update(|prev| {
                                 prev.insert((
-                                    existing_id.clone(),
+                                    *existing_id,
                                     SlotRef {
                                         target_instance_id: final_target_id,
-                                        host_instance_id: existing_id.clone(),
+                                        host_instance_id: *existing_id,
                                         slot_id: update.1.slot_id,
                                     },
                                 ));
@@ -953,7 +968,7 @@ where
                     self.field_updates
                         .update(|prev| prev.retain(|change| change.0 != *deleted_instance_id));
                     self.graph.created_instances.with(|created_instances| {
-                        created_instances.get(&deleted_instance_id).unwrap().clone()
+                        created_instances.get(deleted_instance_id).unwrap().clone()
                     })
                 })
                 .collect::<Vec<_>>()
@@ -1001,30 +1016,23 @@ where
                                             .filter(|addition| addition.1.slot_id == *slot.0)
                                             .collect::<Vec<_>>()
                                             .len();
-                                    if slot.1.check_bound_conformity(final_count) == false {
-                                        return Some(ElementCreationError::BoundCheckOutOfRange(
-                                            format!(
-                                                "{}: {}\nBounds: {:?}, Attempted: {}",
-                                                self.graph
-                                                    .get(&update.0)
-                                                    .unwrap()
-                                                    .operative()
-                                                    .tag
-                                                    .name,
-                                                slot.1.slot.tag.name,
-                                                slot.1.slot.bounds,
-                                                slot.1.slotted_instances.get().len()
-                                            ),
-                                        ));
+                                    if !slot.1.check_bound_conformity(final_count) {
+                                        Some(ElementCreationError::BoundCheckOutOfRange(format!(
+                                            "{}: {}\nBounds: {:?}, Attempted: {}",
+                                            self.graph.get(&update.0).unwrap().operative().tag.name,
+                                            slot.1.slot.tag.name,
+                                            slot.1.slot.bounds,
+                                            slot.1.slotted_instances.get().len()
+                                        )))
                                     } else {
-                                        return None;
-                                    };
+                                        None
+                                    }
                                 })
                                 .collect::<Vec<_>>();
                             if errors.is_empty() {
-                                return None;
+                                None
                             } else {
-                                return Some(errors);
+                                Some(errors)
                             }
                         })
                         .flatten()
@@ -1067,9 +1075,7 @@ where
                 field_updates: self.field_updates.get(),
                 action_tag: None,
             },
-            ExecutionResult {
-                temp_id_map: temp_id_map,
-            },
+            ExecutionResult { temp_id_map },
         ))
     }
     fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<TSchema>> {
@@ -1100,12 +1106,12 @@ where
     }
     fn raw_add_outgoing_to_updates(&mut self, slot_ref: SlotRef) {
         self.add_outgoing_updates.update(|prev| {
-            prev.insert((slot_ref.host_instance_id.clone(), slot_ref));
+            prev.insert((slot_ref.host_instance_id, slot_ref));
         });
     }
     fn raw_add_incoming_to_updates(&mut self, slot_ref: SlotRef) {
         self.add_incoming_updates.update(|prev| {
-            prev.insert((slot_ref.target_instance_id.clone(), slot_ref));
+            prev.insert((slot_ref.target_instance_id, slot_ref));
         });
     }
     fn add_outgoing<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
@@ -1121,9 +1127,9 @@ where
         if let Some(instance) = &self.wip_instance {
             match &target_id {
                 BlueprintId::Existing(existing_target_id) => {
-                    let slot = instance.slots.get(&slot_id).unwrap();
+                    let slot = instance.slots.get(slot_id).unwrap();
                     slot.slotted_instances.update(|prev| {
-                        prev.push(existing_target_id.clone());
+                        prev.push(*existing_target_id);
                     });
                 }
                 BlueprintId::Temporary(temp_target_id) => {
@@ -1131,7 +1137,7 @@ where
                         BlueprintId::Temporary(instance.get_temp_id().clone()),
                         TempAddOutgoingSlotRef {
                             target_instance_id: target_id.clone(),
-                            slot_id: slot_id.clone(),
+                            slot_id: *slot_id,
                         },
                     );
                 }
@@ -1141,16 +1147,16 @@ where
             match &target_id {
                 BlueprintId::Existing(existing_target_id) => {
                     self.raw_add_outgoing_to_updates(SlotRef {
-                        host_instance_id: self.id.clone(),
-                        target_instance_id: existing_target_id.clone(),
-                        slot_id: slot_id.clone(),
+                        host_instance_id: self.id,
+                        target_instance_id: *existing_target_id,
+                        slot_id: *slot_id,
                     });
                 }
                 BlueprintId::Temporary(temp_target_id) => self.temp_add_outgoing(
-                    BlueprintId::Existing(self.get_id().clone()),
+                    BlueprintId::Existing(*self.get_id()),
                     TempAddOutgoingSlotRef {
                         target_instance_id: target_id,
-                        slot_id: slot_id.clone(),
+                        slot_id: *slot_id,
                     },
                 ),
             }
@@ -1178,7 +1184,7 @@ where
                 .update(|prev| prev.push(slot_ref.clone()))
         } else {
             self.add_incoming_updates.update(|prev| {
-                prev.insert((slot_ref.target_instance_id.clone(), slot_ref));
+                prev.insert((slot_ref.target_instance_id, slot_ref));
             });
         }
         if let Some(instantiable) = instantiable {
@@ -1200,7 +1206,7 @@ where
                     *self.get_id(),
                     HistoryFieldEdit {
                         instance_id: *self.get_id(),
-                        field_id: field_id,
+                        field_id,
                         new_value: value,
                         prev_value: PrimitiveValues::Bool(false),
                     },
@@ -1289,8 +1295,8 @@ where
     fn add_incoming(&mut self, host_id: &Uid, slot_id: &Uid) {
         self.incoming_slots.update(|incoming_slots| {
             incoming_slots.push(SlotRef {
-                host_instance_id: host_id.clone(),
-                slot_id: slot_id.clone(),
+                host_instance_id: *host_id,
+                slot_id: *slot_id,
                 target_instance_id: self.id,
             })
         });
@@ -1301,7 +1307,7 @@ where
             .get(slot_id)
             .unwrap()
             .slotted_instances
-            .update(|slotted_instances| slotted_instances.push(target_id.clone()));
+            .update(|slotted_instances| slotted_instances.push(*target_id));
     }
 }
 
@@ -1364,12 +1370,12 @@ mod from_reactive {
     use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
     use super::SharedGraph;
-    use base_types::traits::{ActiveSlot, BaseGraphEnvironment, GSOWrapper, HistoryContainer};
+    use base_types::traits::{BaseGraphEnvironment, GSOWrapper};
     use leptos::*;
 
     use super::{
         EditRGSO, FromNonReactive, RActiveSlot, RBaseGraphEnvironment, RGSOWrapper,
-        RHistoryContainer, StandaloneRGSOWrapper, RGSO,
+        RHistoryContainer, RGSO,
     };
     impl<RTSchema: EditRGSO<Schema = RTSchema>, TSchema> From<SharedGraph<RTSchema>>
         for BaseGraphEnvironment<TSchema>
@@ -1395,7 +1401,7 @@ mod from_reactive {
         RTSchema: FromNonReactive<TSchema>,
     {
         fn from(value: BaseGraphEnvironment<TSchema>) -> Self {
-            let mut new_graph = RBaseGraphEnvironment::<RTSchema> {
+            let new_graph = RBaseGraphEnvironment::<RTSchema> {
                 created_instances: RwSignal::new(HashMap::new()),
                 constraint_schema: value.constraint_schema,
                 history: Rc::new(RefCell::new(RHistoryContainer {
@@ -1403,7 +1409,7 @@ mod from_reactive {
                     redo: vec![],
                 })),
             };
-            let mut rc_graph = Rc::new(new_graph);
+            let rc_graph = Rc::new(new_graph);
             let members = value.created_instances.into_iter().map(|(id, val)| {
                 (
                     id,
@@ -1464,12 +1470,7 @@ mod from_reactive {
                     .into_iter()
                     .map(|(id, val)| (id, val.into()))
                     .collect(),
-                incoming_slots: value
-                    .incoming_slots
-                    .get()
-                    .into_iter()
-                    .map(|val| val.into())
-                    .collect(),
+                incoming_slots: value.incoming_slots.get().into_iter().collect(),
 
                 operative: value.operative,
                 template: value.template,

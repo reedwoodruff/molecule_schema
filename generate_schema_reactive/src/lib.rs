@@ -1,6 +1,5 @@
 use base_types::common::Uid;
 use base_types::constraint_schema_item::ConstraintSchemaItem;
-use base_types::utils::get_primitive_value;
 use proc_macro2::TokenStream;
 
 use quote::quote;
@@ -17,10 +16,7 @@ use utils::get_template_slot_enum_name;
 use utils::get_template_get_slot_fn_name;
 use utils::get_template_get_slots_trait_name;
 use std::collections::HashMap;
-use std::env;
-use std::fs;
 use std::path::Path;
-use std::str::FromStr;
 
 
 use crate::utils::get_all_operatives_which_implement_trait_set;
@@ -199,7 +195,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
        let subclass_op_names2 = subclass_op_names.clone();
        let enum_name = get_operative_subclass_enum_name(&constraint_schema_generated, &operative.tag.id );
        let op_wrapped_name = get_all_subclasses(&constraint_schema_generated, &operative.tag.id ).iter().map(|op| get_operative_wrapped_name(&op.tag.name)).collect::<Vec<_>>();
-       let IntermediateFieldTraitInfo{trait_name: field_trait_name, trait_fns: field_trait_fns} = &meta.template_field_trait_info.get(&template_id).unwrap();
+       let IntermediateFieldTraitInfo{trait_name: field_trait_name, trait_fns: field_trait_fns} = &meta.template_field_trait_info.get(template_id).unwrap();
        let field_streams = field_trait_fns.iter().fold(Vec::new(), |mut agg, (id, FieldFnDetails { fn_signature, fn_name, ..})| {
             let intermediate = &subclass_op_names.iter().fold(Vec::new(), |mut agg, subclass| {
                 agg.push(quote!{#enum_name::#subclass(val) => val.#fn_name(),});
@@ -218,7 +214,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
        // let field_trait_fns_streams = field_trait_fns.values().map(|item| item.fn_signature.clone()).collect::<Vec<_>>();
        // let field_trait_fns_names = field_trait_fns.values().map(|item| item.fn_name.clone()).collect::<Vec<_>>();
 
-       let IntermediateSlotTraitInfo { trait_name: slot_trait_name, trait_fns: slot_trait_fns } = meta.template_slots_trait_info.get(&template_id).unwrap();
+       let IntermediateSlotTraitInfo { trait_name: slot_trait_name, trait_fns: slot_trait_fns } = meta.template_slots_trait_info.get(template_id).unwrap();
        let slot_streams  = slot_trait_fns.iter().fold(Vec::new(),|mut agg, (id, SlotFnDetails { fn_name, fn_signature, return_enum_type, is_trait_slot, id_only_signature, id_only_name, is_single_slot_bound })| {
            let intermediate = &subclass_op_names.iter().fold((Vec::new(), Vec::new()), |mut agg, subclass| {
                agg.0.push(quote!{#enum_name::#subclass(val) => val.#fn_name(),});
@@ -286,7 +282,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                 OperativeVariants::TraitOperative(trait_op) => Some(trait_op),
             }}).collect::<Vec<_>>();
             if trait_ops.is_empty() {
-                return None
+                None
             } else {
                 Some(trait_ops)
             }
@@ -386,12 +382,13 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         get_operative_variant_name(&el.tag.name)
     }).collect::<Vec<_>>();
 
-    let schema_name = syn::Ident::new(&"Schema", proc_macro2::Span::call_site());
+    let schema_name = syn::Ident::new("Schema", proc_macro2::Span::call_site());
 
     let schema_rgso_impl = impl_RGSO_for_enum(schema_name.into_token_stream(), all_lib_op_names.clone());
 
     let final_output = quote! {
         pub mod prelude {
+
         #trait_file_stream
         #(#library_operative_streams)*
         #(#get_template_fields_traits_streams)*

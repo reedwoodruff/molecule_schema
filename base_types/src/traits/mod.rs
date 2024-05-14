@@ -1,14 +1,11 @@
 // use anyhow::{Error, Result};
 use std::fmt;
 
-use std::ops::Deref;
 use std::{any::Any, cell::RefCell, collections::HashMap, marker::PhantomData, rc::Rc};
 use strum_macros::Display;
 
-use crate::constraint_schema::OperativeVariants;
-use crate::constraint_schema_item::ConstraintSchemaItem;
 use crate::{
-    common::{ConstraintTraits, Tag, Uid},
+    common::{ConstraintTraits, Uid},
     constraint_schema::{
         ConstraintSchema, LibraryOperative, LibraryTemplate, OperativeSlot, SlotBounds,
     },

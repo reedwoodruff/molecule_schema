@@ -1,6 +1,6 @@
 use base_types::common::Uid;
 use base_types::constraint_schema::{
-    ConstraintSchema, LibraryOperative, OperativeSlot, TraitOperative,
+    ConstraintSchema, LibraryOperative, OperativeSlot,
 };
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
@@ -135,7 +135,7 @@ pub(crate) fn get_all_superclasses(
     let mut next_to_check = root.get_parent_operative_id();
     let mut all_supers = vec![];
     while let Some(next_id) = next_to_check {
-        let super_el = constraint_schema.operative_library.get(&next_id).unwrap();
+        let super_el = constraint_schema.operative_library.get(next_id).unwrap();
         all_supers.push(super_el.clone());
         next_to_check = super_el.get_parent_operative_id();
     }
