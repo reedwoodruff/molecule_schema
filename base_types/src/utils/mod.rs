@@ -10,7 +10,7 @@ pub fn get_primitive_value(ty: &PrimitiveValues) -> proc_macro2::TokenStream {
         // PrimitiveValues::Float(val) => quote::quote! {#val},
         PrimitiveValues::String(val) => quote::quote! {#val},
         PrimitiveValues::Bool(val) => quote::quote! {#val},
-        PrimitiveValues::Char(val) => quote::quote! {#val},
+        // PrimitiveValues::Char(val) => quote::quote! {#val},
         PrimitiveValues::Option(val) => {
             if let Some(present_value) = val.as_ref() {
                 let inner = get_primitive_value(present_value);
@@ -68,11 +68,11 @@ impl IntoPrimitiveValue for bool {
     }
 }
 
-impl IntoPrimitiveValue for char {
-    fn into_primitive_value(self) -> PrimitiveValues {
-        PrimitiveValues::Char(self)
-    }
-}
+// impl IntoPrimitiveValue for char {
+//     fn into_primitive_value(self) -> PrimitiveValues {
+//         PrimitiveValues::Char(self)
+//     }
+// }
 impl<T: IntoPrimitiveValue> IntoPrimitiveValue for Option<T> {
     fn into_primitive_value(self) -> PrimitiveValues {
         match self {

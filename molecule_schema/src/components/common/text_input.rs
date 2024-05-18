@@ -1,4 +1,3 @@
-
 use leptos::{logging::log, *};
 
 #[component]
@@ -20,9 +19,6 @@ where
             value=value
             type="number"
             on:input=move |e| {
-                log! {
-                    "{:?}", event_target_value(& e).parse::< usize > ()
-                }
                 if let Ok(num_val) = event_target_value(&e).parse() {
                     value.set(num_val)
                 }

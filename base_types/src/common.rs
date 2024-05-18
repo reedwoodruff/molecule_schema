@@ -1,7 +1,5 @@
 use uuid::Uuid;
 
-
-
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 pub enum Dir {
@@ -75,6 +73,32 @@ impl Default for FuzzyEdgeDescriptor {
 pub trait ConstraintTraits: Clone + std::fmt::Debug + PartialEq + Default + 'static {}
 
 pub type Uid = u128;
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct StrUid(String);
+pub fn u128_to_string(id: Uid) -> String {
+    uuid::Uuid::from_u128(id).to_string().into()
+}
+pub fn string_to_u128(id: String) -> Uid {
+    id.parse::<Uuid>().unwrap().as_u128()
+}
+
+impl From<String> for StrUid {
+    fn from(value: String) -> Self {
+        StrUid(value)
+    }
+}
+impl From<Uid> for StrUid {
+    fn from(value: Uid) -> Self {
+        uuid::Uuid::from_u128(value).to_string().into()
+    }
+}
+impl From<StrUid> for Uid {
+    fn from(value: StrUid) -> Self {
+        value.0.parse::<Uuid>().unwrap().as_u128()
+    }
+}
 
 impl FuzzyEdgeDescriptor {
     pub fn new() -> Self {

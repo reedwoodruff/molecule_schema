@@ -1,7 +1,5 @@
 use base_types::common::Uid;
-use base_types::constraint_schema::{
-    ConstraintSchema, LibraryOperative, OperativeSlot,
-};
+use base_types::constraint_schema::{ConstraintSchema, LibraryOperative, OperativeSlot};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 
@@ -194,7 +192,7 @@ pub(crate) fn get_primitive_type(ty: &PrimitiveTypes) -> proc_macro2::TokenStrea
         PrimitiveTypes::Int => quote! {u32},
         // PrimitiveTypes::Float => quote! {f32},
         PrimitiveTypes::Bool => quote! {bool},
-        PrimitiveTypes::Char => quote! {char},
+        // PrimitiveTypes::Char => quote! {char},
         PrimitiveTypes::Option(inner) => {
             let inner = get_primitive_type(inner);
             quote! {Option<#inner>}
@@ -212,7 +210,7 @@ pub(crate) fn get_primitive_value(ty: &PrimitiveValues) -> proc_macro2::TokenStr
         // PrimitiveValues::Float(val) => quote! {#val},
         PrimitiveValues::String(val) => quote! {#val},
         PrimitiveValues::Bool(val) => quote! {#val},
-        PrimitiveValues::Char(val) => quote! {#val},
+        // PrimitiveValues::Char(val) => quote! {#val},
         PrimitiveValues::Option(val) => {
             if let Some(present_value) = val.as_ref() {
                 let inner = get_primitive_value(present_value);

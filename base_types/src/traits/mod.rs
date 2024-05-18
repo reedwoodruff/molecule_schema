@@ -4,6 +4,7 @@ use std::fmt;
 use std::{any::Any, cell::RefCell, collections::HashMap, marker::PhantomData, rc::Rc};
 use strum_macros::Display;
 
+use crate::common::StrUid;
 use crate::{
     common::{ConstraintTraits, Uid},
     constraint_schema::{
@@ -43,9 +44,12 @@ pub enum TaggedAction {
 
 pub type HistoryStack<TSchema> = Vec<Vec<HistoryItem<TSchema>>>;
 pub type HistoryRef<TSchema> = Rc<RefCell<HistoryContainer<TSchema>>>;
-#[derive(Debug)]
+
+// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Debug, Clone)]
 pub struct BaseGraphEnvironment<TSchema> {
     pub created_instances: HashMap<Uid, TSchema>,
+    // #[serde(skip)]
     pub constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
 }
 impl<TSchema: 'static> BaseGraphEnvironment<TSchema> {
@@ -119,15 +123,42 @@ pub trait FieldEditable {
     fn apply_field_edit(&mut self, field_edit: FieldEdit);
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct StrSlotRef {
+    pub host_instance_id: StrUid,
+    pub target_instance_id: StrUid,
+    pub slot_id: StrUid,
+}
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct SlotRef {
     pub host_instance_id: Uid,
     pub target_instance_id: Uid,
     pub slot_id: Uid,
 }
+impl From<SlotRef> for StrSlotRef {
+    fn from(value: SlotRef) -> Self {
+        Self {
+            host_instance_id: value.host_instance_id.into(),
+            target_instance_id: value.target_instance_id.into(),
+            slot_id: value.slot_id.into(),
+        }
+    }
+}
+impl From<StrSlotRef> for SlotRef {
+    fn from(value: StrSlotRef) -> Self {
+        Self {
+            host_instance_id: value.host_instance_id.into(),
+            target_instance_id: value.target_instance_id.into(),
+            slot_id: value.slot_id.into(),
+        }
+    }
+}
 
 pub trait Slotted {}
 
+// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 pub struct ActiveSlot {
     pub slot: &'static OperativeSlot,
@@ -181,6 +212,17 @@ pub struct HistoryContainer<TSchema> {
     pub redo: HistoryStack<TSchema>,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[derive(Clone, Debug)]
+pub struct StandaloneRGSOWrapper {
+    pub id: Uid,
+    pub fields: std::collections::HashMap<Uid, PrimitiveValues>,
+    pub outgoing_slots: Vec<SlotRef>,
+    pub incoming_slots: Vec<SlotRef>,
+    pub operative: Uid,
+    pub template: Uid,
+}
+// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone)]
 pub struct GSOWrapper<T> {
     pub id: Uid,

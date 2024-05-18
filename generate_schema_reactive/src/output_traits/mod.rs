@@ -362,16 +362,6 @@ impl RActiveSlot {
 }
 
 #[derive(Clone)]
-pub struct StandaloneRGSOWrapper<T> {
-    id: Uid,
-    fields: std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>,
-    outgoing_slots: std::collections::HashMap<Uid, RActiveSlot>,
-    incoming_slots: RwSignal<Vec<SlotRef>>,
-    operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
-    template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
-    _phantom: std::marker::PhantomData<T>,
-}
-#[derive(Clone)]
 pub struct RGSOWrapper<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
     id: Uid,
     fields: std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>,
@@ -1132,7 +1122,7 @@ where
                         prev.push(*existing_target_id);
                     });
                 }
-                BlueprintId::Temporary(temp_target_id) => {
+                BlueprintId::Temporary(_temp_target_id) => {
                     self.temp_add_outgoing(
                         BlueprintId::Temporary(instance.get_temp_id().clone()),
                         TempAddOutgoingSlotRef {
@@ -1152,7 +1142,7 @@ where
                         slot_id: *slot_id,
                     });
                 }
-                BlueprintId::Temporary(temp_target_id) => self.temp_add_outgoing(
+                BlueprintId::Temporary(_temp_target_id) => self.temp_add_outgoing(
                     BlueprintId::Existing(*self.get_id()),
                     TempAddOutgoingSlotRef {
                         target_instance_id: target_id,
@@ -1408,6 +1398,7 @@ mod from_reactive {
                     undo: vec![],
                     redo: vec![],
                 })),
+                // constraint_schema: todo!(),
             };
             let rc_graph = Rc::new(new_graph);
             let members = value.created_instances.into_iter().map(|(id, val)| {

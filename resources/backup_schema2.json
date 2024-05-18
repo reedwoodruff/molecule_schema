@@ -1,0 +1,313 @@
+{
+  "template_library": {
+    "209078650736961456393410872881468791246": {
+      "tag": {
+        "name": "Sentence",
+        "id": 209078650736961456393410872881468791246
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "237483657729868620058018463859518426913": {
+          "tag": {
+            "name": "Elements",
+            "id": 237483657729868620058018463859518426913
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 167092092024240719256235196000026223162
+          },
+          "bounds": {
+            "LowerBound": 1
+          }
+        }
+      },
+      "trait_impls": {},
+      "instances": [],
+      "_phantom": null
+    },
+    "16394230467673013909628509148984646477": {
+      "tag": {
+        "name": "SemanticUnit",
+        "id": 16394230467673013909628509148984646477
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "250286933483091188820898499864389094220": {
+          "tag": {
+            "name": "SemanticConstituents",
+            "id": 250286933483091188820898499864389094220
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [
+                283747120068250942762595344741960292608
+              ],
+              "tag": {
+                "name": "SemanticConstituent",
+                "id": 237908667910870008746056921687657780382
+              }
+            }
+          },
+          "bounds": {
+            "LowerBound": 1
+          }
+        }
+      },
+      "trait_impls": {
+        "283747120068250942762595344741960292608": {}
+      },
+      "instances": [],
+      "_phantom": null
+    },
+    "141453630109169559890053040325469246503": {
+      "tag": {
+        "name": "PerformsAction",
+        "id": 141453630109169559890053040325469246503
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "339047240439417820389462836829566332350": {
+          "tag": {
+            "name": "Action",
+            "id": 339047240439417820389462836829566332350
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 81078359087905839570723727000345969142
+          },
+          "bounds": "Single"
+        },
+        "858679308589040918104634048524895620": {
+          "tag": {
+            "name": "Actor",
+            "id": 858679308589040918104634048524895620
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 328110159313704158896169684880376643125
+          },
+          "bounds": "Single"
+        }
+      },
+      "trait_impls": {
+        "325142164841272513498577442273140036546": {}
+      },
+      "instances": [],
+      "_phantom": null
+    },
+    "324863925388723348532588799943444196389": {
+      "tag": {
+        "name": "RecievesAction",
+        "id": 324863925388723348532588799943444196389
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "36565041679806441731591626884062813567": {
+          "tag": {
+            "name": "Reciever",
+            "id": 36565041679806441731591626884062813567
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 328110159313704158896169684880376643125
+          },
+          "bounds": "Single"
+        },
+        "24888659928549151421452598436629416430": {
+          "tag": {
+            "name": "Action",
+            "id": 24888659928549151421452598436629416430
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 81078359087905839570723727000345969142
+          },
+          "bounds": "Single"
+        }
+      },
+      "trait_impls": {
+        "325142164841272513498577442273140036546": {}
+      },
+      "instances": [],
+      "_phantom": null
+    },
+    "12604581903852247098926432159467297134": {
+      "tag": {
+        "name": "SentenceElement",
+        "id": 12604581903852247098926432159467297134
+      },
+      "field_constraints": {
+        "177080835052900948213840886356999487739": {
+          "tag": {
+            "name": "Display",
+            "id": 177080835052900948213840886356999487739
+          },
+          "value_type": "String"
+        }
+      },
+      "operative_slots": {
+        "152433277349239272903591115266519458515": {
+          "tag": {
+            "name": "Previous",
+            "id": 152433277349239272903591115266519458515
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 167092092024240719256235196000026223162
+          },
+          "bounds": {
+            "UpperBound": 1
+          }
+        },
+        "315218996442187478180545044857151523511": {
+          "tag": {
+            "name": "ParentSentence",
+            "id": 315218996442187478180545044857151523511
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 292492764743889655901421908056949879184
+          },
+          "bounds": "Single"
+        },
+        "296570211080527262914139425980077313969": {
+          "tag": {
+            "name": "Next",
+            "id": 296570211080527262914139425980077313969
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 167092092024240719256235196000026223162
+          },
+          "bounds": {
+            "UpperBound": 1
+          }
+        }
+      },
+      "trait_impls": {
+        "283747120068250942762595344741960292608": {}
+      },
+      "instances": [],
+      "_phantom": null
+    }
+  },
+  "instance_library": {},
+  "operative_library": {
+    "292492764743889655901421908056949879184": {
+      "tag": {
+        "name": "Sentence",
+        "id": 292492764743889655901421908056949879184
+      },
+      "template_id": 209078650736961456393410872881468791246,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "299689168474728296130877321024886895374": {
+      "tag": {
+        "name": "PerformsAction",
+        "id": 299689168474728296130877321024886895374
+      },
+      "template_id": 141453630109169559890053040325469246503,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "81078359087905839570723727000345969142": {
+      "tag": {
+        "name": "Event",
+        "id": 81078359087905839570723727000345969142
+      },
+      "template_id": 16394230467673013909628509148984646477,
+      "parent_operative_id": 123918800013714266851390607378404657631,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "167092092024240719256235196000026223162": {
+      "tag": {
+        "name": "SentenceElement",
+        "id": 167092092024240719256235196000026223162
+      },
+      "template_id": 12604581903852247098926432159467297134,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "328110159313704158896169684880376643125": {
+      "tag": {
+        "name": "Entity",
+        "id": 328110159313704158896169684880376643125
+      },
+      "template_id": 16394230467673013909628509148984646477,
+      "parent_operative_id": 123918800013714266851390607378404657631,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "191518375326495550441693321184585861930": {
+      "tag": {
+        "name": "Word",
+        "id": 191518375326495550441693321184585861930
+      },
+      "template_id": 12604581903852247098926432159467297134,
+      "parent_operative_id": 167092092024240719256235196000026223162,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "217510386995696462672249683329817360546": {
+      "tag": {
+        "name": "Punctuation",
+        "id": 217510386995696462672249683329817360546
+      },
+      "template_id": 12604581903852247098926432159467297134,
+      "parent_operative_id": 167092092024240719256235196000026223162,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "96614774313608592116246644357392157197": {
+      "tag": {
+        "name": "RecievesAction",
+        "id": 96614774313608592116246644357392157197
+      },
+      "template_id": 324863925388723348532588799943444196389,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "123918800013714266851390607378404657631": {
+      "tag": {
+        "name": "SemanticUnit",
+        "id": 123918800013714266851390607378404657631
+      },
+      "template_id": 16394230467673013909628509148984646477,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    }
+  },
+  "traits": {
+    "325142164841272513498577442273140036546": {
+      "tag": {
+        "name": "Assertion",
+        "id": 325142164841272513498577442273140036546
+      },
+      "methods": {}
+    },
+    "283747120068250942762595344741960292608": {
+      "tag": {
+        "name": "SemanticConstituent",
+        "id": 283747120068250942762595344741960292608
+      },
+      "methods": {}
+    }
+  }
+}

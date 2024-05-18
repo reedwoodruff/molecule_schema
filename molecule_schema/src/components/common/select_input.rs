@@ -31,7 +31,6 @@ where
     let map2 = map;
 
     let cur_value = move || {
-        log!("{:?}", value.get());
         if let Some(val) = map.get().clone().get(&value.get()) {
             val.clone()
         } else {
@@ -43,7 +42,6 @@ where
     let on_change = move |e| {
         let map = map2;
         let return_val = event_target_value(&e);
-        log!("{}", return_val);
         let key_val_pair = map
             .get()
             .into_iter()
@@ -103,7 +101,6 @@ where
         let map = map2;
 
         let return_val = event_target_value(&e);
-        log!("{}", return_val);
         if return_val == "NoneOption" {
             callback(None);
         } else {

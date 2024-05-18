@@ -15,11 +15,9 @@ use crate::components::{
     },
     tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
 };
-use reactive_types::{
-    reactive_types::{
-        RFieldConstraint, RLibraryOperative, ROperativeSlot, ROperativeVariants, RSlotBounds, RTag,
-        RTraitMethodImplPath, RTraitOperative,
-    },
+use reactive_types::reactive_types::{
+    RFieldConstraint, RLibraryOperative, ROperativeSlot, ROperativeVariants, RSlotBounds, RTag,
+    RTraitMethodImplPath, RTraitOperative,
 };
 
 #[component]
@@ -67,7 +65,6 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             .get()
             .iter()
             .map(|instance_id| {
-                // log!("{}", instance_id);
                 ctx.schema
                     .instance_library
                     .get()
@@ -246,7 +243,6 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         move |last_item: TreeNodeDataSelectionType,
               data_type: PrimitiveTypes,
               path: Rc<Vec<TreeRef>>| {
-            log!("clicked {:?}, {:?}, {:?}", last_item, data_type, path);
             if let Some(method_id) = selecting_trait_impl_path.get() {
                 let entry = active_trait_impl_method_paths
                     .get()

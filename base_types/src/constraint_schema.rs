@@ -7,7 +7,7 @@ pub type TraitMethodId = Uid;
 pub type FieldId = Uid;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     // pub template_library: HashMap<Uid, Rc<LibraryTemplate<TTypes, TValues>>>,
     pub template_library: HashMap<Uid, LibraryTemplate<TTypes, TValues>>,

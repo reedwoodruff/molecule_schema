@@ -371,9 +371,6 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                             PrimitiveTypes::Bool => {
                                                 PrimitiveValues::Bool(value.get().parse().unwrap())
                                             }
-                                            PrimitiveTypes::Char => {
-                                                PrimitiveValues::Char(value.get().parse().unwrap())
-                                            }
                                             PrimitiveTypes::Option(_) => todo!(),
                                             PrimitiveTypes::List(_) => todo!(),
                                         };
@@ -388,6 +385,9 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                             });
                                     });
                                     view! {
+                                        // PrimitiveTypes::Char => {
+                                        // PrimitiveValues::Char(value.get().parse().unwrap())
+                                        // }
                                         // PrimitiveTypes::Float => {
                                         // PrimitiveValues::Float(value.get().parse().unwrap())
                                         // }
@@ -455,7 +455,6 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                         let operative_slot_clone_3 = operative_slot.1.clone();
                         let schema_clone_15 = schema_clone_15.clone();
                         let schema_clone_16 = schema_clone_15.clone();
-                        log!("Run fun");
                         view! {
                             <br/>
                             <hr/>
@@ -465,7 +464,6 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                 {operative_describing_string} <br/> Current Instances:
                                 <For
                                     each=move || {
-                                        log!("gumblin ancestors!!!!");
                                         operative_slot_clone_3.get_ancestors_related_instances()
                                     }
 
@@ -483,7 +481,6 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                 </For>
                                 <For
                                     each=move || {
-                                        log!("gumblin local!!!!");
                                         operative_slot_clone_2.get_local_related_instances().clone()
                                     }
 
@@ -572,7 +569,6 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                                 })
                                         }
                                         ROperativeVariants::LibraryOperative(lib_op_id) => {
-                                            log!("lib_op_id: {}", lib_op_id.get());
                                             schema_clone_19
                                                 .instance_library
                                                 .with(|lib| {

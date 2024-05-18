@@ -408,7 +408,7 @@ pub(crate) fn generate_operative_streams(
                             slot_id: #slot_id,
                         };
                         new_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
-                        let manipulated_builder = builder_closure(&mut new_builder);
+                        builder_closure(&mut new_builder);
                         self.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder));
                         self
                     }
@@ -424,7 +424,7 @@ pub(crate) fn generate_operative_streams(
                             slot_id: #slot_id,
                         };
                         new_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
-                        let manipulated_builder = builder_closure(&mut new_builder);
+                        builder_closure(&mut new_builder);
                         self.add_outgoing(&#slot_id, BlueprintId::Existing(existing_item_id.clone()), Some(new_builder));
                         self
                     }
@@ -516,6 +516,7 @@ pub(crate) fn generate_operative_streams(
             fn initiate_build(graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>) -> RGSOBuilder<#struct_name, Schema> {
                 let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
                 let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
+                #[allow(unused_mut)]
                 let mut field_hashmap = std::collections::HashMap::new();
                 #(field_hashmap.insert(#unfulfilled_field_ids, RwSignal::new(None));)*
                 let graph: std::rc::Rc<RBaseGraphEnvironment<Self::Schema>> = graph.into();

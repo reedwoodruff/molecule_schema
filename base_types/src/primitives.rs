@@ -13,7 +13,7 @@ pub enum PrimitiveTypes {
     #[default]
     EmptyTuple,
     Bool,
-    Char,
+    // Char,
     Int,
     // Float,
     String,
@@ -28,7 +28,7 @@ impl quote::ToTokens for PrimitiveTypes {
                 quote::quote! {base_types::primitives::PrimitiveTypes::EmptyTuple}
             }
             PrimitiveTypes::Bool => quote::quote! { base_types::primitives::PrimitiveTypes::Bool },
-            PrimitiveTypes::Char => quote::quote! { base_types::primitives::PrimitiveTypes::Char },
+            // PrimitiveTypes::Char => quote::quote! { base_types::primitives::PrimitiveTypes::Char },
             PrimitiveTypes::Int => quote::quote! { base_types::primitives::PrimitiveTypes::Int },
             // PrimitiveTypes::Float => {
             //     quote::quote! { base_types::primitives::PrimitiveTypes::Float }
@@ -54,7 +54,7 @@ impl PrimitiveTypes {
         // map.insert(PrimitiveTypes::Float, "Float".to_string());
         map.insert(PrimitiveTypes::String, "String".to_string());
         map.insert(PrimitiveTypes::Bool, "Bool".to_string());
-        map.insert(PrimitiveTypes::Char, "Char".to_string());
+        // map.insert(PrimitiveTypes::Char, "Char".to_string());
         for variant in PrimitiveTypes::iter() {
             match variant {
                 PrimitiveTypes::Option(_) => {}
@@ -83,7 +83,7 @@ pub enum PrimitiveValues {
     // Float(f32),
     String(String),
     Bool(bool),
-    Char(char),
+    // Char(char),
     Option(Box<Option<PrimitiveValues>>),
     List(Vec<PrimitiveValues>),
 }
@@ -95,7 +95,7 @@ impl Default for PrimitiveValues {
 impl Display for PrimitiveValues {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            PrimitiveValues::Char(val) => write!(f, "{}", val),
+            // PrimitiveValues::Char(val) => write!(f, "{}", val),
             PrimitiveValues::Int(val) => write!(f, "{}", val,),
             PrimitiveValues::String(val) => write!(f, "{}", val),
             // PrimitiveValues::Float(val) => write!(f, "{}", val),
@@ -126,7 +126,7 @@ impl PrimitiveValues {
             // PrimitiveValues::Float(_) => PrimitiveTypes::Float,
             PrimitiveValues::String(_) => PrimitiveTypes::String,
             PrimitiveValues::Bool(_) => PrimitiveTypes::Bool,
-            PrimitiveValues::Char(_) => PrimitiveTypes::Char,
+            // PrimitiveValues::Char(_) => PrimitiveTypes::Char,
             PrimitiveValues::Option(val) => match val.deref() {
                 Some(val) => val.get_primitive_type(),
                 None => PrimitiveTypes::Option(Box::new(PrimitiveTypes::EmptyTuple)),

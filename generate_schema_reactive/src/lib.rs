@@ -66,37 +66,37 @@ fn impl_RGSO_for_enum(enum_name: TokenStream, members: Vec<syn::Ident> ) -> Toke
             fn operative(&self) -> &'static base_types::constraint_schema::LibraryOperative<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
                 match &self {
                 #(Self::#members(item) => item.operative(),)*
-                _ => panic!(),
+                // _ => panic!(),
                 }
             }
             fn get_id(&self) -> &base_types::common::Uid {
                 match self {
                     #(Self::#members(item) => item.get_id(),)*
-                    _ => panic!(),
+                    // _ => panic!(),
                 }
             }
             fn template(&self) -> &'static base_types::constraint_schema::LibraryTemplate<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
                 match self {
                     #(Self::#members(item) => item.template(),)*
-                    _ => panic!(),
+                    // _ => panic!(),
                 }
             }
             fn outgoing_slots(&self) -> &std::collections::HashMap<base_types::common::Uid, RActiveSlot>{
                 match self {
                     #(Self::#members(item) => item.outgoing_slots(),)*
-                    _ => panic!(),
+                    // _ => panic!(),
                 }
             }
             fn incoming_slots(&self) -> leptos::RwSignal<Vec<base_types::traits::SlotRef>>{
                 match self {
                     #(Self::#members(item) => item.incoming_slots(),)*
-                    _ => panic!(),
+                    // _ => panic!(),
                 }
             }
             fn fields(&self) -> &std::collections::HashMap<base_types::common::Uid, leptos::RwSignal<PrimitiveValues>>{
                 match self {
                     #(Self::#members(item) => item.fields(),)*
-                    _ => panic!(),
+                    // _ => panic!(),
                 }
             }
         }
@@ -205,7 +205,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                #fn_signature {
                    match self {
                        #(#intermediate)*
-                       _ => panic!(),
+                       // _ => panic!(),
                    }
                } 
             });
@@ -227,13 +227,13 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                #fn_signature {
                    match self {
                    #(#variant_streams)*
-                   _ => panic!(),
+                   // _ => panic!(),
                    }
                }
                #id_only_signature {
                    match self {
                    #(#id_only_variant_streams)*
-                   _ => panic!(),
+                   // _ => panic!(),
                    }
                }
            });
@@ -258,7 +258,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                }
                 impl PartialEq for #enum_name {
                     fn eq(&self, other: &Self) -> bool {
-                        self.get_id() == self.get_id()
+                        self.get_id() == other.get_id()
                     }
                 }
                impl #field_trait_name for #enum_name {
@@ -311,7 +311,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
             }
             impl PartialEq for #enum_name {
                 fn eq(&self, other: &Self) -> bool {
-                    self.get_id() == self.get_id()
+                    self.get_id() == other.get_id()
                 }
             }
             #rgso_impl
@@ -434,7 +434,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
         }
         impl PartialEq for Schema {
             fn eq(&self, other: &Self) -> bool {
-                self.get_id() == self.get_id()
+                self.get_id() == other.get_id()
             }
         }
 
@@ -480,15 +480,57 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String  {
                     // _ => panic!(),
                 }
             }
-            
         }
 
+        impl From<Schema> for base_types::traits::StandaloneRGSOWrapper {
+           fn from(value: Schema) -> Self {
+               // let outgoing_slots = value.outgoing_slots().values().fold(Vec::new(), |mut agg, slot| {
+               //      let new_slot_refs = slot.slotted_instances.get().iter().map(|instance_id| {
+               //          base_types::traits::StrSlotRef {
+               //              host_instance_id: value.get_id().clone().into(),
+               //              slot_id: slot.slot.tag.id.clone().into(),
+               //              target_instance_id: instance_id.clone().into(),
+               //          }
+               //      }).collect::<Vec<_>>();
+               //      agg.extend(new_slot_refs);
+               //      agg                     
+               //  });
+               // Self {
+               //     id: base_types::common::u128_to_string(value.get_id().clone()),
+               //     fields: value.fields().into_iter().map( |(field_id, field_value)| {
+               //         (base_types::common::u128_to_string(field_id.clone()), field_value.get())
+               //     }).collect(),
+               //     outgoing_slots,
+               //     incoming_slots: value.incoming_slots().get().into_iter().map(|slot_ref| slot_ref.into()).collect(),
+               //     operative: base_types::common::u128_to_string(value.operative().tag.id.clone()),
+               //     template: base_types::common::u128_to_string(value.template().tag.id.clone()),
+               // }
+               let outgoing_slots = value.outgoing_slots().values().fold(Vec::new(), |mut agg, slot| {
+                    let new_slot_refs = slot.slotted_instances.get().iter().map(|instance_id| {
+                        base_types::traits::SlotRef {
+                            host_instance_id: value.get_id().clone(),
+                            slot_id: slot.slot.tag.id.clone(),
+                            target_instance_id: instance_id.clone(),
+                        }
+                    }).collect::<Vec<_>>();
+                    agg.extend(new_slot_refs);
+                    agg                     
+                });
+               Self {
+                   id: value.get_id().clone(),
+                   fields: value.fields().into_iter().map( |(field_id, field_value)| {
+                       (field_id.clone(), field_value.get())
+                   }).collect(),
+                   outgoing_slots,
+                   incoming_slots: value.incoming_slots().get(),
+                   operative: value.operative().tag.id.clone(),
+                   template: value.template().tag.id.clone(),
+               }
+           } 
         }
-            
+        }
     };
-    
     final_output.to_string()
-
 }
 
 
