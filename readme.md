@@ -52,7 +52,7 @@ Use the graph toolkit to build and manipulate instances of your data.
   - Note that this API and the generated method names are subject to change.
   - Note that only *Operatives* are valid nodes in the graph. Any template which one wants to use in practice needs to have a corresponding operative in order to be accessible in the toolkit.
   - Note that currently instances created in the schema are unsupported. The idea is to eventually integrate these schema-defined instances into the graph environment in an efficient way so as not to duplicate data, but this functionality is just a stub right now.
-  - Write something like this to build a simple Sentence with the default schema:
+  - Write something like this to build a simple Sentence with a single word with the the default schema:
   ```Rust
     let graph = RBaseGraphEnvironment::<Schema>::new(&CONSTRAINT_SCHEMA);
 
@@ -77,5 +77,5 @@ Use the graph toolkit to build and manipulate instances of your data.
   - The hope is that this graph toolkit will make it possible to create UIs which allow users to intuitively interact with highly contextual data, but as a nice first step for developers attempting to understand their schemas, Neo4j provides some very nice graph visualization features.
   - A very rough version of generating the requisite Neo4j Cypher query is included in `/resources/neo4j_creation_example.rs`.
   - Examples:
-    - ![With sentence structure shown](/resources/with_sentence.png)
-    - ![Without sentence structure shown](/resources/without_sentence.png)
+    - ![With sentence structure shown](/resources/semantic_structure.png)
+    - ![Without sentence structure shown](/resources/all_structure.png)

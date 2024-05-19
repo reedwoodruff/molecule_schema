@@ -1,5 +1,5 @@
 use leptos::{logging::log, *};
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap, ops::DerefMut, rc::Rc};
 
 use base_types::{
     common::Uid,
@@ -7,7 +7,7 @@ use base_types::{
 };
 
 use crate::components::{
-    app::{SchemaContext, TreeTypes},
+    app::{ListItemTypes, SchemaContext, TreeTypes},
     common::{button_show::ButtonShow, select_input::SelectInputOptional, text_input::TextInput},
     tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
 };
@@ -282,6 +282,42 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             }
         }
     };
+    let ancestry_breadcrumb = {
+        let mut next_parent = active_object.get().parent_operative_id.get();
+        let mut breadcrumb = Vec::new();
+        while let Some(parent) = next_parent {
+            let operative = schema_clone_4
+                .operative_library
+                .with(|operative_library| operative_library.get(&parent).unwrap().clone());
+            breadcrumb.insert(
+                0,
+                (
+                    operative.tag.id.get().clone(),
+                    operative.tag.name.get().clone(),
+                    ListItemTypes::Operative(operative.tag.id.clone()),
+                ),
+            );
+            next_parent = operative.parent_operative_id.get();
+        }
+        let template = schema_clone_3.template_library.with(|template_library| {
+            template_library
+                .get(&active_object.get().template_id.get())
+                .unwrap()
+                .clone()
+        });
+        breadcrumb.insert(
+            0,
+            (
+                template.tag.id.get().clone(),
+                template.tag.name.get().clone() + " (root template)",
+                ListItemTypes::Template(template.tag.id.clone()),
+            ),
+        );
+        breadcrumb
+    };
+    let on_click_ancestor_breadcrumb = move |clicked_id: ListItemTypes| {
+        ctx.selected_element.set(Some(clicked_id.clone()));
+    };
 
     view! {
         <div class="large-margin med-pad border-gray flex">
@@ -298,6 +334,21 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                 }>delete element</button>
                 <br/>
                 <br/>
+                Ancestry:
+                <br/>
+                <div class="flex">
+                    {ancestry_breadcrumb
+                        .into_iter()
+                        .map(|(ancestor_id, ancestor_name, item_type)| {
+                            view! {
+                                <div on:click=move |_| on_click_ancestor_breadcrumb(
+                                    item_type.clone(),
+                                )>" " {ancestor_name} " > "</div>
+                            }
+                        })
+                        .collect::<Vec<_>>()}
+
+                </div>
                 <strong>Name</strong>
                 <br/>
                 <div class="flex">

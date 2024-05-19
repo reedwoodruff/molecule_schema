@@ -54,7 +54,9 @@ where
     view! {
         <select ref=select_ref value=cur_value on:change=on_change>
             <For each=move || options2.get() key=move |item| item.0.clone() let:item>
-                <option value=item.1.clone().into()>{item.1.into()}</option>
+                <option value=item.1.clone().into() selected=value.get() == item.0>
+                    {item.1.into()}
+                </option>
             </For>
         // {move || options.get().into_iter().map(|item| {
         // view!{<option value=item.1.clone().into()>{item.1.into()}</option>}

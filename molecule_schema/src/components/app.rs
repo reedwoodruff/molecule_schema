@@ -127,7 +127,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                 <div class="large-margin med-pad border-gray">
                     <h2>Operatives</h2>
                     <For
-                        each=move ||operatives.get()
+                        each=move || operatives.get()
                         key=move |(id, _child)| *id
                         children=move |(_id, child)| {
                             view! {
@@ -150,7 +150,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                 <div class="large-margin med-pad border-gray">
                     <h2>Instances</h2>
                     <For
-                        each=move||instances.get()
+                        each=move || instances.get()
                         key=move |(id, _child)| *id
                         children=move |(_id, child)| {
                             view! {
@@ -182,7 +182,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                         }>+</button>
                     </h2>
                     <For
-                        each=move||traits.get()
+                        each=move || traits.get()
                         key=move |(id, _child)| *id
                         children=move |(_id, child)| {
                             view! {
