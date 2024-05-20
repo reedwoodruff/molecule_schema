@@ -9,7 +9,7 @@ The first step is to create the schema. This is accomplished through a rudimenta
   - Ensure that you have all of the prerequisites for running a Leptos application (see [the docs](https://book.leptos.dev/getting_started/index.html#hello-world-getting-set-up-for-leptos-csr-development))
   - Install trunk, a tool for building and serving Rust-based web applications. For more information, visit [Trunk's documentation](https://trunkrs.dev/).
   - Navigate to the `/molecule_schema` directory and run the project locally via `trunk serve`.
-  - The initial schema contained in `/molecule_schema/resources/schema.json` is populated into the UI. To start fresh, remove all of the entries in the `schema.json` and restart the application.
+  - The initial schema contained in `/molecule_schema/resources/schema.json` is populated into the UI. To start fresh, replace `schema.json` contents with the `empty_schema.json` contents and restart the application.
   - Note that this schema-creation UI is quite rough right now. For example, it will crash if you try to delete some construct which is depended upon by another structure.
 #### Schema Terminology
   - **Templates** represent the highest-level type. It defines a node which can contain fields and slots.
