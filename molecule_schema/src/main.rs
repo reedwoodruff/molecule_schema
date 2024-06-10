@@ -6,7 +6,7 @@ use leptos::*;
 use molecule_schema::components::app::App;
 
 pub fn main() {
-    let data = include_str!("/home/reed/dev/molecule_schema/resources/schema.json");
+    let data = include_str!("../../resources/schema.json");
 
     let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
         serde_json::from_str::<ConstraintSchema<PrimitiveTypes, PrimitiveValues>>(data)

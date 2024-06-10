@@ -526,16 +526,12 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                     <br/>
                                 }
                             }
-                            _ => {
-                                view! {
-                                    idk
-                                    <br/>
-                                }
-                            }
+                            _ => view! { <>Single</> },
                         }}
                         <br/>
 
                     </div>
+                    <hr/>
                 </For>
 
                 <strong>Add Library Operative</strong>

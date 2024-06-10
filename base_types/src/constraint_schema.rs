@@ -25,6 +25,7 @@ pub struct LibraryTemplate<TTypes: ConstraintTraits, TValues: ConstraintTraits> 
     pub operative_slots: HashMap<SlotId, OperativeSlot>,
     pub trait_impls: HashMap<TraitId, TraitImpl>,
     pub instances: Vec<Uid>,
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub _phantom: PhantomData<TValues>,
 }
 
