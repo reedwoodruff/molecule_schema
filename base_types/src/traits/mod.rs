@@ -13,8 +13,6 @@ use crate::{
 };
 
 pub mod blueprint;
-#[cfg(feature = "reactive")]
-pub mod reactive;
 
 mod tests;
 
