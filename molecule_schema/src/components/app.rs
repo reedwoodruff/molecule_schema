@@ -70,9 +70,49 @@ pub fn print_schema_reactive(reactive_schema: &RConstraintSchema<PrimitiveTypes,
 pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl IntoView {
     let reactive_schema: RConstraintSchema<PrimitiveTypes, PrimitiveValues> = schema.into();
     let constraint_objects = reactive_schema.template_library;
+    let sorted_constraint_objects = create_memo(move |_| {
+        let mut values = reactive_schema
+            .template_library
+            .get()
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
+        values.sort_by(|a, b| a.tag.name.get().cmp(&b.tag.name.get()));
+        values
+    });
     let instances = reactive_schema.instance_library;
+    let sorted_instances = create_memo(move |_| {
+        let mut values = reactive_schema
+            .instance_library
+            .get()
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
+        values.sort_by(|a, b| a.tag.name.get().cmp(&b.tag.name.get()));
+        values
+    });
     let operatives = reactive_schema.operative_library;
+    let sorted_operatives = create_memo(move |_| {
+        let mut values = reactive_schema
+            .operative_library
+            .get()
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
+        values.sort_by(|a, b| a.tag.name.get().cmp(&b.tag.name.get()));
+        values
+    });
     let traits = reactive_schema.traits;
+    let sorted_traits = create_memo(move |_| {
+        let mut values = reactive_schema
+            .traits
+            .get()
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
+        values.sort_by(|a, b| a.tag.name.get().cmp(&b.tag.name.get()));
+        values
+    });
     let selected_element = RwSignal::new(None);
 
     provide_context(SchemaContext {
@@ -100,9 +140,9 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                 <div class="large-margin med-pad border-gray">
                     <h2>Templates <button on:click=click_new_constraint_object>+</button></h2>
                     <For
-                        each=move || constraint_objects.get()
-                        key=move |(id, _child)| *id
-                        children=move |(_el_id, child)| {
+                        each=move || sorted_constraint_objects.get()
+                        key=move |child| child.tag.id
+                        children=move |child| {
                             view! {
                                 // let clone = handle_list_item_click.clone();
                                 <div>
@@ -127,9 +167,9 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                 <div class="large-margin med-pad border-gray">
                     <h2>Operatives</h2>
                     <For
-                        each=move || operatives.get()
-                        key=move |(id, _child)| *id
-                        children=move |(_id, child)| {
+                        each=move || sorted_operatives.get()
+                        key=move |child| child.tag.id
+                        children=move |child| {
                             view! {
                                 // let clone = handle_list_item_click2.clone();
                                 <RootListItem
@@ -150,9 +190,9 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                 <div class="large-margin med-pad border-gray">
                     <h2>Instances</h2>
                     <For
-                        each=move || instances.get()
-                        key=move |(id, _child)| *id
-                        children=move |(_id, child)| {
+                        each=move || sorted_instances.get()
+                        key=move |child| child.tag.id
+                        children=move |child| {
                             view! {
                                 // let clone = handle_list_item_click3.clone();
                                 <RootListItem
@@ -182,9 +222,9 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                         }>+</button>
                     </h2>
                     <For
-                        each=move || traits.get()
-                        key=move |(id, _child)| *id
-                        children=move |(_id, child)| {
+                        each=move || sorted_traits.get()
+                        key=move |child| child.tag.id
+                        children=move |child| {
                             view! {
                                 <RootListItem
                                     tag=child.tag

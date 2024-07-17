@@ -145,7 +145,6 @@ impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchem
 impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
     fn process_blueprint(&self, blueprint: Blueprint<TSchema>) {
         leptos::logging::log!("starting processing of blueprint");
-        // let blueprint_clone = blueprint.clone();
         batch(|| {
             blueprint.added_instances.into_iter().for_each(|instance| {
                 self.created_instances.update(|prev| {
@@ -271,6 +270,7 @@ pub trait RGraphEnvironment {
     fn redo(&self);
 }
 
+/// Reactive Generated Schema Object
 pub trait RGSO: std::fmt::Debug + Clone {
     type Schema: EditRGSO<Schema = Self::Schema>;
     /// Instance ID

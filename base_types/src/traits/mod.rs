@@ -1,4 +1,3 @@
-// use anyhow::{Error, Result};
 use std::fmt;
 
 use std::{any::Any, cell::RefCell, collections::HashMap, marker::PhantomData, rc::Rc};
@@ -214,6 +213,7 @@ pub struct HistoryContainer<TSchema> {
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
+/// Normalizes GSOWrapper for network transfer
 pub struct StandaloneRGSOWrapper {
     pub id: Uid,
     pub fields: std::collections::HashMap<Uid, PrimitiveValues>,
@@ -222,8 +222,8 @@ pub struct StandaloneRGSOWrapper {
     pub operative: Uid,
     pub template: Uid,
 }
-// #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone)]
+/// Struct which abstracts all common parts of a generated schema object
 pub struct GSOWrapper<T> {
     pub id: Uid,
     pub outgoing_slots: HashMap<Uid, ActiveSlot>,

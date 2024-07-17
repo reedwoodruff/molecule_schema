@@ -5,12 +5,12 @@ use crate::app::prelude::CONSTRAINT_SCHEMA;
 
 pub async fn save_graph(Json(payload): Json<Vec<base_types::traits::StandaloneRGSOWrapper>>) -> (StatusCode, ()) {
     let uri = "neo4j://localhost:7687";
-   let user = "neo4j";
-   let pass = "********";
+    let user = "neo4j";
+    let pass = "********";
 
-   let graph = Graph::new(uri, user, pass).await.unwrap();
+    let graph = Graph::new(uri, user, pass).await.unwrap();
 
-   let mut txn = graph.start_txn().await.unwrap();
+    let mut txn = graph.start_txn().await.unwrap();
 
     let (node_creation_queries, relationship_creation_queries)= payload.iter().fold((Vec::new(), Vec::new()),|mut agg, node| {
         println!("creating node: {}", node.id);
@@ -20,7 +20,7 @@ pub async fn save_graph(Json(payload): Json<Vec<base_types::traits::StandaloneRG
         let string_template_id = base_types::common::u128_to_string(node.template);
         let string_operative_id = base_types::common::u128_to_string(node.operative);
 
-         // Base query
+        // Base query
         let mut query = format!("CREATE (n:{} {{", operative.tag.name);
 
         // Add each key-value pair to the query
@@ -59,7 +59,7 @@ pub async fn save_graph(Json(payload): Json<Vec<base_types::traits::StandaloneRG
                 }
                 PrimitiveValues::Option(val) => {
                     match val.as_ref() {
-                        Some(val) => {                        
+                        Some(val) => {
                             match val {
                                 PrimitiveValues::String(val) => {
                                     creation_query = creation_query.param(&replaced_id, val.clone());
@@ -76,7 +76,7 @@ pub async fn save_graph(Json(payload): Json<Vec<base_types::traits::StandaloneRG
 ,
                         None => todo!(),
                     }
-                
+
                 }
                 PrimitiveValues::List(val) => {
                 }
@@ -104,9 +104,9 @@ pub async fn save_graph(Json(payload): Json<Vec<base_types::traits::StandaloneRG
     let mut all_queries = vec![];
     all_queries.extend(node_creation_queries);
     all_queries.extend(relationship_creation_queries);
-   let result = txn.run_queries(all_queries).await;
-   assert!(result.is_ok());
-   println!("successful run");
-   txn.commit().await.unwrap();
-   println!("completed transaction");
+    let result = txn.run_queries(all_queries).await;
+    assert!(result.is_ok());
+    println!("successful run");
+    txn.commit().await.unwrap();
+    println!("completed transaction");
 }
