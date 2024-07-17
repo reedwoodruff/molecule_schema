@@ -25,7 +25,7 @@ pub(crate) fn get_operative_variant_name(operative_name: &str) -> syn::Ident {
 // pub(crate) fn get_operative_wrapped_name(operative_name: &str) -> syn::Ident {
 //     syn::Ident::new(
 //         &format!(
-//             "base_types::traits::reactive::RGSOWrapper<{}, Schema>",
+//             "base_types::post_generation::reactive::RGSOWrapper<{}, Schema>",
 //             get_operative_variant_name(operative_name).to_string()
 //         ),
 //         proc_macro2::Span::call_site(),

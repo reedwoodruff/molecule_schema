@@ -87,7 +87,7 @@ fn impl_RGSO_for_enum(enum_name: TokenStream, members: Vec<syn::Ident>) -> Token
                     // _ => panic!(),
                 }
             }
-            fn incoming_slots(&self) -> leptos::RwSignal<Vec<base_types::traits::SlotRef>>{
+            fn incoming_slots(&self) -> leptos::RwSignal<Vec<base_types::post_generation::SlotRef>>{
                 match self {
                     #(Self::#members(item) => item.incoming_slots(),)*
                     // _ => panic!(),
@@ -524,8 +524,8 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         #(#slot_trait_enums_stream)*
         #(#trait_definition_streams)*
 
-        fn validate_signal_is_some<T>(signal: &leptos::RwSignal<Option<T>>) -> Result<(), base_types::traits::ElementCreationError> {
-            signal.with(|val| {if val.is_some() {return Ok(())} return Err(base_types::traits::ElementCreationError::RequiredFieldIsEmpty);})
+        fn validate_signal_is_some<T>(signal: &leptos::RwSignal<Option<T>>) -> Result<(), base_types::post_generation::ElementCreationError> {
+            signal.with(|val| {if val.is_some() {return Ok(())} return Err(base_types::post_generation::ElementCreationError::RequiredFieldIsEmpty);})
         }
 
         lazy_static::lazy_static!{
@@ -543,7 +543,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         }
         #[derive(Debug, Clone)]
         pub enum NonReactiveSchema {
-            #(#all_lib_op_names(base_types::traits::GSOWrapper<#all_lib_op_names>),)*
+            #(#all_lib_op_names(base_types::post_generation::GSOWrapper<#all_lib_op_names>),)*
         }
         impl From<Schema> for NonReactiveSchema {
             fn from(value: Schema) -> Self {
@@ -566,7 +566,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         }
 
         impl RFieldEditable for Schema {
-            fn apply_field_edit(&self, field_edit: base_types::traits::FieldEdit) {
+            fn apply_field_edit(&self, field_edit: base_types::post_generation::FieldEdit) {
                 match self {
                 #(Self::#all_lib_op_names(item) => item.apply_field_edit(field_edit),)*
                 // _ => panic!(),
@@ -577,13 +577,13 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         #schema_rgso_impl
 
         impl EditRGSO for Schema {
-            fn remove_outgoing(& self, slot_ref: &base_types::traits::SlotRef) -> & Self{
+            fn remove_outgoing(& self, slot_ref: &base_types::post_generation::SlotRef) -> & Self{
                 match self {
                     #(Self::#all_lib_op_names(item) => {item.remove_outgoing(slot_ref); self},)*
                     // _ => panic!(),
                 }
             }
-            fn remove_incoming(& self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> Vec<base_types::traits::SlotRef> {
+            fn remove_incoming(& self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> Vec<base_types::post_generation::SlotRef> {
                 match self {
                     #(Self::#all_lib_op_names(item) => item.remove_incoming(parent_id, slot_id),)*
                     // _ => panic!(),
@@ -595,13 +595,13 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                     // _ => panic!(),
                 }
             }
-            fn add_outgoing(& self, slot_ref: base_types::traits::SlotRef) -> & Self {
+            fn add_outgoing(& self, slot_ref: base_types::post_generation::SlotRef) -> & Self {
                 match self {
                     #(Self::#all_lib_op_names(item) => {item.add_outgoing(slot_ref); self},)*
                     // _ => panic!(),
                 }
             }
-            fn add_incoming(& self, slot_ref: base_types::traits::SlotRef) ->  &Self {
+            fn add_incoming(& self, slot_ref: base_types::post_generation::SlotRef) ->  &Self {
                 match self {
                     #(Self::#all_lib_op_names(item) => {item.add_incoming(slot_ref); self},)*
                     // _ => panic!(),
@@ -609,11 +609,11 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             }
         }
 
-        impl From<Schema> for base_types::traits::StandaloneRGSOWrapper {
+        impl From<Schema> for base_types::post_generation::StandaloneRGSOWrapper {
            fn from(value: Schema) -> Self {
                let outgoing_slots = value.outgoing_slots().values().fold(Vec::new(), |mut agg, slot| {
                     let new_slot_refs = slot.slotted_instances.get().iter().map(|instance_id| {
-                        base_types::traits::SlotRef {
+                        base_types::post_generation::SlotRef {
                             host_instance_id: value.get_id().clone(),
                             slot_id: slot.slot.tag.id.clone(),
                             target_instance_id: instance_id.clone(),

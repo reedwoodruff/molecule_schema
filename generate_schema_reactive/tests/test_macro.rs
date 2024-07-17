@@ -4,8 +4,8 @@
 
 // use base_types::common::Uid;
 
-// use base_types::traits::reactive::RBaseGraphEnvironment;
-// use base_types::traits::{BaseGraphEnvironment, GraphEnvironment, GSO};
+// use base_types::post_generation::reactive::RBaseGraphEnvironment;
+// use base_types::post_generation::{BaseGraphEnvironment, GraphEnvironment, GSO};
 // use generate_schema_reactive::generate_concrete_schema_reactive;
 
 // #[test]

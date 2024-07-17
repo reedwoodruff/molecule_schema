@@ -167,7 +167,7 @@ impl quote::ToTokens for ActiveSlot {
         let slotted_instances = self.slotted_instances.clone();
         let slot = self.slot.clone();
         tokens.extend(quote::quote! {
-            base_types::traits::ActiveSlot {
+            base_types::post_generation::ActiveSlot {
                 slotted_instances: vec![#(#slotted_instances,)*],
                 slot: #slot,
             }

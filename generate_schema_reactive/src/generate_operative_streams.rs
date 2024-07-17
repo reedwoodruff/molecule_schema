@@ -1,14 +1,18 @@
-
 use proc_macro2::{Ident, TokenStream};
-use quote::{quote};
+use quote::quote;
 
+use base_types::constraint_schema::*;
 use base_types::constraint_schema_item::ConstraintSchemaItem;
 use base_types::primitives::*;
-use base_types::{constraint_schema::*, };
 
-use crate::{generate_trait_impl_streams, IntermediateFieldTraitInfo, IntermediateSlotTraitInfo, MetaData, SlotFnDetails};
 use crate::utils::{
-    get_all_operatives_which_implement_trait_set, get_all_subclasses, get_operative_subclass_enum_name, get_operative_variant_name, get_operative_wrapped_name, get_primitive_type, get_primitive_value
+    get_all_operatives_which_implement_trait_set, get_all_subclasses,
+    get_operative_subclass_enum_name, get_operative_variant_name, get_operative_wrapped_name,
+    get_primitive_type, get_primitive_value,
+};
+use crate::{
+    generate_trait_impl_streams, IntermediateFieldTraitInfo, IntermediateSlotTraitInfo, MetaData,
+    SlotFnDetails,
 };
 
 pub(crate) fn generate_operative_streams(
@@ -48,7 +52,10 @@ pub(crate) fn generate_operative_streams(
         .unwrap();
     // let locked_fields = field_digest.locked_fields;
     let unfulfilled_fields = field_digest.get_unfulfilled_fields();
-    let unfulfilled_field_ids = unfulfilled_fields.iter().map(|field| field.tag.id).collect::<Vec<_>>();
+    let unfulfilled_field_ids = unfulfilled_fields
+        .iter()
+        .map(|field| field.tag.id)
+        .collect::<Vec<_>>();
     let unfulfilled_field_names = unfulfilled_fields
         .iter()
         .map(|field| syn::Ident::new(&field.tag.name, proc_macro2::Span::call_site()))
@@ -59,9 +66,13 @@ pub(crate) fn generate_operative_streams(
         .collect::<Vec<_>>();
     let unfulfilled_field_value_types_enum = unfulfilled_fields
         .iter()
-        .map(|field| syn::Ident::new(&field.value_type.to_string(), proc_macro2::Span::call_site()))
+        .map(|field| {
+            syn::Ident::new(
+                &field.value_type.to_string(),
+                proc_macro2::Span::call_site(),
+            )
+        })
         .collect::<Vec<_>>();
-
 
     let locked_fields = field_digest.locked_fields;
     let locked_field_names = locked_fields
@@ -108,9 +119,7 @@ pub(crate) fn generate_operative_streams(
             }}
         })
         .collect::<Vec<_>>();
-    let active_slot_ids = all_slots
-        .iter()
-        .map(|active_slot| active_slot.slot.tag.id);
+    let active_slot_ids = all_slots.iter().map(|active_slot| active_slot.slot.tag.id);
     let active_slot_tokens = if active_slots.is_empty() {
         quote! {None}
     } else {
@@ -121,18 +130,32 @@ pub(crate) fn generate_operative_streams(
 
     let get_locked_fields_stream = locked_fields.iter().map(|(field_id, locked_field_digest)| {
         let field_getter_fn_name = proc_macro2::Ident::new(
-            &format!("get_{}_field", locked_field_digest.fulfilled_field.field_constraint_name.to_lowercase()),
+            &format!(
+                "get_{}_field",
+                locked_field_digest
+                    .fulfilled_field
+                    .field_constraint_name
+                    .to_lowercase()
+            ),
             proc_macro2::Span::call_site(),
         );
         let field_getting_manipulate_field_trait_name = proc_macro2::Ident::new(
-            &format!("{}{}FieldGetter", struct_name, locked_field_digest.fulfilled_field.field_constraint_name),
+            &format!(
+                "{}{}FieldGetter",
+                struct_name, locked_field_digest.fulfilled_field.field_constraint_name
+            ),
             proc_macro2::Span::call_site(),
         );
-        let field_value_type = get_primitive_type(&locked_field_digest.fulfilled_field.value.get_primitive_type());
+        let field_value_type = get_primitive_type(
+            &locked_field_digest
+                .fulfilled_field
+                .value
+                .get_primitive_type(),
+        );
         let locked_return_val = get_primitive_value(&locked_field_digest.fulfilled_field.value);
-        quote!{
+        quote! {
             pub trait field_getting_manipulate_field_trait_name {
-                fn #field_getter_fn_name(&self) -> #field_value_type;                
+                fn #field_getter_fn_name(&self) -> #field_value_type;
             }
             impl #field_getting_manipulate_field_trait_name for RGSOWrapper<#struct_name, Schema> {
                 fn #field_getter_fn_name(&self) -> #field_value_type {
@@ -143,15 +166,36 @@ pub(crate) fn generate_operative_streams(
     });
 
     let get_fields_and_slots_stream = {
-       let IntermediateFieldTraitInfo{trait_name: field_trait_name, trait_fns: field_trait_fns} = &meta.template_field_trait_info.get(reference_template_id).unwrap();
-       let field_trait_fns_streams = field_trait_fns.values().map(|item| item.fn_signature.clone()).collect::<Vec<_>>();
-       let field_trait_fns_names = field_trait_fns.values().map(|item| item.fn_name.clone()).collect::<Vec<_>>();
-       let field_ids = field_trait_fns.keys().collect::<Vec<_>>();
-       let field_value_types = field_trait_fns.values().map(|item| item.field_return_type.clone()).collect::<Vec<_>>();
+        let IntermediateFieldTraitInfo {
+            trait_name: field_trait_name,
+            trait_fns: field_trait_fns,
+        } = &meta
+            .template_field_trait_info
+            .get(reference_template_id)
+            .unwrap();
+        let field_trait_fns_streams = field_trait_fns
+            .values()
+            .map(|item| item.fn_signature.clone())
+            .collect::<Vec<_>>();
+        let field_trait_fns_names = field_trait_fns
+            .values()
+            .map(|item| item.fn_name.clone())
+            .collect::<Vec<_>>();
+        let field_ids = field_trait_fns.keys().collect::<Vec<_>>();
+        let field_value_types = field_trait_fns
+            .values()
+            .map(|item| item.field_return_type.clone())
+            .collect::<Vec<_>>();
 
-       let IntermediateSlotTraitInfo { trait_name: slot_trait_name, trait_fns: slot_trait_fns } = meta.template_slots_trait_info.get(reference_template_id).unwrap();
-       let wrapped_name = get_operative_wrapped_name(&instantiable.get_tag().name);
-       let slot_stream = slot_trait_fns.iter().map(|(id, SlotFnDetails { fn_name, fn_signature, return_enum_type, is_trait_slot, id_only_signature, id_only_name, is_single_slot_bound })| {
+        let IntermediateSlotTraitInfo {
+            trait_name: slot_trait_name,
+            trait_fns: slot_trait_fns,
+        } = meta
+            .template_slots_trait_info
+            .get(reference_template_id)
+            .unwrap();
+        let wrapped_name = get_operative_wrapped_name(&instantiable.get_tag().name);
+        let slot_stream = slot_trait_fns.iter().map(|(id, SlotFnDetails { fn_name, fn_signature, return_enum_type, is_trait_slot, id_only_signature, id_only_name, is_single_slot_bound })| {
         let id_only_body = match is_single_slot_bound {
             true => quote!{self.outgoing_slots().get(&#id).unwrap().slotted_instances.get().first().unwrap().clone()},
             false => quote!{self.outgoing_slots().get(&#id).unwrap().slotted_instances.get()},
@@ -175,7 +219,7 @@ pub(crate) fn generate_operative_streams(
                  quote!{
                      #(Schema::#subclasses_names(wrapper) => #operative_subclass_enum_name::#subclasses_names(wrapper),)*
                      _ => panic!(),
-                 }  
+                 }
                };
                 quote!{
                    #fn_signature {
@@ -210,29 +254,28 @@ pub(crate) fn generate_operative_streams(
                        #id_only_body
                    }
                 }
-                
+
             },
         };
         fn_streams
        }).collect::<Vec<_>>();
-       let slot_stream = quote!{
-           impl #slot_trait_name for #wrapped_name {
-               #(#slot_stream)*
-           }
-       };
+        let slot_stream = quote! {
+            impl #slot_trait_name for #wrapped_name {
+                #(#slot_stream)*
+            }
+        };
 
-
-       quote!{
-           impl #field_trait_name for #wrapped_name {
-               #(#field_trait_fns_streams {
-                    match self.fields.get(&#field_ids).unwrap().get() {
-                        base_types::primitives::PrimitiveValues::#field_value_types(val) => val,
-                        _ => panic!()
-                    }
-               })*
-           }
-           #slot_stream
-       }
+        quote! {
+            impl #field_trait_name for #wrapped_name {
+                #(#field_trait_fns_streams {
+                     match self.fields.get(&#field_ids).unwrap().get() {
+                         base_types::primitives::PrimitiveValues::#field_value_types(val) => val,
+                         _ => panic!()
+                     }
+                })*
+            }
+            #slot_stream
+        }
     };
 
     let manipulate_fields_stream = unfulfilled_fields.iter().map(|field| {
@@ -317,7 +360,7 @@ pub(crate) fn generate_operative_streams(
             } else {
                 vec![]
             };
-            
+
             let item_or_t = if let Some(item) = single_item_id {
                 let item_name_string = item.tag.name.clone();
                 get_operative_variant_name(&
@@ -329,15 +372,15 @@ pub(crate) fn generate_operative_streams(
 
             let add_new_fn_signature = if let Some(item) = single_item_id {
                 quote!{
-                    pub fn #add_new_fn_name(&mut self, 
+                    pub fn #add_new_fn_name(&mut self,
                         builder_closure: impl Fn(&mut RGSOBuilder<#item_or_t, Schema>) -> &mut RGSOBuilder<#item_or_t, Schema>
                     ) -> &mut Self
                  }
             } else {
                 quote!{
-                    pub fn #add_new_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self, 
+                    pub fn #add_new_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
                         builder_closure: impl Fn(&mut RGSOBuilder<T, Schema>) -> &mut RGSOBuilder<T, Schema>
-                    ) -> &mut Self                 
+                    ) -> &mut Self
                 }
             };
             let add_existing_and_edit_fn_signature = if let Some(item) = single_item_id {
@@ -352,7 +395,7 @@ pub(crate) fn generate_operative_streams(
                     pub fn #add_existing_and_edit_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
                         existing_item_id: &Uid,
                         builder_closure: impl Fn(&mut RGSOBuilder<T, Schema>) -> &mut RGSOBuilder<T, Schema>
-                    ) -> &mut Self    
+                    ) -> &mut Self
                 }
             };
             let add_existing_or_temp_fn_signature = if let Some(item) = single_item_id {
@@ -365,11 +408,11 @@ pub(crate) fn generate_operative_streams(
                 quote!{
                     pub fn #add_existing_or_temp_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
                         existing_item_id: impl Into<BlueprintId>,
-                    ) -> &mut Self                
+                    ) -> &mut Self
                 }
             };
             // let super_types = get_all_superclasses(constraint_schema, item_id);
-            let all_unacceptable_types = constraint_schema.operative_library.values().filter_map(|op| 
+            let all_unacceptable_types = constraint_schema.operative_library.values().filter_map(|op|
                 if !items.iter().any(|super_el| super_el.tag.id == op.tag.id) {
                     Some(op)
                 } else {
@@ -385,11 +428,11 @@ pub(crate) fn generate_operative_streams(
                     match existing_item {
                         #(Schema::#acceptable_type_names(_) => None,)*
                         #(Schema::#unacceptable_type_names(_) => {
-                            Some(base_types::traits::ElementCreationError::OutgoingElementIsWrongType{expected: #expected_type_names_string.to_string(), recieved: #unacceptable_string_names.to_string() })
+                            Some(base_types::post_generation::ElementCreationError::OutgoingElementIsWrongType{expected: #expected_type_names_string.to_string(), recieved: #unacceptable_string_names.to_string() })
                         },)*
                     }
                 } else {
-                    Some(base_types::traits::ElementCreationError::OutgoingElementDoesntExist{id: existing_item_id.clone()})
+                    Some(base_types::post_generation::ElementCreationError::OutgoingElementDoesntExist{id: existing_item_id.clone()})
                 };
                 if error.is_some() {
                     self.add_error(error.unwrap());
@@ -402,7 +445,7 @@ pub(crate) fn generate_operative_streams(
                     #add_new_fn_signature
                     {
                         let mut new_builder = #item_or_t::initiate_build(self.get_graph().clone());
-                        let edge_to_this_element = base_types::traits::SlotRef {
+                        let edge_to_this_element = base_types::post_generation::SlotRef {
                             host_instance_id: self.get_id().clone(),
                             target_instance_id: new_builder.get_id().clone(),
                             slot_id: #slot_id,
@@ -418,7 +461,7 @@ pub(crate) fn generate_operative_streams(
                         #mismatch_error_handling
 
                         let mut new_builder = #item_or_t::initiate_edit(existing_item_id.clone(), self.get_graph().clone());
-                        let edge_to_this_element = base_types::traits::SlotRef {
+                        let edge_to_this_element = base_types::post_generation::SlotRef {
                             host_instance_id: self.get_id().clone(),
                             target_instance_id: new_builder.get_id().clone(),
                             slot_id: #slot_id,
@@ -434,7 +477,7 @@ pub(crate) fn generate_operative_streams(
                         match &existing_item_blueprint_id {
                             BlueprintId::Existing(existing_item_id) => {
                                 #mismatch_error_handling
-                                let edge_to_this_element = base_types::traits::SlotRef {
+                                let edge_to_this_element = base_types::post_generation::SlotRef {
                                     host_instance_id: self.get_id().clone(),
                                     target_instance_id: existing_item_id.clone(),
                                     slot_id: #slot_id,
@@ -454,7 +497,7 @@ pub(crate) fn generate_operative_streams(
                             }
                         }
                     }
-                        
+
                 }
             }
         };
@@ -483,7 +526,7 @@ pub(crate) fn generate_operative_streams(
         quote! {
             impl RGSOBuilder<#struct_name, Schema> {
                 pub fn #remove_from_slot_fn_name(&mut self, target_id: &Uid) -> &mut Self {
-                    self.remove_outgoing(base_types::traits::SlotRef{
+                    self.remove_outgoing(base_types::post_generation::SlotRef{
                         host_instance_id: self.get_id().clone(),
                         target_instance_id: target_id.clone(),
                         slot_id: #slot_id,

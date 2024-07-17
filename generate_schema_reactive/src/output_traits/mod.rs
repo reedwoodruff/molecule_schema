@@ -9,7 +9,7 @@ use base_types::{
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 
-use base_types::traits::{
+use base_types::post_generation::{
     ElementCreationError, FieldEdit, HistoryFieldEdit, SlotRef, TaggedAction, Verifiable,
 };
 use base_types::utils::IntoPrimitiveValue;
@@ -24,7 +24,7 @@ where
     fn from_non_reactive(value: NTSchema, graph: std::rc::Rc<RBaseGraphEnvironment<Self>>) -> Self;
 }
 fn saturate_wrapper<T: Clone + std::fmt::Debug, RTSchema: EditRGSO<Schema = RTSchema>>(
-    non_reactive: base_types::traits::GSOWrapper<T>,
+    non_reactive: base_types::post_generation::GSOWrapper<T>,
     graph: std::rc::Rc<RBaseGraphEnvironment<RTSchema>>,
 ) -> RGSOWrapper<T, RTSchema> {
     RGSOWrapper::<T, RTSchema> {
@@ -585,7 +585,7 @@ impl<T, TSchema: EditRGSO<Schema = TSchema>> RProducable<RGSOWrapper<T, TSchema>
 }
 
 impl<T, TSchema: EditRGSO<Schema = TSchema>> Verifiable for RGSOWrapperBuilder<T, TSchema> {
-    fn verify(&self) -> Result<(), base_types::traits::ElementCreationError> {
+    fn verify(&self) -> Result<(), base_types::post_generation::ElementCreationError> {
         let field_errors = self
             .data
             .values()
@@ -644,7 +644,9 @@ where
 trait RInstantiable: std::fmt::Debug {
     type Schema: RGSO<Schema = Self::Schema>;
 
-    fn instantiate(&self) -> Result<Self::Schema, base_types::traits::ElementCreationError>;
+    fn instantiate(
+        &self,
+    ) -> Result<Self::Schema, base_types::post_generation::ElementCreationError>;
     fn get_id(&self) -> &Uid;
     fn get_temp_id(&self) -> &String;
     fn get_template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
@@ -1266,7 +1268,9 @@ where
 {
     type Schema = TSchema;
 
-    fn instantiate(&self) -> Result<Self::Schema, base_types::traits::ElementCreationError> {
+    fn instantiate(
+        &self,
+    ) -> Result<Self::Schema, base_types::post_generation::ElementCreationError> {
         self.verify()?;
         Ok(T::into_schema(self.produce()))
     }
@@ -1360,7 +1364,7 @@ mod from_reactive {
     use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
     use super::SharedGraph;
-    use base_types::traits::{BaseGraphEnvironment, GSOWrapper};
+    use base_types::post_generation::{BaseGraphEnvironment, GSOWrapper};
     use leptos::*;
 
     use super::{
@@ -1428,7 +1432,7 @@ mod from_reactive {
             // Rc::try_unwrap(rc_graph).expect("Rc should only have one strong reference")
         }
     }
-    impl From<RActiveSlot> for base_types::traits::ActiveSlot {
+    impl From<RActiveSlot> for base_types::post_generation::ActiveSlot {
         fn from(value: RActiveSlot) -> Self {
             Self {
                 slot: value.slot,
@@ -1436,8 +1440,8 @@ mod from_reactive {
             }
         }
     }
-    impl From<base_types::traits::ActiveSlot> for RActiveSlot {
-        fn from(value: base_types::traits::ActiveSlot) -> Self {
+    impl From<base_types::post_generation::ActiveSlot> for RActiveSlot {
+        fn from(value: base_types::post_generation::ActiveSlot) -> Self {
             Self {
                 slot: value.slot,
                 slotted_instances: RwSignal::new(value.slotted_instances),

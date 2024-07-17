@@ -3,9 +3,9 @@ use base_types::{common::u128_to_string, primitives::PrimitiveValues };
 use neo4rs::*;
 use crate::app::prelude::CONSTRAINT_SCHEMA;
 
-pub async fn save_graph(Json(payload): Json<Vec<base_types::traits::StandaloneRGSOWrapper>>) -> (StatusCode, ()) {
+pub async fn save_graph(Json(payload): Json<Vec<base_types::post_generation::StandaloneRGSOWrapper>>) -> (StatusCode, ()) {
     let uri = "neo4j://localhost:7687";
-    let user = "neo4j";
+
     let pass = "********";
 
     let graph = Graph::new(uri, user, pass).await.unwrap();
