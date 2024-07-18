@@ -344,6 +344,7 @@ pub(crate) fn generate_operative_streams(
             } else {
                 None
             };
+            let manipulate_slot_trait_name = proc_macro2::Ident::new(&format!("ManipulateSlot{}{}", slot_name, struct_name), proc_macro2::Span::call_site());
             let marker_trait_name = Ident::new(&format!("{}{}AcceptableTargetMarker", struct_name, slot_name), proc_macro2::Span::call_site());
             let marker_impls = items.iter().map(|item| {
                 let item_name = get_operative_variant_name(&item.get_tag().name);
@@ -372,27 +373,27 @@ pub(crate) fn generate_operative_streams(
 
             let add_new_fn_signature = if let Some(item) = single_item_id {
                 quote!{
-                    pub fn #add_new_fn_name(&mut self,
+                    fn #add_new_fn_name(&mut self,
                         builder_closure: impl Fn(&mut RGSOBuilder<#item_or_t, Schema>) -> &mut RGSOBuilder<#item_or_t, Schema>
                     ) -> &mut Self
                  }
             } else {
                 quote!{
-                    pub fn #add_new_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
+                    fn #add_new_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
                         builder_closure: impl Fn(&mut RGSOBuilder<T, Schema>) -> &mut RGSOBuilder<T, Schema>
                     ) -> &mut Self
                 }
             };
             let add_existing_and_edit_fn_signature = if let Some(item) = single_item_id {
                 quote!{
-                    pub fn #add_existing_and_edit_fn_name(&mut self,
+                    fn #add_existing_and_edit_fn_name(&mut self,
                         existing_item_id: &Uid,
                         builder_closure: impl Fn(&mut RGSOBuilder<#item_or_t, Schema>) -> &mut RGSOBuilder<#item_or_t, Schema>
                     ) -> &mut Self
                 }
             } else {
                 quote!{
-                    pub fn #add_existing_and_edit_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
+                    fn #add_existing_and_edit_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
                         existing_item_id: &Uid,
                         builder_closure: impl Fn(&mut RGSOBuilder<T, Schema>) -> &mut RGSOBuilder<T, Schema>
                     ) -> &mut Self
@@ -400,13 +401,13 @@ pub(crate) fn generate_operative_streams(
             };
             let add_existing_or_temp_fn_signature = if let Some(item) = single_item_id {
                 quote!{
-                    pub fn #add_existing_or_temp_fn_name(&mut self,
+                    fn #add_existing_or_temp_fn_name(&mut self,
                         existing_item_id: impl Into<BlueprintId>,
                     ) -> &mut Self
                 }
             } else {
                 quote!{
-                    pub fn #add_existing_or_temp_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
+                    fn #add_existing_or_temp_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
                         existing_item_id: impl Into<BlueprintId>,
                     ) -> &mut Self
                 }
@@ -441,18 +442,23 @@ pub(crate) fn generate_operative_streams(
 
             quote!{
                 #(#marker_trait_stream)*
-                impl RGSOBuilder<#struct_name, Schema> {
+                trait #manipulate_slot_trait_name {
+                   #add_new_fn_signature;
+                   #add_existing_and_edit_fn_signature;
+                   #add_existing_or_temp_fn_signature;
+                }
+                impl #manipulate_slot_trait_name for rgsobuilder<#struct_name, schema> {
                     #add_new_fn_signature
                     {
                         let mut new_builder = #item_or_t::initiate_build(self.get_graph().clone());
-                        let edge_to_this_element = base_types::post_generation::SlotRef {
+                        let edge_to_this_element = base_types::post_generation::slotref {
                             host_instance_id: self.get_id().clone(),
                             target_instance_id: new_builder.get_id().clone(),
                             slot_id: #slot_id,
                         };
-                        new_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
+                        new_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), none);
                         builder_closure(&mut new_builder);
-                        self.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder));
+                        self.add_outgoing(&#slot_id, blueprintid::existing(edge_to_this_element.target_instance_id.clone()), some(new_builder));
                         self
                     }
                     #add_existing_and_edit_fn_signature
@@ -523,9 +529,13 @@ pub(crate) fn generate_operative_streams(
                 }
             }
         };
+        let remove_slot_trait_name = proc_macro2::Ident::new(&format!("RemoveFromSlot{}{}", slot_name, struct_name), proc_macro2::Span::call_site());
         quote! {
-            impl RGSOBuilder<#struct_name, Schema> {
-                pub fn #remove_from_slot_fn_name(&mut self, target_id: &Uid) -> &mut Self {
+            trait #remove_slot_trait_name {
+                pub fn #remove_from_slot_fn_name(&mut self, target_id: &Uid) -> &mut Self;
+            }
+            impl #remove_slot_trait_name for RGSOBuilder<#struct_name, Schema> {
+                fn #remove_from_slot_fn_name(&mut self, target_id: &Uid) -> &mut Self {
                     self.remove_outgoing(base_types::post_generation::SlotRef{
                         host_instance_id: self.get_id().clone(),
                         target_instance_id: target_id.clone(),

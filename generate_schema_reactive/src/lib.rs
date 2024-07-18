@@ -515,8 +515,97 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
 
     let final_output = quote! {
         pub mod prelude {
+        use base_types::post_generation::reactive;
+        use leptos::*;
 
-        #trait_file_stream
+        // Purpose of the Main Builder is to hide internal details which are exposed on the RGSOBuilder
+        pub struct MainBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
+            inner_builder: RGSOBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static>;
+        }
+        impl MainBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
+            pub fn get_id(&self) -> &Uid {
+                self.inner_builder.get_id()
+            }
+            pub fn execute(&self) -> Result<ExecutionResult, ElementCreationError> {
+                self.inner_builder.execute()
+            }
+            pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
+                &mut self,
+                other_builder: &RGSOBuilder<C, TSchema>,
+            ) {
+                self.inner_builder.incorporate(other_builder)
+            }
+
+            pub fn set_temp_id(&mut self, temp_id: &str) -> &mut Self {
+                self.inner_builder.set_temp_id(temp_id);
+                self
+            }
+
+            fn delete_recursive_handler(&self, id: &Uid) {
+                self.inner_builder.delete_recursive_handler(id)
+            }
+            fn get_blueprint(
+                mut self,
+            ) -> Result<(Blueprint<TSchema>, ExecutionResult), ElementCreationError> {
+                self.inner_builder.get_blueprint()
+            }
+            fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<TSchema>> {
+                self.inner_builder.get_graph()
+            }
+            fn new(
+                builder_wrapper_instance: Option<RGSOWrapperBuilder<T, TSchema>>,
+                id: Uid,
+                graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
+            ) -> Self {
+                self.inner_builder.new(builder_wrapper_instance, id, graph)
+            }
+            fn raw_add_outgoing_to_updates(&mut self, slot_ref: SlotRef) {
+                self.inner_builder.raw_add_outgoing_to_updates(slot_ref)
+            }
+            fn raw_add_incoming_to_updates(&mut self, slot_ref: SlotRef) {
+                self.inner_builder.raw_add_incoming_to_updates(slot_ref)
+            }
+            fn add_outgoing<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
+                &mut self,
+                slot_id: &Uid,
+                target_id: BlueprintId,
+                instantiable: Option<MainBuilder<C, TSchema>>,
+            ) {
+                self.inner_builder.add_outgoing(slot_id, target_id, instantiable.inner_builder)
+            }
+            fn remove_outgoing(&mut self, slot_ref: SlotRef) {
+                self.inner_builder.remove_outgoing(slot_ref)
+            }
+            fn add_incoming<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
+                &mut self,
+                slot_ref: SlotRef,
+                instantiable: Option<MainBuilder<C, TSchema>>,
+            ) {
+                self.inner_builder.add_incoming(slot_ref, instantiable.inner_builder)
+            }
+            fn edit_field(&mut self, field_id: Uid, value: PrimitiveValues) {
+                self.inner_builder.edit_field(field_id, value)
+            }
+            fn delete(&mut self, to_delete_id: &Uid) {
+                self.inner_builder.delete(to_delete_id)
+            }
+            fn delete_recursive(&mut self) {
+                self.inner_builder.delete_recursive()
+            }
+            fn temp_add_incoming(&mut self, host_id: BlueprintId, temp_slot_ref: TempAddIncomingSlotRef) {
+                self.inner_builder.temp_add_incoming(host_id, temp_slot_ref)
+            }
+            fn temp_add_outgoing(&mut self, target_id: BlueprintId, temp_slot_ref: TempAddOutgoingSlotRef) {
+                self.inner_builder.temp_add_outgoing(target_id, temp_slot_ref)
+            }
+            fn add_error(&mut self, error: ElementCreationError) {
+                self.inner_builder.add_error(error)
+            }
+
+
+        }
+
+        // #trait_file_stream
         #(#library_operative_streams)*
         #(#get_template_fields_traits_streams)*
         #(#get_template_slots_traits_streams)*
@@ -565,46 +654,51 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             }
         }
 
-        impl RFieldEditable for Schema {
-            fn apply_field_edit(&self, field_edit: base_types::post_generation::FieldEdit) {
-                match self {
-                #(Self::#all_lib_op_names(item) => item.apply_field_edit(field_edit),)*
-                // _ => panic!(),
-                }
-            }
-        }
 
         #schema_rgso_impl
 
-        impl EditRGSO for Schema {
-            fn remove_outgoing(& self, slot_ref: &base_types::post_generation::SlotRef) -> & Self{
-                match self {
-                    #(Self::#all_lib_op_names(item) => {item.remove_outgoing(slot_ref); self},)*
+        mod private_impl {
+            use super::Schema;
+            user base_types::post_generation::*;
+
+            impl RFieldEditable for Schema {
+                fn apply_field_edit(&self, field_edit: base_types::post_generation::FieldEdit) {
+                    match self {
+                    #(Self::#all_lib_op_names(item) => item.apply_field_edit(field_edit),)*
                     // _ => panic!(),
+                    }
                 }
             }
-            fn remove_incoming(& self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> Vec<base_types::post_generation::SlotRef> {
-                match self {
-                    #(Self::#all_lib_op_names(item) => item.remove_incoming(parent_id, slot_id),)*
-                    // _ => panic!(),
+            impl EditRGSO for Schema {
+                fn remove_outgoing(& self, slot_ref: &base_types::post_generation::SlotRef) -> & Self{
+                    match self {
+                        #(Self::#all_lib_op_names(item) => {item.remove_outgoing(slot_ref); self},)*
+                        // _ => panic!(),
+                    }
                 }
-            }
-            fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<Schema>> {
-                match self {
-                    #(Self::#all_lib_op_names(item) => item.get_graph(),)*
-                    // _ => panic!(),
+                fn remove_incoming(& self, parent_id: &base_types::common::Uid, slot_id: Option<&base_types::common::Uid>) -> Vec<base_types::post_generation::SlotRef> {
+                    match self {
+                        #(Self::#all_lib_op_names(item) => item.remove_incoming(parent_id, slot_id),)*
+                        // _ => panic!(),
+                    }
                 }
-            }
-            fn add_outgoing(& self, slot_ref: base_types::post_generation::SlotRef) -> & Self {
-                match self {
-                    #(Self::#all_lib_op_names(item) => {item.add_outgoing(slot_ref); self},)*
-                    // _ => panic!(),
+                fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<Schema>> {
+                    match self {
+                        #(Self::#all_lib_op_names(item) => item.get_graph(),)*
+                        // _ => panic!(),
+                    }
                 }
-            }
-            fn add_incoming(& self, slot_ref: base_types::post_generation::SlotRef) ->  &Self {
-                match self {
-                    #(Self::#all_lib_op_names(item) => {item.add_incoming(slot_ref); self},)*
-                    // _ => panic!(),
+                fn add_outgoing(& self, slot_ref: base_types::post_generation::SlotRef) -> & Self {
+                    match self {
+                        #(Self::#all_lib_op_names(item) => {item.add_outgoing(slot_ref); self},)*
+                        // _ => panic!(),
+                    }
+                }
+                fn add_incoming(& self, slot_ref: base_types::post_generation::SlotRef) ->  &Self {
+                    match self {
+                        #(Self::#all_lib_op_names(item) => {item.add_incoming(slot_ref); self},)*
+                        // _ => panic!(),
+                    }
                 }
             }
         }

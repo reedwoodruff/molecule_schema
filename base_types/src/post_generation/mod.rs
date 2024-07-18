@@ -12,8 +12,7 @@ use crate::{
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 
-pub mod blueprint;
-
+pub mod reactive;
 mod tests;
 
 pub type LibOp = LibraryOperative<PrimitiveTypes, PrimitiveValues>;
