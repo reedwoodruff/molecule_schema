@@ -26,7 +26,7 @@ To save a schema, click "Export Schema" and check the browser console for the JS
 
 ### Use a build step to create the graph toolkit corresponding to your schema
 Include the code-generation in the build step of a project where you want to manipulate the schemaful data.
-  - This step generates types, traits, and impls which allow you to create a managed graph environment which is constrained by the schema from which it was generated.  
+  - This step generates types, traits, and impls which allow you to create a managed graph environment which is constrained by the schema from which it was generated.
   - Example build script:
   ```Rust
   use std::{env, fs, path::Path};
@@ -56,7 +56,7 @@ Use the graph toolkit to build and manipulate instances of your data.
   ```Rust
     let graph = RBaseGraphEnvironment::<Schema>::new(&CONSTRAINT_SCHEMA);
 
-    let mut editor = Sentence::initiate_build(graph.clone());
+    let mut editor = Sentence::new(graph.clone());
     editor
         .set_temp_id("parent_sentence")
         .add_new_elements::<Word>(|word| {
@@ -69,7 +69,7 @@ Use the graph toolkit to build and manipulate instances of your data.
 
   ```
   - This new sentence now exists in your graph environment, and you can access it using `graph.get(sentence_id).unwrap()`. The sentence can be used in UIs in a reactive way because all fields and slots are stored as reactive signals courtesy of Leptos's signal system. This means you can build a visualization of your data type in such a way that making changes to nested structure is automatically propagated to the UI.
-  - You interact with your graph through a structure called the RGSOBuilder, which is returned from `{operative_name}::initiate_build()` or `{instance_of_operative}.initiate_edit()`.
+  - You interact with elements in your graph through a structure called the MainBuilder, which is returned from `{operative_name}::new()` or `{instance_of_operative}.edit()`. This structure will have the legal operations according to your schema (e.g. methods to add or remove elements to slots, or to set fields).
   - Call `.execute()` on your RGSOBuilder to attempt to commit the transaction to the graph. If there are no errors, all contained graph operations will be commited, if it fails, none of the operations will occur.
   - The toolkit will error if created elements don't fulfill all of their constraints, or if newly added slotted instances break the schema constraints.
   - Call `graph.undo()` and `graph.redo()` to manipulate your historical transactions.

@@ -29,7 +29,6 @@ use crate::utils::get_template_get_slot_fn_name_id_only;
 
 mod generate_operative_streams;
 mod generate_trait_impl_streams;
-mod output_traits;
 mod utils;
 
 struct FieldFnDetails {
@@ -121,8 +120,8 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         template_slots_trait_info: HashMap::new(),
     };
 
-    let trait_file_contents = include_str!("../src/output_traits/mod.rs");
-    let trait_file_stream: TokenStream = trait_file_contents.parse().unwrap();
+    // let trait_file_contents = include_str!("../src/output_traits/mod.rs");
+    // let trait_file_stream: TokenStream = trait_file_contents.parse().unwrap();
 
     let raw_json_data = std::fs::read_to_string(schema_location.to_str().unwrap());
     let raw_json_data = raw_json_data.expect("schema json must be present");

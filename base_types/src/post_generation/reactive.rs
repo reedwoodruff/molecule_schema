@@ -1038,10 +1038,8 @@ where
                 })
             });
 
-        // TODO figure out how to return all errors
         if !bounds_checks.is_empty() {
             leptos::logging::log!("{:#?}", bounds_checks);
-            // return Err(Error::new(bounds_checks));
             return Err(ElementCreationError::Stack(bounds_checks));
         }
 
@@ -1413,7 +1411,6 @@ mod from_reactive {
                     undo: vec![],
                     redo: vec![],
                 })),
-                // constraint_schema: todo!(),
             };
             let rc_graph = Rc::new(new_graph);
             let members = value.created_instances.into_iter().map(|(id, val)| {
@@ -1424,23 +1421,9 @@ mod from_reactive {
                         rc_graph.clone(),
                     ),
                 )
-            }); // .collect(),
+            });
             rc_graph.initialize(members.collect());
             rc_graph.into()
-
-            // The Rc's referencing this graph cannot have been used yet as they haven't been returned
-            // So it should be safe to replace the Rc's address with the updated value.
-            // unsafe {
-            //     let rc_graph_mut =
-            //         Rc::into_raw(rc_graph.clone()) as *mut RBaseGraphEnvironment<RTSchema>;
-            //     (*rc_graph_mut).created_instances = RwSignal::new(members.collect());
-            //     *(Box::from_raw(rc_graph_mut))
-            // }
-            // rc_graph
-            // Rc::get_mut(&mut Rc::clone(&rc_graph))
-            //     .expect("Rc should only have one strong reference during initialization")
-            //     .created_instances = RwSignal::new(members.collect());
-            // Rc::try_unwrap(rc_graph).expect("Rc should only have one strong reference")
         }
     }
     impl From<RActiveSlot> for crate::post_generation::ActiveSlot {
