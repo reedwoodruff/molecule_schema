@@ -23,7 +23,7 @@ where
 {
     fn from_non_reactive(value: NTSchema, graph: std::rc::Rc<RBaseGraphEnvironment<Self>>) -> Self;
 }
-fn saturate_wrapper<T: Clone + std::fmt::Debug, RTSchema: EditRGSO<Schema = RTSchema>>(
+pub fn saturate_wrapper<T: Clone + std::fmt::Debug, RTSchema: EditRGSO<Schema = RTSchema>>(
     non_reactive: crate::post_generation::GSOWrapper<T>,
     graph: std::rc::Rc<RBaseGraphEnvironment<RTSchema>>,
 ) -> RGSOWrapper<T, RTSchema> {
@@ -104,7 +104,7 @@ impl BlueprintId {
     }
 }
 
-trait RProducable<T> {
+pub trait RProducable<T> {
     type Schema: RGSO<Schema = Self::Schema>;
     fn produce(&self) -> T;
 }
@@ -364,7 +364,7 @@ impl RActiveSlot {
 #[derive(Clone)]
 pub struct RGSOWrapper<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
     id: Uid,
-    fields: std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>,
+    pub fields: std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>,
     graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
     outgoing_slots: std::collections::HashMap<Uid, RActiveSlot>,
     incoming_slots: RwSignal<Vec<SlotRef>>,
@@ -558,7 +558,7 @@ impl<T: Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>>
         self.temp_id = id.to_string();
         self
     }
-    fn get_temp_id(&self) -> &String {
+    pub fn get_temp_id(&self) -> &String {
         &self.temp_id
     }
 }
@@ -705,24 +705,24 @@ impl ExecutionResult {
 
 #[derive(Debug, Clone)]
 pub struct RGSOBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
-    instantiables:
+    pub instantiables:
         RwSignal<Vec<std::rc::Rc<std::cell::RefCell<dyn RInstantiable<Schema = TSchema>>>>>,
-    cumulative_errors: RwSignal<std::vec::Vec<ElementCreationError>>,
-    add_outgoing_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
-    add_incoming_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
-    remove_outgoing_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
-    remove_incoming_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
-    deleted_instances: RwSignal<std::collections::HashSet<Uid>>,
-    to_delete_recursive: RwSignal<std::collections::HashSet<Uid>>,
-    field_updates: RwSignal<std::collections::HashSet<(Uid, HistoryFieldEdit)>>,
-    temp_add_incoming_updates:
+    pub cumulative_errors: RwSignal<std::vec::Vec<ElementCreationError>>,
+    pub add_outgoing_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
+    pub add_incoming_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
+    pub remove_outgoing_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
+    pub remove_incoming_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
+    pub deleted_instances: RwSignal<std::collections::HashSet<Uid>>,
+    pub to_delete_recursive: RwSignal<std::collections::HashSet<Uid>>,
+    pub field_updates: RwSignal<std::collections::HashSet<(Uid, HistoryFieldEdit)>>,
+    pub temp_add_incoming_updates:
         RwSignal<std::collections::HashSet<(BlueprintId, TempAddIncomingSlotRef)>>,
-    temp_add_outgoing_updates:
+    pub temp_add_outgoing_updates:
         RwSignal<std::collections::HashSet<(BlueprintId, TempAddOutgoingSlotRef)>>,
-    wip_instance: Option<RGSOWrapperBuilder<T, TSchema>>,
-    id: Uid,
-    graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
-    _phantom: std::marker::PhantomData<T>,
+    pub wip_instance: Option<RGSOWrapperBuilder<T, TSchema>>,
+    pub id: Uid,
+    pub graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
+    pub _phantom: std::marker::PhantomData<T>,
 }
 
 impl<T, TSchema: EditRGSO<Schema = TSchema>> RGSOBuilder<T, TSchema>

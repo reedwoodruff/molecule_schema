@@ -515,14 +515,21 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
 
     let final_output = quote! {
         pub mod prelude {
-        use base_types::post_generation::reactive;
-        use leptos::*;
+        pub use base_types::post_generation::reactive::*;
+        pub use base_types::post_generation::*;
+        pub use base_types::primitives::*;
+        pub use leptos::*;
+        use base_types::utils::*;
 
         // Purpose of the Main Builder is to hide internal details which are exposed on the RGSOBuilder
         pub struct MainBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
-            inner_builder: RGSOBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static>;
+            inner_builder: RGSOBuilder<T, TSchema>
         }
-        impl MainBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
+        impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static> MainBuilder<T, TSchema>
+            where
+                RGSOWrapperBuilder<T, TSchema>: RProducable<RGSOWrapper<T, TSchema>>,
+                T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
+            {
             pub fn get_id(&self) -> &Uid {
                 self.inner_builder.get_id()
             }
@@ -531,9 +538,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             }
             pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
                 &mut self,
-                other_builder: &RGSOBuilder<C, TSchema>,
+                other_builder: &MainBuilder<C, TSchema>,
             ) {
-                self.inner_builder.incorporate(other_builder)
+                self.inner_builder.incorporate(&other_builder.inner_builder)
             }
 
             pub fn set_temp_id(&mut self, temp_id: &str) -> &mut Self {
@@ -557,7 +564,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 id: Uid,
                 graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
             ) -> Self {
-                self.inner_builder.new(builder_wrapper_instance, id, graph)
+                Self {
+                    inner_builder: RGSOBuilder::new(builder_wrapper_instance, id, graph)
+                }
             }
             fn raw_add_outgoing_to_updates(&mut self, slot_ref: SlotRef) {
                 self.inner_builder.raw_add_outgoing_to_updates(slot_ref)
@@ -571,20 +580,20 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 target_id: BlueprintId,
                 instantiable: Option<MainBuilder<C, TSchema>>,
             ) {
-                self.inner_builder.add_outgoing(slot_id, target_id, instantiable.inner_builder)
+                RGSOBuilder::add_outgoing(&mut self.inner_builder, slot_id, target_id, instantiable.map(|builder| builder.inner_builder))
             }
             fn remove_outgoing(&mut self, slot_ref: SlotRef) {
-                self.inner_builder.remove_outgoing(slot_ref)
+                RGSOBuilder::remove_outgoing(&mut self.inner_builder, slot_ref)
             }
             fn add_incoming<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
                 &mut self,
                 slot_ref: SlotRef,
                 instantiable: Option<MainBuilder<C, TSchema>>,
             ) {
-                self.inner_builder.add_incoming(slot_ref, instantiable.inner_builder)
+                RGSOBuilder::add_incoming(&mut self.inner_builder, slot_ref, instantiable.map(|builder| builder.inner_builder))
             }
             fn edit_field(&mut self, field_id: Uid, value: PrimitiveValues) {
-                self.inner_builder.edit_field(field_id, value)
+                RGSOBuilder::edit_field(&mut self.inner_builder, field_id, value)
             }
             fn delete(&mut self, to_delete_id: &Uid) {
                 self.inner_builder.delete(to_delete_id)
@@ -657,9 +666,10 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
 
         #schema_rgso_impl
 
-        mod private_impl {
+        pub(super) mod private_impl {
             use super::Schema;
-            user base_types::post_generation::*;
+            use base_types::post_generation::*;
+            use base_types::post_generation::reactive::*;
 
             impl RFieldEditable for Schema {
                 fn apply_field_edit(&self, field_edit: base_types::post_generation::FieldEdit) {
