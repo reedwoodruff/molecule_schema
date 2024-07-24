@@ -120,9 +120,6 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         template_slots_trait_info: HashMap::new(),
     };
 
-    // let trait_file_contents = include_str!("../src/output_traits/mod.rs");
-    // let trait_file_stream: TokenStream = trait_file_contents.parse().unwrap();
-
     let raw_json_data = std::fs::read_to_string(schema_location.to_str().unwrap());
     let raw_json_data = raw_json_data.expect("schema json must be present");
     let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
@@ -351,7 +348,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             }
         });
 
-    // Checks every trait-op slot, finds all unique trait combos, and creates an enum which represents all operatives which fulfill these trait combos
+    // Checks every trait-operative slot, finds all unique trait combos, and creates an enum which represents all operatives which fulfill these trait combos
     let slot_trait_enums_stream = constraint_schema_generated
         .template_library
         .values()
@@ -520,7 +517,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         pub use leptos::*;
         use base_types::utils::*;
 
-        // Purpose of the Main Builder is to hide internal details which are exposed on the RGSOBuilder
+        // Purpose of the MainBuilder is to hide internal details which are exposed on the RGSOBuilder
         pub struct MainBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
             inner_builder: RGSOBuilder<T, TSchema>
         }
@@ -609,8 +606,6 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             fn add_error(&mut self, error: ElementCreationError) {
                 self.inner_builder.add_error(error)
             }
-
-
         }
 
         // #trait_file_stream
@@ -622,13 +617,13 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         #(#trait_definition_streams)*
 
         fn validate_signal_is_some<T>(signal: &leptos::RwSignal<Option<T>>) -> Result<(), base_types::post_generation::ElementCreationError> {
-            signal.with(|val| {if val.is_some() {return Ok(())} return Err(base_types::post_generation::ElementCreationError::RequiredFieldIsEmpty);})
+            signal.with(|val| {if val.is_some() {return Ok(())} return Err(ElementCreationError::RequiredFieldIsEmpty);})
         }
 
         lazy_static::lazy_static!{
-            pub static ref CONSTRAINT_SCHEMA: base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues>
+            pub static ref CONSTRAINT_SCHEMA: base_types::constraint_schema::ConstraintSchema<PrimitiveTypes, PrimitiveValues>
             // = constraint_schema::constraint_schema!();
-            = serde_json::from_str::<base_types::constraint_schema::ConstraintSchema<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues>>(#raw_json_data).expect("Schema formatted incorrectly");
+            = serde_json::from_str::<base_types::constraint_schema::ConstraintSchema<PrimitiveTypes, PrimitiveValues>>(#raw_json_data).expect("Schema formatted incorrectly");
         }
 
         #all_slots_enum
@@ -665,6 +660,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
 
         #schema_rgso_impl
 
+        // This mod to keep the methods from these impls from being accessible to the end user
         pub(super) mod private_impl {
             use super::Schema;
             use base_types::post_generation::*;

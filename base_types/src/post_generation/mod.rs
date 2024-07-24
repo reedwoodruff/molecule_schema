@@ -12,6 +12,7 @@ use crate::{
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 
+#[cfg(feature = "reactive")]
 pub mod reactive;
 mod tests;
 

@@ -12,15 +12,15 @@ generate_schema_reactive = { path = "../generate_schema_reactive/" }
 [dependencies.uuid]
 version = "1.4.1"
 features = [
-  "v4",                # Lets you generate random UUIDs
-  "fast-rng",          # Use a faster (but still sufficiently random) RNG
-  "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ]
 
 [dependencies]
 base_types = { path = "../base_types", features = [
-  "to_tokens",
-  "reactive",
+    "to_tokens",
+    "reactive",
 ] } # molecule_schema = { path = "../molecule_schema" }
 syn = { version = "2.0", features = ["full"] }
 quote = "1.0"
