@@ -4,7 +4,6 @@ use quote::quote;
 use base_types::constraint_schema::*;
 use base_types::constraint_schema_item::ConstraintSchemaItem;
 use base_types::primitives::*;
-use base_types::utils::*;
 
 use crate::utils::{
     get_all_operatives_which_implement_trait_set, get_all_subclasses,

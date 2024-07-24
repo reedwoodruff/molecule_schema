@@ -78,7 +78,7 @@ pub type Uid = u128;
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StrUid(String);
 pub fn u128_to_string(id: Uid) -> String {
-    uuid::Uuid::from_u128(id).to_string().into()
+    uuid::Uuid::from_u128(id).to_string()
 }
 pub fn string_to_u128(id: String) -> Uid {
     id.parse::<Uuid>().unwrap().as_u128()

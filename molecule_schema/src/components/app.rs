@@ -241,10 +241,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
             </div>
         </div>
         <Show when=move || {
-            match selected_element.get() {
-                Some(ListItemTypes::Template(_)) => true,
-                _ => false,
-            }
+            matches!(selected_element.get(), Some(ListItemTypes::Template(_template)))
         }>
             <EditTemplate element=TreeRef(
                 TreeTypes::Template,
@@ -252,10 +249,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
             )/>
         </Show>
         <Show when=move || {
-            match selected_element.get() {
-                Some(ListItemTypes::Operative(_)) => true,
-                _ => false,
-            }
+            matches!(selected_element.get(), Some(ListItemTypes::Operative(_operative)))
         }>
             <EditOperative element=TreeRef(
                 TreeTypes::LibraryOperative,
@@ -263,10 +257,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
             )/>
         </Show>
         <Show when=move || {
-            match selected_element.get() {
-                Some(ListItemTypes::Trait(_)) => true,
-                _ => false,
-            }
+            matches!(selected_element.get(), Some(ListItemTypes::Trait(_trait)))
         }>
             <EditTrait id=selected_element.get().unwrap().get_id()/>
         </Show>

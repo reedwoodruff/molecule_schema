@@ -1,6 +1,6 @@
 use std::{collections::HashMap, rc::Rc, str::FromStr};
 
-use leptos::{logging::log, *};
+use leptos::{*};
 
 #[component]
 pub fn SelectInput<K, V, F, I>(

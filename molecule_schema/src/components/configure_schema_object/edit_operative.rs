@@ -1,5 +1,5 @@
 use leptos::{logging::log, *};
-use std::{collections::HashMap, ops::DerefMut, rc::Rc};
+use std::{collections::HashMap, rc::Rc};
 
 use base_types::{
     common::Uid,
@@ -292,9 +292,9 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             breadcrumb.insert(
                 0,
                 (
-                    operative.tag.id.get().clone(),
+                    operative.tag.id.get(),
                     operative.tag.name.get().clone(),
-                    ListItemTypes::Operative(operative.tag.id.clone()),
+                    ListItemTypes::Operative(operative.tag.id),
                 ),
             );
             next_parent = operative.parent_operative_id.get();
@@ -308,9 +308,9 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
         breadcrumb.insert(
             0,
             (
-                template.tag.id.get().clone(),
+                template.tag.id.get(),
                 template.tag.name.get().clone() + " (root template)",
-                ListItemTypes::Template(template.tag.id.clone()),
+                ListItemTypes::Template(template.tag.id),
             ),
         );
         breadcrumb

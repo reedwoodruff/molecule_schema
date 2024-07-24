@@ -1,4 +1,4 @@
-use leptos::{logging::log, *};
+use leptos::{*};
 
 #[component]
 pub fn TextInput(

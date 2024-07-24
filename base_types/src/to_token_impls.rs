@@ -1,3 +1,4 @@
+#[allow(unused_imports)] // Necessary when used as a dependency
 use crate::constraint_schema::{OperativeSlot, OperativeVariants, SlotBounds, TraitOperative};
 
 #[cfg(feature = "to_tokens")]
