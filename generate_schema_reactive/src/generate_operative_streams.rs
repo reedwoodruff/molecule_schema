@@ -195,70 +195,72 @@ pub(crate) fn generate_operative_streams(
             .get(reference_template_id)
             .unwrap();
         let wrapped_name = get_operative_wrapped_name(&instantiable.get_tag().name);
-        let slot_stream = slot_trait_fns.iter().map(|(id, SlotFnDetails { fn_name, fn_signature, return_enum_type, is_trait_slot, id_only_signature, id_only_name, is_single_slot_bound })| {
-        let id_only_body = match is_single_slot_bound {
-            true => quote!{self.outgoing_slots().get(&#id).unwrap().slotted_instances.get().first().unwrap().clone()},
-            false => quote!{self.outgoing_slots().get(&#id).unwrap().slotted_instances.get()},
-        };
-        let collection_stream = match is_single_slot_bound {
-            true => quote!{.next().unwrap()},
-            false => quote!{.collect::<Vec<_>>()},
-        };
-           let fn_streams = match &constraint_schema.template_library.get(reference_template_id).unwrap().operative_slots.get(id).unwrap().operative_descriptor {
-            OperativeVariants::LibraryOperative(slot_op_id) => {
-               let operative_subclass_enum_name = get_operative_subclass_enum_name(constraint_schema, slot_op_id);
-               let subclasses = get_all_subclasses(constraint_schema, slot_op_id );
-               let slot_op_struct_name = get_operative_variant_name(&constraint_schema.operative_library.get(slot_op_id).unwrap().tag.name);
-               let subclasses_names = subclasses.iter().map(|sub| get_operative_variant_name(&sub.get_tag().name)).collect::<Vec<_>>();
-               let slot_variants_match = if subclasses_names.len() <= 1 {
-                   quote!{
-                       Schema::#slot_op_struct_name(wrapper) => wrapper,
-                       _ => panic!()
-                   }
-               } else {
-                 quote!{
-                     #(Schema::#subclasses_names(wrapper) => #operative_subclass_enum_name::#subclasses_names(wrapper),)*
-                     _ => panic!(),
-                 }
-               };
-                quote!{
-                   #fn_signature {
-                       self.outgoing_slots().get(&#id).unwrap().slotted_instances.with(|slotted_instances| slotted_instances.iter().map(|slotted_instance_id| {
-                           match self.get_graph().get(slotted_instance_id).unwrap(){
-                               #slot_variants_match
-                           }
-                       })
-                        #collection_stream
-                    )
-                   }
-                   #id_only_signature {
-                       #id_only_body
-                   }
-               }},
+        let slot_stream = slot_trait_fns.iter().map(|(id, SlotFnDetails { fn_name, fn_signature, return_enum_type, is_trait_slot, id_only_signature, id_only_name, is_single_slot_bound })|
+            {
+                let id_only_body = match is_single_slot_bound {
+                    true => quote!{self.outgoing_slots().get(&#id).unwrap().slotted_instances.get().first().unwrap().clone()},
+                    false => quote!{self.outgoing_slots().get(&#id).unwrap().slotted_instances.get()},
+                };
+                let collection_stream = match is_single_slot_bound {
+                    true => quote!{.next().unwrap()},
+                    false => quote!{.collect::<Vec<_>>()},
+                };
+                let fn_streams = match &constraint_schema.template_library.get(reference_template_id).unwrap().operative_slots.get(id).unwrap().operative_descriptor {
+                    OperativeVariants::LibraryOperative(slot_op_id) => {
+                        let operative_subclass_enum_name = get_operative_subclass_enum_name(constraint_schema, slot_op_id);
+                        let subclasses = get_all_subclasses(constraint_schema, slot_op_id );
+                        let slot_op_struct_name = get_operative_variant_name(&constraint_schema.operative_library.get(slot_op_id).unwrap().tag.name);
+                        let subclasses_names = subclasses.iter().map(|sub| get_operative_variant_name(&sub.get_tag().name)).collect::<Vec<_>>();
+                        let slot_variants_match = if subclasses_names.len() <= 1 {
+                            quote!{
+                                Schema::#slot_op_struct_name(wrapper) => wrapper,
+                                _ => panic!()
+                            }
+                        } else {
+                            quote!{
+                                #(Schema::#subclasses_names(wrapper) => #operative_subclass_enum_name::#subclasses_names(wrapper),)*
+                                _ => panic!(),
+                            }
+                        };
+                        quote!{
+                            #fn_signature {
+                                self.outgoing_slots().get(&#id).unwrap().slotted_instances.with(|slotted_instances| slotted_instances.iter().map(|slotted_instance_id| {
+                                    match self.get_graph().get(slotted_instance_id).unwrap(){
+                                        #slot_variants_match
+                                    }
+                                })
+                                #collection_stream
+                            )
+                            }
+                            #id_only_signature {
+                                #id_only_body
+                            }
+                        }
+                    },
 
-            OperativeVariants::TraitOperative(trait_op) => {
-               let trait_fulfillers = get_all_operatives_which_implement_trait_set(constraint_schema, &trait_op.trait_ids);
-               let trait_fulfiller_names = trait_fulfillers.iter().map(|op| {get_operative_variant_name(&op.tag.name)}).collect::<Vec<_>>();
-                quote!{
-                    #fn_signature {
-                       self.outgoing_slots().get(&#id).unwrap().slotted_instances.with(|slotted_instances| slotted_instances.iter().map(|slotted_instance_id| {
-                           match self.get_graph().get(slotted_instance_id).unwrap(){
-                               #(Schema::#trait_fulfiller_names(wrapper) => #return_enum_type::#trait_fulfiller_names(wrapper),)*
-                               _ => panic!()
-                           }
-                       })
-                        #collection_stream
-                    )
-                    }
-                   #id_only_signature {
-                       #id_only_body
-                   }
-                }
-
-            },
-        };
-        fn_streams
-       }).collect::<Vec<_>>();
+                    OperativeVariants::TraitOperative(trait_op) => {
+                        let trait_fulfillers = get_all_operatives_which_implement_trait_set(constraint_schema, &trait_op.trait_ids);
+                        let trait_fulfiller_names = trait_fulfillers.iter().map(|op| {get_operative_variant_name(&op.tag.name)}).collect::<Vec<_>>();
+                        quote!{
+                            #fn_signature {
+                                self.outgoing_slots().get(&#id).unwrap().slotted_instances.with(|slotted_instances| slotted_instances.iter().map(|slotted_instance_id| {
+                                    match self.get_graph().get(slotted_instance_id).unwrap(){
+                                        #(Schema::#trait_fulfiller_names(wrapper) => #return_enum_type::#trait_fulfiller_names(wrapper),)*
+                                        _ => panic!()
+                                    }
+                                })
+                                #collection_stream
+                            )
+                            }
+                            #id_only_signature {
+                                #id_only_body
+                            }
+                        }
+                    },
+                };
+                fn_streams
+            }
+        ).collect::<Vec<_>>();
         let slot_stream = quote! {
             impl #slot_trait_name for #wrapped_name {
                 #(#slot_stream)*
@@ -462,7 +464,7 @@ pub(crate) fn generate_operative_streams(
                         self
                     }
                     #add_existing_and_edit_fn_signature
-                     {
+                    {
                         let existing_item_id = existing_item_id.clone();
                         #mismatch_error_handling
 

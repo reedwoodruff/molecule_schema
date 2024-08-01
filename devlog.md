@@ -63,7 +63,7 @@ How can you instantiate a schema element during the process of creating the sche
 Trying now to ascertain what exactly will need to happen in the macro, and what the interface will be between pre-macro types (building the schema with ConstraintObjects) and post-macro types.
 It seems like the libraries will need to exist in both places (Instance library & Operative library). For the pre-macro work, you'll need to define templates in terms of instances and operatives, so you'll need to be keeping a running library. For post-macro work, you'll need to reference the library if you want to get information about the structure of a given template.
 
-I'm not certain it makes sense to think of pre-macro work -- maybe it will be intra-macro work. 
+I'm not certain it makes sense to think of pre-macro work -- maybe it will be intra-macro work.
 The issue I'm grappling with is aligning the input and output of the macro in a way where things work out nicely.
 
 ### Brief Overview of Schema Elements
@@ -121,12 +121,12 @@ Part 2 will be describing how a constraint object fulfills a trait. This is some
   This gets a little fuzzy when it comes to how you'd compose a larger type from smaller constituent parts.
   Say method A_a is required to return type Bar {name: String, id: u32}, and you want to get the name from one location in the structure and the id from another.
   Not sure yet how this might work.
-Part 3 is actually creating a method from the description provided in step 2. 
+Part 3 is actually creating a method from the description provided in step 2.
   When translating from a constraint object to a SchemaObject, the locations provided need to be translated into a method which reaches out to those locations and returns the values.
 
 This trait system would give a depth to composibility which wouldn't be present in a simple label system which I had been considering before.
     function: Fn<u32> -> u32,
-Whether traits or labels, it seems clear that some kind of type-like system is required in order to be able to denote which constructs are allowed to be slotted into a template's dependencies. For simple systems or ones in which you are ok relying on non-deterministic interpretation, not having any types would be ok. However, it quickly becomes apparent that it would be helpful to restrict or type the possible inputs. You could imagine a "performs_action" template where you'd want to restrict one slot to "Entity" and one slot to "Action". Without a system which allows for differentiation, you would be unable to do so but would instead have to accept any construct in any slot. 
+Whether traits or labels, it seems clear that some kind of type-like system is required in order to be able to denote which constructs are allowed to be slotted into a template's dependencies. For simple systems or ones in which you are ok relying on non-deterministic interpretation, not having any types would be ok. However, it quickly becomes apparent that it would be helpful to restrict or type the possible inputs. You could imagine a "performs_action" template where you'd want to restrict one slot to "Entity" and one slot to "Action". Without a system which allows for differentiation, you would be unable to do so but would instead have to accept any construct in any slot.
 The trait system gives a natural kind of inheritance structure, where if a constituent component implements a particular trait and the encompassing template wants to also expose that trait on itself, it should just be able to point to the implementation in the constituent.
 
 It feels more and more like I'm re-implementing Rust inside of Rust. Not quite to that level, but I need to expose some of the powerful compositional patterns.
@@ -139,7 +139,7 @@ This will need to be known at the time of parsing the ConstraintSchema from JSON
 Should there be separate JSON files for each which are parsed first into concrete enums, then they could be present for the parsing of the ConstraintSchema?
 
 ## Jan 23, 2024
-In the process of making a macro which transforms a ConstraintSchema into a concrete schema for use. Encountering questions like: should things like the reactive system be implemented at this stage in the structure of a ConcreteSchema? For example, you could make the fields and edges of a given template be signals. 
+In the process of making a macro which transforms a ConstraintSchema into a concrete schema for use. Encountering questions like: should things like the reactive system be implemented at this stage in the structure of a ConcreteSchema? For example, you could make the fields and edges of a given template be signals.
 Are there ever cases where the step I'm describing (transforming a ConstraintSchema into a usable state) would be desired without including reactive functionality?
 I guess I should disambiguate "usable state". By this, I mean several things:
 1. The process of creating concrete data structures from the ConstraintSchema -- useful for representing graphs built in schemaful environments
@@ -147,7 +147,7 @@ I guess I should disambiguate "usable state". By this, I mean several things:
 The instantiation and editing methods are where the signals come in handy -- but they require that the data structure be constructed out of signals to support this functionality.
   I could foresee environments which want to be read-only and would not make use of the signal architecture. This doesn't seem too pressing, though -- you'd have all of the same functionality with the signal structure, it would just be a question of performance impact. If this becomes an issue then it ought to be relatively simple to make another, non-reactive representation of the data structures to be used in such contexts.
 
-Current complexity: How to represent and handle operative nodes and edges in templates. 
+Current complexity: How to represent and handle operative nodes and edges in templates.
 
 
 ## Jan 24, 2024
@@ -205,12 +205,12 @@ I think that it's probably good to keep this goal of interoperability in mind, b
 ## Jan 29, 2024
 Trying to think of alternative ways to build the schema types without relying on a reference to some kind of graph environment.
 Several places seem like they'd require this:
-- Resolving trait implementations which rely on data resolved in constituents. 
+- Resolving trait implementations which rely on data resolved in constituents.
   I.e. there may be constituents which will need to be initialized before they have the requisite data, so to write a method for the trait implementation, there will need to be some way to retrieve that instantiated constituent.
   E.g. Struct1 is implementing Trait1, which has a method Method1 which returns a u32. Struct1 has an operative constituent Struct2 which has a field "my_num". There's no way at compile time to reference this my_num field directly from Struct1 -- the operative structure of Struct2 has the knowledge of what that field *will* hold, but it will never be filled until it has been instantiated, at which point it is living in the graph environment and not in the schema.
 - Instantiation -- whether of a particular ConstraintObject or of the requisite constituent elements required to instantiate that ConstraintObject.
 
-Also grappling with the related question of how to create the final types in a relatively agnostic way, or if that is required. In other words, it seems like it might be helpful to build the types in terms of Signals directly from the macro. I'm not really sure what the alternative would be, other than making a parallel Signaled type and providing some kind of Into<> implementation. 
+Also grappling with the related question of how to create the final types in a relatively agnostic way, or if that is required. In other words, it seems like it might be helpful to build the types in terms of Signals directly from the macro. I'm not really sure what the alternative would be, other than making a parallel Signaled type and providing some kind of Into<> implementation.
 I just get worried about making the schema macro and the graph environment too coupled. Maybe I shouldn't be, though, as long as the ConstraintSchema remains agnostic.
 
 This feels like it's pushing at the edges of the bigger project picture and I don't know that I have the right answers right now. I might just make a prototype to get something working at a basic level, but I hope to get some insights that make these questions feel like they fit better in to the great whole eventually.
@@ -240,7 +240,7 @@ Trying to wrap my head around useful next steps. At a relatively stable place co
 The next big question is regarding how useful it would be to continue with the previous path of creating a macro to generate one large schema enum with methods for instantiation and things.
 Under what circumstances would such a thing be useful? What capabilities ought it to have to be most useful?
 Maybe taking a step back and away from the macro to consider the goals that are trying to be reached.
-The schema creator allows a user to explicitly define a set of rules about what structures are allowed and how they are allowed to interact. It lays the foundation for an environment in which graph constructs can be instantiated according to the rules. 
+The schema creator allows a user to explicitly define a set of rules about what structures are allowed and how they are allowed to interact. It lays the foundation for an environment in which graph constructs can be instantiated according to the rules.
 The next piece of the ecosystem is regarding how that environment will function. We have the foundation (the schema which defines the rules), but the environment is as of yet undefined.
 There needs to be a way to instantiate and connect graph constructs according to the schema.
 To what end?
@@ -316,7 +316,7 @@ With the addition of operative slots having variable numbers of elements, there 
 Previously, you could select a field or trait impl of some constituent operative and be sure that there would be exactly 1 instance from which to extract the information required.
 
 Longer term, it seems like it would be very valuable to be able to express some kind of map or filter operation on the elements of a given operative slot.
-But this would require creating a whole syntax for mapping over the structure -- some way to: 
+But this would require creating a whole syntax for mapping over the structure -- some way to:
 1. express the operations which would be performed on the elements,
 2. perform arithmetic to combine or otherwise manipulate the results of the operations,
 3. massage the results into the correct shape to fulfill the expected trait contract.
@@ -400,4 +400,16 @@ So there's not really any way to generalize over all of the methods even though 
 It might be possible to look into providing a subset of those methods (for example, all of the get-related ones) on the resultant enum.
 But in order to make any changes you'd need to do a deep match.
 
-Once again, though, I think that that pattern is antipattern. The idea should be to build in a composable fashion. The details of how to do that in this case escape me at the present. 
+Once again, though, I think that that pattern is antipattern. The idea should be to build in a composable fashion. The details of how to do that in this case escape me at the present.
+
+## July 24, 2024
+It seems like it should be possible to check the validity of graph structures at compile time.
+I'd like to think through the necessary typestate which could achieve this goal.
+High level goals:
+- Only expose methods for adding fulfilling elements to fields or slots when these are valid actions (i.e. don't allow the user to call "add_element_to_slot" if that slot's capacity is full)
+- Similarly, only expose methods for removing from a slot or field when that is a valid action.
+- Only allow the user to build/finalize the structure if all fields and slots are in a satisfied state
+
+Currently, it seems like there is only one conceptual bottleneck in making the graph-construction process entirely compile-time safe: adding an existing element to a slot.
+At this moment, I'm having a difficult time seeing how to perform the necessary check to see if the element is the correct type. Right now, this interface
+just accepts an ID and performs the check at runtime. Perhaps it would be possible to alter the interface.
