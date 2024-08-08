@@ -518,10 +518,14 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         use base_types::utils::*;
 
         // Purpose of the MainBuilder is to hide internal details which are exposed on the RGSOBuilder
-        pub struct MainBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
-            inner_builder: RGSOBuilder<T, TSchema>
+        pub struct MainBuilder<T, TSchema, FieldsTS, SlotsTS>
+            where TSchema: EditRGSO<Schema = TSchema> + 'static
+        {
+            inner_builder: RGSOBuilder<T, TSchema>,
+            _fields_typestate: std::marker::PhantomData<FieldsTS>,
+            _slots_typestate: std::marker::PhantomData<SlotsTS>,
         }
-        impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static> MainBuilder<T, TSchema>
+        impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static, FieldsTS, SlotsTS> MainBuilder<T, TSchema, FieldsTS, SlotsTS>
             where
                 RGSOWrapperBuilder<T, TSchema>: RProducable<RGSOWrapper<T, TSchema>>,
                 T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
@@ -534,7 +538,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             }
             pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
                 &mut self,
-                other_builder: &MainBuilder<C, TSchema>,
+                other_builder: &MainBuilder<C, TSchema, FieldsTS, SlotsTS>,
             ) {
                 self.inner_builder.incorporate(&other_builder.inner_builder)
             }
@@ -561,7 +565,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
             ) -> Self {
                 Self {
-                    inner_builder: RGSOBuilder::new(builder_wrapper_instance, id, graph)
+                    inner_builder: RGSOBuilder::new(builder_wrapper_instance, id, graph),
+                    _slots_typestate: std::marker::PhantomData,
+                    _fields_typestate: std::marker::PhantomData,
                 }
             }
             fn raw_add_outgoing_to_updates(&mut self, slot_ref: SlotRef) {
@@ -570,23 +576,25 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             fn raw_add_incoming_to_updates(&mut self, slot_ref: SlotRef) {
                 self.inner_builder.raw_add_incoming_to_updates(slot_ref)
             }
-            fn add_outgoing<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
+            fn add_outgoing<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Sized>(
                 &mut self,
                 slot_id: &Uid,
                 target_id: BlueprintId,
-                instantiable: Option<MainBuilder<C, TSchema>>,
+                instantiable: Option<MainBuilder<C, TSchema, FieldsTS, SlotsTS>>,
             ) {
-                RGSOBuilder::add_outgoing(&mut self.inner_builder, slot_id, target_id, instantiable.map(|builder| builder.inner_builder))
+                let instantiable = instantiable.map(|builder| builder.inner_builder);
+                RGSOBuilder::add_outgoing(&mut self.inner_builder, slot_id, target_id, instantiable)
             }
             fn remove_outgoing(&mut self, slot_ref: SlotRef) {
                 RGSOBuilder::remove_outgoing(&mut self.inner_builder, slot_ref)
             }
-            fn add_incoming<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
+            fn add_incoming<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Sized>(
                 &mut self,
                 slot_ref: SlotRef,
-                instantiable: Option<MainBuilder<C, TSchema>>,
+                instantiable: Option<MainBuilder<C, TSchema, FieldsTS, SlotsTS>>,
             ) {
-                RGSOBuilder::add_incoming(&mut self.inner_builder, slot_ref, instantiable.map(|builder| builder.inner_builder))
+                let instantiable = instantiable.map(|builder| builder.inner_builder);
+                RGSOBuilder::add_incoming(&mut self.inner_builder, slot_ref, instantiable)
             }
             fn edit_field(&mut self, field_id: Uid, value: PrimitiveValues) {
                 RGSOBuilder::edit_field(&mut self.inner_builder, field_id, value)

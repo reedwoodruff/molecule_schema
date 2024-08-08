@@ -12,6 +12,22 @@ use crate::{
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 
+// Used for MainBuilder Typestate
+// ---
+pub trait AllSlotsSatisfied {}
+pub trait AllFieldsSatisfied {}
+pub trait ReadyForBuild<T>: AllSlotsSatisfied + AllFieldsSatisfied {
+    fn build(&self) -> T;
+}
+
+pub struct Yes {}
+pub struct No {}
+pub struct SlotTypeState<AddAllowed, RemoveAllowed, Fulfilled>(
+    PhantomData<(AddAllowed, RemoveAllowed, Fulfilled)>,
+);
+
+// ---
+
 pub type LibOp = LibraryOperative<PrimitiveTypes, PrimitiveValues>;
 pub type LibTemplate = LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
 
