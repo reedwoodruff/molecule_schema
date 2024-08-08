@@ -303,7 +303,7 @@ pub(crate) fn generate_operative_streams(
                 fn #field_setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self;
             }
 
-            impl #building_manipulate_field_trait_name for MainBuilder<#struct_name, Schema> {
+            impl<Fields, Slots> #building_manipulate_field_trait_name for MainBuilder<#struct_name, Schema, Fields, Slots> {
                 fn #field_setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self {
                     let value = new_val.into_primitive_value();
                     self.inner_builder.edit_field(#field_id, value);
@@ -340,6 +340,11 @@ pub(crate) fn generate_operative_streams(
         );
 
 
+        // this closure takes a list of operatives which can fit into a given slot.
+        // if there is only one element that can fit, it makes the method signatures to add and remove the items from the slot simpler
+        // if there are multiple items, the signature must allow the user to specify which item it is that they are adding
+        // - A marker trait is created which represents every type which can be slotted
+        // - The marker trait is implemented on all operatives which can be slotted
         let get_slot_item_implementation = |items: &[LibraryOperative<PrimitiveTypes, PrimitiveValues>]| -> TokenStream {
             let single_item_id = if items.len() == 1 {
                 Some(items.first().unwrap())
@@ -364,7 +369,7 @@ pub(crate) fn generate_operative_streams(
                 vec![]
             };
 
-            let item_or_t = if let Some(item) = single_item_id {
+            let single_item_variant_name = if let Some(item) = single_item_id {
                 let item_name_string = item.tag.name.clone();
                 get_operative_variant_name(&
                     item_name_string
@@ -376,13 +381,15 @@ pub(crate) fn generate_operative_streams(
             let add_new_fn_signature = if let Some(item) = single_item_id {
                 quote!{
                     fn #add_new_fn_name(&mut self,
-                        builder_closure: impl Fn(&mut MainBuilder<#item_or_t, Schema>) -> &mut MainBuilder<#item_or_t, Schema>
+                        // TODO: Placeholder ()s
+                        builder_closure: impl Fn(&mut MainBuilder<#single_item_variant_name, Schema, (), ()>) -> &mut MainBuilder<#single_item_variant_name, Schema, (), ()>
                     ) -> &mut Self
                  }
             } else {
                 quote!{
                     fn #add_new_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
-                        builder_closure: impl Fn(&mut MainBuilder<T, Schema>) -> &mut MainBuilder<T, Schema>
+                        // TODO: Placeholder ()s
+                        builder_closure: impl Fn(&mut MainBuilder<T, Schema, (), ()>) -> &mut MainBuilder<T, Schema, (), ()>
                     ) -> &mut Self
                 }
             };
@@ -390,14 +397,16 @@ pub(crate) fn generate_operative_streams(
                 quote!{
                     fn #add_existing_and_edit_fn_name(&mut self,
                         existing_item_id: &Uid,
-                        builder_closure: impl Fn(&mut MainBuilder<#item_or_t, Schema>) -> &mut MainBuilder<#item_or_t, Schema>
+                        // TODO: Placeholder ()s
+                        builder_closure: impl Fn(&mut MainBuilder<#single_item_variant_name, Schema, (), ()>) -> &mut MainBuilder<#single_item_variant_name, Schema, (), ()>
                     ) -> &mut Self
                 }
             } else {
                 quote!{
                     fn #add_existing_and_edit_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
                         existing_item_id: &Uid,
-                        builder_closure: impl Fn(&mut MainBuilder<T, Schema>) -> &mut MainBuilder<T, Schema>
+                        // TODO: Placeholder ()s
+                        builder_closure: impl Fn(&mut MainBuilder<T, Schema, (), ()>) -> &mut MainBuilder<T, Schema, (), ()>
                     ) -> &mut Self
                 }
             };
@@ -444,15 +453,20 @@ pub(crate) fn generate_operative_streams(
 
             quote!{
                 #(#marker_trait_stream)*
-                pub trait #manipulate_slot_trait_name {
-                   #add_new_fn_signature;
-                   #add_existing_and_edit_fn_signature;
-                   #add_existing_or_temp_fn_signature;
-                }
-                impl #manipulate_slot_trait_name for MainBuilder<#struct_name, Schema> {
-                    #add_new_fn_signature
+                // pub trait #manipulate_slot_trait_name {
+                //    #add_new_fn_signature;
+                //    #add_existing_and_edit_fn_signature;
+                //    #add_existing_or_temp_fn_signature;
+                // }
+                // impl #manipulate_slot_trait_name for MainBuilder<#struct_name, Schema> {
+                impl<SlotsTS, FieldsTS> MainBuilder<#struct_name, Schema, SlotsTS, FieldsTS> {
+                    pub #add_new_fn_signature
                     {
-                        let mut new_builder = MainBuilder {inner_builder: #item_or_t::initiate_build(self.inner_builder.get_graph().clone())} ;
+                        let mut new_builder = MainBuilder {
+                            inner_builder: #single_item_variant_name::initiate_build(self.inner_builder.get_graph().clone()),
+                            _fields_typestate: std::marker::PhantomData,
+                            _slots_typestate: std::marker::PhantomData
+                        } ;
                         let edge_to_this_element = base_types::post_generation::SlotRef {
                             host_instance_id: self.inner_builder.get_id().clone(),
                             target_instance_id: new_builder.inner_builder.get_id().clone(),
@@ -463,12 +477,16 @@ pub(crate) fn generate_operative_streams(
                         self.inner_builder.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder.inner_builder));
                         self
                     }
-                    #add_existing_and_edit_fn_signature
+                    pub #add_existing_and_edit_fn_signature
                     {
                         let existing_item_id = existing_item_id.clone();
                         #mismatch_error_handling
 
-                        let mut new_builder = MainBuilder {inner_builder: #item_or_t::initiate_edit(existing_item_id.clone(), self.inner_builder.get_graph().clone()) };
+                        let mut new_builder = MainBuilder {
+                            inner_builder: #single_item_variant_name::initiate_edit(existing_item_id.clone(), self.inner_builder.get_graph().clone()) ,
+                            _fields_typestate: std::marker::PhantomData,
+                            _slots_typestate: std::marker::PhantomData
+                        };
                         let edge_to_this_element = base_types::post_generation::SlotRef {
                             host_instance_id: self.inner_builder.get_id().clone(),
                             target_instance_id: new_builder.inner_builder.get_id().clone(),
@@ -480,7 +498,7 @@ pub(crate) fn generate_operative_streams(
                         self
                     }
 
-                    #add_existing_or_temp_fn_signature {
+                    pub #add_existing_or_temp_fn_signature {
                         let existing_item_blueprint_id: BlueprintId = existing_item_id.into();
                         match &existing_item_blueprint_id {
                             BlueprintId::Existing(existing_item_id) => {
@@ -491,7 +509,7 @@ pub(crate) fn generate_operative_streams(
                                     slot_id: #slot_id,
                                 };
                                 self.inner_builder.raw_add_incoming_to_updates(edge_to_this_element);
-                                self.inner_builder.add_outgoing::<#item_or_t>(&#slot_id, existing_item_blueprint_id.clone(), None);
+                                self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, existing_item_blueprint_id.clone(), None);
                                 self
                             }
                             BlueprintId::Temporary(str_id) => {
@@ -500,7 +518,7 @@ pub(crate) fn generate_operative_streams(
                                     None => BlueprintId::Existing(self.inner_builder.get_id().clone()),
                                 };
                                 self.inner_builder.temp_add_incoming(BlueprintId::Temporary(str_id.clone()), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
-                                self.inner_builder.add_outgoing::<#item_or_t>(&#slot_id, existing_item_blueprint_id.clone(), None);
+                                self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, existing_item_blueprint_id.clone(), None);
                                 self
                             }
                         }
@@ -536,7 +554,7 @@ pub(crate) fn generate_operative_streams(
             pub trait #remove_slot_trait_name {
                 fn #remove_from_slot_fn_name(&mut self, target_id: &Uid) -> &mut Self;
             }
-            impl #remove_slot_trait_name for MainBuilder<#struct_name, Schema> {
+            impl<SlotsTS, FieldsTS> #remove_slot_trait_name for MainBuilder<#struct_name, Schema, SlotsTS, FieldsTS> {
                 fn #remove_from_slot_fn_name(&mut self, target_id: &Uid) -> &mut Self {
                     self.inner_builder.remove_outgoing(base_types::post_generation::SlotRef{
                         host_instance_id: self.inner_builder.get_id().clone(),
@@ -570,19 +588,27 @@ pub(crate) fn generate_operative_streams(
         }
 
         impl #struct_name {
-            pub fn new(graph:impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema> {
+            pub fn new(graph:impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, (), ()> {
                 MainBuilder {
-                    inner_builder: #struct_name::initiate_build(graph.into())
+                    inner_builder: #struct_name::initiate_build(graph.into()),
+                    _fields_typestate: std::marker::PhantomData,
+                    _slots_typestate: std::marker::PhantomData,
                 }
             }
         }
+
+
         pub trait #edit_rgso_trait_name {
-            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema> ;
+            // TODO: Placeholder ()s
+            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, (), ()> ;
         }
         impl #edit_rgso_trait_name for RGSOWrapper<#struct_name, Schema> {
-            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema> {
+            // TODO: Placeholder ()s
+            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, (), ()> {
                 MainBuilder {
-                    inner_builder: #struct_name::initiate_edit(*self.get_id(), graph.into())
+                    inner_builder: #struct_name::initiate_edit(*self.get_id(), graph.into()),
+                    _fields_typestate: std::marker::PhantomData,
+                    _slots_typestate: std::marker::PhantomData,
                 }
             }
         }
