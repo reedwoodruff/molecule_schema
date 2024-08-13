@@ -1,4 +1,4 @@
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 
 use base_types::constraint_schema::*;
@@ -58,7 +58,7 @@ pub(crate) fn generate_operative_streams(
         .collect::<Vec<_>>();
     let unfulfilled_field_names = unfulfilled_fields
         .iter()
-        .map(|field| syn::Ident::new(&field.tag.name, proc_macro2::Span::call_site()))
+        .map(|field| syn::Ident::new(&field.tag.name, Span::call_site()))
         .collect::<Vec<_>>();
     let unfulfilled_field_value_types = unfulfilled_fields
         .iter()
@@ -66,12 +66,7 @@ pub(crate) fn generate_operative_streams(
         .collect::<Vec<_>>();
     let unfulfilled_field_value_types_enum = unfulfilled_fields
         .iter()
-        .map(|field| {
-            syn::Ident::new(
-                &field.value_type.to_string(),
-                proc_macro2::Span::call_site(),
-            )
-        })
+        .map(|field| syn::Ident::new(&field.value_type.to_string(), Span::call_site()))
         .collect::<Vec<_>>();
 
     let locked_fields = field_digest.locked_fields;
@@ -80,7 +75,7 @@ pub(crate) fn generate_operative_streams(
         .map(|field| {
             syn::Ident::new(
                 &field.fulfilled_field.field_constraint_name,
-                proc_macro2::Span::call_site(),
+                Span::call_site(),
             )
         })
         .collect::<Vec<_>>();
@@ -99,7 +94,7 @@ pub(crate) fn generate_operative_streams(
 
     let _operative_tag_handle = syn::Ident::new(
         &(struct_name.to_string().clone() + "operative_tag"),
-        proc_macro2::Span::call_site(),
+        Span::call_site(),
     );
 
     let op_digest = instantiable.get_operative_digest(constraint_schema);
@@ -128,8 +123,14 @@ pub(crate) fn generate_operative_streams(
         }
     };
 
+    let field_generics_stream = (0..unfulfilled_fields.len()).map(|i| {
+        let string = "TField".to_string() + &i.to_string();
+        Ident::new(&string, Span::call_site())
+    });
+    let field_generics_stream = quote! { #(#field_generics_stream)* };
+
     let get_locked_fields_stream = locked_fields.iter().map(|(field_id, locked_field_digest)| {
-        let field_getter_fn_name = proc_macro2::Ident::new(
+        let field_getter_fn_name = Ident::new(
             &format!(
                 "get_{}_field",
                 locked_field_digest
@@ -137,14 +138,14 @@ pub(crate) fn generate_operative_streams(
                     .field_constraint_name
                     .to_lowercase()
             ),
-            proc_macro2::Span::call_site(),
+            Span::call_site(),
         );
-        let field_getting_manipulate_field_trait_name = proc_macro2::Ident::new(
+        let field_getting_manipulate_field_trait_name = Ident::new(
             &format!(
                 "{}{}FieldGetter",
                 struct_name, locked_field_digest.fulfilled_field.field_constraint_name
             ),
-            proc_macro2::Span::call_site(),
+            Span::call_site(),
         );
         let field_value_type = get_primitive_type(
             &locked_field_digest
@@ -280,34 +281,54 @@ pub(crate) fn generate_operative_streams(
         }
     };
 
-    let manipulate_fields_stream = unfulfilled_fields.iter().map(|field| {
+    let manipulate_fields_stream = unfulfilled_fields.iter().enumerate().map(|(i, field)| {
         let field_id = field.tag.id;
         let field_value_type = get_primitive_type(&field.value_type);
-        let field_name = syn::Ident::new(&field.tag.name, proc_macro2::Span::call_site());
-        let building_manipulate_field_trait_name = proc_macro2::Ident::new(
+        let field_name = syn::Ident::new(&field.tag.name, Span::call_site());
+        let building_manipulate_field_trait_name = Ident::new(
             &format!("{}{}Field", struct_name, field.tag.name),
-            proc_macro2::Span::call_site(),
+            Span::call_site(),
         );
-        let field_editing_manipulate_field_trait_name = proc_macro2::Ident::new(
+        let field_editing_manipulate_field_trait_name = Ident::new(
             &format!("{}{}FieldBuilder", struct_name, field.tag.name),
-            proc_macro2::Span::call_site(),
+            Span::call_site(),
+        );
+        let field_generic_in_question = Ident::new(&format!("TField{}", i), Span::call_site());
+
+        let field_fulfilled_generic_stream = (0..unfulfilled_fields.len()).map(|j| {
+            if j == i {
+                quote!{ typenum::B1 }
+            } else {
+                let string = format!("TField{}", j);
+                quote!{ #string}
+            }
+        });
+        let field_fulfilled_generic_stream = {
+            quote!{(#(#field_fulfilled_generic_stream,)*)}
+        };
+
+        let field_setter_fn_name = Ident::new(
+            &format!("set_{}", field.tag.name.to_lowercase()),
+            Span::call_site(),
         );
 
-        let field_setter_fn_name = proc_macro2::Ident::new(
-            &format!("set_{}", field.tag.name.to_lowercase()),
-            proc_macro2::Span::call_site(),
-        );
 
         quote! {
-            pub trait #building_manipulate_field_trait_name {
-                fn #field_setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self;
+            pub trait #building_manipulate_field_trait_name<Slots> {
+                fn #field_setter_fn_name(self, new_val: #field_value_type) -> MainBuilder<#struct_name, Schema, #field_fulfilled_generic_stream, Slots>;
             }
 
-            impl<Fields, Slots> #building_manipulate_field_trait_name for MainBuilder<#struct_name, Schema, Fields, Slots> {
-                fn #field_setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self {
+            impl<#field_generics_stream, Slots> #building_manipulate_field_trait_name<Slots> for MainBuilder<#struct_name, Schema, (#field_generics_stream), Slots>
+                // where #field_generic_in_question: typenum::B0,
+            {
+                fn #field_setter_fn_name(self, new_val: #field_value_type) -> MainBuilder<#struct_name, Schema, #field_fulfilled_generic_stream, Slots>  {
                     let value = new_val.into_primitive_value();
                     self.inner_builder.edit_field(#field_id, value);
-                    self
+                    MainBuilder::<#struct_name, Schema, #field_fulfilled_generic_stream, Slots> {
+                        inner_builder: self.inner_builder,
+                        _schema: std::marker::PhantomData,
+                        _slots: std::marker::PhantomData,
+                    }
                 }
             }
         }
@@ -316,27 +337,27 @@ pub(crate) fn generate_operative_streams(
     let manipulate_slots_stream = all_slots.iter().map(|slot| {
         let slot_name = &slot.slot.tag.name;
         let slot_id = slot.slot.tag.id;
-        let add_new_fn_name = proc_macro2::Ident::new(
+        let add_new_fn_name = Ident::new(
             &format!("add_new_{}", slot.slot.tag.name.to_lowercase()),
-            proc_macro2::Span::call_site(),
+            Span::call_site(),
         );
-        let add_existing_and_edit_fn_name = proc_macro2::Ident::new(
+        let add_existing_and_edit_fn_name = Ident::new(
             &format!(
                 "add_existing_{}_and_edit",
                 slot.slot.tag.name.to_lowercase()
             ),
-            proc_macro2::Span::call_site(),
+            Span::call_site(),
         );
-        let add_existing_or_temp_fn_name = proc_macro2::Ident::new(
+        let add_existing_or_temp_fn_name = Ident::new(
             &format!(
                 "add_existing_or_temp_{}",
                 slot.slot.tag.name.to_lowercase()
             ),
-            proc_macro2::Span::call_site(),
+            Span::call_site(),
         );
-        let remove_from_slot_fn_name = proc_macro2::Ident::new(
+        let remove_from_slot_fn_name = Ident::new(
             &format!("remove_from_{}", slot.slot.tag.name.to_lowercase()),
-            proc_macro2::Span::call_site(),
+            Span::call_site(),
         );
 
 
@@ -351,8 +372,8 @@ pub(crate) fn generate_operative_streams(
             } else {
                 None
             };
-            let manipulate_slot_trait_name = proc_macro2::Ident::new(&format!("ManipulateSlot{}{}", slot_name, struct_name), proc_macro2::Span::call_site());
-            let marker_trait_name = Ident::new(&format!("{}{}AcceptableTargetMarker", struct_name, slot_name), proc_macro2::Span::call_site());
+            let manipulate_slot_trait_name = Ident::new(&format!("ManipulateSlot{}{}", slot_name, struct_name), Span::call_site());
+            let marker_trait_name = Ident::new(&format!("{}{}AcceptableTargetMarker", struct_name, slot_name), Span::call_site());
             let marker_impls = items.iter().map(|item| {
                 let item_name = get_operative_variant_name(&item.get_tag().name);
                 quote!{
@@ -375,21 +396,23 @@ pub(crate) fn generate_operative_streams(
                     item_name_string
                 )
             } else {
-                syn::Ident::new("T", proc_macro2::Span::call_site())
+                syn::Ident::new("T", Span::call_site())
             };
 
             let add_new_fn_signature = if let Some(item) = single_item_id {
                 quote!{
                     fn #add_new_fn_name(&mut self,
                         // TODO: Placeholder ()s
-                        builder_closure: impl Fn(&mut MainBuilder<#single_item_variant_name, Schema, (), ()>) -> &mut MainBuilder<#single_item_variant_name, Schema, (), ()>
+                        builder_closure: impl Fn( &mut MainBuilder<#single_item_variant_name, Schema, FieldsTS, ()>)
+                            -> &mut MainBuilder<#single_item_variant_name, Schema, FieldsTS, ()>
                     ) -> &mut Self
                  }
             } else {
                 quote!{
                     fn #add_new_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
                         // TODO: Placeholder ()s
-                        builder_closure: impl Fn(&mut MainBuilder<T, Schema, (), ()>) -> &mut MainBuilder<T, Schema, (), ()>
+                        builder_closure: impl Fn(&mut MainBuilder<T, Schema, FieldsTS, ()>)
+                            -> &mut MainBuilder<T, Schema, FieldsTS, ()>
                     ) -> &mut Self
                 }
             };
@@ -398,7 +421,8 @@ pub(crate) fn generate_operative_streams(
                     fn #add_existing_and_edit_fn_name(&mut self,
                         existing_item_id: &Uid,
                         // TODO: Placeholder ()s
-                        builder_closure: impl Fn(&mut MainBuilder<#single_item_variant_name, Schema, (), ()>) -> &mut MainBuilder<#single_item_variant_name, Schema, (), ()>
+                        builder_closure: impl Fn(&mut MainBuilder<#single_item_variant_name, Schema, FieldsTS, ()>)
+                            -> &mut MainBuilder<#single_item_variant_name, Schema, FieldsTS, ()>
                     ) -> &mut Self
                 }
             } else {
@@ -406,7 +430,8 @@ pub(crate) fn generate_operative_streams(
                     fn #add_existing_and_edit_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(&mut self,
                         existing_item_id: &Uid,
                         // TODO: Placeholder ()s
-                        builder_closure: impl Fn(&mut MainBuilder<T, Schema, (), ()>) -> &mut MainBuilder<T, Schema, (), ()>
+                        builder_closure: impl Fn(&mut MainBuilder<T, Schema, FieldsTS, ()>)
+                            -> &mut MainBuilder<T, Schema, FieldsTS, ()>
                     ) -> &mut Self
                 }
             };
@@ -549,7 +574,7 @@ pub(crate) fn generate_operative_streams(
                 }
             }
         };
-        let remove_slot_trait_name = proc_macro2::Ident::new(&format!("RemoveFromSlot{}{}", slot_name, struct_name), proc_macro2::Span::call_site());
+        let remove_slot_trait_name = Ident::new(&format!("RemoveFromSlot{}{}", slot_name, struct_name), Span::call_site());
         quote! {
             pub trait #remove_slot_trait_name {
                 fn #remove_from_slot_fn_name(&mut self, target_id: &Uid) -> &mut Self;
@@ -569,11 +594,9 @@ pub(crate) fn generate_operative_streams(
         }
     });
 
-    let trait_impl_streams =
-        generate_trait_impl_streams::generate_trait_impl_streams(&instantiable, constraint_schema);
-    let edit_rgso_trait_name = proc_macro2::Ident::new(
+    let edit_rgso_trait_name = Ident::new(
         &format!("EditRGSOWrapper{}", struct_name),
-        proc_macro2::Span::call_site(),
+        Span::call_site(),
     );
 
     quote! {
@@ -598,13 +621,13 @@ pub(crate) fn generate_operative_streams(
         }
 
 
-        pub trait #edit_rgso_trait_name {
+        pub trait #edit_rgso_trait_name<FieldsTS, SlotsTS> {
             // TODO: Placeholder ()s
-            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, (), ()> ;
+            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, FieldsTS, ()> ;
         }
-        impl #edit_rgso_trait_name for RGSOWrapper<#struct_name, Schema> {
+        impl<FieldsTS, SlotsTS> #edit_rgso_trait_name<FieldsTS, SlotsTS> for RGSOWrapper<#struct_name, Schema> {
             // TODO: Placeholder ()s
-            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, (), ()> {
+            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, FieldsTS, ()> {
                 MainBuilder {
                     inner_builder: #struct_name::initiate_edit(*self.get_id(), graph.into()),
                     _fields_typestate: std::marker::PhantomData,
@@ -648,6 +671,10 @@ pub(crate) fn generate_operative_streams(
                #operative_id
             }
         }
+
+        // Refers to traits defined and implemented by the user in the schema
+        let trait_impl_streams =
+            generate_trait_impl_streams::generate_trait_impl_streams(&instantiable, constraint_schema);
 
         #(#manipulate_fields_stream)*
         #(#manipulate_slots_stream)*

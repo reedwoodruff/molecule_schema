@@ -1,7 +1,7 @@
 // pub mod from_reactive;
-
 pub use crate::common::Uid;
 use crate::constraint_schema::{LibraryOperative, LibraryTemplate, OperativeSlot, SlotBounds};
+pub use typenum;
 
 use crate::{
     common::ConstraintTraits,

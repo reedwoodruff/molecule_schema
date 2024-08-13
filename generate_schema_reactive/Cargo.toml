@@ -31,3 +31,4 @@ reactive_types = { path = "../reactive_types" }
 # anyhow = "1.0"
 lazy_static = "1.4"
 leptos = { version = "0.6", features = ["csr"] }
+typenum = "1"
