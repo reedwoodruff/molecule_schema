@@ -6,6 +6,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
+/// Represents a snapshot of the state of the slots for a given operative
 pub struct OperativeDigest<'a> {
     pub digest_object_id: Uid,
     pub operative_slots: HashMap<Uid, OperativeSlotDigest<'a>>,
