@@ -1,3 +1,4 @@
+#![recursion_limit = "4096"]
 pub mod common;
 pub mod constraint_schema;
 pub mod constraint_schema_item;
