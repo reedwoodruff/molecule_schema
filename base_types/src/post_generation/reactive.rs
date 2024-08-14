@@ -614,11 +614,11 @@ where
 
     fn initiate_build(
         graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>,
-    ) -> RGSOBuilder<Self, Self::Schema>;
+    ) -> SubgraphBuilder<Self, Self::Schema>;
     fn initiate_edit(
         id: Uid,
         graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>,
-    ) -> RGSOBuilder<Self, Self::Schema>;
+    ) -> SubgraphBuilder<Self, Self::Schema>;
     fn get_operative_id() -> Uid;
 }
 
@@ -685,7 +685,7 @@ impl ExecutionResult {
 }
 
 #[derive(Debug, Clone)]
-pub struct RGSOBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
+pub struct SubgraphBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
     pub instantiables:
         RwSignal<Vec<std::rc::Rc<std::cell::RefCell<dyn RInstantiable<Schema = TSchema>>>>>,
     pub cumulative_errors: RwSignal<std::vec::Vec<ElementCreationError>>,
@@ -706,7 +706,7 @@ pub struct RGSOBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
     pub _phantom: std::marker::PhantomData<T>,
 }
 
-impl<T, TSchema: EditRGSO<Schema = TSchema>> RGSOBuilder<T, TSchema>
+impl<T, TSchema: EditRGSO<Schema = TSchema>> SubgraphBuilder<T, TSchema>
 where
     RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
     T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
@@ -727,7 +727,7 @@ where
     }
     pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
         &mut self,
-        other_builder: &RGSOBuilder<C, TSchema>,
+        other_builder: &SubgraphBuilder<C, TSchema>,
     ) {
         self.add_outgoing_updates.update(|outgoing_updates| {
             outgoing_updates.extend(other_builder.add_outgoing_updates.get())
@@ -1097,7 +1097,7 @@ where
         //    Existing: The ID is known
         //    Temporary: The ID is non known, only the temp_id
         target_id: BlueprintId,
-        instantiable: Option<RGSOBuilder<C, TSchema>>,
+        instantiable: Option<SubgraphBuilder<C, TSchema>>,
     ) {
         // If this is a newly created instance
         if let Some(instance) = &self.wip_instance {
@@ -1152,7 +1152,7 @@ where
     pub fn add_incoming<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
         &mut self,
         slot_ref: SlotRef,
-        instantiable: Option<RGSOBuilder<C, TSchema>>,
+        instantiable: Option<SubgraphBuilder<C, TSchema>>,
     ) {
         if let Some(instance) = &self.wip_instance {
             instance
@@ -1307,7 +1307,7 @@ where
     Self: Sized,
 {
     type Schema: EditRGSO<Schema = Self::Schema>;
-    fn initiate_edit(&self) -> RGSOBuilder<T, Self::Schema>;
+    fn initiate_edit(&self) -> SubgraphBuilder<T, Self::Schema>;
 }
 impl<T, TSchema: EditRGSO<Schema = TSchema>> REditable<T> for RGSOConcrete<T, TSchema>
 where
@@ -1318,7 +1318,7 @@ where
         + 'static,
 {
     type Schema = TSchema;
-    fn initiate_edit(&self) -> RGSOBuilder<T, Self::Schema> {
+    fn initiate_edit(&self) -> SubgraphBuilder<T, Self::Schema> {
         T::initiate_edit(*self.get_id(), self.get_graph().clone())
     }
 }

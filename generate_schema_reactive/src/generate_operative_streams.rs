@@ -720,7 +720,7 @@ pub(crate) fn generate_operative_streams(
         impl RBuildable for #struct_name {
             type Schema = Schema;
 
-            fn initiate_build(graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>) -> RGSOBuilder<#struct_name, Schema> {
+            fn initiate_build(graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>) -> SubgraphBuilder<#struct_name, Schema> {
                 let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
                 let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
                 #[allow(unused_mut)]
@@ -735,15 +735,15 @@ pub(crate) fn generate_operative_streams(
                             graph.clone(),
                             );
                 let id = wrapper_builder.get_id().clone();
-                RGSOBuilder::<#struct_name, Schema>::new(
+                SubgraphBuilder::<#struct_name, Schema>::new(
                         Some(wrapper_builder),
                         id,
                         graph,
                     )
             }
-            fn initiate_edit(id: base_types::common::Uid, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>) -> RGSOBuilder<#struct_name, Schema> {
+            fn initiate_edit(id: base_types::common::Uid, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>) -> SubgraphBuilder<#struct_name, Schema> {
                 let graph: std::rc::Rc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
-                RGSOBuilder::<#struct_name, Schema>::new(
+                SubgraphBuilder::<#struct_name, Schema>::new(
                         None,
                             id,
                         graph,
