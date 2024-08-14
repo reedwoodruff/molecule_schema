@@ -517,11 +517,11 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         pub use leptos::*;
         use base_types::utils::*;
 
-        // Purpose of the MainBuilder is to hide internal details which are exposed on the RGSOBuilder
+        // Purpose of the MainBuilder is to hide internal details which are exposed on the SubgraphBuilder
         pub struct MainBuilder<T, TSchema, FieldsTS, SlotsTS>
             where TSchema: EditRGSO<Schema = TSchema> + 'static
         {
-            inner_builder: RGSOBuilder<T, TSchema>,
+            inner_builder: SubgraphBuilder<T, TSchema>,
             _fields_typestate: std::marker::PhantomData<FieldsTS>,
             _slots_typestate: std::marker::PhantomData<SlotsTS>,
         }
@@ -565,7 +565,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
             ) -> Self {
                 Self {
-                    inner_builder: RGSOBuilder::new(builder_wrapper_instance, id, graph),
+                    inner_builder: SubgraphBuilder::new(builder_wrapper_instance, id, graph),
                     _slots_typestate: std::marker::PhantomData,
                     _fields_typestate: std::marker::PhantomData,
                 }
@@ -583,10 +583,10 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 instantiable: Option<MainBuilder<C, TSchema, FieldsTS, SlotsTS>>,
             ) {
                 let instantiable = instantiable.map(|builder| builder.inner_builder);
-                RGSOBuilder::add_outgoing(&mut self.inner_builder, slot_id, target_id, instantiable)
+                SubgraphBuilder::add_outgoing(&mut self.inner_builder, slot_id, target_id, instantiable)
             }
             fn remove_outgoing(&mut self, slot_ref: SlotRef) {
-                RGSOBuilder::remove_outgoing(&mut self.inner_builder, slot_ref)
+                SubgraphBuilder::remove_outgoing(&mut self.inner_builder, slot_ref)
             }
             fn add_incoming<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Sized>(
                 &mut self,
@@ -594,10 +594,10 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 instantiable: Option<MainBuilder<C, TSchema, FieldsTS, SlotsTS>>,
             ) {
                 let instantiable = instantiable.map(|builder| builder.inner_builder);
-                RGSOBuilder::add_incoming(&mut self.inner_builder, slot_ref, instantiable)
+                SubgraphBuilder::add_incoming(&mut self.inner_builder, slot_ref, instantiable)
             }
             fn edit_field(&mut self, field_id: Uid, value: PrimitiveValues) {
-                RGSOBuilder::edit_field(&mut self.inner_builder, field_id, value)
+                SubgraphBuilder::edit_field(&mut self.inner_builder, field_id, value)
             }
             fn delete(&mut self, to_delete_id: &Uid) {
                 self.inner_builder.delete(to_delete_id)
