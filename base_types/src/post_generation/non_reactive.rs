@@ -112,10 +112,6 @@ pub struct FieldEdit {
     pub value: PrimitiveValues,
 }
 
-pub trait FieldEditable {
-    fn apply_field_edit(&mut self, field_edit: FieldEdit);
-}
-
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct StrSlotRef {
@@ -208,7 +204,7 @@ pub struct HistoryContainer<TSchema> {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 /// Normalizes GSOWrapper for network transfer
-pub struct StandaloneRGSOWrapper {
+pub struct StandaloneRGSOConcrete {
     pub id: Uid,
     pub fields: std::collections::HashMap<Uid, PrimitiveValues>,
     pub outgoing_slots: Vec<SlotRef>,

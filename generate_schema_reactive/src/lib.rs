@@ -527,7 +527,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         }
         impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static, FieldsTS, SlotsTS> MainBuilder<T, TSchema, FieldsTS, SlotsTS>
             where
-                RGSOWrapperBuilder<T, TSchema>: RProducable<RGSOWrapper<T, TSchema>>,
+                RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
                 T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
             {
             pub fn get_id(&self) -> &Uid {
@@ -560,7 +560,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 self.inner_builder.get_graph()
             }
             fn new(
-                builder_wrapper_instance: Option<RGSOWrapperBuilder<T, TSchema>>,
+                builder_wrapper_instance: Option<RGSOConcreteBuilder<T, TSchema>>,
                 id: Uid,
                 graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
             ) -> Self {
@@ -639,7 +639,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
 
         #[derive(Debug, Clone)]
         pub enum Schema {
-            #(#all_lib_op_names(RGSOWrapper<#all_lib_op_names, Schema>),)*
+            #(#all_lib_op_names(RGSOConcrete<#all_lib_op_names, Schema>),)*
         }
         #[derive(Debug, Clone)]
         pub enum NonReactiveSchema {
@@ -674,14 +674,6 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             use base_types::post_generation::*;
             use base_types::post_generation::reactive::*;
 
-            impl RFieldEditable for Schema {
-                fn apply_field_edit(&self, field_edit: base_types::post_generation::FieldEdit) {
-                    match self {
-                    #(Self::#all_lib_op_names(item) => item.apply_field_edit(field_edit),)*
-                    // _ => panic!(),
-                    }
-                }
-            }
             impl EditRGSO for Schema {
                 fn remove_outgoing(& self, slot_ref: &base_types::post_generation::SlotRef) -> & Self{
                     match self {
@@ -716,7 +708,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             }
         }
 
-        impl From<Schema> for base_types::post_generation::StandaloneRGSOWrapper {
+        impl From<Schema> for base_types::post_generation::StandaloneRGSOConcrete {
            fn from(value: Schema) -> Self {
                let outgoing_slots = value.outgoing_slots().values().fold(Vec::new(), |mut agg, slot| {
                     let new_slot_refs = slot.slotted_instances.get().iter().map(|instance_id| {
