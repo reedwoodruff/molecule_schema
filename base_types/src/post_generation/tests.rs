@@ -25,11 +25,6 @@
 // //     // type Graph = G;
 // // }
 
-// impl FieldEditable for SampleSchema {
-//     fn apply_field_edit(&mut self, field_edit: FieldEdit) {
-//         todo!()
-//     }
-// }
 // impl GSO for SampleSchema {
 //     type Schema = SampleSchema;
 
@@ -76,11 +71,6 @@
 
 // #[derive(Debug, Clone, Default)]
 // struct Sentence {}
-// impl FieldEditable for Sentence {
-//     fn apply_field_edit(&mut self, field_edit: FieldEdit) {
-//         todo!()
-//     }
-// }
 // impl IntoSchema for Sentence {
 //     type Schema = SampleSchema;
 
@@ -193,11 +183,6 @@
 // #[derive(Default, Debug, Clone)]
 // struct Word {
 //     display: String,
-// }
-// impl FieldEditable for Word {
-//     fn apply_field_edit(&mut self, field_edit: FieldEdit) {
-//         todo!()
-//     }
 // }
 // impl IntoSchema for Word {
 //     type Schema = SampleSchema;

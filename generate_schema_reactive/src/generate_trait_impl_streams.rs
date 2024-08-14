@@ -53,7 +53,7 @@ pub(crate) fn generate_trait_impl_streams(
                 }
             });
             quote! {
-                impl #trait_name for RGSOWrapper<#instantiable_name, Schema> {
+                impl #trait_name for RGSOConcrete<#instantiable_name, Schema> {
                     #(#fn_streams)*
                 }
             }

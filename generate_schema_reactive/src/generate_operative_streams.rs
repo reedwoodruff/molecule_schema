@@ -191,7 +191,7 @@ pub(crate) fn generate_operative_streams(
             pub trait field_getting_manipulate_field_trait_name {
                 fn #field_getter_fn_name(&self) -> #field_value_type;
             }
-            impl #field_getting_manipulate_field_trait_name for RGSOWrapper<#struct_name, Schema> {
+            impl #field_getting_manipulate_field_trait_name for RGSOConcrete<#struct_name, Schema> {
                 fn #field_getter_fn_name(&self) -> #field_value_type {
                     #locked_return_val
                 }
@@ -677,7 +677,7 @@ pub(crate) fn generate_operative_streams(
     let trait_impl_streams =
         generate_trait_impl_streams::generate_trait_impl_streams(&instantiable, constraint_schema);
     let edit_rgso_trait_name = Ident::new(
-        &format!("EditRGSOWrapper{}", struct_name),
+        &format!("EditRGSOConcrete{}", struct_name),
         Span::call_site(),
     );
 
@@ -687,7 +687,7 @@ pub(crate) fn generate_operative_streams(
 
         impl RIntoSchema for #struct_name {
             type Schema = Schema;
-            fn into_schema(instantiable: RGSOWrapper<Self, Schema>) -> Schema {
+            fn into_schema(instantiable: RGSOConcrete<Self, Schema>) -> Schema {
                 Schema::#struct_name(instantiable.to_owned())
             }
         }
@@ -707,7 +707,7 @@ pub(crate) fn generate_operative_streams(
             // TODO: Placeholder ()s
             fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, FieldsTS, ()> ;
         }
-        impl<FieldsTS, SlotsTS> #edit_rgso_trait_name<FieldsTS, SlotsTS> for RGSOWrapper<#struct_name, Schema> {
+        impl<FieldsTS, SlotsTS> #edit_rgso_trait_name<FieldsTS, SlotsTS> for RGSOConcrete<#struct_name, Schema> {
             // TODO: Placeholder ()s
             fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, FieldsTS, ()> {
                 MainBuilder {
@@ -727,7 +727,7 @@ pub(crate) fn generate_operative_streams(
                 let mut field_hashmap = std::collections::HashMap::new();
                 #(field_hashmap.insert(#unfulfilled_field_ids, RwSignal::new(None));)*
                 let graph: std::rc::Rc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
-                let wrapper_builder = RGSOWrapperBuilder::new(
+                let wrapper_builder = RGSOConcreteBuilder::new(
                             field_hashmap,
                             #active_slot_tokens,
                             &operative_ref,
