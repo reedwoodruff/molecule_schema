@@ -23,7 +23,7 @@ where
     fn from_non_reactive(value: NTSchema, graph: std::rc::Rc<RBaseGraphEnvironment<Self>>) -> Self;
 }
 pub fn saturate_wrapper<T: Clone + std::fmt::Debug, RTSchema: EditRGSO<Schema = RTSchema>>(
-    non_reactive: crate::post_generation::GSOWrapper<T>,
+    non_reactive: crate::post_generation::GSOConcrete<T>,
     graph: std::rc::Rc<RBaseGraphEnvironment<RTSchema>>,
 ) -> RGSOConcrete<T, RTSchema> {
     RGSOConcrete::<T, RTSchema> {
@@ -1352,7 +1352,7 @@ mod from_reactive {
     use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
     use super::SharedGraph;
-    use crate::post_generation::{BaseGraphEnvironment, GSOWrapper};
+    use crate::post_generation::{BaseGraphEnvironment, GSOConcrete};
     use leptos::*;
 
     use super::{
@@ -1421,7 +1421,7 @@ mod from_reactive {
             }
         }
     }
-    impl<T, RTSchema: EditRGSO<Schema = RTSchema>> From<RGSOConcrete<T, RTSchema>> for GSOWrapper<T>
+    impl<T, RTSchema: EditRGSO<Schema = RTSchema>> From<RGSOConcrete<T, RTSchema>> for GSOConcrete<T>
     where
         T: Clone + std::fmt::Debug,
     {

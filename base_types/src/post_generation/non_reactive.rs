@@ -65,10 +65,10 @@ pub trait GraphEnvironment {
     fn create_connection(&mut self, connection: ConnectionAction) -> Result<(), Error>;
     fn instantiate_element<T>(
         &mut self,
-        element: InstantiableWrapper<GSOWrapper<T>, Self::Schema>,
+        element: InstantiableWrapper<GSOConcrete<T>, Self::Schema>,
     ) -> Result<Uid, Error>
     where
-        GSOWrapper<T>: Instantiable<Schema = Self::Schema>,
+        GSOConcrete<T>: Instantiable<Schema = Self::Schema>,
         Self: Sized,
         T: std::fmt::Debug + Clone + 'static;
     fn get_mut(&mut self, id: &Uid) -> Option<&mut Self::Schema>;
@@ -214,7 +214,7 @@ pub struct StandaloneRGSOConcrete {
 }
 #[derive(Clone)]
 /// Struct which abstracts all common parts of a generated schema object
-pub struct GSOWrapper<T> {
+pub struct GSOConcrete<T> {
     pub id: Uid,
     pub outgoing_slots: HashMap<Uid, ActiveSlot>,
     pub incoming_slots: Vec<SlotRef>,
@@ -223,7 +223,7 @@ pub struct GSOWrapper<T> {
     pub template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
     pub _phantom: PhantomData<T>,
 }
-impl<T: std::fmt::Debug> std::fmt::Debug for GSOWrapper<T> {
+impl<T: std::fmt::Debug> std::fmt::Debug for GSOConcrete<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("GSOWrapper")
             .field("id", &self.id)
@@ -250,7 +250,7 @@ impl<T: std::fmt::Debug> std::fmt::Debug for GSOWrapper<T> {
 }
 
 #[derive(Clone, Debug)]
-pub struct GSOWrapperBuilder<T> {
+pub struct GSOConcreteBuilder<T> {
     id: Uid,
     slots: HashMap<Uid, ActiveSlot>,
     parent_slots: Vec<SlotRef>,
@@ -260,7 +260,7 @@ pub struct GSOWrapperBuilder<T> {
     _phantom: PhantomData<T>,
 }
 
-impl<T: Clone + std::fmt::Debug> GSOWrapperBuilder<T> {
+impl<T: Clone + std::fmt::Debug> GSOConcreteBuilder<T> {
     pub fn new(
         data: Option<HashMap<Uid, Option<PrimitiveValues>>>,
         slots: Option<HashMap<Uid, ActiveSlot>>,
@@ -298,12 +298,12 @@ impl<T: Clone + std::fmt::Debug> GSOWrapperBuilder<T> {
 pub trait Buildable
 where
     Self: Sized + 'static,
-    GSOWrapper<Self>: Instantiable<Schema = Self::Schema>,
+    GSOConcrete<Self>: Instantiable<Schema = Self::Schema>,
 {
-    type Builder: Finalizable<GSOWrapper<Self>>;
+    type Builder: Finalizable<GSOConcrete<Self>>;
     type Schema;
 
-    fn initiate_build() -> GSOBuilder<Self::Builder, GSOWrapper<Self>, Self::Schema>;
+    fn initiate_build() -> GSOBuilder<Self::Builder, GSOConcrete<Self>, Self::Schema>;
     fn get_operative_id() -> Uid;
 }
 
@@ -362,5 +362,5 @@ where
     Self: Sized,
 {
     type Schema;
-    fn into_schema(instantiable: GSOWrapper<Self>) -> Self::Schema;
+    fn into_schema(instantiable: GSOConcrete<Self>) -> Self::Schema;
 }

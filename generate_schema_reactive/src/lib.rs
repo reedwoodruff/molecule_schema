@@ -643,7 +643,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         }
         #[derive(Debug, Clone)]
         pub enum NonReactiveSchema {
-            #(#all_lib_op_names(base_types::post_generation::GSOWrapper<#all_lib_op_names>),)*
+            #(#all_lib_op_names(base_types::post_generation::GSOConcrete<#all_lib_op_names>),)*
         }
         impl From<Schema> for NonReactiveSchema {
             fn from(value: Schema) -> Self {
