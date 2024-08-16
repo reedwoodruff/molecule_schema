@@ -515,6 +515,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         pub use base_types::post_generation::*;
         pub use base_types::primitives::*;
         pub use leptos::*;
+        use typenum::*;
         use base_types::utils::*;
 
         // Purpose of the MainBuilder is to hide internal details which are exposed on the SubgraphBuilder
@@ -536,9 +537,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             pub fn execute(&self) -> Result<ExecutionResult, ElementCreationError> {
                 self.inner_builder.execute()
             }
-            pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
+            pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static, OtherBuilderFieldsTS, OtherBuilderSlotsTS>(
                 &mut self,
-                other_builder: &MainBuilder<C, TSchema, FieldsTS, SlotsTS>,
+                other_builder: &MainBuilder<C, TSchema, OtherBuilderFieldsTS, OtherBuilderSlotsTS>,
             ) {
                 self.inner_builder.incorporate(&other_builder.inner_builder)
             }
