@@ -137,29 +137,24 @@ pub(crate) fn generate_operative_streams(
         quote! {typenum::#ident}
     });
     let default_field_typestate_stream = quote! { #(#default_field_typestate_stream,)* };
-    let generic_slot_generics_stream =
-        all_slot_digests
-            .iter()
-            .enumerate()
-            .map(|(i, _slot_digest)| {
-                let string1 = format!("TSlot{}", &i.to_string());
-                Ident::new(&string1, Span::call_site())
-            });
-    let generic_slot_generics_stream = quote! { #(#generic_slot_generics_stream,)*};
-    let generic_slot_generics_stream_with_trait_bound =
-        all_slot_digests
-            .iter()
-            .enumerate()
-            .map(|(i, _slot_digest)| {
-                let string1 = format!("TSlot{}", &i.to_string());
-                let ident = Ident::new(&string1, Span::call_site());
-                quote! {#ident: base_types::post_generation::type_level::SlotTSMarker}
-            });
-    let generic_slot_generics_stream_with_trait_bound =
-        quote! { #(#generic_slot_generics_stream_with_trait_bound,)*};
-    let default_slot_typestate_stream = all_slot_digests
-        .iter()
-        .map(|slot_digest| get_slotdigest_typestate_signature_stream(slot_digest, None));
+    let default_slot_typestate_stream = all_slot_digests.iter().map(|slot_digest| {
+        let count = slot_digest.related_instances.len();
+        let count = if count == 0 {
+            quote! {typenum::Z0}
+        } else {
+            let string = format! {"typenum::P{}", count};
+            Ident::new(&string, Span::call_site()).to_token_stream()
+        };
+
+        let (
+            local_min,
+            local_min_nonexistent,
+            local_max,
+            local_max_nonexistent,
+            local_zero_allowed,
+        ) = get_static_slotdigest_typestate_signature_stream(slot_digest);
+        quote! {base_types::post_generation::type_level::SlotTS<#count, #local_min, #local_min_nonexistent, #local_max, #local_max_nonexistent, #local_zero_allowed>}
+    });
     let default_slot_typestate_stream = quote! { #(#default_slot_typestate_stream,)*};
 
     let get_locked_fields_stream = locked_fields.iter().map(|(field_id, locked_field_digest)| {
@@ -392,16 +387,75 @@ pub(crate) fn generate_operative_streams(
             &format!("remove_from_{}", slot.slot.tag.name.to_lowercase()),
             Span::call_site(),
         );
-        let slot_generic_in_question = Ident::new(&format!("TSlot{}", slot_id), Span::call_site());
+        let local_count_generic = Ident::new(&format!("TCount{}", slot_name), Span::call_site());
+        let (
+            local_min,
+            local_min_nonexistent,
+            local_max,
+            local_max_nonexistent,
+            local_zero_allowed,
+        ) = get_static_slotdigest_typestate_signature_stream(slot);
+        let slot_ts_consts_stream = quote!{#local_min, #local_min_nonexistent, #local_max, #local_max_nonexistent, #local_zero_allowed};
+        let main_builder_slot_generics_stream =
+            all_slot_digests
+                .iter()
+                .enumerate()
+                .map(|(i, slot_digest)| {
+                    if slot_digest.slot.tag.id == slot_id {
+                        return quote!{base_types::post_generation::type_level::SlotTS<#local_count_generic,#slot_ts_consts_stream >}
+                    }
+                    let string1 = format!("T{}Slot{}", slot.slot.tag.name, &i.to_string());
+                    Ident::new(&string1, Span::call_site()).to_token_stream()
+                });
+        let main_builder_slot_generics_stream = quote! { #(#main_builder_slot_generics_stream,)*};
+        let generic_slot_generics_stream_with_trait_bound =
+            all_slot_digests
+                .iter()
+                .enumerate()
+                .map(|(i, slot_digest)| {
+                    if slot_digest.slot.tag.id == slot_id {
+                        return quote!{#local_count_generic:
+                            typenum::Integer
+                            + std::ops::Add<typenum::P1>
+                            + std::ops::Sub<typenum::P1>
+                            + IsGreaterOrEqual<#local_min>
+                            + IsLessOrEqual<#local_max>
+                            + IsGreater<typenum::Z0>
+                            + Cmp<Z0>
+                        }
+                    }
+                    let string1 = format!("T{}Slot{}", slot.slot.tag.name, &i.to_string());
+                    let ident = Ident::new(&string1, Span::call_site());
+                    quote! {#ident: base_types::post_generation::type_level::SlotTSMarker}
+                });
+        let generic_slot_generics_stream_with_trait_bound =
+            quote! { #(#generic_slot_generics_stream_with_trait_bound,)*};
+        let slot_generic_in_question = Ident::new(&format!("T{}Slot{}", slot.slot.tag.name, slot_id), Span::call_site());
+        // let return_slot_generics_after_adding = all_slot_digests
+        //     .iter()
+        //     .enumerate()
+        //     .map(|(i, slot_digest)| {
+        //         if slot_digest.slot.tag.id == slot_id {
+        //             return get_slotdigest_typestate_signature_stream(slot_digest, Some(Operation::Add))
+        //         }
+        //         let string = format!(
+        //             "T{}Slot{}",
+        //             slot_digest.digest_object_id,
+        //             &i.to_string()
+        //         );
+        //         Ident::new(&string, Span::call_site()).to_token_stream()
+        //     }).collect::<Vec<_>>();
         let return_slot_generics_after_adding = all_slot_digests
             .iter()
             .enumerate()
             .map(|(i, slot_digest)| {
-                if i as u128 == slot_id {
-                    return get_slotdigest_typestate_signature_stream(slot_digest, Some(Operation::Add))
+                if slot_digest.slot.tag.id == slot_id {
+                    let slot_ts_consts = get_static_slotdigest_typestate_signature_stream(slot_digest);
+                    return quote!{base_types::post_generation::type_level::SlotTS<typenum::Sum<#local_count_generic, typenum::P1>,#slot_ts_consts_stream >}
                 }
                 let string = format!(
-                    "TSlot{}",
+                    "T{}Slot{}",
+                    slot.slot.tag.name,
                     &i.to_string()
                 );
                 Ident::new(&string, Span::call_site()).to_token_stream()
@@ -411,15 +465,16 @@ pub(crate) fn generate_operative_streams(
             .iter()
             .enumerate()
             .map(|(i, slot_digest)| {
-                if i as u128 == slot_id {
-                    return get_slotdigest_typestate_signature_stream(slot_digest, Some(Operation::Subtract))
+                if slot_digest.slot.tag.id == slot_id {
+                    return quote!{base_types::post_generation::type_level::SlotTS<typenum::Diff<#local_count_generic, typenum::P1>,#slot_ts_consts_stream >}
                 }
                 let string = format!(
-                    "TSlot{}",
+                    "T{}Slot{}",
+                    slot.slot.tag.name,
                     &i.to_string()
                 );
                 Ident::new(&string, Span::call_site()).to_token_stream()
-            });
+            }).collect::<Vec<_>>();
         let return_type_after_subtracting = quote!{MainBuilder<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_subtracting,)*) >};
 
 
@@ -467,9 +522,10 @@ pub(crate) fn generate_operative_streams(
                     fn #add_new_fn_name
                         <FieldsTSInnerInitial, FieldsTSInnerSecondary, SlotsTSInnerInitial, SlotsTSInnerSecondary>
                     (mut self,
-                        builder_closure: impl Fn( &mut MainBuilder<#single_item_variant_name, Schema, FieldsTSInnerInitial, SlotsTSInnerInitial>)
-                            -> &mut MainBuilder<#single_item_variant_name, Schema, _, _>
+                        builder_closure: impl Fn( MainBuilder<#single_item_variant_name, Schema, FieldsTSInnerInitial, SlotsTSInnerInitial>)
+                            -> MainBuilder<#single_item_variant_name, Schema, FieldsTSInnerSecondary, SlotsTSInnerSecondary>
                     ) -> #return_type_after_adding
+                    where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS
                 }
             } else {
                 // TODO: Figure out closure typestate
@@ -479,9 +535,10 @@ pub(crate) fn generate_operative_streams(
                             FieldsTSInnerInitial, FieldsTSInnerSecondary, SlotsTSInnerInitial, SlotsTSInnerSecondary
                         >
                         (mut self,
-                        builder_closure: impl Fn(&mut MainBuilder<T, Schema, FieldsTSInnerInitial, SlotsTSInnerInitial>)
-                            -> &mut MainBuilder<T, Schema, _, _>
+                        builder_closure: impl Fn(MainBuilder<T, Schema, FieldsTSInnerInitial, SlotsTSInnerInitial>)
+                            -> MainBuilder<T, Schema, FieldsTSInnerSecondary, SlotsTSInnerSecondary>
                     ) -> #return_type_after_adding
+                    where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS
                 }
             };
             let add_existing_and_edit_fn_signature = if let Some(item) = single_item_id {
@@ -491,9 +548,10 @@ pub(crate) fn generate_operative_streams(
                         <FieldsTSInnerInitial, FieldsTSInnerSecondary, SlotsTSInnerInitial, SlotsTSInnerSecondary>
                     (mut self,
                         existing_item_id: &Uid,
-                        builder_closure: impl Fn(&mut MainBuilder<#single_item_variant_name, Schema, FieldsTSInnerInitial, SlotsTSInnerInitial>)
-                            -> &mut MainBuilder<#single_item_variant_name, Schema, _, _>
+                        builder_closure: impl Fn(MainBuilder<#single_item_variant_name, Schema, FieldsTSInnerInitial, SlotsTSInnerInitial>)
+                            -> MainBuilder<#single_item_variant_name, Schema, FieldsTSInnerSecondary, SlotsTSInnerSecondary>
                     ) -> #return_type_after_adding
+                    where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS
                 }
             } else {
                 // TODO: Figure out closure typestate
@@ -504,9 +562,10 @@ pub(crate) fn generate_operative_streams(
                     >
                     (mut self,
                         existing_item_id: &Uid,
-                        builder_closure: impl Fn(&mut MainBuilder<T, Schema, FieldsTSInnerInitial, SlotsTSInnerInitial>)
-                            -> &mut MainBuilder<T, Schema, _, _>
+                        builder_closure: impl Fn(MainBuilder<T, Schema, FieldsTSInnerInitial, SlotsTSInnerInitial>)
+                            -> MainBuilder<T, Schema, FieldsTSInnerSecondary, SlotsTSInnerSecondary>
                     ) -> #return_type_after_adding
+                    where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS
                 }
             };
             let add_existing_or_temp_fn_signature = if let Some(item) = single_item_id {
@@ -560,7 +619,19 @@ pub(crate) fn generate_operative_streams(
                 // impl #manipulate_slot_trait_name for MainBuilder<#struct_name, Schema> {
 
                 // impl<FieldsTS, SlotsTS> MainBuilder<#struct_name, Schema, FieldsTS, SlotsTS> {
-                impl<FieldsTS, #generic_slot_generics_stream_with_trait_bound> MainBuilder<#struct_name, Schema, FieldsTS, (#generic_slot_generics_stream)>
+                impl<FieldsTS, #generic_slot_generics_stream_with_trait_bound> MainBuilder<#struct_name, Schema, FieldsTS, (#main_builder_slot_generics_stream)>
+                    where
+                    <#local_count_generic as std::ops::Add<PInt<UInt<UTerm, B1>>>>::Output:
+                    typenum::Integer
+                    + std::ops::Add<typenum::P1>
+                    + std::ops::Sub<typenum::P1>
+                    + IsGreaterOrEqual<#local_min>
+                    + IsLessOrEqual<#local_max>
+                    + IsGreater<typenum::Z0>
+                    + Cmp<Z0>
+                    + Cmp<#local_min>
+                    + Cmp<#local_max>
+                    + Cmp<PInt<UInt<UTerm, B1>>>,
                     // where Or<#slot_generic_in_question::MaxIsNonExistent, op!((#slot_generic_in_question::Count + B1) <= Max) = typenum::B1>
                 {
                     pub #add_new_fn_signature
@@ -576,9 +647,15 @@ pub(crate) fn generate_operative_streams(
                             slot_id: #slot_id,
                         };
                         new_builder.inner_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
-                        builder_closure(&mut new_builder);
+                        let new_builder = builder_closure(new_builder);
                         self.inner_builder.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder.inner_builder));
-                        self
+
+                        let return_builder_plus_one_slot_typestate = MainBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
+                            inner_builder: self.inner_builder,
+                            _fields_typestate: std::marker::PhantomData,
+                            _slots_typestate: std::marker::PhantomData,
+                        };
+                        return_builder_plus_one_slot_typestate
                     }
                     pub #add_existing_and_edit_fn_signature
                     {
@@ -596,9 +673,14 @@ pub(crate) fn generate_operative_streams(
                             slot_id: #slot_id,
                         };
                         new_builder.inner_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
-                        builder_closure(&mut new_builder);
+                        let new_builder = builder_closure(new_builder);
                         self.inner_builder.add_outgoing(&#slot_id, BlueprintId::Existing(existing_item_id.clone()), Some(new_builder.inner_builder));
-                        self
+                        let return_builder_plus_one_slot_typestate = MainBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
+                            inner_builder: self.inner_builder,
+                            _fields_typestate: std::marker::PhantomData,
+                            _slots_typestate: std::marker::PhantomData,
+                        };
+                        return_builder_plus_one_slot_typestate
                     }
                     pub #add_existing_or_temp_fn_signature {
                         let existing_item_blueprint_id: BlueprintId = existing_item_id.into();
@@ -612,7 +694,12 @@ pub(crate) fn generate_operative_streams(
                                 };
                                 self.inner_builder.raw_add_incoming_to_updates(edge_to_this_element);
                                 self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, existing_item_blueprint_id.clone(), None);
-                                self
+                                let return_builder_plus_one_slot_typestate = MainBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
+                                    inner_builder: self.inner_builder,
+                                    _fields_typestate: std::marker::PhantomData,
+                                    _slots_typestate: std::marker::PhantomData,
+                                };
+                                return_builder_plus_one_slot_typestate
                             }
                             BlueprintId::Temporary(str_id) => {
                                 let host_id = match &self.inner_builder.wip_instance {
@@ -621,7 +708,12 @@ pub(crate) fn generate_operative_streams(
                                 };
                                 self.inner_builder.temp_add_incoming(BlueprintId::Temporary(str_id.clone()), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
                                 self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, existing_item_blueprint_id.clone(), None);
-                                self
+                                let return_builder_plus_one_slot_typestate = MainBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
+                                    inner_builder: self.inner_builder,
+                                    _fields_typestate: std::marker::PhantomData,
+                                    _slots_typestate: std::marker::PhantomData,
+                                };
+                                return_builder_plus_one_slot_typestate
                             }
                         }
                     }
@@ -656,7 +748,18 @@ pub(crate) fn generate_operative_streams(
             //     fn #remove_from_slot_fn_name(&mut self, target_id: &Uid) -> &mut Self;
             // }
             // impl<FieldsTS, SlotsTS> #remove_slot_trait_name for MainBuilder<#struct_name, Schema, FieldsTS, SlotsTS> {
-            impl<FieldsTS, #generic_slot_generics_stream_with_trait_bound> MainBuilder<#struct_name, Schema, FieldsTS, (#generic_slot_generics_stream)>
+            impl<FieldsTS, #generic_slot_generics_stream_with_trait_bound> MainBuilder<#struct_name, Schema, FieldsTS, (#main_builder_slot_generics_stream)>
+            where <#local_count_generic as std::ops::Sub<PInt<UInt<UTerm, typenum::B1>>>>::Output:
+            typenum::Integer
+            + std::ops::Add<typenum::P1>
+            + std::ops::Sub<typenum::P1>
+            + IsGreaterOrEqual<#local_min>
+            + IsLessOrEqual<#local_max>
+            + IsGreater<typenum::Z0>
+            + Cmp<Z0>
+            + Cmp<#local_min>
+            + Cmp<#local_max>
+            + Cmp<PInt<UInt<UTerm, B1>>>,
                 // where #slot_generic_in_question::<CanSubtractOne = typenum::B1>
             {
                 pub fn #remove_from_slot_fn_name(mut self, target_id: &Uid) -> #return_type_after_subtracting {
@@ -665,7 +768,12 @@ pub(crate) fn generate_operative_streams(
                         target_instance_id: target_id.clone(),
                         slot_id: #slot_id,
                     });
-                    self
+                    let return_builder_minus_one_slot_typestate = MainBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_subtracting,)*)>  {
+                        inner_builder: self.inner_builder,
+                        _fields_typestate: std::marker::PhantomData,
+                        _slots_typestate: std::marker::PhantomData,
+                    };
+                    return_builder_minus_one_slot_typestate
                 }
             }
 
@@ -767,26 +875,21 @@ enum Operation {
     Add,
     Subtract,
 }
-fn get_slotdigest_typestate_signature_stream(
+fn get_static_slotdigest_typestate_signature_stream(
     slot_digest: &OperativeSlotDigest,
-    operation: Option<Operation>,
-) -> TokenStream {
-    let new_count = match operation {
-        Some(Operation::Add) => slot_digest.related_instances.len() + 1,
-        Some(Operation::Subtract) => slot_digest.related_instances.len() - 1,
-        None => slot_digest.related_instances.len(),
-    };
-    let count = match new_count {
-        0 => quote! {typenum::Z0},
-        _ => {
-            let ident = Ident::new(&format!("P{}", new_count), Span::call_site());
-            quote! {typenum::#ident}
-        }
-    };
-    let (min, max, zero_allowed) = match slot_digest.slot.bounds {
+) -> (
+    TokenStream,
+    TokenStream,
+    TokenStream,
+    TokenStream,
+    TokenStream,
+) {
+    let (min, min_nonexistent, max, max_nonexistent, zero_allowed) = match slot_digest.slot.bounds {
         SlotBounds::Single => (
             quote! { typenum::P1 },
+            quote! {typenum::B0},
             quote! { typenum::P1 },
+            quote! {typenum::B0},
             quote! { typenum::B0 },
         ),
         SlotBounds::LowerBound(lower_bound) => {
@@ -798,7 +901,9 @@ fn get_slotdigest_typestate_signature_stream(
             };
             (
                 quote! {#lower_bound},
-                quote! {base_types::post_generation::type_level::NonExistent},
+                quote! {typenum::B0},
+                quote! {typenum::Z0},
+                quote! {typenum::B1},
                 quote! {typenum::B0},
             )
         }
@@ -808,8 +913,10 @@ fn get_slotdigest_typestate_signature_stream(
                 quote! {typenum::#ident}
             };
             (
-                quote! {base_types::post_generation::type_level::NonExistent},
+                quote! {typenum::Z0},
+                quote! {typenum::B1},
                 quote! {#upper_bound},
+                quote! {typenum::B0},
                 quote! {typenum::B0},
             )
         }
@@ -827,7 +934,9 @@ fn get_slotdigest_typestate_signature_stream(
 
             (
                 quote! {#lower_bound},
+                quote! {typenum::B0},
                 quote! {#upper_bound},
+                quote! {typenum::B0},
                 quote! {typenum::B0},
             )
         }
@@ -839,7 +948,9 @@ fn get_slotdigest_typestate_signature_stream(
             };
             (
                 quote! {#lower_bound},
-                quote! {base_types::post_generation::type_level::NonExistent},
+                quote! {typenum::B0},
+                quote! {typenum::Z0},
+                quote! {typenum::B1},
                 quote! {typenum::B1},
             )
         }
@@ -856,10 +967,12 @@ fn get_slotdigest_typestate_signature_stream(
             };
             (
                 quote! {#lower_bound},
+                quote! {typenum::B0},
                 quote! {#upper_bound},
+                quote! {typenum::B0},
                 quote! {typenum::B1},
             )
         }
     };
-    quote! { base_types::post_generation::type_level::SlotTS::<#count, #min, #max, #zero_allowed> }
+    (min, min_nonexistent, max, max_nonexistent, zero_allowed)
 }
