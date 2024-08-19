@@ -1,5 +1,5 @@
 use crate::common::*;
-use std::{collections::HashMap, marker::PhantomData};
+use std::{collections::BTreeMap, marker::PhantomData};
 
 pub type SlotId = Uid;
 pub type TraitId = Uid;
@@ -9,19 +9,19 @@ pub type FieldId = Uid;
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug, Default)]
 pub struct ConstraintSchema<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
-    pub template_library: HashMap<Uid, LibraryTemplate<TTypes, TValues>>,
-    pub instance_library: HashMap<Uid, LibraryOperative<TTypes, TValues>>,
-    pub operative_library: HashMap<Uid, LibraryOperative<TTypes, TValues>>,
-    pub traits: HashMap<Uid, TraitDef<TTypes>>,
+    pub template_library: BTreeMap<Uid, LibraryTemplate<TTypes, TValues>>,
+    pub instance_library: BTreeMap<Uid, LibraryOperative<TTypes, TValues>>,
+    pub operative_library: BTreeMap<Uid, LibraryOperative<TTypes, TValues>>,
+    pub traits: BTreeMap<Uid, TraitDef<TTypes>>,
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]
 pub struct LibraryTemplate<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     pub tag: Tag,
-    pub field_constraints: HashMap<FieldId, FieldConstraint<TTypes>>,
-    pub operative_slots: HashMap<SlotId, OperativeSlot>,
-    pub trait_impls: HashMap<TraitId, TraitImpl>,
+    pub field_constraints: BTreeMap<FieldId, FieldConstraint<TTypes>>,
+    pub operative_slots: BTreeMap<SlotId, OperativeSlot>,
+    pub trait_impls: BTreeMap<TraitId, TraitImpl>,
     pub instances: Vec<Uid>,
     #[cfg_attr(feature = "serde", serde(skip))]
     pub _phantom: PhantomData<TValues>,
@@ -34,9 +34,9 @@ pub struct LibraryOperative<TTypes: ConstraintTraits, TValues: ConstraintTraits>
     pub template_id: Uid,
     // If the operative is based on another operative
     pub parent_operative_id: Option<Uid>,
-    pub slotted_instances: HashMap<SlotId, SlottedInstances>,
-    pub locked_fields: HashMap<FieldId, LockedFieldConstraint<TValues>>,
-    pub trait_impls: HashMap<TraitId, TraitImpl>,
+    pub slotted_instances: BTreeMap<SlotId, SlottedInstances>,
+    pub locked_fields: BTreeMap<FieldId, LockedFieldConstraint<TValues>>,
+    pub trait_impls: BTreeMap<TraitId, TraitImpl>,
     pub _phantom: PhantomData<TTypes>,
 }
 
@@ -77,7 +77,7 @@ pub struct TraitOperative {
 #[derive(Clone, Debug)]
 pub struct TraitDef<TTypes: ConstraintTraits> {
     pub tag: Tag,
-    pub methods: HashMap<Uid, TraitMethodDef<TTypes>>,
+    pub methods: BTreeMap<Uid, TraitMethodDef<TTypes>>,
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -110,7 +110,7 @@ pub struct SlottedInstances {
     pub fulfilling_instance_ids: Vec<Uid>,
 }
 
-pub type TraitImpl = HashMap<TraitMethodId, Vec<TraitMethodImplPath>>;
+pub type TraitImpl = BTreeMap<TraitMethodId, Vec<TraitMethodImplPath>>;
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Clone, Debug)]

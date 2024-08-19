@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use crate::{
     common::{ConstraintTraits, Uid},
@@ -9,7 +9,7 @@ use crate::{
 /// Represents a snapshot of the state of the slots for a given operative
 pub struct OperativeDigest<'a> {
     pub digest_object_id: Uid,
-    pub operative_slots: HashMap<Uid, OperativeSlotDigest<'a>>,
+    pub operative_slots: BTreeMap<Uid, OperativeSlotDigest<'a>>,
 }
 
 #[derive(Clone, Debug)]

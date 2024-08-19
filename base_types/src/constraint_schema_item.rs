@@ -1,4 +1,7 @@
-use std::{borrow::Cow, collections::HashMap};
+use std::{
+    borrow::Cow,
+    collections::{BTreeMap, HashMap},
+};
 
 use crate::{
     common::{ConstraintTraits, Tag, Uid},
@@ -17,8 +20,8 @@ pub trait ConstraintSchemaItem {
     fn get_template_id(&self) -> &Uid;
     fn get_parent_operative_id(&self) -> Option<&Uid>;
     fn get_tag(&self) -> &Tag;
-    fn get_local_trait_impls(&self) -> &HashMap<TraitId, TraitImpl>;
-    fn get_local_slotted_instances(&self) -> Option<&HashMap<Uid, SlottedInstances>>;
+    fn get_local_trait_impls(&self) -> &BTreeMap<TraitId, TraitImpl>;
+    fn get_local_slotted_instances(&self) -> Option<&BTreeMap<Uid, SlottedInstances>>;
     fn check_ancestry(
         &self,
         schema: &ConstraintSchema<Self::TTypes, Self::TValues>,
@@ -51,7 +54,7 @@ pub trait ConstraintSchemaItem {
     }
     fn get_local_locked_fields(
         &self,
-    ) -> Option<&HashMap<FieldId, LockedFieldConstraint<Self::TValues>>>;
+    ) -> Option<&BTreeMap<FieldId, LockedFieldConstraint<Self::TValues>>>;
     fn get_trait_impl_digest<'a>(
         &'a self,
         schema: &'a ConstraintSchema<Self::TTypes, Self::TValues>,
@@ -80,15 +83,15 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
     fn get_tag(&self) -> &Tag {
         &self.tag
     }
-    fn get_local_trait_impls(&self) -> &HashMap<TraitId, TraitImpl> {
+    fn get_local_trait_impls(&self) -> &BTreeMap<TraitId, TraitImpl> {
         &self.trait_impls
     }
-    fn get_local_slotted_instances(&self) -> Option<&HashMap<Uid, SlottedInstances>> {
+    fn get_local_slotted_instances(&self) -> Option<&BTreeMap<Uid, SlottedInstances>> {
         None
     }
     fn get_local_locked_fields(
         &self,
-    ) -> Option<&HashMap<Uid, LockedFieldConstraint<Self::TValues>>> {
+    ) -> Option<&BTreeMap<Uid, LockedFieldConstraint<Self::TValues>>> {
         None
     }
     fn get_operative_digest(&self, _schema: &ConstraintSchema<TTypes, TValues>) -> OperativeDigest {
@@ -153,15 +156,15 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchemaItem
     fn get_tag(&self) -> &Tag {
         &self.tag
     }
-    fn get_local_trait_impls(&self) -> &HashMap<TraitId, TraitImpl> {
+    fn get_local_trait_impls(&self) -> &BTreeMap<TraitId, TraitImpl> {
         &self.trait_impls
     }
-    fn get_local_slotted_instances(&self) -> Option<&HashMap<Uid, SlottedInstances>> {
+    fn get_local_slotted_instances(&self) -> Option<&BTreeMap<Uid, SlottedInstances>> {
         Some(&self.slotted_instances)
     }
     fn get_local_locked_fields(
         &self,
-    ) -> Option<&HashMap<Uid, LockedFieldConstraint<Self::TValues>>> {
+    ) -> Option<&BTreeMap<Uid, LockedFieldConstraint<Self::TValues>>> {
         Some(&self.locked_fields)
     }
     fn get_operative_digest<'a>(
