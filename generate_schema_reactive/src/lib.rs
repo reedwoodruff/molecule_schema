@@ -544,7 +544,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 self.inner_builder.incorporate(&other_builder.inner_builder)
             }
 
-            pub fn set_temp_id(&mut self, temp_id: &str) -> &mut Self {
+            pub fn set_temp_id(mut self, temp_id: &str) -> Self {
                 self.inner_builder.set_temp_id(temp_id);
                 self
             }

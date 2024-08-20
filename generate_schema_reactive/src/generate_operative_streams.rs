@@ -774,7 +774,7 @@ pub(crate) fn generate_operative_streams(
                     + Cmp<#local_min>
                     + Cmp<#local_max>
                     + Cmp<PInt<UInt<UTerm, B1>>>,
-                    // where Or<#slot_generic_in_question::MaxIsNonExistent, op!((#slot_generic_in_question::Count + B1) <= Max) = typenum::B1>
+                    base_types::post_generation::type_level::SlotTS<#local_count_generic,#slot_ts_consts_stream >: base_types::post_generation::type_level::SlotCanAddOne
                 {
                     #add_new_fn_definitions
                     pub #add_existing_and_edit_fn_signature
@@ -881,7 +881,7 @@ pub(crate) fn generate_operative_streams(
             + Cmp<#local_min>
             + Cmp<#local_max>
             + Cmp<PInt<UInt<UTerm, B1>>>,
-                // where #slot_generic_in_question::<CanSubtractOne = typenum::B1>
+            base_types::post_generation::type_level::SlotTS<#local_count_generic,#slot_ts_consts_stream >: base_types::post_generation::type_level::SlotCanSubtractOne
             {
                 pub fn #remove_from_slot_fn_name(mut self, target_id: &Uid) -> #return_type_after_subtracting {
                     self.inner_builder.remove_outgoing(base_types::post_generation::SlotRef{
