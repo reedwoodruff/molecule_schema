@@ -8,8 +8,10 @@ pub type NonExistent = P9;
 
 pub trait SlotTSMarker {
     type CountIsGreaterThanOrEqualToMin: Bit;
+    type CountIsGreaterThanMin: Bit;
     type CountIsGreaterThanZero: Bit;
     type CountIsLessThanOrEqualToMax: Bit;
+    type CountIsLessThanMax: Bit;
 }
 pub struct SlotTS<
     Count: Integer + IsGreaterOrEqual<Min> + IsLessOrEqual<Max> + IsGreater<Z0>,
@@ -29,7 +31,12 @@ pub struct SlotTS<
     )>,
 );
 impl<
-        Count: Integer + IsGreaterOrEqual<Min> + IsLessOrEqual<Max> + IsGreater<Z0>,
+        Count: Integer
+            + IsGreaterOrEqual<Min>
+            + IsGreater<Min>
+            + IsLessOrEqual<Max>
+            + IsLess<Max>
+            + IsGreater<Z0>,
         Min: Integer,
         MinIsNonExistent: Bit,
         Max: Integer,
@@ -38,7 +45,9 @@ impl<
     > SlotTSMarker for SlotTS<Count, Min, MinIsNonExistent, Max, MaxIsNonExistent, ZeroAllowed>
 {
     type CountIsGreaterThanOrEqualToMin = GrEq<Count, Min>;
+    type CountIsGreaterThanMin = Gr<Count, Min>;
     type CountIsLessThanOrEqualToMax = LeEq<Count, Max>;
+    type CountIsLessThanMax = Le<Count, Max>;
     type CountIsGreaterThanZero = Gr<Count, Z0>;
 }
 
@@ -138,6 +147,75 @@ impl<
 where
     SlotTS<Count, Min, MinIsNonExistent, Max, MaxIsNonExistent, ZeroAllowed>:
         WithinLowerBounds + WithinUpperBounds,
+{
+}
+
+pub trait SlotCanAddOne {}
+// If Max does not exist
+impl<
+        Count: Integer + IsGreaterOrEqual<Min> + IsLessOrEqual<Max> + IsGreater<Z0>,
+        Min: Integer,
+        MinIsNonExistent: Bit,
+        Max: Integer,
+        // MaxIsNonExistent: Bit,
+        ZeroAllowed: Bit,
+    > SlotCanAddOne for SlotTS<Count, Min, MinIsNonExistent, Max, B1, ZeroAllowed>
+{
+}
+// If Max does exist and count is less than it
+impl<
+        Count: Integer + IsGreaterOrEqual<Min> + IsLessOrEqual<Max> + IsGreater<Z0>,
+        Min: Integer,
+        MinIsNonExistent: Bit,
+        Max: Integer,
+        // MaxIsNonExistent: Bit,
+        ZeroAllowed: Bit,
+    > SlotCanAddOne for SlotTS<Count, Min, MinIsNonExistent, Max, B0, ZeroAllowed>
+where
+    SlotTS<Count, Min, MinIsNonExistent, Max, B0, ZeroAllowed>:
+        SlotTSMarker<CountIsLessThanMax = B1>,
+{
+}
+
+pub trait SlotCanSubtractOne {}
+// If Min does not exist
+impl<
+        Count: Integer + IsGreaterOrEqual<Min> + IsLessOrEqual<Max> + IsGreater<Z0>,
+        Min: Integer,
+        // MinIsNonExistent: Bit,
+        Max: Integer,
+        MaxIsNonExistent: Bit,
+        ZeroAllowed: Bit,
+    > SlotCanSubtractOne for SlotTS<Count, Min, B1, Max, MaxIsNonExistent, ZeroAllowed>
+where
+    SlotTS<Count, Min, B1, Max, MaxIsNonExistent, ZeroAllowed>:
+        SlotTSMarker<CountIsGreaterThanZero = B1>,
+{
+}
+// If Min does exist and zero is not allowed
+impl<
+        Count: Integer + IsGreaterOrEqual<Min> + IsLessOrEqual<Max> + IsGreater<Z0>,
+        Min: Integer,
+        // MinIsNonExistent: Bit,
+        Max: Integer,
+        MaxIsNonExistent: Bit,
+        // ZeroAllowed: Bit,
+    > SlotCanSubtractOne for SlotTS<Count, Min, B0, Max, MaxIsNonExistent, B0>
+where
+    SlotTS<Count, Min, B0, Max, MaxIsNonExistent, B0>: SlotTSMarker<CountIsGreaterThanMin = B1>,
+{
+}
+// If Min does exist and zero is allowed
+impl<
+        Count: Integer + IsGreaterOrEqual<Min> + IsLessOrEqual<Max> + IsGreater<Z0>,
+        Min: Integer,
+        // MinIsNonExistent: Bit,
+        Max: Integer,
+        MaxIsNonExistent: Bit,
+        // ZeroAllowed: Bit,
+    > SlotCanSubtractOne for SlotTS<Count, Min, B0, Max, MaxIsNonExistent, B1>
+where
+    SlotTS<Count, Min, B0, Max, MaxIsNonExistent, B1>: SlotTSMarker<CountIsGreaterThanZero = B1>,
 {
 }
 
