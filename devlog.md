@@ -413,3 +413,36 @@ High level goals:
 Currently, it seems like there is only one conceptual bottleneck in making the graph-construction process entirely compile-time safe: adding an existing element to a slot.
 At this moment, I'm having a difficult time seeing how to perform the necessary check to see if the element is the correct type. Right now, this interface
 just accepts an ID and performs the check at runtime. Perhaps it would be possible to alter the interface.
+
+## August 20, 2024
+The typestate system is coming along more or less as envisioned (to my surprise).
+I am reaching a point where it would be good to settle on an interface for interacting with the graph builder.
+I am thinking through the editing story and where to store the necessary typestate, but it would be beneficial to hone the interaction surface before finalizing anything.
+Right now there are two entry points:
+- Calling OperativeName::new()
+- Calling ExistingOperative::edit()
+Both of these entry points return a MainBuilder which represents some subgraph (or potentially multiple disconnected subgraphs if MainBuilders are combined with `integrate`)
+Once the user has a MainBuilder, they have 3 choices for filling a given slot:
+- add_new_{slot_name}_{slotted_operative_name}
+- add_existing_or_temp_{slot_name}_{slotted_operative_name}
+- add_and_edit_existing_{slot_name}_{slotted_operative_name}
+This is somewhat confusing as an interface, I think. I'd like to make it more intuitive.
+Previously, each of these methods could require a type parameter to specify which type of operative was being slotted into the slot
+  (if there was only one possible fitting operative in the whole schema, then this type parameter was not exposed to the user)
+With this typestate rewrite, though, it became convenient to enumerate that type parameter into as many methods as necessary to cover all of the legal operatives.
+  (Since the method was now accepting several additional type parameters corresponding to typestate, asking the user to specify one of the type parameters meant
+  that the compiler would complain unless they specified all of them, so in practice the method calls started looking like this:
+  `add_new_{slot_name}::<DesiredOperative, _, _, _, _>::(...)`
+  which is worse than the alternative, I think. Still feeling this one out, though.)
+
+One of the main questions is regarding how to handle referencing existing nodes to add to a slot (or to edit).
+Currently there is a lot of runtime checking done to ensure that the id passed into one of these methods points to a valid item for the operation in question.
+This wasn't too big of a deal earlier since I was already doing a bunch of runtime checking to ensure that all of the operations in a final MainBuilder adhered to the schema.
+But now, I think a lot of this checking is redundant with these typestate guards. The typestate should (in theory) make it impossible for a user to misconfigure any action.
+The only remaining runtime check which seems to be necessary is that of referencing an existing node (or a temporary node, which is also a fallible action if the user did not create a temporary node of the same name that they are subsequently looking up).
+It seems to me this should be done explicitly immediately upon calling a method which requires an existing node, and that method should return a Result.
+But! This would require then that every builder method would need to return a Result since all of these methods can be arbitrarily nested. What a mess.
+
+Ai had the good idea to perform the checking in a separate step. So you could have a method which returns a type which essentially says "this is guaranteed to exist and be of this type"
+This would work well for nodes which existed before the builder came into existence, but it would be a bit trickier for "temporary" nodes -- nodes which were created within the same builder session.
+There is still the question of invalidating these "guarantee" types when/if another builder is executed in between creation and usage.
