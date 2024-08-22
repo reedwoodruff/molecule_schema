@@ -974,7 +974,7 @@ pub(crate) fn generate_operative_streams(
                 let graph: std::rc::Rc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
                 SubgraphBuilder::<#struct_name, Schema>::new(
                         None,
-                            id,
+                        id,
                         graph,
                     )
             }
