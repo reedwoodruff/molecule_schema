@@ -6,7 +6,7 @@ edition = "2021"
 [features]
 serde = ["serde/derive", "serde/rc", "serde_json"]
 to_tokens = ["proc-macro2", "quote"]
-reactive = ["leptos"]
+# reactive = ["leptos"]
 
 [dependencies.uuid]
 version = "1.4.1"
@@ -27,5 +27,5 @@ strum_macros = "0.26.1"
 # anyhow = "1.0"
 quote = { version = "1.0", optional = true }
 proc-macro2 = { version = "1.0", optional = true }
-leptos = { version = "0.6", features = ["csr"], optional = true }
+leptos = { version = "0.6", features = ["csr"] }
 typenum = "1"
