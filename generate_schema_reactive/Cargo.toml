@@ -20,7 +20,7 @@ features = [
 [dependencies]
 base_types = { path = "../base_types", features = [
     "to_tokens",
-    "reactive",
+    # "reactive",
 ] } # molecule_schema = { path = "../molecule_schema" }
 syn = { version = "2.0", features = ["full"] }
 quote = "1.0"

@@ -14,7 +14,7 @@ use crate::post_generation::{
 };
 use crate::utils::IntoPrimitiveValue;
 use leptos::{RwSignal, *};
-use std::collections::HashMap;
+use std::{collections::HashMap, marker::PhantomData};
 
 pub trait FromNonReactive<NTSchema>
 where
