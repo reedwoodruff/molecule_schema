@@ -395,20 +395,6 @@ where
     type Result =
         <(First, Rest) as TSInnerSearch<Id, IdEq<Id, First::Id>, IdEq<Id, Rest::Id>>>::Result;
 }
-// impl<Id, First, Second, Rest> TSSearch<Id> for (First, (Second, Rest))
-// where
-//     Id: IdIsEqual<First::Id>,
-//     Id: IdIsEqual<Second::Id>,
-//     (First, (Second, Rest)): TSInnerSearch<Id, IdEq<Id, First::Id>, IdEq<Id, Second::Id>>,
-//     First: IdGetter,
-//     Second: IdGetter,
-// {
-//     type Result = <(First, (Second, Rest)) as TSInnerSearch<
-//         Id,
-//         IdEq<Id, First::Id>,
-//         IdEq<Id, Second::Id>,
-//     >>::Result;
-// }
 
 impl<Id, First> TSSearch<Id> for (First,)
 where
@@ -446,22 +432,9 @@ where
 {
     type Result = <(Second, Tail) as TSInnerSearch<Id, B0, IdEq<Id, Tail::Id>>>::Result;
 }
-// impl<Id, T, NextMatch> TSInnerSearch<Id, B0, NextMatch> for T
-// where
-//     T: IdGetter,
-//     Id: IdIsEqual<T::Id>,
-//     (T, ()): IfThenElse<IdEq<Id, T::Id>>,
-// {
-//     type Result = <(T, ()) as IfThenElse<IdEq<Id, T::Id>>>::Output;
-// }
-// impl<Id, T, NextMatch> TSInnerSearch<Id, B1, NextMatch> for T
-// where
-//     T: IdGetter,
-//     Id: IdIsEqual<T::Id>,
-//     (T, ()): IfThenElse<IdEq<Id, T::Id>>,
-// {
-//     type Result = <(T, ()) as IfThenElse<IdEq<Id, T::Id>>>::Output;
-// }
+impl<First, Id> TSInnerSearch<Id, B0, B0> for (First, ()) {
+    type Result = ();
+}
 impl<Id, T, NextMatch> TSInnerSearch<Id, B1, NextMatch> for (T,)
 where
     T: IdGetter,
@@ -478,81 +451,6 @@ where
 {
     type Result = <(T, ()) as IfThenElse<IdEq<Id, T::Id>>>::Output;
 }
-// pub trait TSSearch<Id> {
-//     type Result;
-// }
-
-// impl<Id> TSSearch<Id> for () {
-//     type Result = ();
-// }
-// impl<Id, First, Rest> TSSearch<Id> for (First, Rest)
-// where
-//     Id: IdIsEqual<First::Id>,
-//     (First, Rest): TSInnerSearch<Id, IdEq<Id, First::Id>>,
-//     First: IdGetter,
-// {
-//     type Result = <(First, Rest) as TSInnerSearch<Id, IdEq<Id, First::Id>>>::Result;
-// }
-// impl<Id, First> TSSearch<Id> for (First,)
-// where
-//     Id: IdIsEqual<First::Id>,
-//     First: TSInnerSearch<Id, IdEq<Id, First::Id>>,
-//     First: IdGetter,
-// {
-//     type Result = <First as TSInnerSearch<Id, IdEq<Id, First::Id>>>::Result;
-// }
-
-// pub trait TSInnerSearch<Id, IsMatch> {
-//     type Result;
-// }
-
-// impl<Id, T, Tail> TSInnerSearch<Id, B1> for (T, Tail)
-// where
-//     T: IdGetter,
-// {
-//     type Result = T;
-// }
-
-// impl<T, Id, Tail> TSInnerSearch<Id, B0> for (T, Tail)
-// where
-//     T: IdGetter,
-//     Id: IdIsEqual<T::Id>,
-//     Tail: TSInnerSearch<Id, IdEq<Id, T::Id>>,
-// {
-//     type Result = Tail::Result;
-// }
-// impl<Id, T> TSInnerSearch<Id, B0> for T
-// where
-//     T: IdGetter,
-//     Id: IdIsEqual<T::Id>,
-//     (T, ()): IfThenElse<IdEq<Id, T::Id>>,
-// {
-//     type Result = <(T, ()) as IfThenElse<IdEq<Id, T::Id>>>::Output;
-// }
-// impl<Id, T> TSInnerSearch<Id, B1> for T
-// where
-//     T: IdGetter,
-//     Id: IdIsEqual<T::Id>,
-//     (T, ()): IfThenElse<IdEq<Id, T::Id>>,
-// {
-//     type Result = <(T, ()) as IfThenElse<IdEq<Id, T::Id>>>::Output;
-// }
-// impl<Id, T> TSInnerSearch<Id, B1> for (T,)
-// where
-//     T: IdGetter,
-//     Id: IdIsEqual<T::Id>,
-//     (T, ()): IfThenElse<IdEq<Id, T::Id>>,
-// {
-//     type Result = <(T, ()) as IfThenElse<IdEq<Id, T::Id>>>::Output;
-// }
-// impl<Id, T> TSInnerSearch<Id, B0> for (T,)
-// where
-//     T: IdGetter,
-//     Id: IdIsEqual<T::Id>,
-//     (T, ()): IfThenElse<IdEq<Id, T::Id>>,
-// {
-//     type Result = <(T, ()) as IfThenElse<IdEq<Id, T::Id>>>::Output;
-// }
 
 // -----------------------------------------------
 // ADD
@@ -598,212 +496,150 @@ impl AssertItemDoesNotExist for B0 {}
 // EDIT
 // ------------------------------------------
 
-pub trait TSEditItemInList<Id, NewState> {
+pub trait TSEdit<Id, NewState> {
     type Result;
 }
 
-impl<Id, First, Tail, NewState> TSEditItemInList<Id, NewState> for (First, Tail)
-where
-    Id: IdIsEqual<First::Id>,
-    (First, Tail): TSInnerEdit<Id, NewState, IdEq<Id, First::Id>>,
-    First: IdGetter,
-{
-    type Result = <(First, Tail) as TSInnerEdit<Id, NewState, IdEq<Id, First::Id>>>::Result;
+impl<Id, NewState> TSEdit<Id, NewState> for () {
+    type Result = ();
 }
-impl<Id, First, NewState> TSEditItemInList<Id, NewState> for (First,)
+impl<Id, First, Rest, NewState> TSEdit<Id, NewState> for (First, Rest)
 where
     Id: IdIsEqual<First::Id>,
-    First: TSInnerEdit<Id, NewState, IdEq<Id, First::Id>>,
+    Id: IdIsEqual<Rest::Id>,
+    (First, Rest): TSInnerEdit<Id, IdEq<Id, First::Id>, IdEq<Id, Rest::Id>, NewState>,
     First: IdGetter,
+    Rest: IdGetter,
 {
-    type Result = (<First as TSInnerEdit<Id, NewState, IdEq<Id, First::Id>>>::Result,);
+    type Result = <(First, Rest) as TSInnerEdit<
+        Id,
+        IdEq<Id, First::Id>,
+        IdEq<Id, Rest::Id>,
+        NewState,
+    >>::Result;
 }
 
-pub trait TSInnerEdit<Id, NewState, IsMatch> {
+impl<Id, First, NewState> TSEdit<Id, NewState> for (First,)
+where
+    Id: IdIsEqual<First::Id>,
+    (First,): TSInnerEdit<Id, IdEq<Id, First::Id>, B0, NewState>,
+    First: IdGetter,
+{
+    type Result = <(First,) as TSInnerEdit<Id, IdEq<Id, First::Id>, B0, NewState>>::Result;
+}
+
+pub trait TSInnerEdit<Id, IsMatch, IsNextMatch, NewState> {
     type Result;
 }
 
-impl<Id, T, Tail, NewState> TSInnerEdit<Id, NewState, B1> for (T, Tail)
+impl<Id, T, Tail, NextMatch, NewState> TSInnerEdit<Id, B1, NextMatch, NewState> for (T, Tail)
 where
     T: IdGetter,
 {
     type Result = (OperativeTS<Id, NewState>, Tail);
 }
 
-impl<T, Id, Tail, NewState> TSInnerEdit<Id, NewState, B0> for (T, Tail)
+impl<T, Id, Tail, NewState> TSInnerEdit<Id, B0, B1, NewState> for (T, Tail)
 where
     T: IdGetter,
     Id: IdIsEqual<T::Id>,
-    Tail: TSInnerEdit<Id, NewState, IdEq<Id, T::Id>>,
+    Tail: TSInnerEdit<Id, B1, B0, NewState>,
 {
     type Result = (T, Tail::Result);
 }
-impl<Id, T, NewState> TSInnerEdit<Id, NewState, B0> for T
+impl<First, Second, Id, Tail, NewState> TSInnerEdit<Id, B0, B0, NewState>
+    for (First, (Second, Tail))
 where
-    T: IdGetter,
-    Id: IdIsEqual<T::Id>,
-    (OperativeTS<Id, NewState>, ()): IfThenElse<IdEq<Id, T::Id>>,
+    Tail: IdGetter,
+    Id: IdIsEqual<Tail::Id>,
+    (Second, Tail): TSInnerEdit<Id, B0, IdEq<Id, Tail::Id>, NewState>,
 {
-    type Result = <(OperativeTS<Id, NewState>, ()) as IfThenElse<IdEq<Id, T::Id>>>::Output;
+    type Result = (
+        First,
+        <(Second, Tail) as TSInnerEdit<Id, B0, IdEq<Id, Tail::Id>, NewState>>::Result,
+    );
 }
-impl<Id, NewState, T> TSInnerEdit<Id, NewState, B1> for T
-where
-    T: IdGetter,
-    Id: IdIsEqual<T::Id>,
-    (OperativeTS<Id, NewState>, ()): IfThenElse<IdEq<Id, T::Id>>,
-{
-    type Result = <(OperativeTS<Id, NewState>, ()) as IfThenElse<IdEq<Id, T::Id>>>::Output;
+impl<First, Id, NewState> TSInnerEdit<Id, B0, B0, NewState> for (First, ()) {
+    type Result = (First, ());
 }
-impl<Id, NewState, T> TSInnerEdit<Id, NewState, B1> for (T,)
-where
-    T: IdGetter,
-    Id: IdIsEqual<T::Id>,
-    (OperativeTS<Id, NewState>, ()): IfThenElse<IdEq<Id, T::Id>>,
-{
-    type Result = (<(OperativeTS<Id, NewState>, ()) as IfThenElse<IdEq<Id, T::Id>>>::Output,);
+impl<Id, T, NextMatch, NewState> TSInnerEdit<Id, B1, NextMatch, NewState> for (T,) {
+    type Result = (OperativeTS<Id, NewState>,);
 }
-impl<Id, NewState, T> TSInnerEdit<Id, NewState, B0> for (T,)
-where
-    T: IdGetter,
-    Id: IdIsEqual<T::Id>,
-    (OperativeTS<Id, NewState>, ()): IfThenElse<IdEq<Id, T::Id>>,
-{
-    type Result = (<(OperativeTS<Id, NewState>, ()) as IfThenElse<IdEq<Id, T::Id>>>::Output,);
+impl<Id, T, NextMatch, NewState> TSInnerEdit<Id, B0, NextMatch, NewState> for (T,) {
+    type Result = ();
 }
-// pub trait TSEditItemInList<Id, NewState> {
-//     type Result;
-// }
-
-// impl<First, Rest, Id, NewState> TSEditItemInList<Id, NewState> for (First, Rest)
-// where
-//     (First, Rest): TSSearch<Id>,
-//     Id: IdIsEqual<First::Id>,
-//     (First, Rest): ReplaceOperativeInTuple<Id, NewState, IdEq<Id, First::Id>>,
-//     // <(First, Rest) as TSSearch<Id>>::Result: IdGetter<Id = Id>,
-//     First: IdGetter,
-// {
-//     type Result =
-//         <(First, Rest) as ReplaceOperativeInTuple<Id, NewState, IdEq<Id, First::Id>>>::Result;
-// }
-// impl<First, Id, NewState> TSEditItemInList<Id, NewState> for (First,)
-// where
-//     Id: IdIsEqual<First::Id>,
-//     First: IdGetter,
-// {
-//     type Result = (OperativeTS<Id, NewState>,);
-// }
-
-// pub trait ReplaceOperativeInTuple<Id, NewState, IsMatch> {
-//     type Result;
-// }
-// impl<Id, State, NewState, Rest> ReplaceOperativeInTuple<Id, NewState, B1>
-//     for (OperativeTS<Id, State>, Rest)
-// {
-//     type Result = (OperativeTS<Id, NewState>, Rest);
-// }
-
-// impl<FirstId, FirstState, Id, NewState, Rest> ReplaceOperativeInTuple<Id, NewState, B0>
-//     for (OperativeTS<FirstId, FirstState>, Rest)
-// where
-//     Id: IdIsEqual<FirstId>,
-//     Rest: ReplaceOperativeInTuple<Id, NewState, IdEq<Id, FirstId>>,
-// {
-//     type Result = (
-//         OperativeTS<FirstId, FirstState>,
-//         <Rest as ReplaceOperativeInTuple<Id, NewState, IdEq<Id, FirstId>>>::Result,
-//     );
-// }
 
 // ---------------------------------------------------
 // REMOVE
 // ---------------------------------------------------
 
-pub trait TSRemoveItemFromList<Id> {
+pub trait TSRemove<Id> {
     type Result;
 }
 
-impl<First, Rest, Id> TSRemoveItemFromList<Id> for (First, Rest)
-where
-    (First, Rest): TSSearch<Id>,
-    Id: IdIsEqual<First::Id>,
-    (First, Rest): RemoveOperativeFromTuple<Id, IdEq<Id, First::Id>>,
-    // <(First, Rest) as TSSearch<Id>>::Result: IdGetter<Id = Id>,
-    First: IdGetter,
-{
-    type Result = <(First, Rest) as RemoveOperativeFromTuple<Id, IdEq<Id, First::Id>>>::Result;
-}
-impl<First, Id> TSRemoveItemFromList<Id> for (First,)
-where
-    Id: IdIsEqual<First::Id>,
-    First: IdGetter,
-{
+impl<Id> TSRemove<Id> for () {
     type Result = ();
 }
+impl<Id, First, Rest> TSRemove<Id> for (First, Rest)
+where
+    Id: IdIsEqual<First::Id>,
+    Id: IdIsEqual<Rest::Id>,
+    (First, Rest): TSInnerRemove<Id, IdEq<Id, First::Id>, IdEq<Id, Rest::Id>>,
+    First: IdGetter,
+    Rest: IdGetter,
+{
+    type Result =
+        <(First, Rest) as TSInnerRemove<Id, IdEq<Id, First::Id>, IdEq<Id, Rest::Id>>>::Result;
+}
 
-pub trait RemoveOperativeFromTuple<Id, IsMatch> {
+impl<Id, First> TSRemove<Id> for (First,)
+where
+    Id: IdIsEqual<First::Id>,
+    (First,): TSInnerRemove<Id, IdEq<Id, First::Id>, B0>,
+    First: IdGetter,
+{
+    type Result = <(First,) as TSInnerRemove<Id, IdEq<Id, First::Id>, B0>>::Result;
+}
+
+pub trait TSInnerRemove<Id, IsMatch, IsNextMatch> {
     type Result;
 }
-impl<Id, State, Rest> RemoveOperativeFromTuple<Id, B1> for (OperativeTS<Id, State>, Rest) {
-    type Result = Rest;
+
+impl<Id, T, Tail, NextMatch> TSInnerRemove<Id, B1, NextMatch> for (T, Tail)
+where
+    T: IdGetter,
+{
+    type Result = Tail;
 }
 
-impl<FirstId, FirstState, Id, Rest> RemoveOperativeFromTuple<Id, B0>
-    for (OperativeTS<FirstId, FirstState>, Rest)
+impl<T, Id, Tail> TSInnerRemove<Id, B0, B1> for (T, Tail)
 where
-    Id: IdIsEqual<FirstId>,
-    Rest: RemoveOperativeFromTuple<Id, IdEq<Id, FirstId>>,
+    T: IdGetter,
+    Id: IdIsEqual<T::Id>,
+    Tail: TSInnerRemove<Id, B1, B0>,
+{
+    type Result = (T, Tail::Result);
+}
+impl<First, Second, Id, Tail> TSInnerRemove<Id, B0, B0> for (First, (Second, Tail))
+where
+    Tail: IdGetter,
+    Id: IdIsEqual<Tail::Id>,
+    (Second, Tail): TSInnerRemove<Id, B0, IdEq<Id, Tail::Id>>,
 {
     type Result = (
-        OperativeTS<FirstId, FirstState>,
-        <Rest as RemoveOperativeFromTuple<Id, IdEq<Id, FirstId>>>::Result,
+        First,
+        <(Second, Tail) as TSInnerRemove<Id, B0, IdEq<Id, Tail::Id>>>::Result,
     );
 }
-// pub trait TSRemoveItemFromList<Id> {
-//     type Result;
-// }
-
-// impl<First, Rest, Id> TSRemoveItemFromList<Id> for (First, Rest)
-// where
-//     (First, Rest): TSSearch<Id>,
-//     <(First, Rest) as TSSearch<Id>>::Result: IdGetter<Id = Id>,
-//     First: IdGetter,
-//     Id: IdIsEqual<First::Id>,
-//     (First, Rest): RemoveOperativeFromTuple<Id, IdEq<Id, First::Id>>,
-// {
-//     type Result = <(First, Rest) as RemoveOperativeFromTuple<Id, IdEq<Id, First::Id>>>::Result;
-// }
-// impl<Id, T> TSRemoveItemFromList<Id> for (T,)
-// where
-//     // T: IdGetter,
-//     // T::Id: Same<Id, Output = B1>,
-//     (T,): TSSearch<Id>,
-//     <(T,) as TSSearch<Id>>::Result: IdGetter<Id = Id>,
-// {
-//     type Result = ();
-// }
-// // impl<Id> TSRemoveItemFromList<Id> for () {
-// //     type Result = ();
-// // }
-
-// pub trait RemoveOperativeFromTuple<Id, IsMatch> {
-//     type Result;
-// }
-
-// impl<Id, State, Rest> RemoveOperativeFromTuple<Id, B1> for (OperativeTS<Id, State>, Rest) {
-//     type Result = Rest;
-// }
-
-// impl<FirstId, FirstState, Id, Rest> RemoveOperativeFromTuple<Id, B0>
-//     for (OperativeTS<FirstId, FirstState>, Rest)
-// where
-//     Id: Same<FirstId>,
-//     Rest: RemoveOperativeFromTuple<Id, <Id as Same<FirstId>>::Output>,
-// {
-//     type Result = (
-//         OperativeTS<FirstId, FirstState>,
-//         <Rest as RemoveOperativeFromTuple<Id, <Id as Same<FirstId>>::Output>>::Result,
-//     );
-// }
+impl<First, Id> TSInnerRemove<Id, B0, B0> for (First, ()) {
+    type Result = (First, ());
+}
+impl<Id, T, NextMatch> TSInnerRemove<Id, B1, NextMatch> for (T,) {
+    type Result = ();
+}
+impl<Id, T, NextMatch> TSInnerRemove<Id, B0, NextMatch> for (T,) {
+    type Result = (T,);
+}
 
 // ------------------------------------------
 // Compound ID
@@ -904,10 +740,15 @@ mod tests {
         fn print_type_of<T>(_: &T)
         where
             T: GetCurrent,
+            T: StateGetter,
             T::Output: IdToU32,
         {
-            println!("{}", std::any::type_name::<T>());
-            println!("{}", T::Output::to_u32());
+            println!("{}", std::any::type_name::<T::State>());
+            println!("---");
+            println!(
+                "UUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUUU"
+            );
+            // println!("{}", T::Output::to_u32());
         }
         struct GraphTypestateContainer<Current, State>(PhantomData<(Current, State)>);
         impl<Current, State> GraphTypestateContainer<Current, State> {
@@ -923,13 +764,16 @@ mod tests {
             }
             fn remove_node<Id>(
                 self,
-            ) -> GraphTypestateContainer<Current, <State as TSRemoveItemFromList<Id>>::Result>
+            ) -> GraphTypestateContainer<Current, <State as TSRemove<Id>>::Result>
             where
-                State: TSRemoveItemFromList<Id>,
+                State: TSRemove<Id>,
                 Id: IdIsEqual,
             {
                 GraphTypestateContainer(PhantomData)
             }
+        }
+        impl<Current, State> StateGetter for GraphTypestateContainer<Current, State> {
+            type State = State;
         }
         trait GetCurrent {
             type Output;
@@ -939,17 +783,20 @@ mod tests {
         }
 
         type TestId = CompId<U0, U0, U0, U1>;
-        let inst = GraphTypestateContainer::<TestId, (TestId,)>(PhantomData);
+        let inst = GraphTypestateContainer::<AddUno<TestId>, (Op1,)>(PhantomData);
         print_type_of(&inst);
 
-        // let inst = inst.add_node::<()>();
-        // print_type_of(&inst);
-        // let inst = inst.add_node::<()>();
-        // print_type_of(&inst);
-        // let inst = inst.remove_node::<AddUno<TestId>>();
-        // let inst = inst.remove_node::<AddUno<AddUno<TestId>>>();
-        // print_type_of(&inst);
-        // panic!();
+        let inst = inst.add_node::<()>();
+        print_type_of(&inst);
+        let inst = inst.add_node::<()>();
+        print_type_of(&inst);
+        let inst = inst.remove_node::<TestId>();
+        print_type_of(&inst);
+        let inst = inst.remove_node::<AddUno<TestId>>();
+        print_type_of(&inst);
+        let inst = inst.remove_node::<AddUno<AddUno<TestId>>>();
+        print_type_of(&inst);
+        panic!();
     }
 
     #[test]
@@ -981,7 +828,24 @@ mod tests {
         // Test searching for the middle element in a tuple
         assert_eq!(
             <<(Op1, (Op2, (Op3,))) as TSSearch<Op2Id>>::Result as IdGetter>::Id::to_u32(),
-            3
+            2
+        );
+        // Test searching for the a bigger tuple
+        assert_eq!(
+            <<(
+                Op1,
+                (
+                    Op2,
+                    (
+                        Op3,
+                        (
+                            OperativeTS<to_comp_id!(100), ()>,
+                            OperativeTS<to_comp_id!(20), ()>
+                        )
+                    )
+                )
+            ) as TSSearch<to_comp_id!(100)>>::Result as IdGetter>::Id::to_u32(),
+            100
         );
     }
     #[test]
@@ -1056,7 +920,7 @@ mod tests {
         type InitialState = (Op1, (Op2, (Op3,)));
 
         // Ensure the state was edited correctly for terminal item
-        type FirstEditedState = <InitialState as TSEditItemInList<Op3Id, (Slot1,)>>::Result;
+        type FirstEditedState = <InitialState as TSEdit<Op3Id, (Slot1,)>>::Result;
         // println!("{}", std::any::type_name::<FirstEditedState>());
         // panic!();
         assert_eq!(
@@ -1072,26 +936,26 @@ mod tests {
             -1
         );
 
-        // // Ensure the state was edited correctly for mid-tuple item
-        // type EditedState = <InitialState as TSEditItemInList<Op2Id, (Slot3,)>>::Result;
+        // Ensure the state was edited correctly for mid-tuple item
+        type EditedState = <InitialState as TSEdit<Op2Id, (Slot3,)>>::Result;
         // println!("{}", std::any::type_name::<FirstEditedState>());
         // panic!();
-        // assert_eq!(
-        //     <<<<EditedState as TSSearch<Op2Id>>::Result as StateGetter>::State as TSSearch<
-        //         to_comp_id!(3),
-        //     >>::Result as IdGetter>::Id::to_u32(),
-        //     3
-        // );
-        // assert_eq!(
-        //     <<<<EditedState as TSSearch<Op2Id>>::Result as StateGetter>::State as TSSearch<
-        //         to_comp_id!(2),
-        //     >>::Result as IdGetter>::Id::to_i32(),
-        //     -1
-        // );
+        assert_eq!(
+            <<<<EditedState as TSSearch<Op2Id>>::Result as StateGetter>::State as TSSearch<
+                to_comp_id!(3),
+            >>::Result as IdGetter>::Id::to_u32(),
+            3
+        );
+        assert_eq!(
+            <<<<EditedState as TSSearch<Op2Id>>::Result as StateGetter>::State as TSSearch<
+                to_comp_id!(2),
+            >>::Result as IdGetter>::Id::to_i32(),
+            -1
+        );
 
         // Test that it works with a single item in a tuple
         type InitialState2 = (Op1,);
-        type EditedState2 = <InitialState2 as TSEditItemInList<Op1Id, (Slot3,)>>::Result;
+        type EditedState2 = <InitialState2 as TSEdit<Op1Id, (Slot3,)>>::Result;
         assert_eq!(
             <<<<EditedState2 as TSSearch<Op1Id>>::Result as StateGetter>::State as TSSearch<
                 to_comp_id!(3),
@@ -1101,22 +965,22 @@ mod tests {
     }
     #[test]
     fn test_ts_remove_operative() {
-        // type InitialState = (Op1, (Op2, (Op3, ())));
-        // type EditedState = <InitialState as TSRemoveItemFromList<Op3Id>>::Result;
-        // assert_eq!(
-        //     <<EditedState as TSSearch<Op3Id>>::Result as IdGetter>::Id::to_i32(),
-        //     -1
-        // );
-        // type EditedState2 = <EditedState as TSRemoveItemFromList<Op2Id>>::Result;
-        // assert_eq!(
-        //     <<EditedState2 as TSSearch<Op2Id>>::Result as IdGetter>::Id::to_i32(),
-        //     -1
-        // );
-        // type EditedState3 = <EditedState2 as TSRemoveItemFromList<Op3Id>>::Result;
-        // assert_eq!(
-        //     <<EditedState3 as TSSearch<Op3Id>>::Result as IdGetter>::Id::to_i32(),
-        //     -1
-        // );
+        type InitialState = (Op1, (Op2, (Op3,)));
+        type EditedState = <InitialState as TSRemove<Op3Id>>::Result;
+        assert_eq!(
+            <<EditedState as TSSearch<Op3Id>>::Result as IdGetter>::Id::to_i32(),
+            -1
+        );
+        type EditedState2 = <EditedState as TSRemove<Op2Id>>::Result;
+        assert_eq!(
+            <<EditedState2 as TSSearch<Op2Id>>::Result as IdGetter>::Id::to_i32(),
+            -1
+        );
+        type EditedState3 = <EditedState2 as TSRemove<Op3Id>>::Result;
+        assert_eq!(
+            <<EditedState3 as TSSearch<Op3Id>>::Result as IdGetter>::Id::to_i32(),
+            -1
+        );
     }
 }
 
