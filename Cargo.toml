@@ -2,10 +2,12 @@
 [workspace]
 resolver = "2"
 members = [
-  "molecule_schema",
-  "generate_schema_reactive",
-  "base_types",
-  "reactive_types",
+    "molecule_schema",
+    "generate_schema_reactive",
+    "base_types",
+    "reactive_types",
+    "to_composite_id_macro",
+    "molecule_core",
 ]
 
 

@@ -29,3 +29,5 @@ quote = { version = "1.0", optional = true }
 proc-macro2 = { version = "1.0", optional = true }
 leptos = { version = "0.6", features = ["csr"] }
 typenum = "1"
+to_composite_id_macro = { path = "../to_composite_id_macro" }
+molecule_core = { path = "../molecule_core" }
