@@ -75,12 +75,14 @@ name = "base_types"
 version = "0.1.0"
 dependencies = [
  "leptos",
+ "molecule_core",
  "proc-macro2",
  "quote",
  "serde",
  "serde_json",
  "strum",
  "strum_macros",
+ "to_composite_id_macro",
  "typenum",
  "uuid",
 ]
@@ -760,6 +762,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "68354c5c6bd36d73ff3feceb05efa59b6acb7626617f4962be322a825e61f79a"
 
 [[package]]
+name = "molecule_core"
+version = "0.1.0"
+dependencies = [
+ "typenum",
+]
+
+[[package]]
 name = "molecule_schema"
 version = "0.1.0"
 dependencies = [
@@ -1350,6 +1359,17 @@ name = "tinyvec_macros"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
+
+[[package]]
+name = "to_composite_id_macro"
+version = "0.1.0"
+dependencies = [
+ "molecule_core",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "typenum",
+]
 
 [[package]]
 name = "toml"
