@@ -645,15 +645,20 @@ impl<Id, T, NextMatch> TSInnerRemove<Id, B0, NextMatch> for (T,) {
 // Compound ID
 // ------------------------------------------
 
-trait AddOneId {
+trait AddOneId<IsMax> {
     type Output; // : AddOneId;
 }
-impl<A, B, C, D> AddOneId for CompId<A, B, C, D>
+impl AddOneId<B1> for CompId<U255, U255, U255, U255> {
+    type Output = CompId<U0, U0, U0, U0>;
+}
+
+impl<A, B, C, D> AddOneId<B0> for CompId<A, B, C, D>
 where
-    A: Add<B1> + Cmp<U255> + IsEqual<U255> + Unsigned,
-    B: Add<B1> + Cmp<U255> + IsEqual<U255> + Unsigned,
-    C: Add<B1> + Cmp<U255> + IsEqual<U255> + Unsigned,
-    D: Add<B1> + Cmp<U255> + IsEqual<U255> + Unsigned,
+    And<NotEq<A, U255>, And<NotEq<B, U255>, And<NotEq<C, U255>, NotEq<D, U255>>>>: Same<B1>,
+    A: Add<B1> + Cmp<U255> + IsEqual<U255> + IsNotEqual<U255> + Unsigned,
+    B: Add<B1> + Cmp<U255> + IsEqual<U255> + IsNotEqual<U255> + Unsigned,
+    C: Add<B1> + Cmp<U255> + IsEqual<U255> + IsNotEqual<U255> + Unsigned,
+    D: Add<B1> + Cmp<U255> + IsEqual<U255> + IsNotEqual<U255> + Unsigned,
     (
         CompId<UTerm, UTerm, UTerm, UTerm>,
         CompId<<A as Add<B1>>::Output, UTerm, UTerm, UTerm>,
@@ -688,6 +693,15 @@ where
         ) as IfThenElse<<C as IsEqual<U255>>::Output>>::Output,
         CompId<A, B, C, <D as Add<B1>>::Output>,
     ): IfThenElse<<D as IsEqual<U255>>::Output>,
+    <C as IsNotEqual<U255>>::Output: BitAnd<<D as IsNotEqual<U255>>::Output>,
+    <B as IsNotEqual<U255>>::Output: BitAnd<
+        <<C as IsNotEqual<U255>>::Output as BitAnd<<D as IsNotEqual<U255>>::Output>>::Output,
+    >,
+    <A as IsNotEqual<U255>>::Output: BitAnd<
+        <<B as IsNotEqual<U255>>::Output as BitAnd<
+            <<C as IsNotEqual<U255>>::Output as BitAnd<<D as IsNotEqual<U255>>::Output>>::Output,
+        >>::Output,
+    >,
     // <(
     //     <(
     //         <(
@@ -715,10 +729,12 @@ where
     ) as IfThenElse<Eq<D, U255>>>::Output;
 }
 
-type AddUno<Lhs> = <Lhs as AddOneId>::Output;
+type AddUno<Lhs> = <Lhs as AddOneId<B0>>::Output;
 
 #[cfg(test)]
 mod tests {
+
+    use std::mem::transmute_copy;
 
     use molecule_core::IdToU32;
     use to_composite_id_macro::to_comp_id;
@@ -752,12 +768,20 @@ mod tests {
         }
         struct GraphTypestateContainer<Current, State>(PhantomData<(Current, State)>);
         impl<Current, State> GraphTypestateContainer<Current, State> {
+            fn update_node<NodeId, NewNodeState>(
+                self,
+            ) -> GraphTypestateContainer<Current, <State as TSEdit<NodeId, NewNodeState>>::Result>
+            where
+                State: TSEdit<NodeId, NewNodeState>,
+            {
+                GraphTypestateContainer(PhantomData)
+            }
             fn add_node<NewNodeState>(
                 self,
             ) -> GraphTypestateContainer<AddUno<Current>, (OperativeTS<Current, NewNodeState>, State)>
             where
-                Current: AddOneId,
-                AddUno<Current>: AddOneId,
+                Current: AddOneId<B0>,
+                AddUno<Current>: AddOneId<B0>,
                 NewNodeState: IdGetter,
             {
                 GraphTypestateContainer(PhantomData)
@@ -789,6 +813,8 @@ mod tests {
         let inst = inst.add_node::<()>();
         print_type_of(&inst);
         let inst = inst.add_node::<()>();
+        print_type_of(&inst);
+        let inst = inst.update_node::<TestId, String>();
         print_type_of(&inst);
         let inst = inst.remove_node::<TestId>();
         print_type_of(&inst);
