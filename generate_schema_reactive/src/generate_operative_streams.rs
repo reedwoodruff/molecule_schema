@@ -137,7 +137,7 @@ pub(crate) fn generate_operative_streams(
         quote! {typenum::#ident}
     });
     let default_field_typestate_stream = quote! { #(#default_field_typestate_stream,)* };
-    let default_slot_typestate_stream = all_slot_digests.iter().map(|slot_digest| {
+    let default_slot_typestate_stream = all_slot_digests.iter().enumerate().map(|(index, slot_digest)| {
         let count = slot_digest.related_instances.len();
         let count = if count == 0 {
             quote! {typenum::Z0}
@@ -153,7 +153,7 @@ pub(crate) fn generate_operative_streams(
             local_max_nonexistent,
             local_zero_allowed,
         ) = get_static_slotdigest_typestate_signature_stream(slot_digest);
-        quote! {base_types::post_generation::type_level::SlotTS<#count, #local_min, #local_min_nonexistent, #local_max, #local_max_nonexistent, #local_zero_allowed>}
+        quote! {base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#index), #count, #local_min, #local_min_nonexistent, #local_max, #local_max_nonexistent, #local_zero_allowed>}
     });
     let default_slot_typestate_stream = quote! { #(#default_slot_typestate_stream,)*};
 
@@ -362,7 +362,7 @@ pub(crate) fn generate_operative_streams(
         }
     });
 
-    let manipulate_slots_stream = all_slot_digests.iter().map(|slot| {
+    let manipulate_slots_stream = all_slot_digests.iter().enumerate().map(|(slot_index, slot)| {
         let slot_name = &slot.slot.tag.name;
         let slot_id = slot.slot.tag.id;
         let add_existing_and_edit_fn_name = Ident::new(
@@ -398,7 +398,7 @@ pub(crate) fn generate_operative_streams(
                 .enumerate()
                 .map(|(i, slot_digest)| {
                     if slot_digest.slot.tag.id == slot_id {
-                        return quote!{base_types::post_generation::type_level::SlotTS<#local_count_generic,#slot_ts_consts_stream >}
+                        return quote!{base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#i), #local_count_generic,#slot_ts_consts_stream >}
                     }
                     let string1 = format!("T{}Slot{}", slot.slot.tag.name, &i.to_string());
                     Ident::new(&string1, Span::call_site()).to_token_stream()
@@ -447,7 +447,7 @@ pub(crate) fn generate_operative_streams(
             .map(|(i, slot_digest)| {
                 if slot_digest.slot.tag.id == slot_id {
                     let slot_ts_consts = get_static_slotdigest_typestate_signature_stream(slot_digest);
-                    return quote!{base_types::post_generation::type_level::SlotTS<typenum::Sum<#local_count_generic, typenum::P1>,#slot_ts_consts_stream >}
+                    return quote!{base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#i), typenum::Sum<#local_count_generic, typenum::P1>,#slot_ts_consts_stream >}
                 }
                 let string = format!(
                     "T{}Slot{}",
@@ -462,7 +462,7 @@ pub(crate) fn generate_operative_streams(
             .enumerate()
             .map(|(i, slot_digest)| {
                 if slot_digest.slot.tag.id == slot_id {
-                    return quote!{base_types::post_generation::type_level::SlotTS<typenum::Diff<#local_count_generic, typenum::P1>,#slot_ts_consts_stream >}
+                    return quote!{base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#i), typenum::Diff<#local_count_generic, typenum::P1>,#slot_ts_consts_stream >}
                 }
                 let string = format!(
                     "T{}Slot{}",
@@ -529,7 +529,7 @@ pub(crate) fn generate_operative_streams(
                 });
                 let fulfilled_field_typestate_stream = quote!{#(#fulfilled_field_typestate_stream,)*};
                 let adding_item_operative_digest = item.get_operative_digest(constraint_schema);
-                let item_default_slot_typestate_stream = adding_item_operative_digest.operative_slots.iter().map(|(_slot_id, slot_digest)| {
+                let item_default_slot_typestate_stream = adding_item_operative_digest.operative_slots.iter().enumerate().map(|(index, (_slot_id, slot_digest))| {
                     let count = slot_digest.related_instances.len();
                     let count = if count == 0 {
                         quote! {typenum::Z0}
@@ -545,7 +545,7 @@ pub(crate) fn generate_operative_streams(
                         local_max_nonexistent,
                         local_zero_allowed,
                     ) = get_static_slotdigest_typestate_signature_stream(slot_digest);
-                    quote! {base_types::post_generation::type_level::SlotTS<#count, #local_min, #local_min_nonexistent, #local_max, #local_max_nonexistent, #local_zero_allowed>}
+                    quote! {base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#index), #count, #local_min, #local_min_nonexistent, #local_max, #local_max_nonexistent, #local_zero_allowed>}
                 });
                 let item_default_slot_typestate_stream = quote! { #(#item_default_slot_typestate_stream,)*};
                 // TODO: Figure out closure typestate
@@ -761,7 +761,7 @@ pub(crate) fn generate_operative_streams(
                 // impl #manipulate_slot_trait_name for MainBuilder<#struct_name, Schema> {
 
                 // impl<FieldsTS, SlotsTS> MainBuilder<#struct_name, Schema, FieldsTS, SlotsTS> {
-                impl<FieldsTS, #generic_slot_generics_stream_with_trait_bound> MainBuilder<#struct_name, Schema, FieldsTS, (#main_builder_slot_generics_stream)>
+                impl< FieldsTS, #generic_slot_generics_stream_with_trait_bound> MainBuilder<#struct_name, Schema, FieldsTS, (#main_builder_slot_generics_stream)>
                     where
                     <#local_count_generic as std::ops::Add<PInt<UInt<UTerm, B1>>>>::Output:
                     typenum::Integer
@@ -774,7 +774,7 @@ pub(crate) fn generate_operative_streams(
                     + Cmp<#local_min>
                     + Cmp<#local_max>
                     + Cmp<PInt<UInt<UTerm, B1>>>,
-                    base_types::post_generation::type_level::SlotTS<#local_count_generic,#slot_ts_consts_stream >: base_types::post_generation::type_level::SlotCanAddOne
+                    base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#slot_index), #local_count_generic,#slot_ts_consts_stream >: base_types::post_generation::type_level::SlotCanAddOne
                 {
                     #add_new_fn_definitions
                     pub #add_existing_and_edit_fn_signature
@@ -881,7 +881,7 @@ pub(crate) fn generate_operative_streams(
             + Cmp<#local_min>
             + Cmp<#local_max>
             + Cmp<PInt<UInt<UTerm, B1>>>,
-            base_types::post_generation::type_level::SlotTS<#local_count_generic,#slot_ts_consts_stream >: base_types::post_generation::type_level::SlotCanSubtractOne
+            base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#slot_index), #local_count_generic,#slot_ts_consts_stream >: base_types::post_generation::type_level::SlotCanSubtractOne
             {
                 pub fn #remove_from_slot_fn_name(mut self, target_id: &Uid) -> #return_type_after_subtracting {
                     self.inner_builder.remove_outgoing(base_types::post_generation::SlotRef{

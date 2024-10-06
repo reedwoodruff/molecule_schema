@@ -378,6 +378,7 @@ dependencies = [
  "serde",
  "serde_json",
  "syn",
+ "to_composite_id_macro",
  "typenum",
  "uuid",
 ]

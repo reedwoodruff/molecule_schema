@@ -18,6 +18,7 @@ features = [
 ]
 
 [dependencies]
+to_composite_id_macro = {path = "../to_composite_id_macro"}
 base_types = { path = "../base_types", features = [
     "to_tokens",
     # "reactive",

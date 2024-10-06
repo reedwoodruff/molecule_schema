@@ -2,6 +2,8 @@
 Code generation crate which ingests a schema and outputs static types to be included in a project.
 */
 
+pub use to_composite_id_macro;
+
 use base_types::common::Uid;
 use base_types::constraint_schema::*;
 use base_types::constraint_schema_item::ConstraintSchemaItem;
