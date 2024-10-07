@@ -82,7 +82,7 @@ fn impl_RGSO_for_enum(enum_name: TokenStream, members: Vec<syn::Ident>) -> Token
                     // _ => panic!(),
                 }
             }
-            fn outgoing_slots(&self) -> &std::collections::HashMap<base_types::common::Uid, RActiveSlot>{
+            fn outgoing_slots(&self) -> &std::collections::BTreeMap<base_types::common::Uid, RActiveSlot>{
                 match self {
                     #(Self::#members(item) => item.outgoing_slots(),)*
                     // _ => panic!(),
@@ -521,7 +521,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         use base_types::utils::*;
 
         // Purpose of the MainBuilder is to hide internal details which are exposed on the SubgraphBuilder
-        pub struct MainBuilder<T, TSchema, FieldsTS, SlotsTS>
+        pub struct MainBuilder<T: std::clone::Clone + std::fmt::Debug, TSchema, FieldsTS, SlotsTS>
             where TSchema: EditRGSO<Schema = TSchema> + 'static
         {
             inner_builder: SubgraphBuilder<T, TSchema>,

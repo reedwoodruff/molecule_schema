@@ -14,7 +14,10 @@ use crate::post_generation::{
 };
 use crate::utils::IntoPrimitiveValue;
 use leptos::{RwSignal, *};
-use std::{collections::HashMap, marker::PhantomData};
+use std::{
+    collections::{BTreeMap, HashMap},
+    marker::PhantomData,
+};
 
 pub trait FromNonReactive<NTSchema>
 where
@@ -104,23 +107,23 @@ impl BlueprintId {
 }
 
 pub trait RProducable<T> {
-    type Schema: RGSO<Schema = Self::Schema>;
+    type Schema;
     fn produce(&self) -> T;
 }
 
 #[derive(Clone, Debug)]
-pub struct RHistoryContainer<TSchema: EditRGSO<Schema = TSchema>> {
+pub struct RHistoryContainer<TSchema> {
     pub undo: Vec<Blueprint<TSchema>>,
     pub redo: Vec<Blueprint<TSchema>>,
 }
 
 #[derive(Debug, Clone)]
-pub struct RBaseGraphEnvironment<TSchema: EditRGSO<Schema = TSchema> + 'static> {
+pub struct RBaseGraphEnvironment<TSchema: 'static> {
     pub created_instances: RwSignal<std::collections::HashMap<Uid, TSchema>>,
     pub constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
     pub history: std::rc::Rc<std::cell::RefCell<RHistoryContainer<TSchema>>>,
 }
-impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
+impl<TSchema> RBaseGraphEnvironment<TSchema> {
     pub fn new(
         constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
     ) -> Self {
@@ -138,7 +141,7 @@ impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchem
     }
 }
 
-impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchema> {
+impl<TSchema: EditRGSO> RBaseGraphEnvironment<TSchema> {
     fn process_blueprint(&self, blueprint: Blueprint<TSchema>) {
         leptos::logging::log!("starting processing of blueprint");
         batch(|| {
@@ -215,9 +218,7 @@ impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RBaseGraphEnvironment<TSchem
         self.history.as_ref().borrow_mut().redo.clear();
     }
 }
-impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RGraphEnvironment
-    for RBaseGraphEnvironment<TSchema>
-{
+impl<TSchema: EditRGSO> RGraphEnvironment for RBaseGraphEnvironment<TSchema> {
     type Schema = TSchema;
     type Types = PrimitiveTypes;
     type Values = PrimitiveValues;
@@ -258,7 +259,7 @@ impl<TSchema: EditRGSO<Schema = TSchema> + 'static> RGraphEnvironment
 pub trait RGraphEnvironment {
     type Types: ConstraintTraits;
     type Values: ConstraintTraits;
-    type Schema: RGSO<Schema = Self::Schema> + 'static;
+    type Schema: RGSO;
 
     fn get(&self, id: &Uid) -> Option<Self::Schema>;
     fn get_constraint_schema(&self) -> &ConstraintSchema<Self::Types, Self::Values>;
@@ -268,7 +269,7 @@ pub trait RGraphEnvironment {
 
 /// Reactive Generated Schema Object
 pub trait RGSO: std::fmt::Debug + Clone {
-    type Schema: EditRGSO<Schema = Self::Schema>;
+    type Schema;
     /// Instance ID
     fn get_id(&self) -> &Uid;
     fn operative(&self) -> &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>;
@@ -276,7 +277,7 @@ pub trait RGSO: std::fmt::Debug + Clone {
     fn slot_by_id<E: Into<Uid>>(&self, slot_id: E) -> Option<&RActiveSlot> {
         self.outgoing_slots().get(&slot_id.into())
     }
-    fn outgoing_slots(&self) -> &std::collections::HashMap<Uid, RActiveSlot>;
+    fn outgoing_slots(&self) -> &std::collections::BTreeMap<Uid, RActiveSlot>;
     fn incoming_slots(&self) -> RwSignal<Vec<SlotRef>>;
     fn incoming_slot_ids_by_id<E: Into<Uid>>(&self, slot_variant: E) -> Vec<SlotRef> {
         let slot_variant = &slot_variant.into();
@@ -357,25 +358,36 @@ impl RActiveSlot {
     }
 }
 
-#[derive(Clone)]
-pub struct RGSOConcrete<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
+pub struct RGSOConcrete<T, TSchema: 'static> {
     id: Uid,
     pub fields: std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>,
     graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
-    outgoing_slots: std::collections::HashMap<Uid, RActiveSlot>,
+    outgoing_slots: std::collections::BTreeMap<Uid, RActiveSlot>,
     incoming_slots: RwSignal<Vec<SlotRef>>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
     template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
     _phantom: std::marker::PhantomData<T>,
 }
-impl<T, TSchema: EditRGSO<Schema = TSchema>> PartialEq for RGSOConcrete<T, TSchema> {
+impl<T, TSchema: 'static> Clone for RGSOConcrete<T, TSchema> {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id.clone(),
+            fields: self.fields.clone(),
+            graph: self.graph.clone(),
+            outgoing_slots: self.outgoing_slots.clone(),
+            incoming_slots: self.incoming_slots.clone(),
+            operative: &self.operative,
+            template: &self.template,
+            _phantom: PhantomData,
+        }
+    }
+}
+impl<T, TSchema> PartialEq for RGSOConcrete<T, TSchema> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
-impl<T: std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>> std::fmt::Debug
-    for RGSOConcrete<T, TSchema>
-{
+impl<T, TSchema> std::fmt::Debug for RGSOConcrete<T, TSchema> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GSOWrapper")
             .field("id", &self.id)
@@ -411,15 +423,13 @@ impl<T: std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>> std::fmt::Debug
     }
 }
 
-impl<T: Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>> RGSO
-    for RGSOConcrete<T, TSchema>
-{
+impl<T, TSchema> RGSO for RGSOConcrete<T, TSchema> {
     type Schema = TSchema;
     fn get_id(&self) -> &Uid {
         &self.id
     }
 
-    fn outgoing_slots(&self) -> &std::collections::HashMap<Uid, RActiveSlot> {
+    fn outgoing_slots(&self) -> &std::collections::BTreeMap<Uid, RActiveSlot> {
         &self.outgoing_slots
     }
 
@@ -439,9 +449,7 @@ impl<T: Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>> RGSO
     }
 }
 
-impl<T: Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>> EditRGSO
-    for RGSOConcrete<T, TSchema>
-{
+impl<T, TSchema> EditRGSO for RGSOConcrete<T, TSchema> {
     fn add_incoming(&self, slot_ref: SlotRef) -> &Self {
         self.incoming_slots.update(|incoming_slots| {
             incoming_slots.push(slot_ref.clone());
@@ -498,9 +506,9 @@ impl<T: Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>> EditRGSO
     }
 }
 #[derive(Clone, Debug)]
-pub struct RGSOConcreteBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
+pub struct RGSOConcreteBuilder<T, TSchema: 'static> {
     id: Uid,
-    slots: std::collections::HashMap<Uid, RActiveSlot>,
+    slots: std::collections::BTreeMap<Uid, RActiveSlot>,
     incoming_slots: RwSignal<Vec<SlotRef>>,
     pub data: std::collections::HashMap<Uid, RwSignal<Option<RwSignal<PrimitiveValues>>>>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
@@ -510,12 +518,10 @@ pub struct RGSOConcreteBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static>
     _phantom: std::marker::PhantomData<T>,
 }
 
-impl<T: Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>>
-    RGSOConcreteBuilder<T, TSchema>
-{
+impl<T, TSchema> RGSOConcreteBuilder<T, TSchema> {
     pub fn new(
         data: std::collections::HashMap<Uid, RwSignal<Option<RwSignal<PrimitiveValues>>>>,
-        slots: Option<std::collections::HashMap<Uid, RActiveSlot>>,
+        slots: Option<std::collections::BTreeMap<Uid, RActiveSlot>>,
         operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
         template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
         graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
@@ -543,9 +549,7 @@ impl<T: Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>>
         &self.temp_id
     }
 }
-impl<T, TSchema: EditRGSO<Schema = TSchema>> RProducable<RGSOConcrete<T, TSchema>>
-    for RGSOConcreteBuilder<T, TSchema>
-{
+impl<T, TSchema> RProducable<RGSOConcrete<T, TSchema>> for RGSOConcreteBuilder<T, TSchema> {
     type Schema = TSchema;
     fn produce(&self) -> RGSOConcrete<T, TSchema> {
         RGSOConcrete::<T, TSchema> {
@@ -565,7 +569,7 @@ impl<T, TSchema: EditRGSO<Schema = TSchema>> RProducable<RGSOConcrete<T, TSchema
     }
 }
 
-impl<T, TSchema: EditRGSO<Schema = TSchema>> Verifiable for RGSOConcreteBuilder<T, TSchema> {
+impl<T, TSchema> Verifiable for RGSOConcreteBuilder<T, TSchema> {
     fn verify(&self) -> Result<(), crate::post_generation::ElementCreationError> {
         let field_errors = self
             .data
@@ -605,12 +609,11 @@ impl<T, TSchema: EditRGSO<Schema = TSchema>> Verifiable for RGSOConcreteBuilder<
     }
 }
 
-pub trait RBuildable: Clone + std::fmt::Debug
+pub trait RBuildable
 where
-    Self: Sized + 'static,
-    RGSOConcreteBuilder<Self, Self::Schema>: RInstantiable<Schema = Self::Schema>,
+    Self: Sized + Clone + std::fmt::Debug + 'static,
 {
-    type Schema: EditRGSO<Schema = Self::Schema>;
+    type Schema;
 
     fn initiate_build(
         graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>,
@@ -622,8 +625,8 @@ where
     fn get_operative_id() -> Uid;
 }
 
-trait RInstantiable: std::fmt::Debug {
-    type Schema: RGSO<Schema = Self::Schema>;
+trait RInstantiable {
+    type Schema;
 
     fn instantiate(&self) -> Result<Self::Schema, crate::post_generation::ElementCreationError>;
     fn get_id(&self) -> &Uid;
@@ -635,7 +638,7 @@ trait RInstantiable: std::fmt::Debug {
 type RInstantiableElements<TSchema> = Vec<std::rc::Rc<dyn RInstantiable<Schema = TSchema>>>;
 
 #[derive(Clone, Debug)]
-pub struct Blueprint<TSchema: EditRGSO<Schema = TSchema>> {
+pub struct Blueprint<TSchema> {
     added_instances: Vec<TSchema>,
     deleted_instances: Vec<TSchema>,
     add_outgoing_updates: std::collections::HashSet<(Uid, SlotRef)>,
@@ -645,7 +648,7 @@ pub struct Blueprint<TSchema: EditRGSO<Schema = TSchema>> {
     field_updates: std::collections::HashSet<(Uid, HistoryFieldEdit)>,
     action_tag: Option<TaggedAction>,
 }
-impl<TSchema: EditRGSO<Schema = TSchema>> Blueprint<TSchema> {
+impl<TSchema> Blueprint<TSchema> {
     fn reverse(self) -> Self {
         Self {
             added_instances: self.deleted_instances,
@@ -685,7 +688,7 @@ impl ExecutionResult {
 }
 
 #[derive(Debug, Clone)]
-pub struct SubgraphBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
+pub struct SubgraphBuilder<T: Clone + std::fmt::Debug, TSchema: 'static> {
     pub instantiables:
         RwSignal<Vec<std::rc::Rc<std::cell::RefCell<dyn RInstantiable<Schema = TSchema>>>>>,
     pub cumulative_errors: RwSignal<std::vec::Vec<ElementCreationError>>,
@@ -706,7 +709,7 @@ pub struct SubgraphBuilder<T, TSchema: EditRGSO<Schema = TSchema> + 'static> {
     pub _phantom: std::marker::PhantomData<T>,
 }
 
-impl<T, TSchema: EditRGSO<Schema = TSchema>> SubgraphBuilder<T, TSchema>
+impl<T, TSchema: EditRGSO> SubgraphBuilder<T, TSchema>
 where
     RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
     T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
@@ -1252,10 +1255,9 @@ where
     }
 }
 
-impl<T, TSchema: EditRGSO<Schema = TSchema> + 'static> RInstantiable
-    for RGSOConcreteBuilder<T, TSchema>
+impl<T, TSchema: 'static> RInstantiable for RGSOConcreteBuilder<T, TSchema>
 where
-    T: Clone + std::fmt::Debug + RIntoSchema<Schema = TSchema> + 'static,
+    T: RIntoSchema<Schema = TSchema> + 'static,
 {
     type Schema = TSchema;
 
@@ -1298,24 +1300,21 @@ pub trait RIntoSchema
 where
     Self: Sized,
 {
-    type Schema: EditRGSO<Schema = Self::Schema>;
+    type Schema: EditRGSO;
     fn into_schema(instantiable: RGSOConcrete<Self, Self::Schema>) -> Self::Schema;
 }
 
 pub trait REditable<T>
 where
     Self: Sized,
+    T: std::clone::Clone + std::fmt::Debug,
 {
-    type Schema: EditRGSO<Schema = Self::Schema>;
+    type Schema;
     fn initiate_edit(&self) -> SubgraphBuilder<T, Self::Schema>;
 }
-impl<T, TSchema: EditRGSO<Schema = TSchema>> REditable<T> for RGSOConcrete<T, TSchema>
+impl<T, TSchema> REditable<T> for RGSOConcrete<T, TSchema>
 where
-    T: Clone
-        + std::fmt::Debug
-        + RIntoSchema<Schema = TSchema>
-        + RBuildable<Schema = TSchema>
-        + 'static,
+    T: RIntoSchema<Schema = TSchema> + RBuildable<Schema = TSchema> + 'static,
 {
     type Schema = TSchema;
     fn initiate_edit(&self) -> SubgraphBuilder<T, Self::Schema> {
@@ -1324,24 +1323,18 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub struct SharedGraph<TSchema: EditRGSO<Schema = TSchema> + 'static>(
-    std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
-);
-impl<TSchema: EditRGSO<Schema = TSchema> + 'static>
-    From<std::rc::Rc<RBaseGraphEnvironment<TSchema>>> for SharedGraph<TSchema>
-{
+pub struct SharedGraph<TSchema: 'static>(std::rc::Rc<RBaseGraphEnvironment<TSchema>>);
+impl<TSchema> From<std::rc::Rc<RBaseGraphEnvironment<TSchema>>> for SharedGraph<TSchema> {
     fn from(value: std::rc::Rc<RBaseGraphEnvironment<TSchema>>) -> SharedGraph<TSchema> {
         SharedGraph(value)
     }
 }
-impl<TSchema: EditRGSO<Schema = TSchema> + 'static> From<SharedGraph<TSchema>>
-    for std::rc::Rc<RBaseGraphEnvironment<TSchema>>
-{
+impl<TSchema> From<SharedGraph<TSchema>> for std::rc::Rc<RBaseGraphEnvironment<TSchema>> {
     fn from(value: SharedGraph<TSchema>) -> std::rc::Rc<RBaseGraphEnvironment<TSchema>> {
         value.0
     }
 }
-impl<TSchema: EditRGSO<Schema = TSchema> + 'static> std::ops::Deref for SharedGraph<TSchema> {
+impl<TSchema> std::ops::Deref for SharedGraph<TSchema> {
     type Target = std::rc::Rc<RBaseGraphEnvironment<TSchema>>;
 
     fn deref(&self) -> &Self::Target {
@@ -1359,8 +1352,7 @@ mod from_reactive {
         EditRGSO, FromNonReactive, RActiveSlot, RBaseGraphEnvironment, RGSOConcrete,
         RHistoryContainer, RGSO,
     };
-    impl<RTSchema: EditRGSO<Schema = RTSchema>, TSchema> From<SharedGraph<RTSchema>>
-        for BaseGraphEnvironment<TSchema>
+    impl<RTSchema, TSchema> From<SharedGraph<RTSchema>> for BaseGraphEnvironment<TSchema>
     where
         RTSchema: Into<TSchema> + Clone,
     {
@@ -1377,8 +1369,7 @@ mod from_reactive {
             }
         }
     }
-    impl<RTSchema: EditRGSO<Schema = RTSchema>, TSchema> From<BaseGraphEnvironment<TSchema>>
-        for SharedGraph<RTSchema>
+    impl<RTSchema, TSchema> From<BaseGraphEnvironment<TSchema>> for SharedGraph<RTSchema>
     where
         RTSchema: FromNonReactive<TSchema>,
     {
@@ -1421,7 +1412,7 @@ mod from_reactive {
             }
         }
     }
-    impl<T, RTSchema: EditRGSO<Schema = RTSchema>> From<RGSOConcrete<T, RTSchema>> for GSOConcrete<T>
+    impl<T, RTSchema> From<RGSOConcrete<T, RTSchema>> for GSOConcrete<T>
     where
         T: Clone + std::fmt::Debug,
     {

@@ -123,7 +123,7 @@ pub(crate) fn generate_operative_streams(
         quote! {None}
     } else {
         quote! {
-            Some(std::collections::HashMap::from([#((#active_slot_ids, #active_slots),)*]))
+            Some(std::collections::BTreeMap::from([#((#active_slot_ids, #active_slots),)*]))
         }
     };
 
@@ -379,10 +379,6 @@ pub(crate) fn generate_operative_streams(
         //     ),
         //     Span::call_site(),
         // );
-        let remove_from_slot_fn_name = Ident::new(
-            &format!("remove_from_{}", slot.slot.tag.name.to_lowercase()),
-            Span::call_site(),
-        );
         let local_count_generic = Ident::new(&format!("TCount{}", slot_name), Span::call_site());
         let (
             local_min,
@@ -863,6 +859,10 @@ pub(crate) fn generate_operative_streams(
                 }
             }
         };
+        let remove_from_slot_fn_name = Ident::new(
+            &format!("remove_from_{}", slot.slot.tag.name.to_lowercase()),
+            Span::call_site(),
+        );
         let remove_slot_trait_name = Ident::new(&format!("RemoveFromSlot{}{}", slot_name, struct_name), Span::call_site());
         quote! {
             // pub trait #remove_slot_trait_name {
@@ -934,11 +934,11 @@ pub(crate) fn generate_operative_streams(
 
         pub trait #edit_rgso_trait_name<FieldsTS, SlotsTS> {
             // TODO: Placeholder ()s
-            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, FieldsTS, ()> ;
+            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, FieldsTS, SlotsTS> ;
         }
         impl<FieldsTS, SlotsTS> #edit_rgso_trait_name<FieldsTS, SlotsTS> for RGSOConcrete<#struct_name, Schema> {
             // TODO: Placeholder ()s
-            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, FieldsTS, ()> {
+            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> MainBuilder<#struct_name, Schema, FieldsTS, SlotsTS> {
                 MainBuilder {
                     inner_builder: #struct_name::initiate_edit(*self.get_id(), graph.into()),
                     _fields_typestate: std::marker::PhantomData,
