@@ -446,3 +446,13 @@ But! This would require then that every builder method would need to return a Re
 Ai had the good idea to perform the checking in a separate step. So you could have a method which returns a type which essentially says "this is guaranteed to exist and be of this type"
 This would work well for nodes which existed before the builder came into existence, but it would be a bit trickier for "temporary" nodes -- nodes which were created within the same builder session.
 There is still the question of invalidating these "guarantee" types when/if another builder is executed in between creation and usage.
+
+## October 7, 2024
+Can't figure out how to do fully compile-time safe operations. Editing an existing graph is proving to be beyond my reach.
+The issue lies with maintaining the typestate of all current nodes. When you go to edit a node, you need to know how many items it has slotted in each slot so as to create a builder with an accurate starting point (as opposed to a new node where you have a known starting state).
+You could maintain the entire graph's typestate and make the graph generic over it, but then everything depending on the graph becomes volatile. Each operation would consume the graph and create a new one with the updated typestate. This makes it impossible to share across the application (at least as per my knowledge). You could perform actions on the graph locally (i.e. all inline in a sequence), but you wouldn't be able to share it via leptos context, for example.
+The other route I explored was to try to store each node's typestate in the node itself (i.e. in the GSOConcrete struct). As far as I can tell this is a non-starter because you can't extricate that type back out. You'd have to type-erase in order to store all of the nodes in a storage structure (like a hashmap), and then that kind of defeats the purpose.
+I'm not actually totally sure what Rust would need to change in order to support the behavior I'm looking for. Essentially, I want to be able to have some PhantomData generic type parameter, and then make it so that changing that generic type doesn't actually change the containing type. In other words, I want the typestate to be able to change while maintaining a reference to the underlying data (rather than consuming the entire construct and building it anew every time the typestate changes).
+In any case, it seems like the remaining option is to accept some level of runtime checking. Kind of a bummer, from this perspective.
+Ideally, we could keep the compile-time checks for building new nodes, and then runtime-check edit operations.
+That might complicate the codebase a bit.
