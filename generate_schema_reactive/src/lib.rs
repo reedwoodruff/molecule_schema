@@ -520,15 +520,52 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         use typenum::*;
         use base_types::utils::*;
 
-        // Purpose of the MainBuilder is to hide internal details which are exposed on the SubgraphBuilder
-        pub struct MainBuilder<T: std::clone::Clone + std::fmt::Debug, TSchema, FieldsTS, SlotsTS>
-            where TSchema: EditRGSO<Schema = TSchema> + 'static
+        pub struct ExistingBuilder<T: std::clone::Clone + std::fmt::Debug, TSchema>
+        where TSchema: 'static
+        {
+            inner_builder: SubgraphBuilder<T, TSchema>
+        }
+
+        // Purpose of the FreshBuilder is to hide internal details which are exposed on the SubgraphBuilder
+        // FreshBuilder enables carrying the current typestate of the Builder,
+        // which allows conditional exposure of methods based on validity of the current structure.
+        pub struct FreshBuilder<T: std::clone::Clone + std::fmt::Debug, TSchema, FieldsTS, SlotsTS>
+            where TSchema: 'static
         {
             inner_builder: SubgraphBuilder<T, TSchema>,
             _fields_typestate: std::marker::PhantomData<FieldsTS>,
             _slots_typestate: std::marker::PhantomData<SlotsTS>,
         }
-        impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static, FieldsTS, SlotsTS> MainBuilder<T, TSchema, FieldsTS, SlotsTS>
+        impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static> ExistingBuilder<T, TSchema>
+        where
+            RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
+            T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
+        {
+            pub fn get_id(&self) -> &Uid {
+                self.inner_builder.get_id()
+            }
+            pub fn execute(&self) -> Result<ExecutionResult, ElementCreationError> {
+                self.inner_builder.execute()
+            }
+            pub fn incorporate_fresh<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static, OtherBuilderFieldsTS, OtherBuilderSlotsTS>(
+                &mut self,
+                other_builder: &FreshBuilder<C, TSchema, OtherBuilderFieldsTS, OtherBuilderSlotsTS>,
+            ) {
+                self.inner_builder.incorporate(&other_builder.inner_builder)
+            }
+            pub fn incorporate_existing<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
+                &mut self,
+                other_builder: &ExistingBuilder<C, TSchema>,
+            ) {
+                self.inner_builder.incorporate(&other_builder.inner_builder)
+            }
+
+            pub fn set_temp_id(mut self, temp_id: &str) -> Self {
+                self.inner_builder.set_temp_id(temp_id);
+                self
+            }
+        }
+        impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static, FieldsTS, SlotsTS> FreshBuilder<T, TSchema, FieldsTS, SlotsTS>
             where
                 RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
                 T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
@@ -541,7 +578,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             }
             pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static, OtherBuilderFieldsTS, OtherBuilderSlotsTS>(
                 &mut self,
-                other_builder: &MainBuilder<C, TSchema, OtherBuilderFieldsTS, OtherBuilderSlotsTS>,
+                other_builder: &FreshBuilder<C, TSchema, OtherBuilderFieldsTS, OtherBuilderSlotsTS>,
             ) {
                 self.inner_builder.incorporate(&other_builder.inner_builder)
             }
@@ -551,72 +588,72 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 self
             }
 
-            fn delete_recursive_handler(&self, id: &Uid) {
-                self.inner_builder.delete_recursive_handler(id)
-            }
-            fn get_blueprint(
-                mut self,
-            ) -> Result<(Blueprint<TSchema>, ExecutionResult), ElementCreationError> {
-                self.inner_builder.get_blueprint()
-            }
-            fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<TSchema>> {
-                self.inner_builder.get_graph()
-            }
-            fn new(
-                builder_wrapper_instance: Option<RGSOConcreteBuilder<T, TSchema>>,
-                id: Uid,
-                graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
-            ) -> Self {
-                Self {
-                    inner_builder: SubgraphBuilder::new(builder_wrapper_instance, id, graph),
-                    _slots_typestate: std::marker::PhantomData,
-                    _fields_typestate: std::marker::PhantomData,
-                }
-            }
-            fn raw_add_outgoing_to_updates(&mut self, slot_ref: SlotRef) {
-                self.inner_builder.raw_add_outgoing_to_updates(slot_ref)
-            }
-            fn raw_add_incoming_to_updates(&mut self, slot_ref: SlotRef) {
-                self.inner_builder.raw_add_incoming_to_updates(slot_ref)
-            }
-            fn add_outgoing<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Sized>(
-                &mut self,
-                slot_id: &Uid,
-                target_id: BlueprintId,
-                instantiable: Option<MainBuilder<C, TSchema, FieldsTS, SlotsTS>>,
-            ) {
-                let instantiable = instantiable.map(|builder| builder.inner_builder);
-                SubgraphBuilder::add_outgoing(&mut self.inner_builder, slot_id, target_id, instantiable)
-            }
-            fn remove_outgoing(&mut self, slot_ref: SlotRef) {
-                SubgraphBuilder::remove_outgoing(&mut self.inner_builder, slot_ref)
-            }
-            fn add_incoming<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Sized>(
-                &mut self,
-                slot_ref: SlotRef,
-                instantiable: Option<MainBuilder<C, TSchema, FieldsTS, SlotsTS>>,
-            ) {
-                let instantiable = instantiable.map(|builder| builder.inner_builder);
-                SubgraphBuilder::add_incoming(&mut self.inner_builder, slot_ref, instantiable)
-            }
-            fn edit_field(&mut self, field_id: Uid, value: PrimitiveValues) {
-                SubgraphBuilder::edit_field(&mut self.inner_builder, field_id, value)
-            }
-            fn delete(&mut self, to_delete_id: &Uid) {
-                self.inner_builder.delete(to_delete_id)
-            }
-            fn delete_recursive(&mut self) {
-                self.inner_builder.delete_recursive()
-            }
-            fn temp_add_incoming(&mut self, host_id: BlueprintId, temp_slot_ref: TempAddIncomingSlotRef) {
-                self.inner_builder.temp_add_incoming(host_id, temp_slot_ref)
-            }
-            fn temp_add_outgoing(&mut self, target_id: BlueprintId, temp_slot_ref: TempAddOutgoingSlotRef) {
-                self.inner_builder.temp_add_outgoing(target_id, temp_slot_ref)
-            }
-            fn add_error(&mut self, error: ElementCreationError) {
-                self.inner_builder.add_error(error)
-            }
+        //     fn delete_recursive_handler(&self, id: &Uid) {
+        //         self.inner_builder.delete_recursive_handler(id)
+        //     }
+        //     fn get_blueprint(
+        //         mut self,
+        //     ) -> Result<(Blueprint<TSchema>, ExecutionResult), ElementCreationError> {
+        //         self.inner_builder.get_blueprint()
+        //     }
+        //     fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<TSchema>> {
+        //         self.inner_builder.get_graph()
+        //     }
+        //     fn new(
+        //         builder_wrapper_instance: Option<RGSOConcreteBuilder<T, TSchema>>,
+        //         id: Uid,
+        //         graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
+        //     ) -> Self {
+        //         Self {
+        //             inner_builder: SubgraphBuilder::new(builder_wrapper_instance, id, graph),
+        //             _slots_typestate: std::marker::PhantomData,
+        //             _fields_typestate: std::marker::PhantomData,
+        //         }
+        //     }
+        //     fn raw_add_outgoing_to_updates(&mut self, slot_ref: SlotRef) {
+        //         self.inner_builder.raw_add_outgoing_to_updates(slot_ref)
+        //     }
+        //     fn raw_add_incoming_to_updates(&mut self, slot_ref: SlotRef) {
+        //         self.inner_builder.raw_add_incoming_to_updates(slot_ref)
+        //     }
+        //     fn add_outgoing<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Sized>(
+        //         &mut self,
+        //         slot_id: &Uid,
+        //         target_id: BlueprintId,
+        //         instantiable: Option<FreshBuilder<C, TSchema, FieldsTS, SlotsTS>>,
+        //     ) {
+        //         let instantiable = instantiable.map(|builder| builder.inner_builder);
+        //         SubgraphBuilder::add_outgoing(&mut self.inner_builder, slot_id, target_id, instantiable)
+        //     }
+        //     fn remove_outgoing(&mut self, slot_ref: SlotRef) {
+        //         SubgraphBuilder::remove_outgoing(&mut self.inner_builder, slot_ref)
+        //     }
+        //     fn add_incoming<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Sized>(
+        //         &mut self,
+        //         slot_ref: SlotRef,
+        //         instantiable: Option<FreshBuilder<C, TSchema, FieldsTS, SlotsTS>>,
+        //     ) {
+        //         let instantiable = instantiable.map(|builder| builder.inner_builder);
+        //         SubgraphBuilder::add_incoming(&mut self.inner_builder, slot_ref, instantiable)
+        //     }
+        //     fn edit_field(&mut self, field_id: Uid, value: PrimitiveValues) {
+        //         SubgraphBuilder::edit_field(&mut self.inner_builder, field_id, value)
+        //     }
+        //     fn delete(&mut self, to_delete_id: &Uid) {
+        //         self.inner_builder.delete(to_delete_id)
+        //     }
+        //     fn delete_recursive(&mut self) {
+        //         self.inner_builder.delete_recursive()
+        //     }
+        //     fn temp_add_incoming(&mut self, host_id: BlueprintId, temp_slot_ref: TempAddIncomingSlotRef) {
+        //         self.inner_builder.temp_add_incoming(host_id, temp_slot_ref)
+        //     }
+        //     fn temp_add_outgoing(&mut self, target_id: BlueprintId, temp_slot_ref: TempAddOutgoingSlotRef) {
+        //         self.inner_builder.temp_add_outgoing(target_id, temp_slot_ref)
+        //     }
+        //     fn add_error(&mut self, error: ElementCreationError) {
+        //         self.inner_builder.add_error(error)
+        //     }
         }
 
         // #trait_file_stream
