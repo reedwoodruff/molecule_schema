@@ -520,6 +520,12 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         use typenum::*;
         use base_types::utils::*;
 
+        pub trait StaticTypestate {
+            type InitialSlotTypestate;
+            type EmptyFieldTypestate;
+            type FulfilledFieldTypestate;
+        }
+
         pub struct ExistingBuilder<T: std::clone::Clone + std::fmt::Debug, TSchema>
         where TSchema: 'static
         {
