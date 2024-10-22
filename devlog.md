@@ -421,8 +421,8 @@ I am thinking through the editing story and where to store the necessary typesta
 Right now there are two entry points:
 - Calling OperativeName::new()
 - Calling ExistingOperative::edit()
-Both of these entry points return a MainBuilder which represents some subgraph (or potentially multiple disconnected subgraphs if MainBuilders are combined with `integrate`)
-Once the user has a MainBuilder, they have 3 choices for filling a given slot:
+Both of these entry points return a FreshBuilder which represents some subgraph (or potentially multiple disconnected subgraphs if MainBuilders are combined with `integrate`)
+Once the user has a FreshBuilder, they have 3 choices for filling a given slot:
 - add_new_{slot_name}_{slotted_operative_name}
 - add_existing_or_temp_{slot_name}_{slotted_operative_name}
 - add_and_edit_existing_{slot_name}_{slotted_operative_name}
@@ -437,7 +437,7 @@ With this typestate rewrite, though, it became convenient to enumerate that type
 
 One of the main questions is regarding how to handle referencing existing nodes to add to a slot (or to edit).
 Currently there is a lot of runtime checking done to ensure that the id passed into one of these methods points to a valid item for the operation in question.
-This wasn't too big of a deal earlier since I was already doing a bunch of runtime checking to ensure that all of the operations in a final MainBuilder adhered to the schema.
+This wasn't too big of a deal earlier since I was already doing a bunch of runtime checking to ensure that all of the operations in a final FreshBuilder adhered to the schema.
 But now, I think a lot of this checking is redundant with these typestate guards. The typestate should (in theory) make it impossible for a user to misconfigure any action.
 The only remaining runtime check which seems to be necessary is that of referencing an existing node (or a temporary node, which is also a fallible action if the user did not create a temporary node of the same name that they are subsequently looking up).
 It seems to me this should be done explicitly immediately upon calling a method which requires an existing node, and that method should return a Result.

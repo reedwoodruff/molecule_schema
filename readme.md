@@ -69,8 +69,8 @@ Use the graph toolkit to build and manipulate instances of your data.
 
   ```
   - This new sentence now exists in your graph environment, and you can access it using `graph.get(sentence_id).unwrap()`. The sentence can be used in UIs in a reactive way because all fields and slots are stored as reactive signals courtesy of Leptos's signal system. This means you can build a visualization of your data type in such a way that making changes to nested structure is automatically propagated to the UI.
-  - You interact with elements in your graph through a structure called the MainBuilder, which is returned from `{operative_name}::new()` or `{instance_of_operative}.edit()`. This structure will have the legal operations according to your schema (e.g. methods to add or remove elements to slots, or to set fields).
-  - Call `.execute()` on your MainBuilder to attempt to commit the transaction to the graph. If there are no errors, all contained graph operations will be commited, if it fails, none of the operations will occur.
+  - You interact with elements in your graph through a structure called the FreshBuilder, which is returned from `{operative_name}::new()` or `{instance_of_operative}.edit()`. This structure will have the legal operations according to your schema (e.g. methods to add or remove elements to slots, or to set fields).
+  - Call `.execute()` on your FreshBuilder to attempt to commit the transaction to the graph. If there are no errors, all contained graph operations will be commited, if it fails, none of the operations will occur.
   - The toolkit will error if created elements don't fulfill all of their constraints, or if newly added slotted instances break the schema constraints.
   - Call `graph.undo()` and `graph.redo()` to manipulate your historical transactions.
 ### (Optional) Connect to Neo4j for visualization.
