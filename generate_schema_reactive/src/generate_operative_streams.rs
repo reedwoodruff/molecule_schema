@@ -132,30 +132,6 @@ pub(crate) fn generate_operative_streams(
         Ident::new(&string, Span::call_site())
     });
     let field_generics_stream = quote! { #(#field_generics_stream,)* };
-    let default_field_typestate_stream = (0..unfulfilled_fields.len()).map(|i| {
-        let ident = Ident::new("B0", Span::call_site());
-        quote! {typenum::#ident}
-    });
-    let default_field_typestate_stream = quote! { #(#default_field_typestate_stream,)* };
-    let default_slot_typestate_stream = all_slot_digests.iter().enumerate().map(|(index, slot_digest)| {
-        let count = slot_digest.related_instances.len();
-        let count = if count == 0 {
-            quote! {typenum::Z0}
-        } else {
-            let string = format! {"typenum::P{}", count};
-            Ident::new(&string, Span::call_site()).to_token_stream()
-        };
-
-        let (
-            local_min,
-            local_min_nonexistent,
-            local_max,
-            local_max_nonexistent,
-            local_zero_allowed,
-        ) = get_static_slotdigest_typestate_signature_stream(slot_digest);
-        quote! {base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#index), #count, #local_min, #local_min_nonexistent, #local_max, #local_max_nonexistent, #local_zero_allowed>}
-    });
-    let default_slot_typestate_stream = quote! { #(#default_slot_typestate_stream,)*};
 
     let get_locked_fields_stream = locked_fields.iter().map(|(field_id, locked_field_digest)| {
         let field_getter_fn_name = Ident::new(
@@ -517,51 +493,21 @@ pub(crate) fn generate_operative_streams(
             } else {
                 syn::Ident::new("T", Span::call_site())
             };
-            let fresh_generate_add_fn_signature = |method_name: Ident, item: &LibraryOperative<PrimitiveTypes, PrimitiveValues>| {
+            let fresh_single_item_generate_add_fn_signature = |method_name: Ident, item: &LibraryOperative<PrimitiveTypes, PrimitiveValues>| {
                 let single_item_variant_name = {
                     let item_name_string = item.tag.name.clone();
                     get_operative_variant_name(&
                         item_name_string
                     )};
                 // let adding_item_template = constraint_schema.template_library.get(&item.template_id).unwrap();
-                let adding_item_field_digest = item.get_locked_fields_digest(constraint_schema).unwrap();
-                let num_reqd_fields = adding_item_field_digest.field_constraints.len() - adding_item_field_digest.locked_fields.len();
-                let empty_field_typestate_stream = (0..num_reqd_fields).map(|_| {
-                    quote!{typenum::B0}
-                }).collect::<Vec<_>>();
-                let empty_field_typestate_stream = quote!{#(#empty_field_typestate_stream,)*};
-                let fulfilled_field_typestate_stream = (0..num_reqd_fields).map(|_| {
-                    quote!{typenum::B1}
-                });
-                let fulfilled_field_typestate_stream = quote!{#(#fulfilled_field_typestate_stream,)*};
-                let adding_item_operative_digest = item.get_operative_digest(constraint_schema);
-                let item_default_slot_typestate_stream = adding_item_operative_digest.operative_slots.iter().enumerate().map(|(index, (_slot_id, slot_digest))| {
-                    let count = slot_digest.related_instances.len();
-                    let count = if count == 0 {
-                        quote! {typenum::Z0}
-                    } else {
-                        let string = format! {"typenum::P{}", count};
-                        Ident::new(&string, Span::call_site()).to_token_stream()
-                    };
-
-                    let (
-                        local_min,
-                        local_min_nonexistent,
-                        local_max,
-                        local_max_nonexistent,
-                        local_zero_allowed,
-                    ) = get_static_slotdigest_typestate_signature_stream(slot_digest);
-                    quote! {base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#index), #count, #local_min, #local_min_nonexistent, #local_max, #local_max_nonexistent, #local_zero_allowed>}
-                });
-                let item_default_slot_typestate_stream = quote! { #(#item_default_slot_typestate_stream,)*};
                 // TODO: Figure out closure typestate
                 quote!{
                     pub fn #method_name
                         // <FieldsTSInnerInitial, FieldsTSInnerSecondary, SlotsTSInnerInitial, SlotsTSInnerSecondary>
-                        <SlotsTSInnerSecondary>
+                        <SlotsTSInnerSecondary,>
                     (mut self,
-                        builder_closure: impl Fn( FreshBuilder<#single_item_variant_name, Schema, (#empty_field_typestate_stream), (#item_default_slot_typestate_stream)>)
-                            -> FreshBuilder<#single_item_variant_name, Schema, (#fulfilled_field_typestate_stream), SlotsTSInnerSecondary>
+                        builder_closure: impl Fn( FreshBuilder<#single_item_variant_name, Schema, <#single_item_variant_name as StaticTypestate>::EmptyFieldTypestate, <#single_item_variant_name as StaticTypestate>::InitialSlotTypestate>)
+                            -> FreshBuilder<#single_item_variant_name, Schema, <#single_item_variant_name as StaticTypestate>::FulfilledFieldTypestate, SlotsTSInnerSecondary>
                     ) -> #return_type_after_adding
                     where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS
                     {
@@ -594,45 +540,14 @@ pub(crate) fn generate_operative_streams(
                     get_operative_variant_name(&
                         item_name_string
                     )};
-                // let adding_item_template = constraint_schema.template_library.get(&item.template_id).unwrap();
-                let adding_item_field_digest = item.get_locked_fields_digest(constraint_schema).unwrap();
-                let num_reqd_fields = adding_item_field_digest.field_constraints.len() - adding_item_field_digest.locked_fields.len();
-                let empty_field_typestate_stream = (0..num_reqd_fields).map(|_| {
-                    quote!{typenum::B0}
-                }).collect::<Vec<_>>();
-                let empty_field_typestate_stream = quote!{#(#empty_field_typestate_stream,)*};
-                let fulfilled_field_typestate_stream = (0..num_reqd_fields).map(|_| {
-                    quote!{typenum::B1}
-                });
-                let fulfilled_field_typestate_stream = quote!{#(#fulfilled_field_typestate_stream,)*};
-                let adding_item_operative_digest = item.get_operative_digest(constraint_schema);
-                let item_default_slot_typestate_stream = adding_item_operative_digest.operative_slots.iter().enumerate().map(|(index, (_slot_id, slot_digest))| {
-                    let count = slot_digest.related_instances.len();
-                    let count = if count == 0 {
-                        quote! {typenum::Z0}
-                    } else {
-                        let string = format! {"typenum::P{}", count};
-                        Ident::new(&string, Span::call_site()).to_token_stream()
-                    };
-
-                    let (
-                        local_min,
-                        local_min_nonexistent,
-                        local_max,
-                        local_max_nonexistent,
-                        local_zero_allowed,
-                    ) = get_static_slotdigest_typestate_signature_stream(slot_digest);
-                    quote! {base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#index), #count, #local_min, #local_min_nonexistent, #local_max, #local_max_nonexistent, #local_zero_allowed>}
-                });
-                let item_default_slot_typestate_stream = quote! { #(#item_default_slot_typestate_stream,)*};
                 // TODO: Figure out closure typestate
                 quote!{
                     pub fn #method_name
                         // <FieldsTSInnerInitial, FieldsTSInnerSecondary, SlotsTSInnerInitial, SlotsTSInnerSecondary>
                         <SlotsTSInnerSecondary>
                     (mut self,
-                        builder_closure: impl Fn( FreshBuilder<#single_item_variant_name, Schema, (#empty_field_typestate_stream), (#item_default_slot_typestate_stream)>)
-                            -> FreshBuilder<#single_item_variant_name, Schema, (#fulfilled_field_typestate_stream), SlotsTSInnerSecondary>
+                        builder_closure: impl Fn( FreshBuilder<#single_item_variant_name, Schema, <#single_item_variant_name as StaticTypestate>::EmptyFieldTypestate, <#single_item_variant_name as StaticTypestate>::InitialSlotTypestate>)
+                            -> FreshBuilder<#single_item_variant_name, Schema, <#single_item_variant_name as StaticTypestate>::FulfilledFieldTypestate, SlotsTSInnerSecondary>
                     ) -> Self
                     where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS
                     {
@@ -665,14 +580,14 @@ pub(crate) fn generate_operative_streams(
                     &format!("add_new_{}", slot.slot.tag.name.to_lowercase()),
                     Span::call_site(),
                 );
-                fresh_generate_add_fn_signature(add_new_fn_name, item)
+                fresh_single_item_generate_add_fn_signature(add_new_fn_name, item)
             } else {
                 let all_variants_add_new_stream = items.iter().map(|variant| {
                     let add_new_fn_name = Ident::new(
                         &format!("add_new_{}_{}", slot.slot.tag.name.to_lowercase(), variant.tag.name.to_lowercase()),
                         Span::call_site(),
                     );
-                    fresh_generate_add_fn_signature(add_new_fn_name, variant)
+                    fresh_single_item_generate_add_fn_signature(add_new_fn_name, variant)
                 });
                 quote!{
                     #(#all_variants_add_new_stream)*
@@ -1076,9 +991,52 @@ pub(crate) fn generate_operative_streams(
         Span::call_site(),
     );
 
+    // Static typestate calculations
+    let adding_item_field_digest = instantiable
+        .get_locked_fields_digest(constraint_schema)
+        .unwrap();
+    let num_reqd_fields = adding_item_field_digest.field_constraints.len()
+        - adding_item_field_digest.locked_fields.len();
+    let empty_field_typestate_stream = (0..num_reqd_fields)
+        .map(|_| {
+            quote! {typenum::B0}
+        })
+        .collect::<Vec<_>>();
+    let empty_field_typestate_stream = quote! {#(#empty_field_typestate_stream,)*};
+    let fulfilled_field_typestate_stream = (0..num_reqd_fields).map(|_| {
+        quote! {typenum::B1}
+    });
+    let fulfilled_field_typestate_stream = quote! {#(#fulfilled_field_typestate_stream,)*};
+    let adding_item_operative_digest = instantiable.get_operative_digest(constraint_schema);
+    let item_default_slot_typestate_stream = adding_item_operative_digest.operative_slots.iter().enumerate().map(|(index, (_slot_id, slot_digest))| {
+        let count = slot_digest.related_instances.len();
+        let count = if count == 0 {
+            quote! {typenum::Z0}
+        } else {
+            let string = format! {"typenum::P{}", count};
+            Ident::new(&string, Span::call_site()).to_token_stream()
+        };
+
+        let (
+            local_min,
+            local_min_nonexistent,
+            local_max,
+            local_max_nonexistent,
+            local_zero_allowed,
+        ) = get_static_slotdigest_typestate_signature_stream(slot_digest);
+        quote! {base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#index), #count, #local_min, #local_min_nonexistent, #local_max, #local_max_nonexistent, #local_zero_allowed>}
+    });
+    let item_default_slot_typestate_stream = quote! { #(#item_default_slot_typestate_stream,)*};
+
     quote! {
         #[derive(Clone, Debug, Default)]
         pub struct #struct_name {}
+
+        impl StaticTypestate for #struct_name {
+            type InitialSlotTypestate = (#item_default_slot_typestate_stream);
+            type EmptyFieldTypestate = (#empty_field_typestate_stream);
+            type FulfilledFieldTypestate = (#fulfilled_field_typestate_stream);
+        }
 
         impl RIntoSchema for #struct_name {
             type Schema = Schema;
@@ -1088,7 +1046,7 @@ pub(crate) fn generate_operative_streams(
         }
 
         impl #struct_name {
-            pub fn new(graph:impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> FreshBuilder<#struct_name, Schema, (#default_field_typestate_stream), (#default_slot_typestate_stream)> {
+            pub fn new(graph:impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> FreshBuilder<#struct_name, Schema, <#struct_name as StaticTypestate>::EmptyFieldTypestate, <#struct_name as StaticTypestate>::InitialSlotTypestate> {
                 FreshBuilder {
                     inner_builder: #struct_name::initiate_build(graph.into()),
                     _fields_typestate: std::marker::PhantomData,
