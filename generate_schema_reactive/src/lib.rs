@@ -263,8 +263,6 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                     agg
                 },
             );
-            // let field_trait_fns_streams = field_trait_fns.values().map(|item| item.fn_signature.clone()).collect::<Vec<_>>();
-            // let field_trait_fns_names = field_trait_fns.values().map(|item| item.fn_name.clone()).collect::<Vec<_>>();
 
             let IntermediateSlotTraitInfo {
                 trait_name: slot_trait_name,
@@ -315,12 +313,6 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 },
             );
 
-            // let field_match_code = quote!{
-            //     match self {
-            //         #(#enum_name::#subclass_op_names(val) => val.#field_trait_fns_names(),)*
-            //         _ => panic!(),
-            //     }
-            // };
             let rgso_impl = impl_RGSO_for_enum(enum_name.clone(), subclass_op_names.clone());
             if subclass_op_names.len() <= 1 {
                 None
@@ -337,9 +329,6 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                          }
                      }
                     impl #field_trait_name for #enum_name {
-                        // #(#field_trait_fns_streams {
-                        //     #field_match_code
-                        // })*
                         #(#field_streams)*
                     }
                     impl #slot_trait_name for #enum_name {
@@ -597,73 +586,6 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 self.inner_builder.set_temp_id(temp_id);
                 self
             }
-
-        //     fn delete_recursive_handler(&self, id: &Uid) {
-        //         self.inner_builder.delete_recursive_handler(id)
-        //     }
-        //     fn get_blueprint(
-        //         mut self,
-        //     ) -> Result<(Blueprint<TSchema>, ExecutionResult), ElementCreationError> {
-        //         self.inner_builder.get_blueprint()
-        //     }
-        //     fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<TSchema>> {
-        //         self.inner_builder.get_graph()
-        //     }
-        //     fn new(
-        //         builder_wrapper_instance: Option<RGSOConcreteBuilder<T, TSchema>>,
-        //         id: Uid,
-        //         graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
-        //     ) -> Self {
-        //         Self {
-        //             inner_builder: SubgraphBuilder::new(builder_wrapper_instance, id, graph),
-        //             _slots_typestate: std::marker::PhantomData,
-        //             _fields_typestate: std::marker::PhantomData,
-        //         }
-        //     }
-        //     fn raw_add_outgoing_to_updates(&mut self, slot_ref: SlotRef) {
-        //         self.inner_builder.raw_add_outgoing_to_updates(slot_ref)
-        //     }
-        //     fn raw_add_incoming_to_updates(&mut self, slot_ref: SlotRef) {
-        //         self.inner_builder.raw_add_incoming_to_updates(slot_ref)
-        //     }
-        //     fn add_outgoing<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Sized>(
-        //         &mut self,
-        //         slot_id: &Uid,
-        //         target_id: BlueprintId,
-        //         instantiable: Option<FreshBuilder<C, TSchema, FieldsTS, SlotsTS>>,
-        //     ) {
-        //         let instantiable = instantiable.map(|builder| builder.inner_builder);
-        //         SubgraphBuilder::add_outgoing(&mut self.inner_builder, slot_id, target_id, instantiable)
-        //     }
-        //     fn remove_outgoing(&mut self, slot_ref: SlotRef) {
-        //         SubgraphBuilder::remove_outgoing(&mut self.inner_builder, slot_ref)
-        //     }
-        //     fn add_incoming<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Sized>(
-        //         &mut self,
-        //         slot_ref: SlotRef,
-        //         instantiable: Option<FreshBuilder<C, TSchema, FieldsTS, SlotsTS>>,
-        //     ) {
-        //         let instantiable = instantiable.map(|builder| builder.inner_builder);
-        //         SubgraphBuilder::add_incoming(&mut self.inner_builder, slot_ref, instantiable)
-        //     }
-        //     fn edit_field(&mut self, field_id: Uid, value: PrimitiveValues) {
-        //         SubgraphBuilder::edit_field(&mut self.inner_builder, field_id, value)
-        //     }
-        //     fn delete(&mut self, to_delete_id: &Uid) {
-        //         self.inner_builder.delete(to_delete_id)
-        //     }
-        //     fn delete_recursive(&mut self) {
-        //         self.inner_builder.delete_recursive()
-        //     }
-        //     fn temp_add_incoming(&mut self, host_id: BlueprintId, temp_slot_ref: TempAddIncomingSlotRef) {
-        //         self.inner_builder.temp_add_incoming(host_id, temp_slot_ref)
-        //     }
-        //     fn temp_add_outgoing(&mut self, target_id: BlueprintId, temp_slot_ref: TempAddOutgoingSlotRef) {
-        //         self.inner_builder.temp_add_outgoing(target_id, temp_slot_ref)
-        //     }
-        //     fn add_error(&mut self, error: ElementCreationError) {
-        //         self.inner_builder.add_error(error)
-        //     }
         }
 
         // #trait_file_stream
@@ -680,7 +602,6 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
 
         lazy_static::lazy_static!{
             pub static ref CONSTRAINT_SCHEMA: base_types::constraint_schema::ConstraintSchema<PrimitiveTypes, PrimitiveValues>
-            // = constraint_schema::constraint_schema!();
             = serde_json::from_str::<base_types::constraint_schema::ConstraintSchema<PrimitiveTypes, PrimitiveValues>>(#raw_json_data).expect("Schema formatted incorrectly");
         }
 
