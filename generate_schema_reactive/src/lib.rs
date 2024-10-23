@@ -525,6 +525,23 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             type EmptyFieldTypestate;
             type FulfilledFieldTypestate;
         }
+        pub trait Incorporatable<T: std::clone::Clone + std::fmt::Debug, TSchema> {
+            fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema>;
+        }
+        impl <T: std::clone::Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema> + 'static> Incorporatable<T, TSchema> for ExistingBuilder<T, TSchema> {
+            fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema> {
+                self.inner_builder
+            }
+        }
+        impl <T: std::clone::Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>  +'static, FieldsTS, SlotsTS> Incorporatable<T, TSchema> for FreshBuilder<T, TSchema, FieldsTS, SlotsTS>
+            where
+                RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
+                T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
+            {
+                fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema> {
+                    self.inner_builder
+                }
+            }
 
         pub struct ExistingBuilder<T: std::clone::Clone + std::fmt::Debug, TSchema>
         where TSchema: 'static
@@ -553,19 +570,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             pub fn execute(&self) -> Result<ExecutionResult, ElementCreationError> {
                 self.inner_builder.execute()
             }
-            pub fn incorporate_fresh<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static, OtherBuilderFieldsTS, OtherBuilderSlotsTS>(
-                &mut self,
-                other_builder: &FreshBuilder<C, TSchema, OtherBuilderFieldsTS, OtherBuilderSlotsTS>,
-            ) {
-                self.inner_builder.incorporate(&other_builder.inner_builder)
+            pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(&mut self, other_builder: impl Incorporatable<C, TSchema>) {
+                self.inner_builder.incorporate(&other_builder.get_inner_builder())
             }
-            pub fn incorporate_existing<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
-                &mut self,
-                other_builder: &ExistingBuilder<C, TSchema>,
-            ) {
-                self.inner_builder.incorporate(&other_builder.inner_builder)
-            }
-
             pub fn set_temp_id(mut self, temp_id: &str) -> Self {
                 self.inner_builder.set_temp_id(temp_id);
                 self
@@ -582,11 +589,8 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             pub fn execute(&self) -> Result<ExecutionResult, ElementCreationError> {
                 self.inner_builder.execute()
             }
-            pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static, OtherBuilderFieldsTS, OtherBuilderSlotsTS>(
-                &mut self,
-                other_builder: &FreshBuilder<C, TSchema, OtherBuilderFieldsTS, OtherBuilderSlotsTS>,
-            ) {
-                self.inner_builder.incorporate(&other_builder.inner_builder)
+            pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(&mut self, other_builder: impl Incorporatable<C, TSchema>) {
+                self.inner_builder.incorporate(&other_builder.get_inner_builder())
             }
 
             pub fn set_temp_id(mut self, temp_id: &str) -> Self {
