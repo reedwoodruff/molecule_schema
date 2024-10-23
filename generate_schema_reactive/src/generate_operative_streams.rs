@@ -1,5 +1,4 @@
 use base_types::operative_digest::OperativeSlotDigest;
-use base_types::post_generation::type_level::SlotTS;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
 
@@ -58,41 +57,8 @@ pub(crate) fn generate_operative_streams(
         .iter()
         .map(|field| field.tag.id)
         .collect::<Vec<_>>();
-    let unfulfilled_field_names = unfulfilled_fields
-        .iter()
-        .map(|field| syn::Ident::new(&field.tag.name, Span::call_site()))
-        .collect::<Vec<_>>();
-    let unfulfilled_field_value_types = unfulfilled_fields
-        .iter()
-        .map(|field| get_primitive_type(&field.value_type))
-        .collect::<Vec<_>>();
-    let unfulfilled_field_value_types_enum = unfulfilled_fields
-        .iter()
-        .map(|field| syn::Ident::new(&field.value_type.to_string(), Span::call_site()))
-        .collect::<Vec<_>>();
 
     let locked_fields = field_digest.locked_fields;
-    let locked_field_names = locked_fields
-        .values()
-        .map(|field| {
-            syn::Ident::new(
-                &field.fulfilled_field.field_constraint_name,
-                Span::call_site(),
-            )
-        })
-        .collect::<Vec<_>>();
-    let locked_field_value_types = locked_fields
-        .values()
-        .map(|field| {
-            let value_type = &constraint_schema.template_library[&template_tag.id]
-                .field_constraints[&field.fulfilled_field.field_constraint_id]
-                .value_type;
-            get_primitive_type(value_type)
-        })
-        .collect::<Vec<_>>();
-    let locked_field_values = locked_fields
-        .values()
-        .map(|field| get_primitive_value(&field.fulfilled_field.value));
 
     let _operative_tag_handle = syn::Ident::new(
         &(struct_name.to_string().clone() + "operative_tag"),
@@ -133,7 +99,7 @@ pub(crate) fn generate_operative_streams(
     });
     let field_generics_stream = quote! { #(#field_generics_stream,)* };
 
-    let get_locked_fields_stream = locked_fields.iter().map(|(field_id, locked_field_digest)| {
+    let get_locked_fields_stream = locked_fields.iter().map(|(_field_id, locked_field_digest)| {
         let field_getter_fn_name = Ident::new(
             &format!(
                 "get_{}_field",
@@ -181,10 +147,6 @@ pub(crate) fn generate_operative_streams(
         let field_trait_fns_streams = field_trait_fns
             .values()
             .map(|item| item.fn_signature.clone())
-            .collect::<Vec<_>>();
-        let field_trait_fns_names = field_trait_fns
-            .values()
-            .map(|item| item.fn_name.clone())
             .collect::<Vec<_>>();
         let field_ids = field_trait_fns.keys().collect::<Vec<_>>();
         let field_value_types = field_trait_fns
@@ -288,16 +250,16 @@ pub(crate) fn generate_operative_streams(
     let manipulate_fields_stream = unfulfilled_fields.iter().enumerate().map(|(i, field)| {
         let field_id = field.tag.id;
         let field_value_type = get_primitive_type(&field.value_type);
-        let field_name = syn::Ident::new(&field.tag.name, Span::call_site());
+        // let field_name = syn::Ident::new(&field.tag.name, Span::call_site());
         let building_manipulate_field_trait_name = Ident::new(
             &format!("{}{}Field", struct_name, field.tag.name),
             Span::call_site(),
         );
-        let field_editing_manipulate_field_trait_name = Ident::new(
-            &format!("{}{}FieldBuilder", struct_name, field.tag.name),
-            Span::call_site(),
-        );
-        let field_generic_in_question = Ident::new(&format!("TField{}", i), Span::call_site());
+        // let field_editing_manipulate_field_trait_name = Ident::new(
+        //     &format!("{}{}FieldBuilder", struct_name, field.tag.name),
+        //     Span::call_site(),
+        // );
+        // let field_generic_in_question = Ident::new(&format!("TField{}", i), Span::call_site());
 
         let field_fulfilled_generic_stream = (0..unfulfilled_fields.len()).map(|j| {
             if j == i {
@@ -444,7 +406,7 @@ pub(crate) fn generate_operative_streams(
             } else {
                 None
             };
-            let manipulate_slot_trait_name = Ident::new(&format!("ManipulateSlot{}{}", slot_name, struct_name), Span::call_site());
+            // let manipulate_slot_trait_name = Ident::new(&format!("ManipulateSlot{}{}", slot_name, struct_name), Span::call_site());
             let marker_trait_name = Ident::new(&format!("{}{}AcceptableTargetMarker", struct_name, slot_name), Span::call_site());
             let marker_impls = items.iter().map(|item| {
                 let item_name = get_operative_variant_name(&item.get_tag().name);
@@ -476,11 +438,8 @@ pub(crate) fn generate_operative_streams(
                     get_operative_variant_name(&
                         item_name_string
                     )};
-                // let adding_item_template = constraint_schema.template_library.get(&item.template_id).unwrap();
-                // TODO: Figure out closure typestate
                 quote!{
                     pub fn #method_name
-                        // <FieldsTSInnerInitial, FieldsTSInnerSecondary, SlotsTSInnerInitial, SlotsTSInnerSecondary>
                         <SlotsTSInnerSecondary,>
                     (mut self,
                         builder_closure: impl Fn( FreshBuilder<#single_item_variant_name, Schema, <#single_item_variant_name as StaticTypestate>::EmptyFieldTypestate, <#single_item_variant_name as StaticTypestate>::InitialSlotTypestate>)
@@ -518,7 +477,6 @@ pub(crate) fn generate_operative_streams(
 
                     }
                     pub fn #method_name
-                        // <FieldsTSInnerInitial, FieldsTSInnerSecondary, SlotsTSInnerInitial, SlotsTSInnerSecondary>
                         <T, SlotsTSInnerSecondary>
                     (mut self,
                         builder_closure: impl Fn( FreshBuilder<T, Schema, <T as StaticTypestate>::EmptyFieldTypestate, <T as StaticTypestate>::InitialSlotTypestate>)
@@ -556,10 +514,8 @@ pub(crate) fn generate_operative_streams(
                     get_operative_variant_name(&
                         item_name_string
                     )};
-                // TODO: Figure out closure typestate
                 quote!{
                     pub fn #method_name
-                        // <FieldsTSInnerInitial, FieldsTSInnerSecondary, SlotsTSInnerInitial, SlotsTSInnerSecondary>
                         <SlotsTSInnerSecondary>
                     (mut self,
                         builder_closure: impl Fn( FreshBuilder<#single_item_variant_name, Schema, <#single_item_variant_name as StaticTypestate>::EmptyFieldTypestate, <#single_item_variant_name as StaticTypestate>::InitialSlotTypestate>)
@@ -581,11 +537,6 @@ pub(crate) fn generate_operative_streams(
                         let new_builder = builder_closure(new_builder);
                         self.inner_builder.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder.inner_builder));
 
-                        // let return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
-                        //     inner_builder: self.inner_builder,
-                        //     _fields_typestate: std::marker::PhantomData,
-                        //     _slots_typestate: std::marker::PhantomData,
-                        // };
                         self
                     }
                 }
@@ -593,7 +544,6 @@ pub(crate) fn generate_operative_streams(
             let existing_multi_item_generate_add_fn_signature = |method_name: Ident| {
                 quote!{
                     pub fn #method_name
-                        // <FieldsTSInnerInitial, FieldsTSInnerSecondary, SlotsTSInnerInitial, SlotsTSInnerSecondary>
                         <T, SlotsTSInnerSecondary>
                     (mut self,
                         builder_closure: impl Fn( FreshBuilder<T, Schema, <T as StaticTypestate>::EmptyFieldTypestate, <T as StaticTypestate>::InitialSlotTypestate>)
@@ -633,16 +583,6 @@ pub(crate) fn generate_operative_streams(
                     Span::call_site(),
                 );
                 fresh_multi_item_generate_add_fn_signature(add_new_fn_name)
-                // let all_variants_add_new_stream = items.iter().map(|variant| {
-                //     let add_new_fn_name = Ident::new(
-                //         &format!("add_new_{}_{}", slot.slot.tag.name.to_lowercase(), variant.tag.name.to_lowercase()),
-                //         Span::call_site(),
-                //     );
-                //     fresh_single_item_generate_add_fn_signature(add_new_fn_name, variant)
-                // });
-                // quote!{
-                //     #(#all_variants_add_new_stream)*
-                // }
             };
             let existing_add_new_fn_definitions = if let Some(item) = single_item_id {
                 let add_new_fn_name = Ident::new(
@@ -656,16 +596,6 @@ pub(crate) fn generate_operative_streams(
                     Span::call_site(),
                 );
                 existing_multi_item_generate_add_fn_signature(add_new_fn_name)
-                // let all_variants_add_new_stream = items.iter().map(|variant| {
-                //     let add_new_fn_name = Ident::new(
-                //         &format!("add_new_{}_{}", slot.slot.tag.name.to_lowercase(), variant.tag.name.to_lowercase()),
-                //         Span::call_site(),
-                //     );
-                //     existing_generate_add_fn_signature(add_new_fn_name, variant)
-                // });
-                // quote!{
-                //     #(#all_variants_add_new_stream)*
-                // }
             };
 
             let fresh_add_existing_and_edit_fn_signature = if let Some(item) = single_item_id {
@@ -709,21 +639,6 @@ pub(crate) fn generate_operative_streams(
                 }
             };
 
-            // let mismatch_error_handling = quote!{
-            //     let error = if let Some(existing_item) = self.inner_builder.get_graph().get(&existing_item_id) {
-            //         match existing_item {
-            //             #(Schema::#acceptable_type_names(_) => None,)*
-            //             #(Schema::#unacceptable_type_names(_) => {
-            //                 Some(base_types::post_generation::ElementCreationError::OutgoingElementIsWrongType{expected: #expected_type_names_string.to_string(), recieved: #unacceptable_string_names.to_string() })
-            //             },)*
-            //         }
-            //     } else {
-            //         Some(base_types::post_generation::ElementCreationError::OutgoingElementDoesntExist{id: existing_item_id.clone()})
-            //     };
-            //     if error.is_some() {
-            //         self.inner_builder.add_error(error.unwrap());
-            //     }
-            // };
             let fresh_single_item_generate_add_existing_or_temp_fn_definition = |method_name: Ident, item: &LibraryOperative<PrimitiveTypes, PrimitiveValues>| {
                 let single_item_variant_name = {
                     let item_name_string = item.tag.name.clone();
@@ -837,12 +752,6 @@ pub(crate) fn generate_operative_streams(
                                 };
                                 self.inner_builder.raw_add_incoming_to_updates(edge_to_this_element);
                                 self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, existing_item_blueprint_id.clone(), None);
-                                // let return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
-                                //     inner_builder: self.inner_builder,
-                                //     _fields_typestate: std::marker::PhantomData,
-                                //     _slots_typestate: std::marker::PhantomData,
-                                // };
-                                // return_builder_plus_one_slot_typestate
                                 self
                             }
                             BlueprintId::Temporary(str_id) => {
@@ -852,12 +761,6 @@ pub(crate) fn generate_operative_streams(
                                 };
                                 self.inner_builder.temp_add_incoming(BlueprintId::Temporary(str_id.clone()), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
                                 self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, existing_item_blueprint_id.clone(), None);
-                                // let return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
-                                //     inner_builder: self.inner_builder,
-                                //     _fields_typestate: std::marker::PhantomData,
-                                //     _slots_typestate: std::marker::PhantomData,
-                                // };
-                                // return_builder_plus_one_slot_typestate
                                 self
                             }
                         }
@@ -910,16 +813,6 @@ pub(crate) fn generate_operative_streams(
                         Span::call_site(),
                 );
                 fresh_multi_item_generate_add_existing_or_temp_fn_definition(add_new_fn_name)
-                // let all_variants_add_new_stream = items.iter().map(|variant| {
-                //     let add_new_fn_name = Ident::new(
-                //             &format!("add_existing_or_temp_{}_{}", slot.slot.tag.name.to_lowercase(), variant.tag.name.to_lowercase()),
-                //             Span::call_site(),
-                //     );
-                //     fresh_single_item_generate_add_existing_or_temp_fn_definition(add_new_fn_name, variant)
-                // });
-                // quote!{
-                //     #(#all_variants_add_new_stream)*
-                // }
             };
             let existing_add_existing_or_temp_fn_definition = if let Some(item) = single_item_id {
                 let add_new_fn_name = Ident::new(
@@ -933,31 +826,7 @@ pub(crate) fn generate_operative_streams(
                         Span::call_site(),
                 );
                 existing_multi_item_generate_add_existing_or_temp_fn_definition(add_new_fn_name)
-                // let all_variants_add_new_stream = items.iter().map(|variant| {
-                //     let add_new_fn_name = Ident::new(
-                //             &format!("add_existing_or_temp_{}_{}", slot.slot.tag.name.to_lowercase(), variant.tag.name.to_lowercase()),
-                //             Span::call_site(),
-                //     );
-                //     existing_single_item_generate_add_existing_or_temp_fn_definition(add_new_fn_name, variant)
-                // });
-                // quote!{
-                //     #(#all_variants_add_new_stream)*
-                // }
             };
-            // let add_existing_or_temp_fn_signature = if let Some(item) = single_item_id {
-            //     quote!{
-            //         fn #add_existing_or_temp_fn_name(mut self,
-            //             existing_item_id: impl Into<BlueprintId>,
-            //         ) -> #return_type_after_adding
-            //     }
-            // } else {
-            //     quote!{
-            //         fn #add_existing_or_temp_fn_name<T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>(mut self,
-            //             existing_item_id: impl Into<BlueprintId>,
-            //         ) -> #return_type_after_adding
-            //     }
-            // };
-            // let super_types = get_all_superclasses(constraint_schema, item_id);
             let all_unacceptable_types = constraint_schema.operative_library.values().filter_map(|op|
                 if !items.iter().any(|super_el| super_el.tag.id == op.tag.id) {
                     Some(op)
@@ -1048,10 +917,6 @@ pub(crate) fn generate_operative_streams(
                         new_builder.inner_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
                         let new_builder = builder_closure(new_builder);
                         self.inner_builder.add_outgoing(&#slot_id, BlueprintId::Existing(existing_item_id.clone()), Some(new_builder.inner_builder));
-                        // let return_builder_plus_one_slot_typestate = ExistingBuilder::<#struct_name, Schema>  {
-                        //     inner_builder: self.inner_builder,
-                        // };
-                        // return_builder_plus_one_slot_typestate
                         self
                     }
                     #existing_add_existing_or_temp_fn_definition
@@ -1086,10 +951,6 @@ pub(crate) fn generate_operative_streams(
         );
         let remove_slot_trait_name = Ident::new(&format!("RemoveFromSlot{}{}", slot_name, struct_name), Span::call_site());
         quote! {
-            // pub trait #remove_slot_trait_name {
-            //     fn #remove_from_slot_fn_name(&mut self, target_id: &Uid) -> &mut Self;
-            // }
-            // impl<FieldsTS, SlotsTS> #remove_slot_trait_name for FreshBuilder<#struct_name, Schema, FieldsTS, SlotsTS> {
             impl<FieldsTS, #generic_slot_generics_stream_with_trait_bound> FreshBuilder<#struct_name, Schema, FieldsTS, (#main_builder_slot_generics_stream)>
             where <#local_count_generic as std::ops::Sub<PInt<UInt<UTerm, typenum::B1>>>>::Output:
             typenum::Integer
@@ -1197,11 +1058,9 @@ pub(crate) fn generate_operative_streams(
 
 
         pub trait #edit_rgso_trait_name {
-            // TODO: Placeholder ()s
             fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> ExistingBuilder<#struct_name, Schema> ;
         }
         impl #edit_rgso_trait_name for RGSOConcrete<#struct_name, Schema> {
-            // TODO: Placeholder ()s
             fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> ExistingBuilder<#struct_name, Schema> {
                 ExistingBuilder {
                     inner_builder: #struct_name::initiate_edit(*self.get_id(), graph.into()),
