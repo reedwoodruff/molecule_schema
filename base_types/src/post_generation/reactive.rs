@@ -711,7 +711,7 @@ pub struct SubgraphBuilder<T: Clone + std::fmt::Debug, TSchema: 'static> {
     pub to_delete_recursive: RwSignal<std::collections::HashSet<Uid>>,
     pub field_updates: RwSignal<std::collections::HashSet<(Uid, HistoryFieldEdit)>>,
     pub temp_add_incoming_updates:
-        RwSignal<std::collections::HashSet<(BlueprintId, TempAddIncomingSlotRef)>>,
+        RwSignal<std::collections::HashSet<(String, TempAddIncomingSlotRef)>>,
     pub temp_add_outgoing_updates:
         RwSignal<std::collections::HashSet<(BlueprintId, TempAddOutgoingSlotRef)>>,
     // If I remember correctly, If there is a wip_instance, it means that this subgraphbuilder
@@ -867,32 +867,18 @@ where
                         return Some(error);
                     }
                     let final_host_id = final_host_id.unwrap();
-                    match &update.0 {
-                        BlueprintId::Existing(existing_id) => {
-                            self.add_incoming_updates.update(|prev| {
-                                prev.insert((
-                                    *existing_id,
-                                    SlotRef {
-                                        target_instance_id: *existing_id,
-                                        host_instance_id: final_host_id,
-                                        slot_id: update.1.slot_id,
-                                    },
-                                ));
-                            });
-                        }
-                        BlueprintId::Temporary(temp_id) => {
-                            if let Some(instantiable) =
-                                new_instantiables.iter_mut().find(|instantiable| {
-                                    instantiable.lock().unwrap().get_temp_id() == temp_id
-                                })
-                            {
-                                instantiable
-                                    .as_ref()
-                                    .lock()
-                                    .unwrap()
-                                    .add_incoming(&final_host_id, &update.1.slot_id);
-                            }
-                        }
+                    if let Some(instantiable) =
+                        new_instantiables.iter_mut().find(|instantiable| {
+                            instantiable.lock().unwrap().get_temp_id() == &update.0
+                        })
+                    {
+                        instantiable
+                            .as_ref()
+                            .lock()
+                            .unwrap()
+                            .add_incoming(&final_host_id, &update.1.slot_id);
+                    } else {
+                        return Some(ElementCreationError::NonexistentTempId { temp_id: update.0.clone() })
                     };
                     None
                 })
@@ -900,6 +886,11 @@ where
         });
         all_errors.extend(temp_incoming_execution_errors);
 
+        // Similarly, temp_outgoing refers to connections that need to be made but where the target
+        // was only known by temp_id and not guaranteed to exist at the time. Since new nodes and
+        // existing nodes are handled differently here (new nodes have to have their instantiable
+        // updated whereas existing nodes just need to update the `outgoing updates`), that
+        // information is carried in the temp_add_outgoing_updates.
         let temp_outgoing_execution_errors = self.temp_add_outgoing_updates.with(|updates| {
             updates
                 .iter()
@@ -1274,12 +1265,12 @@ where
     }
     pub fn temp_add_incoming(
         &mut self,
-        host_id: BlueprintId,
+        host_id: &str,
         temp_slot_ref: TempAddIncomingSlotRef,
     ) {
         self.temp_add_incoming_updates
             .update(|temp_add_incoming_updates| {
-                temp_add_incoming_updates.insert((host_id, temp_slot_ref));
+                temp_add_incoming_updates.insert((host_id.to_string(), temp_slot_ref));
             });
     }
     pub fn temp_add_outgoing(

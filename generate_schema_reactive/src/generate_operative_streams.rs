@@ -313,9 +313,9 @@ pub(crate) fn generate_operative_streams(
     let manipulate_slots_stream = all_slot_digests.iter().enumerate().map(|(slot_index, slot)| {
         let slot_name = &slot.slot.tag.name;
         let slot_id = slot.slot.tag.id;
-        let add_existing_and_edit_fn_name = Ident::new(
+        let add_existing_fn_name = Ident::new(
             &format!(
-                "add_existing_{}_and_edit",
+                "add_existing_{}",
                 slot.slot.tag.name.to_lowercase()
             ),
             Span::call_site(),
@@ -598,9 +598,9 @@ pub(crate) fn generate_operative_streams(
                 existing_multi_item_generate_add_fn_signature(add_new_fn_name)
             };
 
-            let fresh_add_existing_and_edit_fn_signature = if let Some(item) = single_item_id {
+            let fresh_add_existing_fn_signature = if let Some(item) = single_item_id {
                 quote!{
-                    fn #add_existing_and_edit_fn_name
+                    fn #add_existing_fn_name
                     (mut self,
                         existing_item_id: &Uid,
                         builder_closure: impl Fn(ExistingBuilder<#single_item_variant_name, Schema>)
@@ -609,7 +609,7 @@ pub(crate) fn generate_operative_streams(
                 }
             } else {
                 quote!{
-                    fn #add_existing_and_edit_fn_name
+                    fn #add_existing_fn_name
                         <T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name + Send + Sync>
                     (mut self,
                         existing_item_id: &Uid,
@@ -618,9 +618,9 @@ pub(crate) fn generate_operative_streams(
                     ) -> #return_type_after_adding
                 }
             };
-            let existing_add_existing_and_edit_fn_signature = if let Some(item) = single_item_id {
+            let existing_add_existing_fn_signature = if let Some(item) = single_item_id {
                 quote!{
-                    fn #add_existing_and_edit_fn_name
+                    fn #add_existing_fn_name
                     (mut self,
                         existing_item_id: &Uid,
                         builder_closure: impl Fn(ExistingBuilder<#single_item_variant_name, Schema>)
@@ -629,7 +629,7 @@ pub(crate) fn generate_operative_streams(
                 }
             } else {
                 quote!{
-                    fn #add_existing_and_edit_fn_name
+                    fn #add_existing_fn_name
                         <T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name + Send + Sync>
                     (mut self,
                         existing_item_id: &Uid,
@@ -639,7 +639,7 @@ pub(crate) fn generate_operative_streams(
                 }
             };
 
-            let fresh_single_item_generate_add_existing_or_temp_fn_definition = |method_name: Ident, item: &LibraryOperative<PrimitiveTypes, PrimitiveValues>| {
+            let fresh_single_item_generate_add_temp_fn_definition = |method_name: Ident, item: &LibraryOperative<PrimitiveTypes, PrimitiveValues>| {
                 let single_item_variant_name = {
                     let item_name_string = item.tag.name.clone();
                     get_operative_variant_name(&
@@ -647,90 +647,49 @@ pub(crate) fn generate_operative_streams(
                     )};
                 quote!{
                     pub fn #method_name(mut self,
-                        existing_item_id: impl Into<BlueprintId>,
+                        str_id: impl AsRef<str>,
                     ) -> #return_type_after_adding
                     {
-                        let existing_item_blueprint_id: BlueprintId = existing_item_id.into();
-                        match &existing_item_blueprint_id {
-                            BlueprintId::Existing(existing_item_id) => {
-                                // #mismatch_error_handling
-                                let edge_to_this_element = base_types::post_generation::SlotRef {
-                                    host_instance_id: self.inner_builder.get_id().clone(),
-                                    target_instance_id: existing_item_id.clone(),
-                                    slot_id: #slot_id,
-                                };
-                                self.inner_builder.raw_add_incoming_to_updates(edge_to_this_element);
-                                self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, existing_item_blueprint_id.clone(), None);
-                                let return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
-                                    inner_builder: self.inner_builder,
-                                    _fields_typestate: std::marker::PhantomData,
-                                    _slots_typestate: std::marker::PhantomData,
-                                };
-                                return_builder_plus_one_slot_typestate
-                            }
-                            BlueprintId::Temporary(str_id) => {
+
                                 let host_id = match &self.inner_builder.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
                                     None => BlueprintId::Existing(self.inner_builder.get_id().clone()),
                                 };
-                                self.inner_builder.temp_add_incoming(BlueprintId::Temporary(str_id.clone()), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
-                                self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, existing_item_blueprint_id.clone(), None);
+                                self.inner_builder.temp_add_incoming(str_id.as_ref(), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
+                                self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, BlueprintId::Temporary(str_id.as_ref().to_string()), None);
                                 let return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
                                     inner_builder: self.inner_builder,
                                     _fields_typestate: std::marker::PhantomData,
                                     _slots_typestate: std::marker::PhantomData,
                                 };
                                 return_builder_plus_one_slot_typestate
-                            }
-                        }
                     }
                 }
             };
-            let fresh_multi_item_generate_add_existing_or_temp_fn_definition = |method_name: Ident | {
+            let fresh_multi_item_generate_add_temp_fn_definition = |method_name: Ident | {
                 quote!{
                     pub fn #method_name<T>(mut self,
-                        existing_item_id: impl Into<BlueprintId>,
+                        str_id: impl AsRef<str>,
                     ) -> #return_type_after_adding
                     where
                         T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
                     {
-                        let existing_item_blueprint_id: BlueprintId = existing_item_id.into();
-                        match &existing_item_blueprint_id {
-                            BlueprintId::Existing(existing_item_id) => {
-                                // #mismatch_error_handling
-                                let edge_to_this_element = base_types::post_generation::SlotRef {
-                                    host_instance_id: self.inner_builder.get_id().clone(),
-                                    target_instance_id: existing_item_id.clone(),
-                                    slot_id: #slot_id,
-                                };
-                                self.inner_builder.raw_add_incoming_to_updates(edge_to_this_element);
-                                self.inner_builder.add_outgoing::<T>(&#slot_id, existing_item_blueprint_id.clone(), None);
-                                let return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
-                                    inner_builder: self.inner_builder,
-                                    _fields_typestate: std::marker::PhantomData,
-                                    _slots_typestate: std::marker::PhantomData,
-                                };
-                                return_builder_plus_one_slot_typestate
-                            }
-                            BlueprintId::Temporary(str_id) => {
                                 let host_id = match &self.inner_builder.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
                                     None => BlueprintId::Existing(self.inner_builder.get_id().clone()),
                                 };
-                                self.inner_builder.temp_add_incoming(BlueprintId::Temporary(str_id.clone()), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
-                                self.inner_builder.add_outgoing::<T>(&#slot_id, existing_item_blueprint_id.clone(), None);
+                                self.inner_builder.temp_add_incoming(str_id.as_ref(), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
+                                self.inner_builder.add_outgoing::<T>(&#slot_id, BlueprintId::Temporary(str_id.as_ref().to_string()), None);
                                 let return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
                                     inner_builder: self.inner_builder,
                                     _fields_typestate: std::marker::PhantomData,
                                     _slots_typestate: std::marker::PhantomData,
                                 };
                                 return_builder_plus_one_slot_typestate
-                            }
-                        }
                     }
                 }
             };
-            let existing_single_item_generate_add_existing_or_temp_fn_definition = |method_name: Ident, item: &LibraryOperative<PrimitiveTypes, PrimitiveValues>| {
+            let existing_single_item_generate_add_temp_fn_definition = |method_name: Ident, item: &LibraryOperative<PrimitiveTypes, PrimitiveValues>| {
                 let single_item_variant_name = {
                     let item_name_string = item.tag.name.clone();
                     get_operative_variant_name(&
@@ -738,94 +697,62 @@ pub(crate) fn generate_operative_streams(
                     )};
                 quote!{
                     pub fn #method_name(mut self,
-                        existing_item_id: impl Into<BlueprintId>,
+                        str_id: impl AsRef<str>,
                     ) -> Self
                     {
-                        let existing_item_blueprint_id: BlueprintId = existing_item_id.into();
-                        match &existing_item_blueprint_id {
-                            BlueprintId::Existing(existing_item_id) => {
-                                // #mismatch_error_handling
-                                let edge_to_this_element = base_types::post_generation::SlotRef {
-                                    host_instance_id: self.inner_builder.get_id().clone(),
-                                    target_instance_id: existing_item_id.clone(),
-                                    slot_id: #slot_id,
-                                };
-                                self.inner_builder.raw_add_incoming_to_updates(edge_to_this_element);
-                                self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, existing_item_blueprint_id.clone(), None);
-                                self
-                            }
-                            BlueprintId::Temporary(str_id) => {
                                 let host_id = match &self.inner_builder.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
                                     None => BlueprintId::Existing(self.inner_builder.get_id().clone()),
                                 };
-                                self.inner_builder.temp_add_incoming(BlueprintId::Temporary(str_id.clone()), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
-                                self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, existing_item_blueprint_id.clone(), None);
+                                self.inner_builder.temp_add_incoming(str_id.as_ref(), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
+                                self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, BlueprintId::Temporary(str_id.as_ref().to_string()), None);
                                 self
-                            }
-                        }
                     }
                 }
             };
-            let existing_multi_item_generate_add_existing_or_temp_fn_definition = |method_name: Ident | {
+            let existing_multi_item_generate_add_temp_fn_definition = |method_name: Ident | {
                 quote!{
                     pub fn #method_name<T>(mut self,
-                        existing_item_id: impl Into<BlueprintId>,
+                        str_id: impl AsRef<str>,
                     ) -> Self
                     where
                     T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
                     {
-                        let existing_item_blueprint_id: BlueprintId = existing_item_id.into();
-                        match &existing_item_blueprint_id {
-                            BlueprintId::Existing(existing_item_id) => {
-                                // #mismatch_error_handling
-                                let edge_to_this_element = base_types::post_generation::SlotRef {
-                                    host_instance_id: self.inner_builder.get_id().clone(),
-                                    target_instance_id: existing_item_id.clone(),
-                                    slot_id: #slot_id,
-                                };
-                                self.inner_builder.raw_add_incoming_to_updates(edge_to_this_element);
-                                self.inner_builder.add_outgoing::<T>(&#slot_id, existing_item_blueprint_id.clone(), None);
-                                self
-                            }
-                            BlueprintId::Temporary(str_id) => {
                                 let host_id = match &self.inner_builder.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
                                     None => BlueprintId::Existing(self.inner_builder.get_id().clone()),
                                 };
-                                self.inner_builder.temp_add_incoming(BlueprintId::Temporary(str_id.clone()), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
-                                self.inner_builder.add_outgoing::<T>(&#slot_id, existing_item_blueprint_id.clone(), None);
+                                self.inner_builder.temp_add_incoming(str_id.as_ref(), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
+                                self.inner_builder.add_outgoing::<T>(&#slot_id, BlueprintId::Temporary(str_id.as_ref().to_string()), None);
                                 self
-                            }
-                        }
                     }
                 }
             };
-            let fresh_add_existing_or_temp_fn_definition = if let Some(item) = single_item_id {
+            let fresh_add_temp_fn_definition = if let Some(item) = single_item_id {
                 let add_new_fn_name = Ident::new(
-                        &format!("add_existing_or_temp_{}", slot.slot.tag.name.to_lowercase()),
+                        &format!("add_temp_{}", slot.slot.tag.name.to_lowercase()),
                         Span::call_site(),
                 );
-                fresh_single_item_generate_add_existing_or_temp_fn_definition(add_new_fn_name, item)
+                fresh_single_item_generate_add_temp_fn_definition(add_new_fn_name, item)
             } else {
                 let add_new_fn_name = Ident::new(
-                        &format!("add_existing_or_temp_{}", slot.slot.tag.name.to_lowercase()),
+                        &format!("add_temp_{}", slot.slot.tag.name.to_lowercase()),
                         Span::call_site(),
                 );
-                fresh_multi_item_generate_add_existing_or_temp_fn_definition(add_new_fn_name)
+                fresh_multi_item_generate_add_temp_fn_definition(add_new_fn_name)
             };
-            let existing_add_existing_or_temp_fn_definition = if let Some(item) = single_item_id {
+            let existing_add_temp_fn_definition = if let Some(item) = single_item_id {
                 let add_new_fn_name = Ident::new(
-                        &format!("add_existing_or_temp_{}", slot.slot.tag.name.to_lowercase()),
+                        &format!("add_temp_{}", slot.slot.tag.name.to_lowercase()),
                         Span::call_site(),
                 );
-                existing_single_item_generate_add_existing_or_temp_fn_definition(add_new_fn_name, item)
+                existing_single_item_generate_add_temp_fn_definition(add_new_fn_name, item)
             } else {
                 let add_new_fn_name = Ident::new(
-                        &format!("add_existing_or_temp_{}", slot.slot.tag.name.to_lowercase()),
+                        &format!("add_temp_{}", slot.slot.tag.name.to_lowercase()),
                         Span::call_site(),
                 );
-                existing_multi_item_generate_add_existing_or_temp_fn_definition(add_new_fn_name)
+                existing_multi_item_generate_add_temp_fn_definition(add_new_fn_name)
             };
             let all_unacceptable_types = constraint_schema.operative_library.values().filter_map(|op|
                 if !items.iter().any(|super_el| super_el.tag.id == op.tag.id) {
@@ -872,7 +799,7 @@ pub(crate) fn generate_operative_streams(
                     base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#slot_index), #local_count_generic,#slot_ts_consts_stream >: base_types::post_generation::type_level::SlotCanAddOne
                 {
                     #fresh_add_new_fn_definitions
-                    pub #fresh_add_existing_and_edit_fn_signature
+                    pub #fresh_add_existing_fn_signature
                     {
                         let existing_item_id = existing_item_id.clone();
                         #mismatch_error_handling
@@ -895,13 +822,13 @@ pub(crate) fn generate_operative_streams(
                         };
                         return_builder_plus_one_slot_typestate
                     }
-                    #fresh_add_existing_or_temp_fn_definition
+                    #fresh_add_temp_fn_definition
                 }
 
                 impl ExistingBuilder<#struct_name, Schema>
                 {
                     #existing_add_new_fn_definitions
-                    pub #existing_add_existing_and_edit_fn_signature
+                    pub #existing_add_existing_fn_signature
                     {
                         let existing_item_id = existing_item_id.clone();
                         #mismatch_error_handling
@@ -919,7 +846,7 @@ pub(crate) fn generate_operative_streams(
                         self.inner_builder.add_outgoing(&#slot_id, BlueprintId::Existing(existing_item_id.clone()), Some(new_builder.inner_builder));
                         self
                     }
-                    #existing_add_existing_or_temp_fn_definition
+                    #existing_add_temp_fn_definition
                 }
             }
         };
