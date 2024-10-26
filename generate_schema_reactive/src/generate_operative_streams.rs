@@ -299,7 +299,7 @@ pub(crate) fn generate_operative_streams(
             }
             impl ExistingBuilder<#struct_name, Schema >
             {
-                fn #field_setter_fn_name(mut self, new_val: #field_value_type) -> Self {
+                pub fn #field_setter_fn_name(mut self, new_val: #field_value_type) -> Self {
                     let value = new_val.into_primitive_value();
                     self.inner_builder.edit_field(#field_id, value);
                     Self {

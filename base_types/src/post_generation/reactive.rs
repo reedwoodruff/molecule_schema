@@ -207,6 +207,11 @@ impl<TSchema: EditRGSO + Send + Sync> RBaseGraphEnvironment<TSchema> {
                         );
                 });
             });
+        blueprint.field_updates.into_iter().for_each(|field_update| {
+            self.created_instances.with(|created_instances| {
+            created_instances.get(&field_update.0).unwrap().update_field(field_update.1);
+            });
+        });
         leptos::logging::log!("finished processing of blueprint");
     }
     fn push_undo(&self, blueprint: Blueprint<TSchema>) {
@@ -302,6 +307,7 @@ pub trait EditRGSO: RGSO {
     fn add_outgoing(&self, slot_ref: SlotRef) -> &Self;
     fn remove_outgoing(&self, slot_ref: &SlotRef) -> &Self;
     fn remove_incoming(&self, parent_id: &Uid, slot_id: Option<&Uid>) -> Vec<SlotRef>;
+    fn update_field(&self, field_edit: HistoryFieldEdit) -> &Self;
     fn get_graph(&self) -> &std::sync::Arc<RBaseGraphEnvironment<Self::Schema>>;
 }
 
@@ -451,6 +457,10 @@ impl<T, TSchema> RGSO for RGSOConcrete<T, TSchema> {
 }
 
 impl<T, TSchema> EditRGSO for RGSOConcrete<T, TSchema> {
+    fn update_field(&self, field_edit: HistoryFieldEdit) -> &Self {
+        self.fields.get(&field_edit.field_id).unwrap().set(field_edit.new_value);
+        self
+    }
     fn add_incoming(&self, slot_ref: SlotRef) -> &Self {
         self.incoming_slots.update(|incoming_slots| {
             incoming_slots.push(slot_ref.clone());
@@ -704,6 +714,8 @@ pub struct SubgraphBuilder<T: Clone + std::fmt::Debug, TSchema: 'static> {
         RwSignal<std::collections::HashSet<(BlueprintId, TempAddIncomingSlotRef)>>,
     pub temp_add_outgoing_updates:
         RwSignal<std::collections::HashSet<(BlueprintId, TempAddOutgoingSlotRef)>>,
+    // If I remember correctly, If there is a wip_instance, it means that this subgraphbuilder
+    // represents a new item (rather than an edit)
     pub wip_instance: Option<RGSOConcreteBuilder<T, TSchema>>,
     pub id: Uid,
     pub graph: std::sync::Arc<RBaseGraphEnvironment<TSchema>>,
@@ -827,13 +839,18 @@ where
                 (
                     temp_id,
                     id,
-                    // instantiable.lock().unwrap().get_temp_id().clone(),
-                    // *instantiable.lock().unwrap().get_id(),
                 )
             })
             .collect::<std::collections::HashMap<_, _>>();
 
         // Perform any incoming or outgoing updates for temporary ids
+        // To explain the process a bit, when a new node is created via a FreshBuilder, an
+        // instantiable is created representing that node, and that instantiable is carried along
+        // with the bundle of all instantiables through the whole subgraphbuilder process.
+        // When a user references a temp id somewhere else in the graph, the instantiable has to be
+        // updated to reflect whatever edge is created, but you can't be sure that the instantiable
+        // has actually been created yet because the user can reference the tempid at any point in
+        // the tree.
         let temp_incoming_execution_errors = self.temp_add_incoming_updates.with(|updates| {
             updates
                 .iter()
@@ -1198,13 +1215,21 @@ where
             }
         } else {
             self.field_updates.update(|prev| {
+                // TODO: It seems like there could be a better way to do this than looking up the
+                // value like this.
+                // At the very least, for ExistingBuilders which are entered into with `.edit()`,
+                // we would have access to the concrete node at the time of `ExistingBuilder` creation. 
+                // The difficulty comes in that ExistingBuilders are also created through the process
+                // of adding some outgoing node, in which case we'd only have the id and would still
+                // have to do the lookup like this at some point.
+                let prev_value = self.graph.get(self.get_id()).unwrap().fields().get(&field_id).unwrap().get();
                 prev.insert((
                     *self.get_id(),
                     HistoryFieldEdit {
                         instance_id: *self.get_id(),
                         field_id,
                         new_value: value,
-                        prev_value: PrimitiveValues::Bool(false),
+                        prev_value,
                     },
                 ));
             })

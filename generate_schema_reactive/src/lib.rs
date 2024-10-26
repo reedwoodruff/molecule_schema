@@ -685,6 +685,12 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                         // _ => panic!(),
                     }
                 }
+                fn update_field(& self, field_edit: base_types::post_generation::non_reactive::HistoryFieldEdit) ->  &Self {
+                    match self {
+                        #(Self::#all_lib_op_names(item) => {item.update_field(field_edit); self},)*
+                        // _ => panic!(),
+                    }
+                }
             }
         }
 
