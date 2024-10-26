@@ -1,10 +1,11 @@
-use std::{collections::HashMap, rc::Rc};
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use base_types::{
     common::{ConstraintTraits, Uid},
     primitives::PrimitiveTypes,
 };
-use leptos::*;
+use leptos::prelude::*;
 
 use crate::components::app::SchemaContext;
 use reactive_types::{
@@ -18,11 +19,11 @@ use reactive_types::{
 use super::app::TreeTypes;
 
 #[component]
-pub fn TreeView<F>(element: TreeRef, on_click_tree_data: Rc<F>) -> impl IntoView
+pub fn TreeView<F>(element: TreeRef, on_click_tree_data: Arc<F>) -> impl IntoView
 where
-    F: Fn(TreeNodeDataSelectionType, PrimitiveTypes, Rc<Vec<TreeRef>>) + 'static,
+    F: Send + Sync + Fn(TreeNodeDataSelectionType, PrimitiveTypes, Arc<Vec<TreeRef>>) + 'static,
 {
-    let path = Rc::new(Vec::new());
+    let path = Arc::new(Vec::new());
     view! { <TreeNode element=element path=path on_click_tree_data/> }
 }
 
@@ -103,11 +104,11 @@ fn get_tree_node_info<TTypes: ConstraintTraits, TValues: ConstraintTraits>(
 #[component]
 pub fn TreeNode<F>(
     element: TreeRef,
-    path: Rc<Vec<TreeRef>>,
-    on_click_tree_data: Rc<F>,
+    path: Arc<Vec<TreeRef>>,
+    on_click_tree_data: Arc<F>,
 ) -> impl IntoView
 where
-    F: Fn(TreeNodeDataSelectionType, PrimitiveTypes, Rc<Vec<TreeRef>>) + 'static,
+    F: Send + Sync + Fn(TreeNodeDataSelectionType, PrimitiveTypes, Arc<Vec<TreeRef>>) + 'static,
 {
     let ctx = use_context::<SchemaContext>().unwrap();
     let schema_clone = ctx.schema.clone();
@@ -151,7 +152,7 @@ where
         TreeTypes::TraitOperative(_) => {}
     }
     if ancestor_is_already_displayed {
-        return view! { <div class="tree-node-container container_slot_unfulfilled">Recursion Buster</div> }.into_view();
+        return view! { <div class="tree-node-container container_slot_unfulfilled">Recursion Buster</div> }.into_any();
     }
 
     let on_click_tree_data_1 = on_click_tree_data.clone();
@@ -216,7 +217,7 @@ where
     // let mut new_path = (*path).clone();
     let mut new_path = path.as_ref().clone();
     new_path.push(element_clone);
-    let new_path = Rc::new(new_path);
+    let new_path = Arc::new(new_path);
     let new_path_2 = new_path.clone();
     let new_path_3 = new_path.clone();
     let new_path_4 = new_path.clone();
@@ -350,7 +351,7 @@ where
                                 "unfulfilled"
                             }
                     };
-                    let related_instances_clone = Rc::new(child.related_instances.clone());
+                    let related_instances_clone = Arc::new(child.related_instances.clone());
                     let show_instances = move || { !child.related_instances.is_empty() };
                     view! {
                         <div>
@@ -391,7 +392,7 @@ where
                                                     let:instance
                                                 >
                                                     <div>
-                                                        {&schema_clone
+                                                        {schema_clone
                                                             .instance_library
                                                             .with(|instance_library| {
                                                                 instance_library
@@ -441,5 +442,5 @@ where
         // </For>
         </div>
     }
-    .into_view()
+    .into_any()
 }

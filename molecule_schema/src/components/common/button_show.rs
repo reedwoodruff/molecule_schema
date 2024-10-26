@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 
 #[component]
 pub fn ButtonShow(
@@ -17,7 +17,7 @@ pub fn ButtonShow(
                 let children = children.clone();
                 let hide_text = hide_text.clone();
                 view! {
-                    {children}
+                    {children()}
                     <br/>
                     <button on:click=move |_| showing.set(false)>{hide_text}</button>
                 }

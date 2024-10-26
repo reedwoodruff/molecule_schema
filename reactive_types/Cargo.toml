@@ -3,17 +3,12 @@ name = "reactive_types"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies.uuid]
-version = "1.4.1"
-features = [
-  "v4",                # Lets you generate random UUIDs
-  "fast-rng",          # Use a faster (but still sufficiently random) RNG
-  "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
-]
 
 [dependencies]
+uuid = {workspace = true}
 base_types = { path = "../base_types", features = ["serde"] }
-leptos = { version = "0.6", features = ["csr"] }
+# leptos = { version = "0.6", features = ["csr"] }
+leptos = {workspace = true}
 strum = "0.26.1"
 strum_macros = "0.26.1"
 # serde = { version = "1", features = ["derive"] }

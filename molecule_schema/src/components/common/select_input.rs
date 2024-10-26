@@ -1,9 +1,9 @@
 use std::{collections::HashMap, rc::Rc, str::FromStr};
 
-use leptos::{*};
+use leptos::prelude::*;
 
 #[component]
-pub fn SelectInput<K, V, F, I>(
+pub fn SelectInput<K: Send + Sync, V: Send + Sync, F, I: Send + Sync>(
     options: MaybeSignal<I>,
     on_select: F,
     #[prop(into)] value: Signal<K>,
@@ -17,7 +17,7 @@ where
 {
     // let cloned_options = options.into_iter().cloned().collect::<Vec<(K, V)>>();
     // let map: HashMap<K, V> = HashMap::from(options.into_iter().collect::<Vec<_>>());
-    let select_ref = create_node_ref();
+    let select_ref = NodeRef::new();
     let options2 = options.clone();
     let map = create_memo(move |_| {
         options.clone().with(|options| {
@@ -52,10 +52,10 @@ where
     };
 
     view! {
-        <select ref=select_ref value=cur_value on:change=on_change>
+        <select node_ref=select_ref prop:value=cur_value on:change=on_change>
             <For each=move || options2.get() key=move |item| item.0.clone() let:item>
                 <option value=item.1.clone().into() selected=value.get() == item.0>
-                    {item.1.into()}
+                    {item.1.clone().into()}
                 </option>
             </For>
         // {move || options.get().into_iter().map(|item| {
@@ -66,7 +66,7 @@ where
 }
 
 #[component]
-pub fn SelectInputOptional<K, V, F, I>(
+pub fn SelectInputOptional<K: Send + Sync, V: Send + Sync, F, I: Send + Sync>(
     options: MaybeSignal<I>,
     on_select: F,
     #[prop(into)] value: Signal<Option<K>>,
@@ -118,10 +118,10 @@ where
     };
 
     view! {
-        <select value=cur_value on:change=on_change>
+        <select  on:change=on_change prop:value=cur_value>
             <option value="NoneOption" id="NoneOption"></option>
             <For each=move || options2.get() key=move |item| item.0.clone() let:item>
-                <option value=item.1.clone().into()>{item.1.into()}</option>
+                <option value=item.1.clone().into()>{item.1.clone().into()}</option>
             </For>
         // {move || options.get().into_iter().map(|item| {
         // view!{<option value=item.1.clone().into()>{item.1.into()}</option>}
@@ -132,10 +132,11 @@ where
 
 use strum::IntoEnumIterator;
 #[component]
-pub fn SelectInputEnum<T>(value: RwSignal<T>) -> impl IntoView
+pub fn SelectInputEnum<T: Send + Sync>(value: RwSignal<T>) -> impl IntoView
 where
     T: IntoEnumIterator + FromStr + ToString + Default + std::fmt::Debug + Clone + 'static,
     <T as std::str::FromStr>::Err: std::fmt::Debug,
+    <T as IntoEnumIterator>::Iterator: Send,
 {
     let options = T::iter()
         .map(|item| (item.clone(), item.to_string()))
@@ -149,8 +150,13 @@ where
         }>
 
             <For each=move || T::iter() key=move |item| item.to_string() let:item>
+                {move || {
+                    let item = item.clone();
+                    let item2 = item.clone();
+                    view!{
                 <option selected=value.get().to_string()
-                    == item.to_string()>{move || item.to_string()}</option>
+                    == item2.to_string()>{move || item.to_string()}</option>
+                }}}
             </For>
         </select>
     }

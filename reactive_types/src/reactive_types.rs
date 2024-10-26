@@ -2,7 +2,7 @@ use base_types::common::{ConstraintTraits, Uid};
 use std::{collections::HashMap, marker::PhantomData};
 use strum_macros::{Display, EnumIter, EnumString};
 
-use leptos::signal_prelude::*;
+use leptos::prelude::*;
 
 pub trait RCSO<TTypes: ConstraintTraits, TValues: ConstraintTraits> {
     fn get_fields(&self) -> Vec<impl Tagged + FieldInfo<TTypes, TValues>>;

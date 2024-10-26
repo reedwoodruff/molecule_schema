@@ -7,9 +7,22 @@ members = [
     "base_types",
     "reactive_types",
     "to_composite_id_macro",
-    "molecule_core",
+    "molecule_core", "schema_editor",
 ]
 
+[workspace.dependencies]
+# leptos = {version = "0.7.0-rc0", features= ["csr"] }
+leptos = {git = "https://github.com/leptos-rs/leptos", branch="main", features=["csr"]}
+
+
+[workspace.dependencies.uuid]
+version = "1.4.1"
+features = [
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+    "js",
+]
 
 # [profile.dev]
 # debug = 0

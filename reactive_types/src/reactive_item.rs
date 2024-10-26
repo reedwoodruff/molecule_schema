@@ -1,4 +1,4 @@
-use leptos::*;
+use leptos::prelude::*;
 use std::collections::HashMap;
 
 use base_types::common::{ConstraintTraits, Uid};

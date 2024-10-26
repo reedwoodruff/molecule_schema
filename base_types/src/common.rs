@@ -70,7 +70,10 @@ impl Default for FuzzyEdgeDescriptor {
     }
 }
 
-pub trait ConstraintTraits: Clone + std::fmt::Debug + PartialEq + Default + 'static {}
+pub trait ConstraintTraits:
+    Clone + std::fmt::Debug + PartialEq + Default + Send + Sync + 'static
+{
+}
 
 pub type Uid = u128;
 

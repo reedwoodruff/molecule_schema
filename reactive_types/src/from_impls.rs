@@ -1,4 +1,4 @@
-use std::{marker::PhantomData};
+use std::marker::PhantomData;
 
 use crate::{
     reactive_types::{
@@ -8,7 +8,7 @@ use crate::{
     },
     ConstraintTraits,
 };
-use leptos::*;
+use leptos::prelude::*;
 
 use base_types::{
     common::Tag,
@@ -391,7 +391,7 @@ impl<TValues: ConstraintTraits> From<LockedFieldConstraint<TValues>>
     fn from(value: LockedFieldConstraint<TValues>) -> Self {
         Self {
             field_constraint_name: RwSignal::new(value.field_constraint_name),
-            field_constraint_id: value.field_constraint_id.into(),
+            field_constraint_id: RwSignal::new(value.field_constraint_id),
             value: RwSignal::new(value.value),
         }
     }

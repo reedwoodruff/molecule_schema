@@ -24,7 +24,9 @@
           },
           "operative_descriptor": {
             "TraitOperative": {
-              "trait_ids": [93168546465248228807499596125991586451],
+              "trait_ids": [
+                93168546465248228807499596125991586451
+              ],
               "tag": {
                 "name": "ModificationObject",
                 "id": 29959972273177009767621448173140725905
@@ -55,7 +57,9 @@
           },
           "operative_descriptor": {
             "TraitOperative": {
-              "trait_ids": [283747120068250942762595344741960292608],
+              "trait_ids": [
+                283747120068250942762595344741960292608
+              ],
               "tag": {
                 "name": "SemanticConstituent",
                 "id": 176512151827556597538108226238373105127
@@ -133,7 +137,9 @@
           },
           "operative_descriptor": {
             "TraitOperative": {
-              "trait_ids": [325142164841272513498577442273140036546],
+              "trait_ids": [
+                325142164841272513498577442273140036546
+              ],
               "tag": {
                 "name": "Assertion",
                 "id": 168327031348963471464365272739103186097
@@ -163,7 +169,9 @@
           },
           "operative_descriptor": {
             "TraitOperative": {
-              "trait_ids": [283747120068250942762595344741960292608],
+              "trait_ids": [
+                283747120068250942762595344741960292608
+              ],
               "tag": {
                 "name": "SemanticConstituent",
                 "id": 73444041365670597989732283965990766259
@@ -313,7 +321,9 @@
           },
           "operative_descriptor": {
             "TraitOperative": {
-              "trait_ids": [283747120068250942762595344741960292608],
+              "trait_ids": [
+                283747120068250942762595344741960292608
+              ],
               "tag": {
                 "name": "SemanticConstituent",
                 "id": 129203199168133215517970134110602359280
@@ -356,7 +366,9 @@
           },
           "operative_descriptor": {
             "TraitOperative": {
-              "trait_ids": [283747120068250942762595344741960292608],
+              "trait_ids": [
+                283747120068250942762595344741960292608
+              ],
               "tag": {
                 "name": "PrepositionConstituent",
                 "id": 45025376747464162284281970762745229380

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use leptos::*;
+use leptos::prelude::*;
 
 use base_types::common::{ConstraintTraits, Uid};
 

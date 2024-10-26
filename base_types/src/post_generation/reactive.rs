@@ -13,7 +13,7 @@ use crate::post_generation::{
     ElementCreationError, FieldEdit, HistoryFieldEdit, SlotRef, TaggedAction, Verifiable,
 };
 use crate::utils::IntoPrimitiveValue;
-use leptos::{RwSignal, *};
+use leptos::prelude::*;
 use std::{
     collections::{BTreeMap, HashMap},
     marker::PhantomData,
@@ -23,11 +23,14 @@ pub trait FromNonReactive<NTSchema>
 where
     Self: EditRGSO<Schema = Self>,
 {
-    fn from_non_reactive(value: NTSchema, graph: std::rc::Rc<RBaseGraphEnvironment<Self>>) -> Self;
+    fn from_non_reactive(
+        value: NTSchema,
+        graph: std::sync::Arc<RBaseGraphEnvironment<Self>>,
+    ) -> Self;
 }
 pub fn saturate_wrapper<T: Clone + std::fmt::Debug, RTSchema: EditRGSO<Schema = RTSchema>>(
     non_reactive: crate::post_generation::GSOConcrete<T>,
-    graph: std::rc::Rc<RBaseGraphEnvironment<RTSchema>>,
+    graph: std::sync::Arc<RBaseGraphEnvironment<RTSchema>>,
 ) -> RGSOConcrete<T, RTSchema> {
     RGSOConcrete::<T, RTSchema> {
         id: non_reactive.id,
@@ -121,16 +124,16 @@ pub struct RHistoryContainer<TSchema> {
 pub struct RBaseGraphEnvironment<TSchema: 'static> {
     pub created_instances: RwSignal<std::collections::HashMap<Uid, TSchema>>,
     pub constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
-    pub history: std::rc::Rc<std::cell::RefCell<RHistoryContainer<TSchema>>>,
+    pub history: std::sync::Arc<std::sync::Mutex<RHistoryContainer<TSchema>>>,
 }
-impl<TSchema> RBaseGraphEnvironment<TSchema> {
+impl<TSchema: Send + Sync> RBaseGraphEnvironment<TSchema> {
     pub fn new(
         constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
     ) -> Self {
         Self {
             created_instances: RwSignal::new(std::collections::HashMap::new()),
             constraint_schema,
-            history: std::rc::Rc::new(std::cell::RefCell::new(RHistoryContainer {
+            history: std::sync::Arc::new(std::sync::Mutex::new(RHistoryContainer {
                 undo: Vec::new(),
                 redo: Vec::new(),
             })),
@@ -141,84 +144,82 @@ impl<TSchema> RBaseGraphEnvironment<TSchema> {
     }
 }
 
-impl<TSchema: EditRGSO> RBaseGraphEnvironment<TSchema> {
+impl<TSchema: EditRGSO + Send + Sync> RBaseGraphEnvironment<TSchema> {
     fn process_blueprint(&self, blueprint: Blueprint<TSchema>) {
         leptos::logging::log!("starting processing of blueprint");
-        batch(|| {
-            blueprint.added_instances.into_iter().for_each(|instance| {
+        blueprint.added_instances.into_iter().for_each(|instance| {
+            self.created_instances.update(|prev| {
+                prev.insert(*instance.get_id(), instance);
+            });
+        });
+        blueprint
+            .deleted_instances
+            .into_iter()
+            .for_each(|instance| {
                 self.created_instances.update(|prev| {
-                    prev.insert(*instance.get_id(), instance);
+                    prev.remove(instance.get_id());
                 });
             });
-            blueprint
-                .deleted_instances
-                .into_iter()
-                .for_each(|instance| {
-                    self.created_instances.update(|prev| {
-                        prev.remove(instance.get_id());
-                    });
+        blueprint
+            .add_outgoing_updates
+            .into_iter()
+            .for_each(|add_outgoing| {
+                self.created_instances.with(|created_instances| {
+                    created_instances
+                        .get(&add_outgoing.0)
+                        .unwrap()
+                        .add_outgoing(add_outgoing.1);
                 });
-            blueprint
-                .add_outgoing_updates
-                .into_iter()
-                .for_each(|add_outgoing| {
-                    self.created_instances.with(|created_instances| {
-                        created_instances
-                            .get(&add_outgoing.0)
-                            .unwrap()
-                            .add_outgoing(add_outgoing.1);
-                    });
+            });
+        blueprint
+            .add_incoming_updates
+            .into_iter()
+            .for_each(|add_incoming| {
+                self.created_instances.with(|created_instances| {
+                    created_instances
+                        .get(&add_incoming.0)
+                        .unwrap()
+                        .add_incoming(add_incoming.1);
                 });
-            blueprint
-                .add_incoming_updates
-                .into_iter()
-                .for_each(|add_incoming| {
-                    self.created_instances.with(|created_instances| {
-                        created_instances
-                            .get(&add_incoming.0)
-                            .unwrap()
-                            .add_incoming(add_incoming.1);
-                    });
+            });
+        blueprint
+            .remove_outgoing_updates
+            .into_iter()
+            .for_each(|remove_outgoing| {
+                self.created_instances.with(|created_instances| {
+                    created_instances
+                        .get(&remove_outgoing.0)
+                        .unwrap()
+                        .remove_outgoing(&remove_outgoing.1);
                 });
-            blueprint
-                .remove_outgoing_updates
-                .into_iter()
-                .for_each(|remove_outgoing| {
-                    self.created_instances.with(|created_instances| {
-                        created_instances
-                            .get(&remove_outgoing.0)
-                            .unwrap()
-                            .remove_outgoing(&remove_outgoing.1);
-                    });
+            });
+        blueprint
+            .remove_incoming_updates
+            .into_iter()
+            .for_each(|remove_incoming| {
+                self.created_instances.with(|created_instances| {
+                    created_instances
+                        .get(&remove_incoming.0)
+                        .unwrap()
+                        .remove_incoming(
+                            &remove_incoming.1.host_instance_id,
+                            Some(&remove_incoming.1.slot_id),
+                        );
                 });
-            blueprint
-                .remove_incoming_updates
-                .into_iter()
-                .for_each(|remove_incoming| {
-                    self.created_instances.with(|created_instances| {
-                        created_instances
-                            .get(&remove_incoming.0)
-                            .unwrap()
-                            .remove_incoming(
-                                &remove_incoming.1.host_instance_id,
-                                Some(&remove_incoming.1.slot_id),
-                            );
-                    });
-                });
-        });
+            });
         leptos::logging::log!("finished processing of blueprint");
     }
     fn push_undo(&self, blueprint: Blueprint<TSchema>) {
-        self.history.as_ref().borrow_mut().undo.push(blueprint);
+        self.history.as_ref().lock().unwrap().undo.push(blueprint);
     }
     fn push_redo(&self, blueprint: Blueprint<TSchema>) {
-        self.history.as_ref().borrow_mut().redo.push(blueprint);
+        self.history.as_ref().lock().unwrap().redo.push(blueprint);
     }
     fn clear_redo(&self) {
-        self.history.as_ref().borrow_mut().redo.clear();
+        self.history.as_ref().lock().unwrap().redo.clear();
     }
 }
-impl<TSchema: EditRGSO> RGraphEnvironment for RBaseGraphEnvironment<TSchema> {
+impl<TSchema: EditRGSO + Send + Sync> RGraphEnvironment for RBaseGraphEnvironment<TSchema> {
     type Schema = TSchema;
     type Types = PrimitiveTypes;
     type Values = PrimitiveValues;
@@ -235,7 +236,7 @@ impl<TSchema: EditRGSO> RGraphEnvironment for RBaseGraphEnvironment<TSchema> {
     }
 
     fn undo(&self) {
-        let undo_item = self.history.as_ref().borrow_mut().undo.pop();
+        let undo_item = self.history.as_ref().lock().unwrap().undo.pop();
         if undo_item.is_none() {
             return;
         }
@@ -246,7 +247,7 @@ impl<TSchema: EditRGSO> RGraphEnvironment for RBaseGraphEnvironment<TSchema> {
     }
 
     fn redo(&self) {
-        let redo_item = self.history.as_ref().borrow_mut().redo.pop();
+        let redo_item = self.history.as_ref().lock().unwrap().redo.pop();
         if redo_item.is_none() {
             return;
         }
@@ -301,7 +302,7 @@ pub trait EditRGSO: RGSO {
     fn add_outgoing(&self, slot_ref: SlotRef) -> &Self;
     fn remove_outgoing(&self, slot_ref: &SlotRef) -> &Self;
     fn remove_incoming(&self, parent_id: &Uid, slot_id: Option<&Uid>) -> Vec<SlotRef>;
-    fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>;
+    fn get_graph(&self) -> &std::sync::Arc<RBaseGraphEnvironment<Self::Schema>>;
 }
 
 pub trait Slotted {}
@@ -361,7 +362,7 @@ impl RActiveSlot {
 pub struct RGSOConcrete<T, TSchema: 'static> {
     id: Uid,
     pub fields: std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>,
-    graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
+    graph: std::sync::Arc<RBaseGraphEnvironment<TSchema>>,
     outgoing_slots: std::collections::BTreeMap<Uid, RActiveSlot>,
     incoming_slots: RwSignal<Vec<SlotRef>>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
@@ -501,7 +502,7 @@ impl<T, TSchema> EditRGSO for RGSOConcrete<T, TSchema> {
             });
         self
     }
-    fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<Self::Schema>> {
+    fn get_graph(&self) -> &std::sync::Arc<RBaseGraphEnvironment<Self::Schema>> {
         &self.graph
     }
 }
@@ -513,7 +514,7 @@ pub struct RGSOConcreteBuilder<T, TSchema: 'static> {
     pub data: std::collections::HashMap<Uid, RwSignal<Option<RwSignal<PrimitiveValues>>>>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
     template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
-    graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
+    graph: std::sync::Arc<RBaseGraphEnvironment<TSchema>>,
     temp_id: String,
     _phantom: std::marker::PhantomData<T>,
 }
@@ -524,7 +525,7 @@ impl<T, TSchema> RGSOConcreteBuilder<T, TSchema> {
         slots: Option<std::collections::BTreeMap<Uid, RActiveSlot>>,
         operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
         template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
-        graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
+        graph: std::sync::Arc<RBaseGraphEnvironment<TSchema>>,
     ) -> Self {
         Self {
             id: uuid::Uuid::new_v4().as_u128(),
@@ -616,16 +617,16 @@ where
     type Schema;
 
     fn initiate_build(
-        graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>,
+        graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Self::Schema>>>,
     ) -> SubgraphBuilder<Self, Self::Schema>;
     fn initiate_edit(
         id: Uid,
-        graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>,
+        graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Self::Schema>>>,
     ) -> SubgraphBuilder<Self, Self::Schema>;
     fn get_operative_id() -> Uid;
 }
 
-trait RInstantiable {
+trait RInstantiable: Send + Sync {
     type Schema;
 
     fn instantiate(&self) -> Result<Self::Schema, crate::post_generation::ElementCreationError>;
@@ -635,7 +636,7 @@ trait RInstantiable {
     fn add_incoming(&mut self, host_id: &Uid, slot_id: &Uid);
     fn add_outgoing(&mut self, target_id: &Uid, slot_id: &Uid);
 }
-type RInstantiableElements<TSchema> = Vec<std::rc::Rc<dyn RInstantiable<Schema = TSchema>>>;
+type RInstantiableElements<TSchema> = Vec<std::sync::Arc<dyn RInstantiable<Schema = TSchema>>>;
 
 #[derive(Clone, Debug)]
 pub struct Blueprint<TSchema> {
@@ -690,7 +691,7 @@ impl ExecutionResult {
 #[derive(Debug, Clone)]
 pub struct SubgraphBuilder<T: Clone + std::fmt::Debug, TSchema: 'static> {
     pub instantiables:
-        RwSignal<Vec<std::rc::Rc<std::cell::RefCell<dyn RInstantiable<Schema = TSchema>>>>>,
+        RwSignal<Vec<std::sync::Arc<std::sync::Mutex<dyn RInstantiable<Schema = TSchema>>>>>,
     pub cumulative_errors: RwSignal<std::vec::Vec<ElementCreationError>>,
     pub add_outgoing_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
     pub add_incoming_updates: RwSignal<std::collections::HashSet<(Uid, SlotRef)>>,
@@ -705,11 +706,11 @@ pub struct SubgraphBuilder<T: Clone + std::fmt::Debug, TSchema: 'static> {
         RwSignal<std::collections::HashSet<(BlueprintId, TempAddOutgoingSlotRef)>>,
     pub wip_instance: Option<RGSOConcreteBuilder<T, TSchema>>,
     pub id: Uid,
-    pub graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
+    pub graph: std::sync::Arc<RBaseGraphEnvironment<TSchema>>,
     pub _phantom: std::marker::PhantomData<T>,
 }
 
-impl<T, TSchema: EditRGSO> SubgraphBuilder<T, TSchema>
+impl<T: Send + Sync, TSchema: EditRGSO + Send + Sync> SubgraphBuilder<T, TSchema>
 where
     RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
     T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
@@ -728,7 +729,9 @@ where
         graph.process_blueprint(blueprint);
         Ok(execution_result)
     }
-    pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
+    pub fn incorporate<
+        C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Send + Sync,
+    >(
         &mut self,
         other_builder: &SubgraphBuilder<C, TSchema>,
     ) {
@@ -747,7 +750,7 @@ where
         self.instantiables.update(|prev| {
             prev.extend(other_builder.instantiables.get());
             if let Some(inner) = other_builder.wip_instance.clone() {
-                prev.push(std::rc::Rc::new(std::cell::RefCell::new(inner)));
+                prev.push(std::sync::Arc::new(std::sync::Mutex::new(inner)));
             }
         });
         self.deleted_instances.update(|prev| {
@@ -811,15 +814,21 @@ where
         let mut all_errors = self.cumulative_errors.get();
         let mut new_instantiables = self.instantiables.get();
         if let Some(instance) = &self.wip_instance {
-            new_instantiables.push(std::rc::Rc::new(std::cell::RefCell::new(instance.clone())));
+            new_instantiables.push(std::sync::Arc::new(std::sync::Mutex::new(instance.clone())));
         }
 
         let temp_id_map = new_instantiables
             .iter()
             .map(|instantiable| {
+                let (id, temp_id) = {
+                    let lock = instantiable.lock().unwrap();
+                    (lock.get_id().clone(), lock.get_temp_id().clone())
+                };
                 (
-                    instantiable.borrow().get_temp_id().clone(),
-                    *instantiable.borrow().get_id(),
+                    temp_id,
+                    id,
+                    // instantiable.lock().unwrap().get_temp_id().clone(),
+                    // *instantiable.lock().unwrap().get_id(),
                 )
             })
             .collect::<std::collections::HashMap<_, _>>();
@@ -855,13 +864,15 @@ where
                             });
                         }
                         BlueprintId::Temporary(temp_id) => {
-                            if let Some(instantiable) = new_instantiables
-                                .iter_mut()
-                                .find(|instantiable| instantiable.borrow().get_temp_id() == temp_id)
+                            if let Some(instantiable) =
+                                new_instantiables.iter_mut().find(|instantiable| {
+                                    instantiable.lock().unwrap().get_temp_id() == temp_id
+                                })
                             {
                                 instantiable
                                     .as_ref()
-                                    .borrow_mut()
+                                    .lock()
+                                    .unwrap()
                                     .add_incoming(&final_host_id, &update.1.slot_id);
                             }
                         }
@@ -904,13 +915,15 @@ where
                             });
                         }
                         BlueprintId::Temporary(temp_id) => {
-                            if let Some(instantiable) = new_instantiables
-                                .iter_mut()
-                                .find(|instantiable| instantiable.borrow().get_temp_id() == temp_id)
+                            if let Some(instantiable) =
+                                new_instantiables.iter_mut().find(|instantiable| {
+                                    instantiable.lock().unwrap().get_temp_id() == temp_id
+                                })
                             {
                                 instantiable
                                     .as_ref()
-                                    .borrow_mut()
+                                    .lock()
+                                    .unwrap()
                                     .add_outgoing(&final_target_id, &update.1.slot_id);
                             }
                         }
@@ -1030,7 +1043,7 @@ where
         let (instantiated_elements, instantiation_errors) = new_instantiables.iter().fold(
             (Vec::with_capacity(new_instantiables.len()), Vec::new()),
             |mut agg, el| {
-                match el.borrow().instantiate() {
+                match el.lock().unwrap().instantiate() {
                     Ok(instance) => agg.0.push(instance),
                     Err(error) => agg.1.push(error),
                 }
@@ -1057,13 +1070,13 @@ where
             ExecutionResult { temp_id_map },
         ))
     }
-    pub fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<TSchema>> {
+    pub fn get_graph(&self) -> &std::sync::Arc<RBaseGraphEnvironment<TSchema>> {
         &self.graph
     }
     pub fn new(
         builder_wrapper_instance: Option<RGSOConcreteBuilder<T, TSchema>>,
         id: Uid,
-        graph: std::rc::Rc<RBaseGraphEnvironment<TSchema>>,
+        graph: std::sync::Arc<RBaseGraphEnvironment<TSchema>>,
     ) -> Self {
         Self {
             graph,
@@ -1093,7 +1106,9 @@ where
             prev.insert((slot_ref.target_instance_id, slot_ref));
         });
     }
-    pub fn add_outgoing<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
+    pub fn add_outgoing<
+        C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Send + Sync,
+    >(
         &mut self,
         slot_id: &Uid,
         // BlueprintId in this case meaning that:
@@ -1152,7 +1167,9 @@ where
             prev.insert((slot_ref.target_instance_id, slot_ref));
         });
     }
-    pub fn add_incoming<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(
+    pub fn add_incoming<
+        C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Send + Sync,
+    >(
         &mut self,
         slot_ref: SlotRef,
         instantiable: Option<SubgraphBuilder<C, TSchema>>,
@@ -1255,7 +1272,8 @@ where
     }
 }
 
-impl<T, TSchema: 'static> RInstantiable for RGSOConcreteBuilder<T, TSchema>
+impl<T: Send + Sync, TSchema: Send + Sync + 'static> RInstantiable
+    for RGSOConcreteBuilder<T, TSchema>
 where
     T: RIntoSchema<Schema = TSchema> + 'static,
 {
@@ -1323,36 +1341,41 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub struct SharedGraph<TSchema: 'static>(std::rc::Rc<RBaseGraphEnvironment<TSchema>>);
-impl<TSchema> From<std::rc::Rc<RBaseGraphEnvironment<TSchema>>> for SharedGraph<TSchema> {
-    fn from(value: std::rc::Rc<RBaseGraphEnvironment<TSchema>>) -> SharedGraph<TSchema> {
+pub struct SharedGraph<TSchema: 'static>(std::sync::Arc<RBaseGraphEnvironment<TSchema>>);
+impl<TSchema> From<std::sync::Arc<RBaseGraphEnvironment<TSchema>>> for SharedGraph<TSchema> {
+    fn from(value: std::sync::Arc<RBaseGraphEnvironment<TSchema>>) -> SharedGraph<TSchema> {
         SharedGraph(value)
     }
 }
-impl<TSchema> From<SharedGraph<TSchema>> for std::rc::Rc<RBaseGraphEnvironment<TSchema>> {
-    fn from(value: SharedGraph<TSchema>) -> std::rc::Rc<RBaseGraphEnvironment<TSchema>> {
+impl<TSchema> From<SharedGraph<TSchema>> for std::sync::Arc<RBaseGraphEnvironment<TSchema>> {
+    fn from(value: SharedGraph<TSchema>) -> std::sync::Arc<RBaseGraphEnvironment<TSchema>> {
         value.0
     }
 }
 impl<TSchema> std::ops::Deref for SharedGraph<TSchema> {
-    type Target = std::rc::Rc<RBaseGraphEnvironment<TSchema>>;
+    type Target = std::sync::Arc<RBaseGraphEnvironment<TSchema>>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
     }
 }
 mod from_reactive {
-    use std::{cell::RefCell, collections::HashMap, rc::Rc};
+    use std::{
+        cell::RefCell,
+        collections::HashMap,
+        sync::{Arc, Mutex},
+    };
 
     use super::SharedGraph;
     use crate::post_generation::{BaseGraphEnvironment, GSOConcrete};
-    use leptos::*;
+    use leptos::prelude::*;
 
     use super::{
         EditRGSO, FromNonReactive, RActiveSlot, RBaseGraphEnvironment, RGSOConcrete,
         RHistoryContainer, RGSO,
     };
-    impl<RTSchema, TSchema> From<SharedGraph<RTSchema>> for BaseGraphEnvironment<TSchema>
+    impl<RTSchema: Send + Sync, TSchema: Send + Sync> From<SharedGraph<RTSchema>>
+        for BaseGraphEnvironment<TSchema>
     where
         RTSchema: Into<TSchema> + Clone,
     {
@@ -1369,7 +1392,8 @@ mod from_reactive {
             }
         }
     }
-    impl<RTSchema, TSchema> From<BaseGraphEnvironment<TSchema>> for SharedGraph<RTSchema>
+    impl<RTSchema: Send + Sync, TSchema: Send + Sync> From<BaseGraphEnvironment<TSchema>>
+        for SharedGraph<RTSchema>
     where
         RTSchema: FromNonReactive<TSchema>,
     {
@@ -1377,12 +1401,12 @@ mod from_reactive {
             let new_graph = RBaseGraphEnvironment::<RTSchema> {
                 created_instances: RwSignal::new(HashMap::new()),
                 constraint_schema: value.constraint_schema,
-                history: Rc::new(RefCell::new(RHistoryContainer {
+                history: Arc::new(Mutex::new(RHistoryContainer {
                     undo: vec![],
                     redo: vec![],
                 })),
             };
-            let rc_graph = Rc::new(new_graph);
+            let rc_graph = Arc::new(new_graph);
             let members = value.created_instances.into_iter().map(|(id, val)| {
                 (
                     id,

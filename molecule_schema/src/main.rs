@@ -2,11 +2,11 @@ use base_types::{
     constraint_schema::ConstraintSchema,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
-use leptos::*;
+use leptos::prelude::*;
 use molecule_schema::components::app::App;
 
 pub fn main() {
-    let data = include_str!("../../resources/schema.json");
+    let data = include_str!("../../resources/recursive_schema.json");
 
     let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
         serde_json::from_str::<ConstraintSchema<PrimitiveTypes, PrimitiveValues>>(data)

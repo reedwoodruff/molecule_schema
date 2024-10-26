@@ -1,6 +1,6 @@
 use base_types::common::Uid;
 use base_types::primitives::PrimitiveTypes;
-use leptos::*;
+use leptos::prelude::*;
 
 use crate::components::{
     app::SchemaContext,

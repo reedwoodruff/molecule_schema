@@ -1,5 +1,6 @@
-use leptos::{logging::log, *};
-use std::{collections::HashMap, rc::Rc};
+use leptos::prelude::*;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 use base_types::{
     common::Uid,
@@ -22,7 +23,7 @@ use reactive_types::{
 pub fn EditOperative(element: TreeRef) -> impl IntoView {
     let ctx = use_context::<SchemaContext>().unwrap();
 
-    let schema_clone = Rc::new(ctx.schema);
+    let schema_clone = Arc::new(ctx.schema);
     let schema_clone_2 = schema_clone.clone();
     let schema_clone_3 = schema_clone.clone();
     let schema_clone_4 = schema_clone.clone();
@@ -163,10 +164,10 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
         ),
     >::new());
 
-    let on_click_tree_data = Rc::new(
+    let on_click_tree_data = Arc::new(
         move |last_item: TreeNodeDataSelectionType,
               data_type: PrimitiveTypes,
-              path: Rc<Vec<TreeRef>>| {
+              path: Arc<Vec<TreeRef>>| {
             if let Some(method_id) = selecting_trait_impl_path.get() {
                 let entry = active_trait_impl_method_paths
                     .get()
@@ -446,7 +447,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                         <TextInput value=value/>
 
                                         <button on:click=move |e| {
-                                            on_click_lock.call(e)
+                                            on_click_lock.run(e)
                                         }>Lock</button>
                                     }
                                 }

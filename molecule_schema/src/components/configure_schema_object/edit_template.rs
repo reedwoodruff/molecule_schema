@@ -1,11 +1,11 @@
-use std::{collections::HashMap, rc::Rc};
+use std::{collections::HashMap, sync::Arc};
 
 use base_types::{
     common::Uid,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
-use leptos::{logging::log, *};
-use web_sys::MouseEvent;
+use leptos::prelude::*;
+use leptos::web_sys::MouseEvent;
 
 use crate::components::{
     app::{SchemaContext, TreeTypes},
@@ -239,10 +239,10 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         ),
     >::new());
 
-    let on_click_tree_data = Rc::new(
+    let on_click_tree_data = Arc::new(
         move |last_item: TreeNodeDataSelectionType,
               data_type: PrimitiveTypes,
-              path: Rc<Vec<TreeRef>>| {
+              path: Arc<Vec<TreeRef>>| {
             if let Some(method_id) = selecting_trait_impl_path.get() {
                 let entry = active_trait_impl_method_paths
                     .get()
@@ -492,13 +492,13 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                 view! {
                                     Lower bound:
                                     <NumberInput2 value=val/>
-                                }
+                                }.into_any()
                             }
                             RSlotBounds::UpperBound(val) => {
                                 view! {
                                     Upper bound:
                                     <NumberInput2 value=val/>
-                                }
+                                }.into_any()
                             }
                             RSlotBounds::Range(lower_range, upper_range) => {
                                 view! {
@@ -508,13 +508,13 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                     Upper range:
                                     <NumberInput2 value=upper_range/>
                                     <br/>
-                                }
+                                }.into_any()
                             }
                             RSlotBounds::LowerBoundOrZero(val) => {
                                 view! {
                                     Lower bound:
                                     <NumberInput2 value=val/>
-                                }
+                                }.into_any()
                             }
                             RSlotBounds::RangeOrZero(lower_range, upper_range) => {
                                 view! {
@@ -524,9 +524,9 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                     Upper range:
                                     <NumberInput2 value=upper_range/>
                                     <br/>
-                                }
+                                }.into_any()
                             }
-                            _ => view! { <>Single</> },
+                            _ => view! { <>Single</> }.into_any(),
                         }}
                         <br/>
 
@@ -541,7 +541,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     let casted_options = <Memo<
                         Vec<(u128, std::string::String)>,
                     > as Into<
-                        leptos::MaybeSignal<Vec<(u128, std::string::String)>>,
+                        MaybeSignal<Vec<(u128, std::string::String)>>,
                     >>::into(select_operative_options);
                     view! {
                         <TypedSelectInputOperativeSelection
@@ -568,7 +568,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     let casted_options = <Memo<
                         Vec<(u128, std::string::String)>,
                     > as Into<
-                        leptos::MaybeSignal<Vec<(u128, std::string::String)>>,
+                        MaybeSignal<Vec<(u128, std::string::String)>>,
                     >>::into(select_trait_operative_options);
                     view! {
                         <TypedSelectInputTraitOperativeSelection

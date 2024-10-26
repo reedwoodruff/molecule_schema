@@ -78,7 +78,7 @@ pub(crate) fn generate_operative_streams(
                     .collect::<Vec<_>>();
             quote! {RActiveSlot {
                 slot: &CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap().operative_slots.get(&#slot_id).unwrap(),
-                slotted_instances: leptos::RwSignal::new(vec![#(#slotted_instances,)*]),
+                slotted_instances: leptos::prelude::RwSignal::new(vec![#(#slotted_instances,)*]),
             }}
         })
         .collect::<Vec<_>>();
@@ -483,7 +483,7 @@ pub(crate) fn generate_operative_streams(
                             -> FreshBuilder<T, Schema, <T as StaticTypestate>::FulfilledFieldTypestate, SlotsTSInnerSecondary>
                     ) -> #return_type_after_adding
                     where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS,
-                        T: StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
+                        T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
                     {
                         let mut new_builder = FreshBuilder {
                             inner_builder: #single_item_variant_name::initiate_build(self.inner_builder.get_graph().clone()),
@@ -550,7 +550,7 @@ pub(crate) fn generate_operative_streams(
                             -> FreshBuilder<T, Schema, <T as StaticTypestate>::FulfilledFieldTypestate, SlotsTSInnerSecondary>
                     ) -> Self
                     where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS,
-                        T: StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
+                        T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
                     {
                         let mut new_builder = FreshBuilder {
                             inner_builder: #single_item_variant_name::initiate_build(self.inner_builder.get_graph().clone()),
@@ -610,7 +610,7 @@ pub(crate) fn generate_operative_streams(
             } else {
                 quote!{
                     fn #add_existing_and_edit_fn_name
-                        <T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>
+                        <T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name + Send + Sync>
                     (mut self,
                         existing_item_id: &Uid,
                         builder_closure: impl Fn(ExistingBuilder<T, Schema>)
@@ -630,7 +630,7 @@ pub(crate) fn generate_operative_streams(
             } else {
                 quote!{
                     fn #add_existing_and_edit_fn_name
-                        <T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name>
+                        <T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name + Send + Sync>
                     (mut self,
                         existing_item_id: &Uid,
                         builder_closure: impl Fn(ExistingBuilder<T, Schema>)
@@ -692,7 +692,7 @@ pub(crate) fn generate_operative_streams(
                         existing_item_id: impl Into<BlueprintId>,
                     ) -> #return_type_after_adding
                     where
-                        T: StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
+                        T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
                     {
                         let existing_item_blueprint_id: BlueprintId = existing_item_id.into();
                         match &existing_item_blueprint_id {
@@ -773,7 +773,7 @@ pub(crate) fn generate_operative_streams(
                         existing_item_id: impl Into<BlueprintId>,
                     ) -> Self
                     where
-                    T: StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
+                    T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
                     {
                         let existing_item_blueprint_id: BlueprintId = existing_item_id.into();
                         match &existing_item_blueprint_id {
@@ -1047,7 +1047,7 @@ pub(crate) fn generate_operative_streams(
         }
 
         impl #struct_name {
-            pub fn new(graph:impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> FreshBuilder<#struct_name, Schema, <#struct_name as StaticTypestate>::EmptyFieldTypestate, <#struct_name as StaticTypestate>::InitialSlotTypestate> {
+            pub fn new(graph:impl Into<std::sync::Arc<RBaseGraphEnvironment<Schema>>>) -> FreshBuilder<#struct_name, Schema, <#struct_name as StaticTypestate>::EmptyFieldTypestate, <#struct_name as StaticTypestate>::InitialSlotTypestate> {
                 FreshBuilder {
                     inner_builder: #struct_name::initiate_build(graph.into()),
                     _fields_typestate: std::marker::PhantomData,
@@ -1058,10 +1058,10 @@ pub(crate) fn generate_operative_streams(
 
 
         pub trait #edit_rgso_trait_name {
-            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> ExistingBuilder<#struct_name, Schema> ;
+            fn edit(&self, graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Schema>>>) -> ExistingBuilder<#struct_name, Schema> ;
         }
         impl #edit_rgso_trait_name for RGSOConcrete<#struct_name, Schema> {
-            fn edit(&self, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Schema>>>) -> ExistingBuilder<#struct_name, Schema> {
+            fn edit(&self, graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Schema>>>) -> ExistingBuilder<#struct_name, Schema> {
                 ExistingBuilder {
                     inner_builder: #struct_name::initiate_edit(*self.get_id(), graph.into()),
                 }
@@ -1070,13 +1070,13 @@ pub(crate) fn generate_operative_streams(
         impl RBuildable for #struct_name {
             type Schema = Schema;
 
-            fn initiate_build(graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>) -> SubgraphBuilder<#struct_name, Schema> {
+            fn initiate_build(graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Self::Schema>>>) -> SubgraphBuilder<#struct_name, Schema> {
                 let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
                 let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
                 #[allow(unused_mut)]
                 let mut field_hashmap = std::collections::HashMap::new();
                 #(field_hashmap.insert(#unfulfilled_field_ids, RwSignal::new(None));)*
-                let graph: std::rc::Rc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
+                let graph: std::sync::Arc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
                 let wrapper_builder = RGSOConcreteBuilder::new(
                             field_hashmap,
                             #active_slot_tokens,
@@ -1091,8 +1091,8 @@ pub(crate) fn generate_operative_streams(
                         graph,
                     )
             }
-            fn initiate_edit(id: base_types::common::Uid, graph: impl Into<std::rc::Rc<RBaseGraphEnvironment<Self::Schema>>>) -> SubgraphBuilder<#struct_name, Schema> {
-                let graph: std::rc::Rc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
+            fn initiate_edit(id: base_types::common::Uid, graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Self::Schema>>>) -> SubgraphBuilder<#struct_name, Schema> {
+                let graph: std::sync::Arc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
                 SubgraphBuilder::<#struct_name, Schema>::new(
                         None,
                         id,

@@ -8,15 +8,9 @@ serde = ["serde/derive", "serde/rc", "serde_json"]
 to_tokens = ["proc-macro2", "quote"]
 # reactive = ["leptos"]
 
-[dependencies.uuid]
-version = "1.4.1"
-features = [
-    "v4",                # Lets you generate random UUIDs
-    "fast-rng",          # Use a faster (but still sufficiently random) RNG
-    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
-]
 
 [dependencies]
+uuid = {workspace = true}
 serde = { version = "1", features = [
     "derive",
     "rc",
@@ -27,7 +21,8 @@ strum_macros = "0.26.1"
 # anyhow = "1.0"
 quote = { version = "1.0", optional = true }
 proc-macro2 = { version = "1.0", optional = true }
-leptos = { version = "0.6", features = ["csr"] }
+# leptos = { version = "0.6", features = ["csr"] }
+leptos = {workspace = true}
 typenum = "1"
 to_composite_id_macro = { path = "../to_composite_id_macro" }
 molecule_core = { path = "../molecule_core" }

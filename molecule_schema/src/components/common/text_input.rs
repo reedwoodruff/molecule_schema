@@ -1,4 +1,4 @@
-use leptos::{*};
+use leptos::{attr::AttributeValue, prelude::*};
 
 #[component]
 pub fn TextInput(
@@ -12,7 +12,8 @@ pub fn TextInput(
 #[component]
 pub fn NumberInput2<T>(value: RwSignal<T>) -> impl IntoView
 where
-    T: Into<usize> + std::str::FromStr + Clone + IntoAttribute + 'static,
+    T: Into<usize> + std::str::FromStr + Clone + AttributeValue + 'static + Send + Sync,
+    leptos::prelude::RwSignal<T>: AttributeValue,
 {
     view! {
         <input

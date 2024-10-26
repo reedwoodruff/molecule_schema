@@ -90,13 +90,13 @@ fn impl_RGSO_for_enum(enum_name: TokenStream, members: Vec<syn::Ident>) -> Token
                     // _ => panic!(),
                 }
             }
-            fn incoming_slots(&self) -> leptos::RwSignal<Vec<base_types::post_generation::SlotRef>>{
+            fn incoming_slots(&self) -> leptos::prelude::RwSignal<Vec<base_types::post_generation::SlotRef>>{
                 match self {
                     #(Self::#members(item) => item.incoming_slots(),)*
                     // _ => panic!(),
                 }
             }
-            fn fields(&self) -> &std::collections::HashMap<base_types::common::Uid, leptos::RwSignal<PrimitiveValues>>{
+            fn fields(&self) -> &std::collections::HashMap<base_types::common::Uid, leptos::prelude::RwSignal<PrimitiveValues>>{
                 match self {
                     #(Self::#members(item) => item.fields(),)*
                     // _ => panic!(),
@@ -510,7 +510,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         pub use base_types::post_generation::reactive::*;
         pub use base_types::post_generation::*;
         pub use base_types::primitives::*;
-        pub use leptos::*;
+        pub use leptos::prelude::*;
         use typenum::*;
         use base_types::utils::*;
 
@@ -522,7 +522,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         pub trait Incorporatable<T: std::clone::Clone + std::fmt::Debug, TSchema> {
             fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema>;
         }
-        impl <T: std::clone::Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema> + 'static> Incorporatable<T, TSchema> for ExistingBuilder<T, TSchema> {
+        impl <T: std::clone::Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema> + 'static> Incorporatable<T, TSchema> for ExistingBuilder<T, TSchema>
+            where T: Send + Sync
+            {
             fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema> {
                 self.inner_builder
             }
@@ -530,7 +532,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         impl <T: std::clone::Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>  +'static, FieldsTS, SlotsTS> Incorporatable<T, TSchema> for FreshBuilder<T, TSchema, FieldsTS, SlotsTS>
             where
                 RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
-                T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
+                T: Send + Sync + RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
             {
                 fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema> {
                     self.inner_builder
@@ -555,8 +557,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         }
         impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static> ExistingBuilder<T, TSchema>
         where
+            TSchema: Send + Sync,
             RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
-            T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
+            T: Send + Sync + RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
         {
             pub fn get_id(&self) -> &Uid {
                 self.inner_builder.get_id()
@@ -564,7 +567,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             pub fn execute(&self) -> Result<ExecutionResult, ElementCreationError> {
                 self.inner_builder.execute()
             }
-            pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(&mut self, other_builder: impl Incorporatable<C, TSchema>) {
+            pub fn incorporate<C: Send + Sync + std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(&mut self, other_builder: impl Incorporatable<C, TSchema>) {
                 self.inner_builder.incorporate(&other_builder.get_inner_builder())
             }
             pub fn set_temp_id(mut self, temp_id: &str) -> Self {
@@ -574,8 +577,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         }
         impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static, FieldsTS, SlotsTS> FreshBuilder<T, TSchema, FieldsTS, SlotsTS>
             where
+                TSchema: Send + Sync,
                 RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
-                T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
+                T: Send + Sync + RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
             {
             pub fn get_id(&self) -> &Uid {
                 self.inner_builder.get_id()
@@ -583,7 +587,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             pub fn execute(&self) -> Result<ExecutionResult, ElementCreationError> {
                 self.inner_builder.execute()
             }
-            pub fn incorporate<C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(&mut self, other_builder: impl Incorporatable<C, TSchema>) {
+            pub fn incorporate<C: Send + Sync + std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(&mut self, other_builder: impl Incorporatable<C, TSchema>) {
                 self.inner_builder.incorporate(&other_builder.get_inner_builder())
             }
 
@@ -601,7 +605,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         #(#slot_trait_enums_stream)*
         #(#trait_definition_streams)*
 
-        fn validate_signal_is_some<T>(signal: &leptos::RwSignal<Option<T>>) -> Result<(), base_types::post_generation::ElementCreationError> {
+        fn validate_signal_is_some<T: Send + Sync + 'static>(signal: &leptos::prelude::RwSignal<Option<T>>) -> Result<(), base_types::post_generation::ElementCreationError> {
             signal.with(|val| {if val.is_some() {return Ok(())} return Err(ElementCreationError::RequiredFieldIsEmpty);})
         }
 
@@ -629,7 +633,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             }
         }
         impl FromNonReactive<NonReactiveSchema> for Schema {
-            fn from_non_reactive(value: NonReactiveSchema, graph: std::rc::Rc<RBaseGraphEnvironment<Schema>>) -> Self {
+            fn from_non_reactive(value: NonReactiveSchema, graph: std::sync::Arc<RBaseGraphEnvironment<Schema>>) -> Self {
                 match value {
                     #(NonReactiveSchema::#all_lib_op_names(val) => Schema::#all_lib_op_names(saturate_wrapper(val,graph)),)*
                 }
@@ -663,7 +667,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                         // _ => panic!(),
                     }
                 }
-                fn get_graph(&self) -> &std::rc::Rc<RBaseGraphEnvironment<Schema>> {
+                fn get_graph(&self) -> &std::sync::Arc<RBaseGraphEnvironment<Schema>> {
                     match self {
                         #(Self::#all_lib_op_names(item) => item.get_graph(),)*
                         // _ => panic!(),
