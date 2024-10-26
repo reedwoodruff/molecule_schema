@@ -4,7 +4,7 @@ use base_types::constraint_schema::*;
 use base_types::constraint_schema_item::ConstraintSchemaItem;
 use base_types::primitives::*;
 
-use crate::utils;
+use crate::utils::{self, capitalize_first_letter};
 
 pub(crate) fn generate_trait_impl_streams(
     instantiable: &Box<
@@ -24,7 +24,10 @@ pub(crate) fn generate_trait_impl_streams(
             let fn_streams = trait_def.methods.values().map(|method_def| {
                 let method_name =
                     syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
-                let return_type = utils::get_primitive_type(&method_def.return_type);
+                let raw_return_type = utils::get_primitive_type(&method_def.return_type);
+                let capitalized_return_type = capitalize_first_letter(&raw_return_type.to_string());
+                let tokens_capitalized_return_type =
+                    syn::Ident::new(&capitalized_return_type, proc_macro2::Span::call_site());
                 let method_impl = &trait_impl.trait_impl[&method_def.tag.id];
                 let inner_method_stream = method_impl.iter().map(|method_impl_part| {
                 match method_impl_part {
@@ -35,7 +38,7 @@ pub(crate) fn generate_trait_impl_streams(
                             // self.data.#field_ident
                             match self.fields.get(&#field_id).unwrap().get() {
 
-                                base_types::primitives::PrimitiveValues::#return_type(val) => val,
+                                base_types::primitives::PrimitiveValues::#tokens_capitalized_return_type(val) => val,
                                 _ => panic!()
                             }
                         }
@@ -46,7 +49,7 @@ pub(crate) fn generate_trait_impl_streams(
             });
 
                 quote! {
-                fn #method_name(&self,) -> #return_type {
+                fn #method_name(&self,) -> #raw_return_type {
                         #(#inner_method_stream)*
 
                     }

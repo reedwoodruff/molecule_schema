@@ -153,6 +153,10 @@ pub(crate) fn generate_operative_streams(
             .values()
             .map(|item| item.field_return_type.clone())
             .collect::<Vec<_>>();
+        let field_value_enum_variant_names = field_trait_fns
+            .values()
+            .map(|item| item.field_return_type_enum_name.clone())
+            .collect::<Vec<_>>();
 
         let IntermediateSlotTraitInfo {
             trait_name: slot_trait_name,
@@ -238,7 +242,7 @@ pub(crate) fn generate_operative_streams(
             impl #field_trait_name for #wrapped_name {
                 #(#field_trait_fns_streams {
                      match self.fields.get(&#field_ids).unwrap().get() {
-                         base_types::primitives::PrimitiveValues::#field_value_types(val) => val,
+                         base_types::primitives::PrimitiveValues::#field_value_enum_variant_names(val) => val,
                          _ => panic!()
                      }
                 })*
@@ -255,18 +259,14 @@ pub(crate) fn generate_operative_streams(
             &format!("{}{}Field", struct_name, field.tag.name),
             Span::call_site(),
         );
-        // let field_editing_manipulate_field_trait_name = Ident::new(
-        //     &format!("{}{}FieldBuilder", struct_name, field.tag.name),
-        //     Span::call_site(),
-        // );
-        // let field_generic_in_question = Ident::new(&format!("TField{}", i), Span::call_site());
 
         let field_fulfilled_generic_stream = (0..unfulfilled_fields.len()).map(|j| {
             if j == i {
                 quote!{ typenum::B1 }
             } else {
                 let string = format!("TField{}", j);
-                quote!{ #string}
+                let generic_ident = Ident::new(&string, Span::call_site()).into_token_stream();
+                generic_ident
             }
         });
         let field_fulfilled_generic_stream = {
@@ -280,11 +280,11 @@ pub(crate) fn generate_operative_streams(
 
 
         quote! {
-            pub trait #building_manipulate_field_trait_name<SlotsTS> {
+            pub trait #building_manipulate_field_trait_name<SlotsTS, #field_generics_stream> {
                 fn #field_setter_fn_name(self, new_val: #field_value_type) -> FreshBuilder<#struct_name, Schema, (#field_fulfilled_generic_stream), SlotsTS>;
             }
 
-            impl<#field_generics_stream SlotsTS> #building_manipulate_field_trait_name<SlotsTS> for FreshBuilder<#struct_name, Schema, (#field_generics_stream), SlotsTS>
+            impl<#field_generics_stream SlotsTS> #building_manipulate_field_trait_name<SlotsTS, #field_generics_stream> for FreshBuilder<#struct_name, Schema, (#field_generics_stream), SlotsTS>
                 // where #field_generic_in_question: typenum::B0,
             {
                 fn #field_setter_fn_name(mut self, new_val: #field_value_type) -> FreshBuilder<#struct_name, Schema, (#field_fulfilled_generic_stream), SlotsTS>  {

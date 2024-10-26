@@ -225,3 +225,28 @@ pub(crate) fn get_primitive_value(ty: &PrimitiveValues) -> proc_macro2::TokenStr
         }
     }
 }
+pub(crate) fn get_primitive_value_enum_variant_name(
+    ty: &PrimitiveTypes,
+) -> proc_macro2::TokenStream {
+    match ty {
+        PrimitiveTypes::Int => quote! {Int},
+        // PrimitiveTypes::Float => quote! {#val},
+        PrimitiveTypes::String => quote! {String},
+        PrimitiveTypes::Bool => quote! {Bool},
+        // PrimitiveTypes::Char => quote! {#val},
+        _ => quote! {todo!()}, // PrimitiveTypes::Option => {
+                               //     quote! {Option}
+                               // }
+                               // PrimitiveTypes::List => {
+                               //     quote! {List}
+                               // }
+    }
+}
+
+pub(crate) fn capitalize_first_letter(s: &str) -> String {
+    let mut chars = s.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().collect::<String>() + chars.as_str(),
+        None => String::new(),
+    }
+}

@@ -16,6 +16,7 @@ use std::path::Path;
 use utils::get_all_slots_enum_name;
 use utils::get_all_subclasses;
 use utils::get_operative_subclass_enum_name;
+use utils::get_primitive_value_enum_variant_name;
 use utils::get_slot_trait_enum_name;
 use utils::get_template_get_slot_fn_name;
 use utils::get_template_get_slots_trait_name;
@@ -37,6 +38,7 @@ struct FieldFnDetails {
     fn_name: TokenStream,
     fn_signature: TokenStream,
     field_return_type: TokenStream,
+    field_return_type_enum_name: TokenStream,
 }
 struct SlotFnDetails {
     fn_name: TokenStream,
@@ -141,6 +143,8 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                     let field_getter_fn_name =
                         get_template_get_field_fn_name(&field_constraint.tag.name);
                     let value_type = get_primitive_type(&field_constraint.value_type);
+                    let enum_variant_name =
+                        get_primitive_value_enum_variant_name(&field_constraint.value_type);
                     let stream = quote! { fn #field_getter_fn_name(&self) -> #value_type };
                     fns_map.insert(
                         field_constraint.tag.id,
@@ -148,6 +152,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                             fn_name: field_getter_fn_name.clone().into_token_stream(),
                             fn_signature: stream.clone(),
                             field_return_type: value_type,
+                            field_return_type_enum_name: enum_variant_name,
                         },
                     );
                     stream
