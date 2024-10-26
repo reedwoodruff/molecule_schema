@@ -1,0 +1,28 @@
+
+[package]
+name = "schema_editor"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+to_composite_id_macro = { path = "../../molecule_schema/to_composite_id_macro" }
+molecule_core = { path = "../../molecule_schema/molecule_core" }
+lazy_static = "1.4"
+console_error_panic_hook = "0.1.7"
+reactive_types = { path = "../reactive_types/" }
+# leptos = { version = "0.6", features = ["csr"] }
+leptos = { workspace = true }
+base_types = { path = "../base_types", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# leptonic = "0.5.0"
+strum = "0.26.1"
+strum_macros = "0.26.1"
+uuid = { workspace = true }
+# web-sys = { version = "1" }
+
+
+[build-dependencies]
+generate_schema_reactive = { path = "../../molecule_schema/generate_schema_reactive" }
