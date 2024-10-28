@@ -723,3 +723,97 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
     };
     final_output.to_string()
 }
+
+#[macro_export]
+/// first argument is to the schema directory, second is to the molecule_schema project directory
+///
+/// example usage: generate_crate!("resources/my_schema.json", "../molecule_schema");
+macro_rules! generate_crate {
+    ($location:expr, $molecule_schema_location:expr) => {{
+        use std::{env, fs, path::Path, process::Command};
+
+        // let out_dir = std::env::var("OUT_DIR").unwrap();
+        let generated_crate_dir = Path::new("target").join("generated_crate");
+        let generated_cargo_toml_dir = generated_crate_dir.join("Cargo.toml");
+        let generated_src_dir = generated_crate_dir.join("src");
+        let generated_code_dir = generated_src_dir.join("lib.rs");
+        let schema_path = Path::new($location);
+        let generated_code = generate_concrete_schema_reactive(schema_path);
+        let ms_location = $molecule_schema_location.to_string();
+
+        // Ensure directory exists
+        fs::create_dir_all(&generated_crate_dir).unwrap();
+        fs::create_dir_all(&generated_src_dir).unwrap();
+
+        // Delete stale files
+        fs::remove_file(&generated_code_dir);
+        fs::remove_file(&generated_cargo_toml_dir);
+
+        // Write out the crate's Cargo.toml and lib.rs
+        fs::write(
+            generated_cargo_toml_dir,
+            format!(
+                r#"
+                    [package]
+                    name = "generated_crate"
+                    version = "0.1.0"
+                    edition = "2021"
+
+                    [lib]
+                    path = "src/lib.rs"
+
+                    [dependencies]
+                    to_composite_id_macro = {{ path = "{}/to_composite_id_macro" }}
+                    molecule_core = {{ path = "{}/molecule_core" }}
+                    base_types = {{ path = "{}/base_types", features = ["serde"] }}
+                    reactive_types = {{ path = "{}/reactive_types/" }}
+                    lazy_static = "1.4"
+                    strum = "0.26.1"
+                    strum_macros = "0.26.1"
+                    serde = {{ version = "1", features = ["derive"] }}
+                    serde_json = "1"
+                    leptos = {{git = "https://github.com/leptos-rs/leptos", branch="main", features=["csr"]}}
+
+                    [dependencies.uuid]
+                    version = "1.4.1"
+                    features = [
+                        "v4",                # Lets you generate random UUIDs
+                        "fast-rng",          # Use a faster (but still sufficiently random) RNG
+                        "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+                        "js",
+                    ]
+                "#,
+                ms_location, ms_location, ms_location, ms_location ,
+            )
+        )
+        .unwrap();
+
+        fs::write(
+            generated_code_dir.clone(),
+            generated_code,
+        )
+        .unwrap();
+
+
+        let status = Command::new("rustfmt")
+            .arg(&generated_code_dir)
+            .status()
+            .expect("Failed to run rustfmt");
+
+        if !status.success() {
+            panic!("failed to format generated code. rustfmt failed with status: {:?}", status);
+        }
+
+        println!("cargo::rerun-if-changed={}/generate_schema_reactive/src/lib.rs", ms_location);
+        // println!("cargo::rerun-if-changed={}/generate_schema_reactive/src/generate_operative_stream.rs", ms_location);
+        // println!("cargo::rerun-if-changed={}/generate_schema_reactive/src/generate_trait_impl_stream.rs", ms_location);
+        // println!("cargo::rerun-if-changed={}/generate_schema_reactive/src/utils.rs", ms_location);
+        println!("cargo::rerun-if-changed={}", schema_path.to_str().unwrap());
+
+
+        // Emit a warning if the dependency isn't included
+        println!("Make sure to add `generated_crate` as a dependency in Cargo.toml:\ngenerated_crate = {{ path = \"{}\"}}",
+            generated_crate_dir.display());
+
+    }};
+}
