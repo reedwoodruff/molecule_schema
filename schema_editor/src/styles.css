@@ -1,3 +1,23 @@
-.test {
-    background-color: red;
+.tabs-container {
+    display: flex;
+    border-bottom: 1px solid #ccc;
+}
+
+.tab-link {
+    padding: 10px 20px;
+    text-decoration: none;
+    color: #333;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.tab-link.active {
+    border-bottom-color: #007bff;
+    color: #007bff;
+}
+.tab-content {
+    dipslay: none;
+    padding: 20px;
+    border: 1px solid #ccc;
 }

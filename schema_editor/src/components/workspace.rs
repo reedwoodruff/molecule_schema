@@ -1,6 +1,21 @@
 use std::sync::Arc;
 
-use crate::prelude::*;
+use crate::components::main_list::MainList;
+use generated_crate::prelude::*;
+
+#[derive(Clone)]
+pub enum WorkspaceTab {
+    Template(RwSignal<Option<RGSOConcrete<TemplateConcrete, Schema>>>),
+    Operative(RwSignal<Option<RGSOConcrete<TemplateConcrete, Schema>>>),
+    Instance(RwSignal<Option<RGSOConcrete<TemplateConcrete, Schema>>>),
+    Trait(RwSignal<Option<RGSOConcrete<TemplateConcrete, Schema>>>),
+}
+#[derive(Clone)]
+pub struct WorkspaceState {
+    pub selected_tab: RwSignal<WorkspaceTab>,
+    pub schema: RGSOConcrete<SchemaConcrete, Schema>,
+}
+
 #[component]
 pub fn Workspace(schema_final_id: u128) -> impl IntoView {
     let ctx = use_context::<Arc<RBaseGraphEnvironment<Schema>>>().unwrap();
@@ -12,57 +27,76 @@ pub fn Workspace(schema_final_id: u128) -> impl IntoView {
 
     let ctx_for_undo = ctx.clone();
     let undo_graph_action = move |_| {
-
         ctx_for_undo.undo();
-        
     };
     let ctx_for_redo = ctx.clone();
     let redo_graph_action = move |_| {
-        
         ctx_for_redo.redo();
     };
 
-    let ctx_clone = ctx.clone();
-    let templates_view = move || {
-        let ctx_clone = ctx_clone.clone();
+    let selected_tab = RwSignal::new(WorkspaceTab::Template(RwSignal::new(None)));
+    provide_context(WorkspaceState {
+        schema: schema.clone(),
+        selected_tab: selected_tab.clone(),
+    });
 
-        let templates = schema.get_templates_slot();
-        let template_view = move |template: RGSOConcrete<TemplateConcrete, Schema>| {
-            let ctx_clone = ctx_clone.clone();
-            let template_clone = template.clone();
-            let template_clone_2 = template.clone();
-            let update_name = move |e: leptos::ev::Event| {
-                let editor = template_clone.edit(ctx_clone.clone());
-                let new_val = event_target_value(&e);
-                // log!("{}", new_val);
-                editor.set_name(new_val).execute().unwrap();
-                // log!("{:#?}", ctx_clone.created_instances.get())
-            };
-            view! {
-                <div>
-               {move || template_clone_2.get_name_field()}
-               <input prop:value=template.get_name_field() on:input=update_name />
-               something
-               </div>
-            }
-        };
-        view! {
-            <For each=move || templates.clone() key=|item| item.get_id().clone() children=template_view>
-            </For>
-        }
-    };
+    let schema_clone = schema.clone();
+
     view! {
         <div>
             <div style="display:flex;">
-            <div>
-                <button on:click=undo_graph_action>undo</button>
+                <div>
+                    <button on:click=undo_graph_action>undo</button>
+                </div>
+                <div>
+                    <button on:click=redo_graph_action>redo</button>
+                </div>
             </div>
-            <div>
-                <button on:click=redo_graph_action>redo</button>
+            <div class="tabs-container">
+                <For each=move || schema.outgoing_slots_with_enum().clone().into_values()
+                    key=move |item| item.base.slot.tag.id.clone()
+                    let:slot
+                    children= move |slot| {
+                        let slot_enum_clone = slot.slot_enum.clone();
+                        let is_active = move || if <WorkspaceTab as Into<SchemaConcreteAllSlots>>::into(selected_tab.get()) == slot_enum_clone {
+                            "active"
+                            } else {
+                                ""
+                        };
+                        let class=move || format!("tab-link {}", is_active());
+                        let slot_enum_clone = slot.slot_enum.clone();
+                        view!{
+                            <a class=class on:click=move |_| selected_tab.set(slot_enum_clone.clone().into()) >
+                                {slot.slot.tag.name.clone()}
+                            </a>
+                        }
+                    }
+                >
+                </For>
+
             </div>
-            </div>
-            Workspace
-            {templates_view}
+            <MainList />
         </div>
+    }
+}
+
+impl From<WorkspaceTab> for SchemaConcreteAllSlots {
+    fn from(value: WorkspaceTab) -> Self {
+        match value {
+            WorkspaceTab::Instance(_) => SchemaConcreteAllSlots::Instances,
+            WorkspaceTab::Template(_) => SchemaConcreteAllSlots::Templates,
+            WorkspaceTab::Operative(_) => SchemaConcreteAllSlots::Operatives,
+            WorkspaceTab::Trait(_) => SchemaConcreteAllSlots::Traits,
+        }
+    }
+}
+impl From<SchemaConcreteAllSlots> for WorkspaceTab {
+    fn from(value: SchemaConcreteAllSlots) -> Self {
+        match value {
+            SchemaConcreteAllSlots::Instances => WorkspaceTab::Instance(RwSignal::new(None)),
+            SchemaConcreteAllSlots::Templates => WorkspaceTab::Template(RwSignal::new(None)),
+            SchemaConcreteAllSlots::Operatives => WorkspaceTab::Operative(RwSignal::new(None)),
+            SchemaConcreteAllSlots::Traits => WorkspaceTab::Trait(RwSignal::new(None)),
+        }
     }
 }
