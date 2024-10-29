@@ -5,6 +5,7 @@ use quote::{quote, ToTokens};
 
 use base_types::constraint_schema_item::ConstraintSchemaItem;
 use base_types::primitives::*;
+use syn::Ident;
 
 // pub(crate) fn concat_unique_element(
 //     element: &Box<&dyn ConstraintSchemaItem<TTypes = PrimitiveTypes, TValues = PrimitiveValues>>,
@@ -159,7 +160,10 @@ pub fn get_slot_trait_enum_name(
         .collect::<Vec<_>>()
         .join("");
 
-    syn::Ident::new(&format!("{}Traits", names), proc_macro2::Span::call_site())
+    syn::Ident::new(
+        &format!("{}TraitObject", names),
+        proc_macro2::Span::call_site(),
+    )
 }
 
 pub fn get_all_operatives_which_implement_trait_set(
@@ -184,6 +188,14 @@ pub fn get_all_operatives_which_implement_trait_set(
         .collect::<Vec<_>>();
     return_val.sort_by(|a, b| a.tag.id.cmp(&b.tag.id));
     return_val
+}
+
+pub fn get_all_slot_enum_name(struct_name: &str) -> Ident {
+    let slot_enum_name = Ident::new(
+        &format!("{}AllSlots", struct_name),
+        proc_macro2::Span::call_site(),
+    );
+    slot_enum_name
 }
 
 pub(crate) fn get_primitive_type(ty: &PrimitiveTypes) -> proc_macro2::TokenStream {

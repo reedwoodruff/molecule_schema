@@ -422,6 +422,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "generated_crate"
+version = "0.1.0"
+dependencies = [
+ "base_types",
+ "lazy_static",
+ "leptos",
+ "molecule_core",
+ "reactive_types",
+ "serde",
+ "serde_json",
+ "strum",
+ "strum_macros",
+ "to_composite_id_macro",
+ "uuid",
+]
+
+[[package]]
 name = "getrandom"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1218,19 +1235,10 @@ dependencies = [
 name = "schema_editor"
 version = "0.1.0"
 dependencies = [
- "base_types",
  "console_error_panic_hook",
  "generate_schema_reactive",
- "lazy_static",
+ "generated_crate",
  "leptos",
- "molecule_core",
- "reactive_types",
- "serde",
- "serde_json",
- "strum",
- "strum_macros",
- "to_composite_id_macro",
- "uuid",
 ]
 
 [[package]]
@@ -1389,6 +1397,9 @@ name = "strum"
 version = "0.26.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d8cec3501a5194c432b2b7976db6b7d10ec95c253208b45f83f7136aa985e29"
+dependencies = [
+ "strum_macros",
+]
 
 [[package]]
 name = "strum_macros"

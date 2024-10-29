@@ -7,7 +7,7 @@ use base_types::constraint_schema_item::ConstraintSchemaItem;
 use base_types::primitives::*;
 
 use crate::utils::{
-    get_all_operatives_which_implement_trait_set, get_all_subclasses,
+    get_all_operatives_which_implement_trait_set, get_all_slot_enum_name, get_all_subclasses,
     get_operative_subclass_enum_name, get_operative_variant_name, get_operative_wrapped_name,
     get_primitive_type, get_primitive_value,
 };
@@ -32,8 +32,10 @@ pub(crate) fn generate_operative_streams(
         &instantiable,
         constraint_schema,
     );
+    let slot_enum_name = get_all_slot_enum_name(&struct_name.clone().to_string());
 
     let reference_template_id = instantiable.get_template_id();
+
     let (_constraint_schema_tag_name, _constraint_schema_tag_id) = (
         instantiable.get_tag().name.clone(),
         instantiable.get_tag().id,
@@ -47,6 +49,12 @@ pub(crate) fn generate_operative_streams(
         .cloned()
         .expect("instantiable must be based on a constraint object");
     let template_tag = reference_template.get_tag();
+
+    let slot_enum_variant_names = reference_template
+        .operative_slots
+        .values()
+        .map(|slot| Ident::new(&slot.tag.name, proc_macro2::Span::call_site()))
+        .collect::<Vec<_>>();
 
     let field_digest = instantiable
         .get_locked_fields_digest(constraint_schema)
@@ -76,10 +84,16 @@ pub(crate) fn generate_operative_streams(
                     .iter()
                     .map(|ri| ri.instance_id)
                     .collect::<Vec<_>>();
-            quote! {RActiveSlot {
-                slot: &CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap().operative_slots.get(&#slot_id).unwrap(),
-                slotted_instances: leptos::prelude::RwSignal::new(vec![#(#slotted_instances,)*]),
-            }}
+            let slot_enum_variant = Ident::new(&unf_slot.slot.tag.name, proc_macro2::Span::call_site());
+            quote! {
+                SpecializedRActiveSlot {
+                    base: RActiveSlot {
+                        slot: &CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap().operative_slots.get(&#slot_id).unwrap(),
+                        slotted_instances: leptos::prelude::RwSignal::new(vec![#(#slotted_instances,)*]),
+                    },
+                    slot_enum: #slot_enum_name::#slot_enum_variant
+                }
+            }
         })
         .collect::<Vec<_>>();
     let active_slot_ids = all_slot_digests
@@ -483,7 +497,9 @@ pub(crate) fn generate_operative_streams(
                             -> FreshBuilder<T, Schema, <T as StaticTypestate>::FulfilledFieldTypestate, SlotsTSInnerSecondary>
                     ) -> #return_type_after_adding
                     where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS,
-                        T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
+                        T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone +
+                        RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name + HasSlotEnum,
+                        <T as HasSlotEnum>::SlotEnum: Send + Sync + Clone + std::fmt::Debug,
                     {
                         let mut new_builder = FreshBuilder {
                             inner_builder: #single_item_variant_name::initiate_build(self.inner_builder.get_graph().clone()),
@@ -550,7 +566,8 @@ pub(crate) fn generate_operative_streams(
                             -> FreshBuilder<T, Schema, <T as StaticTypestate>::FulfilledFieldTypestate, SlotsTSInnerSecondary>
                     ) -> Self
                     where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS,
-                        T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
+                        T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name + HasSlotEnum,
+                        <T as HasSlotEnum>::SlotEnum: Send + Sync + Clone + std::fmt::Debug,
                     {
                         let mut new_builder = FreshBuilder {
                             inner_builder: #single_item_variant_name::initiate_build(self.inner_builder.get_graph().clone()),
@@ -610,12 +627,13 @@ pub(crate) fn generate_operative_streams(
             } else {
                 quote!{
                     fn #add_existing_fn_name
-                        <T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name + Send + Sync>
+                        <T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name + Send + Sync + HasSlotEnum>
                     (mut self,
                         existing_item_id: &Uid,
                         builder_closure: impl Fn(ExistingBuilder<T, Schema>)
                             -> ExistingBuilder<T, Schema>
                     ) -> #return_type_after_adding
+                    where <T as HasSlotEnum>::SlotEnum: Send + Sync + Clone + std::fmt::Debug,
                 }
             };
             let existing_add_existing_fn_signature = if let Some(item) = single_item_id {
@@ -630,12 +648,13 @@ pub(crate) fn generate_operative_streams(
             } else {
                 quote!{
                     fn #add_existing_fn_name
-                        <T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name + Send + Sync>
+                        <T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name + Send + Sync + HasSlotEnum>
                     (mut self,
                         existing_item_id: &Uid,
                         builder_closure: impl Fn(ExistingBuilder<T, Schema>)
                             -> ExistingBuilder<T, Schema>
                     ) -> Self
+                    where <T as HasSlotEnum>::SlotEnum: Send + Sync + Clone + std::fmt::Debug,
                 }
             };
 
@@ -672,7 +691,8 @@ pub(crate) fn generate_operative_streams(
                         str_id: impl AsRef<str>,
                     ) -> #return_type_after_adding
                     where
-                        T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
+                        T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name + HasSlotEnum,
+                        <T as HasSlotEnum>::SlotEnum: Send + Sync + Clone + std::fmt::Debug,
                     {
                                 let host_id = match &self.inner_builder.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
@@ -716,7 +736,8 @@ pub(crate) fn generate_operative_streams(
                         str_id: impl AsRef<str>,
                     ) -> Self
                     where
-                    T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name,
+                    T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name + HasSlotEnum,
+                    <T as HasSlotEnum>::SlotEnum: Send + Sync + Clone + std::fmt::Debug,
                     {
                                 let host_id = match &self.inner_builder.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
@@ -959,11 +980,19 @@ pub(crate) fn generate_operative_streams(
     quote! {
         #[derive(Clone, Debug, Default)]
         pub struct #struct_name {}
+        #[derive(Clone, Debug, strum_macros::EnumString, PartialEq)]
+        pub enum #slot_enum_name {
+            #(#slot_enum_variant_names,)*
+        }
 
         impl StaticTypestate for #struct_name {
             type InitialSlotTypestate = (#item_default_slot_typestate_stream);
             type EmptyFieldTypestate = (#empty_field_typestate_stream);
             type FulfilledFieldTypestate = (#fulfilled_field_typestate_stream);
+        }
+
+        impl HasSlotEnum for #struct_name {
+            type SlotEnum = #slot_enum_name;
         }
 
         impl RIntoSchema for #struct_name {

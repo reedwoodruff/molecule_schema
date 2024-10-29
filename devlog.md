@@ -456,3 +456,13 @@ I'm not actually totally sure what Rust would need to change in order to support
 In any case, it seems like the remaining option is to accept some level of runtime checking. Kind of a bummer, from this perspective.
 Ideally, we could keep the compile-time checks for building new nodes, and then runtime-check edit operations.
 That might complicate the codebase a bit.
+
+## October 27, 2024
+Entering a new phase of thinking. Starting to see the system as a kind of language pipeline.
+Starting to work on a new schema-editor, and using the system to define an interface into itself feels like the first recursive step.
+You could imagine a system where you could change the very schema primitives by making edits to some underlying "metaschema schema".
+It seems that in order to manage something like this you'd need some truly primitive layer (probably just consisting of the concepts of nodes and edges).
+This layer could be used to build higher-level abstractions which are ultimately just views on patterns of primitives.
+It gets quite difficult to figure out how to think about where or how the act of schema-editing comes in, and how it would be propagated through the layers of abstraction to create observable changes in the schema metastructure. Maybe you'd need versions? It seems like with those version artifacts and a base-layer compiler, you could autogenerate abstraction layers which allow interfacing with that particular metaschema-version artifact.
+Not loving the idea of versioning, but a better solution is elusive.
+As nice as it would be to have the current idea of Templates, Operatives, Instances, and Traits be the universal primitives, it seems like there would be value in finding some truly basic universal primitives like node and directed edge. Probably be worth it in the long run but the details of how all of these ideas will work together are not yet clear.

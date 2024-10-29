@@ -84,7 +84,7 @@ fn impl_RGSO_for_enum(enum_name: TokenStream, members: Vec<syn::Ident>) -> Token
                     // _ => panic!(),
                 }
             }
-            fn outgoing_slots(&self) -> &std::collections::BTreeMap<base_types::common::Uid, RActiveSlot>{
+            fn outgoing_slots(&self) -> std::collections::BTreeMap<&base_types::common::Uid, &RActiveSlot>{
                 match self {
                     #(Self::#members(item) => item.outgoing_slots(),)*
                     // _ => panic!(),
@@ -519,28 +519,33 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             type EmptyFieldTypestate;
             type FulfilledFieldTypestate;
         }
-        pub trait Incorporatable<T: std::clone::Clone + std::fmt::Debug, TSchema> {
+        pub trait Incorporatable<T: std::clone::Clone + std::fmt::Debug + HasSlotEnum, TSchema>
+        where <T as HasSlotEnum>::SlotEnum: std::clone::Clone + std::fmt::Debug + Send + Sync
+        {
             fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema>;
         }
-        impl <T: std::clone::Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema> + 'static> Incorporatable<T, TSchema> for ExistingBuilder<T, TSchema>
-            where T: Send + Sync
+        impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static> Incorporatable<T, TSchema> for ExistingBuilder<T, TSchema>
+            where T: Clone + std::fmt::Debug + Send + Sync + HasSlotEnum,
+            <T as HasSlotEnum>::SlotEnum: std::clone::Clone + std::fmt::Debug + Send + Sync
             {
             fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema> {
                 self.inner_builder
             }
         }
-        impl <T: std::clone::Clone + std::fmt::Debug, TSchema: EditRGSO<Schema = TSchema>  +'static, FieldsTS, SlotsTS> Incorporatable<T, TSchema> for FreshBuilder<T, TSchema, FieldsTS, SlotsTS>
+        impl <T, TSchema: EditRGSO<Schema = TSchema>  +'static, FieldsTS, SlotsTS> Incorporatable<T, TSchema> for FreshBuilder<T, TSchema, FieldsTS, SlotsTS>
             where
                 RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
-                T: Send + Sync + RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
+                T: Send + Sync + RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static + HasSlotEnum,
+                <T as HasSlotEnum>::SlotEnum: std::clone::Clone + std::fmt::Debug + Send + Sync
             {
                 fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema> {
                     self.inner_builder
                 }
             }
 
-        pub struct ExistingBuilder<T: std::clone::Clone + std::fmt::Debug, TSchema>
-        where TSchema: 'static
+        pub struct ExistingBuilder<T: std::clone::Clone + std::fmt::Debug + HasSlotEnum, TSchema>
+        where TSchema: 'static,
+            <T as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug + Send + Sync,
         {
             inner_builder: SubgraphBuilder<T, TSchema>
         }
@@ -548,8 +553,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         // Purpose of the FreshBuilder is to hide internal details which are exposed on the SubgraphBuilder
         // FreshBuilder enables carrying the current typestate of the Builder,
         // which allows conditional exposure of methods based on validity of the current structure.
-        pub struct FreshBuilder<T: std::clone::Clone + std::fmt::Debug, TSchema, FieldsTS, SlotsTS>
-            where TSchema: 'static
+        pub struct FreshBuilder<T: std::clone::Clone + std::fmt::Debug + HasSlotEnum, TSchema, FieldsTS, SlotsTS>
+            where TSchema: 'static,
+            <T as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug + Send + Sync,
         {
             inner_builder: SubgraphBuilder<T, TSchema>,
             _fields_typestate: std::marker::PhantomData<FieldsTS>,
@@ -559,7 +565,8 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         where
             TSchema: Send + Sync,
             RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
-            T: Send + Sync + RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
+            T: Send + Sync + RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static + HasSlotEnum,
+            <T as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug + Send + Sync,
         {
             pub fn get_id(&self) -> &Uid {
                 self.inner_builder.get_id()
@@ -567,7 +574,10 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             pub fn execute(&self) -> Result<ExecutionResult, ElementCreationError> {
                 self.inner_builder.execute()
             }
-            pub fn incorporate<C: Send + Sync + std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(&mut self, other_builder: impl Incorporatable<C, TSchema>) {
+            pub fn incorporate<C: Send + Sync + std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + HasSlotEnum>(&mut self, other_builder: impl Incorporatable<C, TSchema>)
+            where
+                <C as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug + Send + Sync,
+            {
                 self.inner_builder.incorporate(&other_builder.get_inner_builder())
             }
             pub fn set_temp_id(mut self, temp_id: &str) -> Self {
@@ -579,7 +589,8 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             where
                 TSchema: Send + Sync,
                 RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
-                T: Send + Sync + RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
+                T: Send + Sync + RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static + HasSlotEnum,
+                <T as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug + Send + Sync,
             {
             pub fn get_id(&self) -> &Uid {
                 self.inner_builder.get_id()
@@ -587,7 +598,10 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             pub fn execute(&self) -> Result<ExecutionResult, ElementCreationError> {
                 self.inner_builder.execute()
             }
-            pub fn incorporate<C: Send + Sync + std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static>(&mut self, other_builder: impl Incorporatable<C, TSchema>) {
+            pub fn incorporate<C: Send + Sync + std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + HasSlotEnum>(&mut self, other_builder: impl Incorporatable<C, TSchema>)
+            where
+                <C as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug + Send + Sync,
+            {
                 self.inner_builder.incorporate(&other_builder.get_inner_builder())
             }
 
@@ -768,7 +782,7 @@ macro_rules! generate_crate {
                     base_types = {{ path = "{}/base_types", features = ["serde"] }}
                     reactive_types = {{ path = "{}/reactive_types/" }}
                     lazy_static = "1.4"
-                    strum = "0.26.1"
+                    strum = {{version = "0.26.1", features=["derive"]}}
                     strum_macros = "0.26.1"
                     serde = {{ version = "1", features = ["derive"] }}
                     serde_json = "1"

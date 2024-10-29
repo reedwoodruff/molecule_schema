@@ -16,7 +16,9 @@ use crate::utils::IntoPrimitiveValue;
 use leptos::prelude::*;
 use std::{
     collections::{BTreeMap, HashMap},
+    io::Seek,
     marker::PhantomData,
+    str::FromStr,
 };
 
 pub trait FromNonReactive<NTSchema>
@@ -28,10 +30,16 @@ where
         graph: std::sync::Arc<RBaseGraphEnvironment<Self>>,
     ) -> Self;
 }
-pub fn saturate_wrapper<T: Clone + std::fmt::Debug, RTSchema: EditRGSO<Schema = RTSchema>>(
+pub fn saturate_wrapper<
+    T: Clone + std::fmt::Debug + HasSlotEnum,
+    RTSchema: EditRGSO<Schema = RTSchema>,
+>(
     non_reactive: crate::post_generation::GSOConcrete<T>,
     graph: std::sync::Arc<RBaseGraphEnvironment<RTSchema>>,
-) -> RGSOConcrete<T, RTSchema> {
+) -> RGSOConcrete<T, RTSchema>
+where
+    <T as HasSlotEnum>::SlotEnum: FromStr,
+{
     RGSOConcrete::<T, RTSchema> {
         id: non_reactive.id,
         graph,
@@ -43,7 +51,18 @@ pub fn saturate_wrapper<T: Clone + std::fmt::Debug, RTSchema: EditRGSO<Schema = 
         outgoing_slots: non_reactive
             .outgoing_slots
             .into_iter()
-            .map(|(id, val)| (id, val.into()))
+            .map(|(id, val)| {
+                (
+                    id,
+                    SpecializedRActiveSlot::<T::SlotEnum> {
+                        slot_enum: match T::SlotEnum::from_str(&val.slot.tag.name) {
+                            Ok(variant) => variant,
+                            Err(_err) => unreachable!(),
+                        },
+                        base: val.into(),
+                    },
+                )
+            })
             .collect(),
         incoming_slots: RwSignal::new(non_reactive.incoming_slots.into_iter().collect()),
         operative: non_reactive.operative,
@@ -207,11 +226,17 @@ impl<TSchema: EditRGSO + Send + Sync> RBaseGraphEnvironment<TSchema> {
                         );
                 });
             });
-        blueprint.field_updates.into_iter().for_each(|field_update| {
-            self.created_instances.with(|created_instances| {
-            created_instances.get(&field_update.0).unwrap().update_field(field_update.1);
+        blueprint
+            .field_updates
+            .into_iter()
+            .for_each(|field_update| {
+                self.created_instances.with(|created_instances| {
+                    created_instances
+                        .get(&field_update.0)
+                        .unwrap()
+                        .update_field(field_update.1);
+                });
             });
-        });
         leptos::logging::log!("finished processing of blueprint");
     }
     fn push_undo(&self, blueprint: Blueprint<TSchema>) {
@@ -281,9 +306,9 @@ pub trait RGSO: std::fmt::Debug + Clone {
     fn operative(&self) -> &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>;
     fn template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
     fn slot_by_id<E: Into<Uid>>(&self, slot_id: E) -> Option<&RActiveSlot> {
-        self.outgoing_slots().get(&slot_id.into())
+        self.outgoing_slots().get(&slot_id.into()).map(|slot| *slot)
     }
-    fn outgoing_slots(&self) -> &std::collections::BTreeMap<Uid, RActiveSlot>;
+    fn outgoing_slots(&self) -> std::collections::BTreeMap<&Uid, &RActiveSlot>;
     fn incoming_slots(&self) -> RwSignal<Vec<SlotRef>>;
     fn incoming_slot_ids_by_id<E: Into<Uid>>(&self, slot_variant: E) -> Vec<SlotRef> {
         let slot_variant = &slot_variant.into();
@@ -317,6 +342,37 @@ pub trait Slotted {}
 pub struct RActiveSlot {
     pub slot: &'static OperativeSlot,
     pub slotted_instances: RwSignal<Vec<Uid>>,
+}
+
+#[derive(Clone, Debug)]
+pub struct SpecializedRActiveSlot<TSlotEnum> {
+    pub base: RActiveSlot,
+    // pub slot: &'static OperativeSlot,
+    // pub slotted_instances: RwSignal<Vec<Uid>>,
+    pub slot_enum: TSlotEnum,
+}
+impl<TSlotEnum> From<SpecializedRActiveSlot<TSlotEnum>> for RActiveSlot {
+    fn from(value: SpecializedRActiveSlot<TSlotEnum>) -> Self {
+        value.base
+    }
+}
+impl<TSlotEnum> AsRef<RActiveSlot> for SpecializedRActiveSlot<TSlotEnum> {
+    fn as_ref(&self) -> &RActiveSlot {
+        &self.base // Simply return a reference to the contained RActiveSlot
+    }
+}
+
+impl<TSlotEnum> std::ops::Deref for SpecializedRActiveSlot<TSlotEnum> {
+    type Target = RActiveSlot;
+
+    fn deref(&self) -> &Self::Target {
+        &self.base
+    }
+}
+impl<TSlotEnum> AsMut<RActiveSlot> for SpecializedRActiveSlot<TSlotEnum> {
+    fn as_mut(&mut self) -> &mut RActiveSlot {
+        &mut self.base
+    }
 }
 
 impl std::fmt::Debug for RActiveSlot {
@@ -365,17 +421,20 @@ impl RActiveSlot {
     }
 }
 
-pub struct RGSOConcrete<T, TSchema: 'static> {
+pub struct RGSOConcrete<T: HasSlotEnum, TSchema: 'static> {
     id: Uid,
     pub fields: std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>,
     graph: std::sync::Arc<RBaseGraphEnvironment<TSchema>>,
-    outgoing_slots: std::collections::BTreeMap<Uid, RActiveSlot>,
+    outgoing_slots: std::collections::BTreeMap<Uid, SpecializedRActiveSlot<T::SlotEnum>>,
     incoming_slots: RwSignal<Vec<SlotRef>>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
     template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
     _phantom: std::marker::PhantomData<T>,
 }
-impl<T, TSchema: 'static> Clone for RGSOConcrete<T, TSchema> {
+impl<T: HasSlotEnum, TSchema: 'static> Clone for RGSOConcrete<T, TSchema>
+where
+    <T as HasSlotEnum>::SlotEnum: Clone,
+{
     fn clone(&self) -> Self {
         Self {
             id: self.id.clone(),
@@ -389,12 +448,12 @@ impl<T, TSchema: 'static> Clone for RGSOConcrete<T, TSchema> {
         }
     }
 }
-impl<T, TSchema> PartialEq for RGSOConcrete<T, TSchema> {
+impl<T: HasSlotEnum, TSchema> PartialEq for RGSOConcrete<T, TSchema> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
     }
 }
-impl<T, TSchema> std::fmt::Debug for RGSOConcrete<T, TSchema> {
+impl<T: HasSlotEnum, TSchema> std::fmt::Debug for RGSOConcrete<T, TSchema> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("GSOWrapper")
             .field("id", &self.id)
@@ -430,14 +489,20 @@ impl<T, TSchema> std::fmt::Debug for RGSOConcrete<T, TSchema> {
     }
 }
 
-impl<T, TSchema> RGSO for RGSOConcrete<T, TSchema> {
+impl<T: HasSlotEnum, TSchema> RGSO for RGSOConcrete<T, TSchema>
+where
+    <T as HasSlotEnum>::SlotEnum: Clone,
+{
     type Schema = TSchema;
     fn get_id(&self) -> &Uid {
         &self.id
     }
 
-    fn outgoing_slots(&self) -> &std::collections::BTreeMap<Uid, RActiveSlot> {
-        &self.outgoing_slots
+    fn outgoing_slots(&self) -> std::collections::BTreeMap<&Uid, &RActiveSlot> {
+        self.outgoing_slots
+            .iter()
+            .map(|(k, v)| (k, v.as_ref()))
+            .collect()
     }
 
     fn incoming_slots(&self) -> RwSignal<Vec<SlotRef>> {
@@ -456,9 +521,15 @@ impl<T, TSchema> RGSO for RGSOConcrete<T, TSchema> {
     }
 }
 
-impl<T, TSchema> EditRGSO for RGSOConcrete<T, TSchema> {
+impl<T: HasSlotEnum, TSchema> EditRGSO for RGSOConcrete<T, TSchema>
+where
+    <T as HasSlotEnum>::SlotEnum: Clone,
+{
     fn update_field(&self, field_edit: HistoryFieldEdit) -> &Self {
-        self.fields.get(&field_edit.field_id).unwrap().set(field_edit.new_value);
+        self.fields
+            .get(&field_edit.field_id)
+            .unwrap()
+            .set(field_edit.new_value);
         self
     }
     fn add_incoming(&self, slot_ref: SlotRef) -> &Self {
@@ -516,10 +587,11 @@ impl<T, TSchema> EditRGSO for RGSOConcrete<T, TSchema> {
         &self.graph
     }
 }
+
 #[derive(Clone, Debug)]
-pub struct RGSOConcreteBuilder<T, TSchema: 'static> {
+pub struct RGSOConcreteBuilder<T: HasSlotEnum, TSchema: 'static> {
     id: Uid,
-    slots: std::collections::BTreeMap<Uid, RActiveSlot>,
+    slots: std::collections::BTreeMap<Uid, SpecializedRActiveSlot<T::SlotEnum>>,
     incoming_slots: RwSignal<Vec<SlotRef>>,
     pub data: std::collections::HashMap<Uid, RwSignal<Option<RwSignal<PrimitiveValues>>>>,
     operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
@@ -529,10 +601,10 @@ pub struct RGSOConcreteBuilder<T, TSchema: 'static> {
     _phantom: std::marker::PhantomData<T>,
 }
 
-impl<T, TSchema> RGSOConcreteBuilder<T, TSchema> {
+impl<T: HasSlotEnum, TSchema> RGSOConcreteBuilder<T, TSchema> {
     pub fn new(
         data: std::collections::HashMap<Uid, RwSignal<Option<RwSignal<PrimitiveValues>>>>,
-        slots: Option<std::collections::BTreeMap<Uid, RActiveSlot>>,
+        slots: Option<std::collections::BTreeMap<Uid, SpecializedRActiveSlot<T::SlotEnum>>>,
         operative: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
         template: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
         graph: std::sync::Arc<RBaseGraphEnvironment<TSchema>>,
@@ -560,7 +632,11 @@ impl<T, TSchema> RGSOConcreteBuilder<T, TSchema> {
         &self.temp_id
     }
 }
-impl<T, TSchema> RProducable<RGSOConcrete<T, TSchema>> for RGSOConcreteBuilder<T, TSchema> {
+impl<T: HasSlotEnum, TSchema> RProducable<RGSOConcrete<T, TSchema>>
+    for RGSOConcreteBuilder<T, TSchema>
+where
+    <T as HasSlotEnum>::SlotEnum: Clone,
+{
     type Schema = TSchema;
     fn produce(&self) -> RGSOConcrete<T, TSchema> {
         RGSOConcrete::<T, TSchema> {
@@ -580,7 +656,7 @@ impl<T, TSchema> RProducable<RGSOConcrete<T, TSchema>> for RGSOConcreteBuilder<T
     }
 }
 
-impl<T, TSchema> Verifiable for RGSOConcreteBuilder<T, TSchema> {
+impl<T: HasSlotEnum, TSchema> Verifiable for RGSOConcreteBuilder<T, TSchema> {
     fn verify(&self) -> Result<(), crate::post_generation::ElementCreationError> {
         let field_errors = self
             .data
@@ -622,7 +698,8 @@ impl<T, TSchema> Verifiable for RGSOConcreteBuilder<T, TSchema> {
 
 pub trait RBuildable
 where
-    Self: Sized + Clone + std::fmt::Debug + 'static,
+    Self: Sized + Clone + std::fmt::Debug + 'static + HasSlotEnum,
+    <Self as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug,
 {
     type Schema;
 
@@ -699,7 +776,10 @@ impl ExecutionResult {
 }
 
 #[derive(Debug, Clone)]
-pub struct SubgraphBuilder<T: Clone + std::fmt::Debug, TSchema: 'static> {
+pub struct SubgraphBuilder<T: HasSlotEnum + Clone + std::fmt::Debug, TSchema: 'static>
+where
+    <T as HasSlotEnum>::SlotEnum: std::fmt::Debug + Clone,
+{
     pub instantiables:
         RwSignal<Vec<std::sync::Arc<std::sync::Mutex<dyn RInstantiable<Schema = TSchema>>>>>,
     pub cumulative_errors: RwSignal<std::vec::Vec<ElementCreationError>>,
@@ -722,10 +802,11 @@ pub struct SubgraphBuilder<T: Clone + std::fmt::Debug, TSchema: 'static> {
     pub _phantom: std::marker::PhantomData<T>,
 }
 
-impl<T: Send + Sync, TSchema: EditRGSO + Send + Sync> SubgraphBuilder<T, TSchema>
+impl<T: Send + Sync + HasSlotEnum, TSchema: EditRGSO + Send + Sync> SubgraphBuilder<T, TSchema>
 where
     RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
     T: RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static,
+    <T as HasSlotEnum>::SlotEnum: std::fmt::Debug + Clone + Send + Sync,
 {
     // -------------
     // To be exposed
@@ -742,11 +823,19 @@ where
         Ok(execution_result)
     }
     pub fn incorporate<
-        C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Send + Sync,
+        C: std::fmt::Debug
+            + Clone
+            + RIntoSchema<Schema = TSchema>
+            + 'static
+            + Send
+            + Sync
+            + HasSlotEnum,
     >(
         &mut self,
         other_builder: &SubgraphBuilder<C, TSchema>,
-    ) {
+    ) where
+        <C as HasSlotEnum>::SlotEnum: std::fmt::Debug + Clone + Send + Sync,
+    {
         self.add_outgoing_updates.update(|outgoing_updates| {
             outgoing_updates.extend(other_builder.add_outgoing_updates.get())
         });
@@ -815,8 +904,9 @@ where
             let slotted_instances = item
                 .outgoing_slots()
                 .values()
-                .flat_map(|slot| slot.slotted_instances.get());
-            slotted_instances.for_each(|instance_id| self.delete_recursive_handler(&instance_id));
+                .flat_map(|slot| slot.slotted_instances.get())
+                .for_each(|instance_id| self.delete_recursive_handler(&instance_id));
+            slotted_instances
         }
     }
     // Perform final calculations to gather all changes
@@ -836,10 +926,7 @@ where
                     let lock = instantiable.lock().unwrap();
                     (lock.get_id().clone(), lock.get_temp_id().clone())
                 };
-                (
-                    temp_id,
-                    id,
-                )
+                (temp_id, id)
             })
             .collect::<std::collections::HashMap<_, _>>();
 
@@ -867,18 +954,18 @@ where
                         return Some(error);
                     }
                     let final_host_id = final_host_id.unwrap();
-                    if let Some(instantiable) =
-                        new_instantiables.iter_mut().find(|instantiable| {
-                            instantiable.lock().unwrap().get_temp_id() == &update.0
-                        })
-                    {
+                    if let Some(instantiable) = new_instantiables.iter_mut().find(|instantiable| {
+                        instantiable.lock().unwrap().get_temp_id() == &update.0
+                    }) {
                         instantiable
                             .as_ref()
                             .lock()
                             .unwrap()
                             .add_incoming(&final_host_id, &update.1.slot_id);
                     } else {
-                        return Some(ElementCreationError::NonexistentTempId { temp_id: update.0.clone() })
+                        return Some(ElementCreationError::NonexistentTempId {
+                            temp_id: update.0.clone(),
+                        });
                     };
                     None
                 })
@@ -949,8 +1036,9 @@ where
             let slotted_instances = item
                 .outgoing_slots()
                 .values()
-                .flat_map(|slot| slot.slotted_instances.get());
-            slotted_instances.for_each(|instance_id| self.delete_recursive_handler(&instance_id));
+                .flat_map(|slot| slot.slotted_instances.get())
+                .for_each(|instance_id| self.delete_recursive_handler(&instance_id));
+            slotted_instances
         });
 
         // Get rid of all changes on nodes that will be deleted
@@ -1010,12 +1098,12 @@ where
                                         .with(|slotted_instances| slotted_instances.len())
                                         + all_additions
                                             .clone()
-                                            .filter(|addition| addition.1.slot_id == *slot.0)
+                                            .filter(|addition| addition.1.slot_id == **slot.0)
                                             .collect::<Vec<_>>()
                                             .len()
                                         - all_removals
                                             .clone()
-                                            .filter(|addition| addition.1.slot_id == *slot.0)
+                                            .filter(|addition| addition.1.slot_id == **slot.0)
                                             .collect::<Vec<_>>()
                                             .len();
                                     if !slot.1.check_bound_conformity(final_count) {
@@ -1115,7 +1203,13 @@ where
         });
     }
     pub fn add_outgoing<
-        C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Send + Sync,
+        C: std::fmt::Debug
+            + Clone
+            + RIntoSchema<Schema = TSchema>
+            + 'static
+            + Send
+            + Sync
+            + HasSlotEnum,
     >(
         &mut self,
         slot_id: &Uid,
@@ -1124,7 +1218,9 @@ where
         //    Temporary: The ID is non known, only the temp_id
         target_id: BlueprintId,
         instantiable: Option<SubgraphBuilder<C, TSchema>>,
-    ) {
+    ) where
+        <C as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug + Send + Sync,
+    {
         // If this is a newly created instance
         if let Some(instance) = &self.wip_instance {
             match &target_id {
@@ -1176,12 +1272,20 @@ where
         });
     }
     pub fn add_incoming<
-        C: std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + Send + Sync,
+        C: std::fmt::Debug
+            + Clone
+            + RIntoSchema<Schema = TSchema>
+            + 'static
+            + Send
+            + Sync
+            + HasSlotEnum,
     >(
         &mut self,
         slot_ref: SlotRef,
         instantiable: Option<SubgraphBuilder<C, TSchema>>,
-    ) {
+    ) where
+        <C as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug + Send + Sync,
+    {
         if let Some(instance) = &self.wip_instance {
             instance
                 .incoming_slots
@@ -1209,11 +1313,18 @@ where
                 // TODO: It seems like there could be a better way to do this than looking up the
                 // value like this.
                 // At the very least, for ExistingBuilders which are entered into with `.edit()`,
-                // we would have access to the concrete node at the time of `ExistingBuilder` creation. 
+                // we would have access to the concrete node at the time of `ExistingBuilder` creation.
                 // The difficulty comes in that ExistingBuilders are also created through the process
                 // of adding some outgoing node, in which case we'd only have the id and would still
                 // have to do the lookup like this at some point.
-                let prev_value = self.graph.get(self.get_id()).unwrap().fields().get(&field_id).unwrap().get();
+                let prev_value = self
+                    .graph
+                    .get(self.get_id())
+                    .unwrap()
+                    .fields()
+                    .get(&field_id)
+                    .unwrap()
+                    .get();
                 prev.insert((
                     *self.get_id(),
                     HistoryFieldEdit {
@@ -1263,11 +1374,7 @@ where
             prev.insert(self.id);
         });
     }
-    pub fn temp_add_incoming(
-        &mut self,
-        host_id: &str,
-        temp_slot_ref: TempAddIncomingSlotRef,
-    ) {
+    pub fn temp_add_incoming(&mut self, host_id: &str, temp_slot_ref: TempAddIncomingSlotRef) {
         self.temp_add_incoming_updates
             .update(|temp_add_incoming_updates| {
                 temp_add_incoming_updates.insert((host_id.to_string(), temp_slot_ref));
@@ -1288,10 +1395,11 @@ where
     }
 }
 
-impl<T: Send + Sync, TSchema: Send + Sync + 'static> RInstantiable
+impl<T: Send + Sync + HasSlotEnum, TSchema: Send + Sync + 'static> RInstantiable
     for RGSOConcreteBuilder<T, TSchema>
 where
     T: RIntoSchema<Schema = TSchema> + 'static,
+    <T as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug + Send + Sync,
 {
     type Schema = TSchema;
 
@@ -1332,7 +1440,7 @@ where
 
 pub trait RIntoSchema
 where
-    Self: Sized,
+    Self: Sized + HasSlotEnum,
 {
     type Schema: EditRGSO;
     fn into_schema(instantiable: RGSOConcrete<Self, Self::Schema>) -> Self::Schema;
@@ -1341,14 +1449,16 @@ where
 pub trait REditable<T>
 where
     Self: Sized,
-    T: std::clone::Clone + std::fmt::Debug,
+    T: std::clone::Clone + std::fmt::Debug + HasSlotEnum,
+    <T as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug,
 {
     type Schema;
     fn initiate_edit(&self) -> SubgraphBuilder<T, Self::Schema>;
 }
 impl<T, TSchema> REditable<T> for RGSOConcrete<T, TSchema>
 where
-    T: RIntoSchema<Schema = TSchema> + RBuildable<Schema = TSchema> + 'static,
+    T: RIntoSchema<Schema = TSchema> + RBuildable<Schema = TSchema> + 'static + HasSlotEnum,
+    <T as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug,
 {
     type Schema = TSchema;
     fn initiate_edit(&self) -> SubgraphBuilder<T, Self::Schema> {
@@ -1375,14 +1485,37 @@ impl<TSchema> std::ops::Deref for SharedGraph<TSchema> {
         &self.0
     }
 }
+
+pub trait HasSlotEnum {
+    type SlotEnum;
+}
+
+impl<T: HasSlotEnum, TSchema> RGSOConcrete<T, TSchema>
+where
+    <T as HasSlotEnum>::SlotEnum: PartialEq,
+{
+    pub fn outgoing_slots_with_enum(
+        &self,
+    ) -> &std::collections::BTreeMap<Uid, SpecializedRActiveSlot<T::SlotEnum>> {
+        &self.outgoing_slots
+    }
+    pub fn slot_by_enum(&self, variant: T::SlotEnum) -> &SpecializedRActiveSlot<T::SlotEnum> {
+        self.outgoing_slots_with_enum()
+            .values()
+            .find(|slot| slot.slot_enum == variant)
+            .unwrap()
+    }
+}
+
 mod from_reactive {
     use std::{
         cell::RefCell,
         collections::HashMap,
+        io::Seek,
         sync::{Arc, Mutex},
     };
 
-    use super::SharedGraph;
+    use super::{HasSlotEnum, SharedGraph, SpecializedRActiveSlot};
     use crate::post_generation::{BaseGraphEnvironment, GSOConcrete};
     use leptos::prelude::*;
 
@@ -1454,7 +1587,7 @@ mod from_reactive {
     }
     impl<T, RTSchema> From<RGSOConcrete<T, RTSchema>> for GSOConcrete<T>
     where
-        T: Clone + std::fmt::Debug,
+        T: Clone + std::fmt::Debug + super::HasSlotEnum,
     {
         fn from(value: RGSOConcrete<T, RTSchema>) -> Self {
             Self {
@@ -1467,7 +1600,15 @@ mod from_reactive {
                 outgoing_slots: value
                     .outgoing_slots
                     .into_iter()
-                    .map(|(id, val)| (id, val.into()))
+                    .map(|(id, val)| {
+                        (
+                            id,
+                            <SpecializedRActiveSlot<<T as HasSlotEnum>::SlotEnum> as Into<
+                                RActiveSlot,
+                            >>::into(val)
+                            .into(),
+                        )
+                    })
                     .collect(),
                 incoming_slots: value.incoming_slots.get().into_iter().collect(),
 

@@ -10,19 +10,19 @@ to_tokens = ["proc-macro2", "quote"]
 
 
 [dependencies]
-uuid = {workspace = true}
+uuid = { workspace = true }
 serde = { version = "1", features = [
     "derive",
     "rc",
 ], optional = true } # reactive_types = { path = "../reactive_types/" }
 serde_json = { version = "1", optional = true }
-strum = "0.26.1"
+strum = { version = "0.26.1", features = ["derive"] }
 strum_macros = "0.26.1"
 # anyhow = "1.0"
 quote = { version = "1.0", optional = true }
 proc-macro2 = { version = "1.0", optional = true }
 # leptos = { version = "0.6", features = ["csr"] }
-leptos = {workspace = true}
+leptos = { workspace = true }
 typenum = "1"
 to_composite_id_macro = { path = "../to_composite_id_macro" }
 molecule_core = { path = "../molecule_core" }
