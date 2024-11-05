@@ -507,9 +507,10 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
 
     let final_output = quote! {
         pub mod prelude {
+        use base_types::post_generation::reactive::hidden::EditRGSO;
         pub use base_types::post_generation::reactive::*;
-        pub use base_types::post_generation::*;
-        pub use base_types::primitives::*;
+        use base_types::post_generation::*;
+        use base_types::primitives::*;
         pub use leptos::prelude::*;
         use typenum::*;
         use base_types::utils::*;
@@ -524,7 +525,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         {
             fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema>;
         }
-        impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static> Incorporatable<T, TSchema> for ExistingBuilder<T, TSchema>
+        impl <T, TSchema: hidden::EditRGSO<Schema = TSchema> + 'static> Incorporatable<T, TSchema> for ExistingBuilder<T, TSchema>
             where T: Clone + std::fmt::Debug + Send + Sync + HasSlotEnum,
             <T as HasSlotEnum>::SlotEnum: std::clone::Clone + std::fmt::Debug + Send + Sync
             {
@@ -532,7 +533,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 self.inner_builder
             }
         }
-        impl <T, TSchema: EditRGSO<Schema = TSchema>  +'static, FieldsTS, SlotsTS> Incorporatable<T, TSchema> for FreshBuilder<T, TSchema, FieldsTS, SlotsTS>
+        impl <T, TSchema: hidden::EditRGSO<Schema = TSchema>  +'static, FieldsTS, SlotsTS> Incorporatable<T, TSchema> for FreshBuilder<T, TSchema, FieldsTS, SlotsTS>
             where
                 RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
                 T: Send + Sync + RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static + HasSlotEnum,
@@ -561,7 +562,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             _fields_typestate: std::marker::PhantomData<FieldsTS>,
             _slots_typestate: std::marker::PhantomData<SlotsTS>,
         }
-        impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static> ExistingBuilder<T, TSchema>
+        impl <T, TSchema: hidden::EditRGSO<Schema = TSchema> + 'static> ExistingBuilder<T, TSchema>
         where
             TSchema: Send + Sync,
             RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
@@ -585,7 +586,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                 self
             }
         }
-        impl <T, TSchema: EditRGSO<Schema = TSchema> + 'static, FieldsTS, SlotsTS> FreshBuilder<T, TSchema, FieldsTS, SlotsTS>
+        impl <T, TSchema: hidden::EditRGSO<Schema = TSchema> + 'static, FieldsTS, SlotsTS> FreshBuilder<T, TSchema, FieldsTS, SlotsTS>
             where
                 TSchema: Send + Sync,
                 RGSOConcreteBuilder<T, TSchema>: RProducable<RGSOConcrete<T, TSchema>>,
@@ -668,7 +669,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             use base_types::post_generation::*;
             use base_types::post_generation::reactive::*;
 
-            impl EditRGSO for Schema {
+            impl hidden::EditRGSO for Schema {
                 fn remove_outgoing(& self, slot_ref: &base_types::post_generation::SlotRef) -> & Self{
                     match self {
                         #(Self::#all_lib_op_names(item) => {item.remove_outgoing(slot_ref); self},)*

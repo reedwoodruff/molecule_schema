@@ -21,6 +21,85 @@ use std::{
     str::FromStr,
 };
 
+pub mod hidden {
+    use super::*;
+    pub trait EditRGSO: RGSO {
+        fn add_incoming(&self, slot_ref: SlotRef) -> &Self;
+        fn add_outgoing(&self, slot_ref: SlotRef) -> &Self;
+        fn remove_outgoing(&self, slot_ref: &SlotRef) -> &Self;
+        fn remove_incoming(&self, parent_id: &Uid, slot_id: Option<&Uid>) -> Vec<SlotRef>;
+        fn update_field(&self, field_edit: HistoryFieldEdit) -> &Self;
+        fn get_graph(&self) -> &std::sync::Arc<RBaseGraphEnvironment<Self::Schema>>;
+    }
+    impl<T: HasSlotEnum, TSchema> EditRGSO for RGSOConcrete<T, TSchema>
+    where
+        <T as HasSlotEnum>::SlotEnum: Clone,
+    {
+        fn update_field(&self, field_edit: HistoryFieldEdit) -> &Self {
+            self.fields
+                .get(&field_edit.field_id)
+                .unwrap()
+                .set(field_edit.new_value);
+            self
+        }
+        fn add_incoming(&self, slot_ref: SlotRef) -> &Self {
+            self.incoming_slots.update(|incoming_slots| {
+                incoming_slots.push(slot_ref.clone());
+            });
+            self
+        }
+
+        fn remove_outgoing(&self, slot_ref: &SlotRef) -> &Self {
+            self.outgoing_slots
+                .get(&slot_ref.slot_id)
+                .unwrap()
+                .slotted_instances
+                .update(|slotted_instances| {
+                    slotted_instances.retain(|slotted_instance_id| {
+                        *slotted_instance_id != slot_ref.target_instance_id
+                    });
+                });
+            self
+        }
+
+        fn remove_incoming(&self, host_id: &Uid, slot_id: Option<&Uid>) -> Vec<SlotRef> {
+            let mut removed = Vec::new();
+            self.incoming_slots.update(|incoming_slots| {
+                incoming_slots.retain(|slot_ref| {
+                    let matches_host = slot_ref.host_instance_id == *host_id;
+                    let matches_slot_id = if let Some(given_slot_id) = slot_id {
+                        slot_ref.slot_id == *given_slot_id
+                    } else {
+                        true
+                    };
+                    if matches_host && matches_slot_id {
+                        removed.push(slot_ref.clone());
+                        false
+                    } else {
+                        true
+                    }
+                });
+            });
+            removed
+        }
+
+        fn add_outgoing(&self, slot_ref: SlotRef) -> &Self {
+            self.outgoing_slots
+                .get(&slot_ref.slot_id)
+                .unwrap()
+                .slotted_instances
+                .update(|slotted_instances| {
+                    slotted_instances.push(slot_ref.target_instance_id);
+                });
+            self
+        }
+        fn get_graph(&self) -> &std::sync::Arc<RBaseGraphEnvironment<Self::Schema>> {
+            &self.graph
+        }
+    }
+}
+
+use hidden::EditRGSO;
 pub trait FromNonReactive<NTSchema>
 where
     Self: EditRGSO<Schema = Self>,
@@ -327,14 +406,6 @@ impl From<RActiveSlot> for Uid {
         todo!()
     }
 }
-pub trait EditRGSO: RGSO {
-    fn add_incoming(&self, slot_ref: SlotRef) -> &Self;
-    fn add_outgoing(&self, slot_ref: SlotRef) -> &Self;
-    fn remove_outgoing(&self, slot_ref: &SlotRef) -> &Self;
-    fn remove_incoming(&self, parent_id: &Uid, slot_id: Option<&Uid>) -> Vec<SlotRef>;
-    fn update_field(&self, field_edit: HistoryFieldEdit) -> &Self;
-    fn get_graph(&self) -> &std::sync::Arc<RBaseGraphEnvironment<Self::Schema>>;
-}
 
 pub trait Slotted {}
 
@@ -518,73 +589,6 @@ where
     }
     fn fields(&self) -> &std::collections::HashMap<Uid, RwSignal<PrimitiveValues>> {
         &self.fields
-    }
-}
-
-impl<T: HasSlotEnum, TSchema> EditRGSO for RGSOConcrete<T, TSchema>
-where
-    <T as HasSlotEnum>::SlotEnum: Clone,
-{
-    fn update_field(&self, field_edit: HistoryFieldEdit) -> &Self {
-        self.fields
-            .get(&field_edit.field_id)
-            .unwrap()
-            .set(field_edit.new_value);
-        self
-    }
-    fn add_incoming(&self, slot_ref: SlotRef) -> &Self {
-        self.incoming_slots.update(|incoming_slots| {
-            incoming_slots.push(slot_ref.clone());
-        });
-        self
-    }
-
-    fn remove_outgoing(&self, slot_ref: &SlotRef) -> &Self {
-        self.outgoing_slots
-            .get(&slot_ref.slot_id)
-            .unwrap()
-            .slotted_instances
-            .update(|slotted_instances| {
-                slotted_instances.retain(|slotted_instance_id| {
-                    *slotted_instance_id != slot_ref.target_instance_id
-                });
-            });
-        self
-    }
-
-    fn remove_incoming(&self, host_id: &Uid, slot_id: Option<&Uid>) -> Vec<SlotRef> {
-        let mut removed = Vec::new();
-        self.incoming_slots.update(|incoming_slots| {
-            incoming_slots.retain(|slot_ref| {
-                let matches_host = slot_ref.host_instance_id == *host_id;
-                let matches_slot_id = if let Some(given_slot_id) = slot_id {
-                    slot_ref.slot_id == *given_slot_id
-                } else {
-                    true
-                };
-                if matches_host && matches_slot_id {
-                    removed.push(slot_ref.clone());
-                    false
-                } else {
-                    true
-                }
-            });
-        });
-        removed
-    }
-
-    fn add_outgoing(&self, slot_ref: SlotRef) -> &Self {
-        self.outgoing_slots
-            .get(&slot_ref.slot_id)
-            .unwrap()
-            .slotted_instances
-            .update(|slotted_instances| {
-                slotted_instances.push(slot_ref.target_instance_id);
-            });
-        self
-    }
-    fn get_graph(&self) -> &std::sync::Arc<RBaseGraphEnvironment<Self::Schema>> {
-        &self.graph
     }
 }
 
