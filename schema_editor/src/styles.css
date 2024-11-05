@@ -21,3 +21,20 @@
     padding: 20px;
     border: 1px solid #ccc;
 }
+
+.clickable-list-item {
+    /* padding: 10px 20px; */
+    text-decoration: none;
+    color: #333;
+    /* border-bottom: 2px solid transparent; */
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.list-container {
+    margin: 10px;
+}
+
+.editing-space-container {
+    margin: 10px;
+}

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::components::main_list::MainList;
+use crate::components::{editing_space::EditingSpace, main_list::MainList};
 use generated_crate::prelude::*;
 
 #[derive(Clone)]
@@ -25,15 +25,6 @@ pub fn Workspace(schema_final_id: u128) -> impl IntoView {
         _ => panic!(),
     };
 
-    let ctx_for_undo = ctx.clone();
-    let undo_graph_action = move |_| {
-        ctx_for_undo.undo();
-    };
-    let ctx_for_redo = ctx.clone();
-    let redo_graph_action = move |_| {
-        ctx_for_redo.redo();
-    };
-
     let selected_tab = RwSignal::new(WorkspaceTab::Template(RwSignal::new(None)));
     provide_context(WorkspaceState {
         schema: schema.clone(),
@@ -44,14 +35,6 @@ pub fn Workspace(schema_final_id: u128) -> impl IntoView {
 
     view! {
         <div>
-            <div style="display:flex;">
-                <div>
-                    <button on:click=undo_graph_action>undo</button>
-                </div>
-                <div>
-                    <button on:click=redo_graph_action>redo</button>
-                </div>
-            </div>
             <div class="tabs-container">
                 <For each=move || schema.outgoing_slots_with_enum().clone().into_values()
                     key=move |item| item.base.slot.tag.id.clone()
@@ -76,6 +59,7 @@ pub fn Workspace(schema_final_id: u128) -> impl IntoView {
 
             </div>
             <MainList />
+            <EditingSpace />
         </div>
     }
 }

@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
 use generated_crate::prelude::*;
+use leptos::either::EitherOf5;
 
-use super::workspace::{WorkspaceState, WorkspaceTab};
+use super::{
+    template_editor::TemplateEditor,
+    workspace::{WorkspaceState, WorkspaceTab},
+};
 #[component]
 pub fn EditingSpace() -> impl IntoView {
     let WorkspaceState {
@@ -13,12 +17,20 @@ pub fn EditingSpace() -> impl IntoView {
     let list_view = move || {
         let selected_tab = selected_tab.clone();
         let list = match selected_tab.get() {
-            WorkspaceTab::Template(_) => todo!(),
-            WorkspaceTab::Operative(_) => todo!(),
-            WorkspaceTab::Instance(_) => todo!(),
-            WorkspaceTab::Trait(_) => todo!(),
+            WorkspaceTab::Template(inner) => match inner.get() {
+                Some(template) => EitherOf5::A(view! {<TemplateEditor template />}),
+                None => EitherOf5::E(()),
+            },
+            WorkspaceTab::Operative(_) => EitherOf5::B(view! {}),
+            WorkspaceTab::Instance(_) => EitherOf5::C(view! {}),
+            WorkspaceTab::Trait(_) => EitherOf5::D(view! {}),
         };
+        list
     };
 
-    list_view
+    view! {
+        <div class="editing-space-container">
+        {list_view}
+        </div>
+    }
 }
