@@ -505,12 +505,26 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
     let schema_rgso_impl =
         impl_RGSO_for_enum(schema_name.into_token_stream(), all_lib_op_names.clone());
 
+    let repatriate_num_match_stream = constraint_schema_generated.operative_library.iter().map(
+        |(id, op)| {
+            let struct_name = get_operative_variant_name(&op.get_tag().name);
+            quote! {
+                #id => super::#struct_name::into_schema(
+                    base_types::post_generation::reactive::RGSOConcrete::<super::#struct_name, Schema>::from_standalone(
+                        value, graph, &super::CONSTRAINT_SCHEMA
+                    )
+                ),
+            }
+        },
+    ).collect::<Vec<_>>();
+
     let final_output = quote! {
         pub mod prelude {
         use base_types::post_generation::reactive::hidden::EditRGSO;
         pub use base_types::post_generation::reactive::*;
         use base_types::post_generation::*;
         use base_types::primitives::*;
+        pub use base_types::post_generation::non_reactive::StandaloneRGSOConcrete;
         pub use leptos::prelude::*;
         use typenum::*;
         use base_types::utils::*;
@@ -707,6 +721,14 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                     }
                 }
             }
+            impl Schema {
+               pub fn from_standalone(value: base_types::post_generation::StandaloneRGSOConcrete, graph: SharedGraph<Schema>, ) -> Self {
+                   match value.operative {
+                       #(#repatriate_num_match_stream)*
+                       _ => unreachable!()
+                   }
+               }
+            }
         }
 
         impl From<Schema> for base_types::post_generation::StandaloneRGSOConcrete {
@@ -734,6 +756,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                }
            }
         }
+
         }
     };
     final_output.to_string()

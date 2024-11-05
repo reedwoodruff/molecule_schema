@@ -1,6 +1,10 @@
 // pub mod from_reactive;
 pub use crate::common::Uid;
-use crate::constraint_schema::{LibraryOperative, LibraryTemplate, OperativeSlot, SlotBounds};
+use crate::{
+    common::u128_to_string,
+    constraint_schema::{LibraryOperative, LibraryTemplate, OperativeSlot, SlotBounds},
+};
+use serde::{Deserialize, Serialize};
 pub use typenum;
 
 use crate::{
@@ -97,9 +101,70 @@ pub mod hidden {
             &self.graph
         }
     }
+    impl<T: HasSlotEnum, TSchema: 'static> RGSOConcrete<T, TSchema>
+    where
+        <T as HasSlotEnum>::SlotEnum: FromStr,
+    {
+        pub fn from_standalone(
+            value: StandaloneRGSOConcrete,
+            graph: SharedGraph<TSchema>,
+            constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>, // operative_ref: &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>,
+                                                                                           // template_ref: &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>,
+        ) -> Self {
+            let operative_ref = constraint_schema
+                .operative_library
+                .get(&value.operative)
+                .unwrap();
+            let template_ref = constraint_schema
+                .template_library
+                .get(&value.template)
+                .unwrap();
+            let new_outgoing_slots = value.outgoing_slots.iter().fold(
+                std::collections::BTreeMap::<Uid, SpecializedRActiveSlot<T::SlotEnum>>::new(),
+                |mut agg, slot_ref| {
+                    let operative_slot_ref =
+                        template_ref.operative_slots.get(&slot_ref.slot_id).unwrap();
+                    let enum_variant = T::SlotEnum::from_str(&u128_to_string(slot_ref.slot_id))
+                        .ok()
+                        .expect("Slot enum variant mismatched with slot id");
+                    agg.entry(slot_ref.slot_id)
+                        .and_modify(|r_active_slot| {
+                            r_active_slot
+                                .base
+                                .slotted_instances
+                                .update_untracked(|prev| prev.push(slot_ref.target_instance_id));
+                        })
+                        .or_insert(SpecializedRActiveSlot::<T::SlotEnum> {
+                            base: RActiveSlot {
+                                slot: operative_slot_ref,
+                                slotted_instances: RwSignal::new(vec![slot_ref.target_instance_id]),
+                            },
+                            slot_enum: enum_variant,
+                        });
+                    agg
+                },
+            );
+            Self {
+                id: value.id,
+                fields: value
+                    .fields
+                    .into_iter()
+                    .map(|(id, field)| (id, RwSignal::new(field)))
+                    .collect::<HashMap<_, _>>(),
+                graph: graph.into(),
+                outgoing_slots: new_outgoing_slots,
+                incoming_slots: RwSignal::new(value.incoming_slots),
+                operative: operative_ref,
+                template: template_ref,
+                _phantom: PhantomData,
+            }
+        }
+    }
 }
 
 use hidden::EditRGSO;
+
+use super::{ActiveSlot, StandaloneRGSOConcrete};
 pub trait FromNonReactive<NTSchema>
 where
     Self: EditRGSO<Schema = Self>,
@@ -134,7 +199,7 @@ where
                 (
                     id,
                     SpecializedRActiveSlot::<T::SlotEnum> {
-                        slot_enum: match T::SlotEnum::from_str(&val.slot.tag.name) {
+                        slot_enum: match T::SlotEnum::from_str(&u128_to_string(val.slot.tag.id)) {
                             Ok(variant) => variant,
                             Err(_err) => unreachable!(),
                         },
@@ -237,7 +302,7 @@ impl<TSchema: Send + Sync> RBaseGraphEnvironment<TSchema> {
             })),
         }
     }
-    fn initialize(&self, created_instances: std::collections::HashMap<Uid, TSchema>) {
+    pub fn initialize(&self, created_instances: std::collections::HashMap<Uid, TSchema>) {
         self.created_instances.set(created_instances);
     }
 }
@@ -363,6 +428,29 @@ impl<TSchema: EditRGSO + Send + Sync> RGraphEnvironment for RBaseGraphEnvironmen
         let redo_item = redo_item.unwrap().reverse();
         self.process_blueprint(redo_item.clone());
         self.push_undo(redo_item);
+    }
+}
+impl<TSchema: Send + Sync + Clone + Into<StandaloneRGSOConcrete> + 'static> Serialize
+    for RBaseGraphEnvironment<TSchema>
+{
+    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut s = serializer.serialize_struct("RBaseGraphEnvironment", 1)?;
+        let standalone_instances = self
+            .created_instances
+            .get()
+            .into_values()
+            // .map(|inst| <StandaloneRGSOConcrete as From<TSchema>>::from(inst))
+            .map(|inst| inst.into())
+            .collect::<Vec<StandaloneRGSOConcrete>>();
+        serde::ser::SerializeStruct::serialize_field(
+            &mut s,
+            "created_instances",
+            &standalone_instances,
+        )?;
+        serde::ser::SerializeStruct::end(s)
     }
 }
 
@@ -591,6 +679,17 @@ where
         &self.fields
     }
 }
+// impl<T: HasSlotEnum, TSchema: 'static> Serialize for RGSOConcrete<T, TSchema> {
+//     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
+//     where
+//         S: serde::Serializer {
+//             let mut s = serializer.serialize_struct("RGSOConcrete", 3)?;
+//                     s.serialize_field("name", &self.name)?;
+//                     s.serialize_field("age", &self.age)?;
+//                     s.serialize_field("phones", &self.phones)?;
+//                     s.end()
+//     }
+// }
 
 #[derive(Clone, Debug)]
 pub struct RGSOConcreteBuilder<T: HasSlotEnum, TSchema: 'static> {

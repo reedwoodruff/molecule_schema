@@ -12,7 +12,7 @@ use base_types::{
     constraint_schema::ConstraintSchema,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
-use leptos::prelude::*;
+use leptos::{logging::log, prelude::*};
 use reactive_types::reactive_types::{
     RConstraintSchema, RLibraryTemplate, RTag, RTraitDef, RTraitOperative,
 };

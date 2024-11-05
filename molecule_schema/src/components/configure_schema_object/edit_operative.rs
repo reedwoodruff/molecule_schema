@@ -1,4 +1,4 @@
-use leptos::prelude::*;
+use leptos::{logging::log, prelude::*};
 use std::collections::HashMap;
 use std::sync::Arc;
 

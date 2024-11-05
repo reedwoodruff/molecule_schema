@@ -1,3 +1,4 @@
+use base_types::common::u128_to_string;
 use base_types::operative_digest::OperativeSlotDigest;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::{quote, ToTokens};
@@ -53,7 +54,14 @@ pub(crate) fn generate_operative_streams(
     let slot_enum_variant_names = reference_template
         .operative_slots
         .values()
-        .map(|slot| Ident::new(&slot.tag.name, proc_macro2::Span::call_site()))
+        .map(|slot| {
+            let enum_variant_name = Ident::new(&slot.tag.name, proc_macro2::Span::call_site());
+            let str_uid = u128_to_string(slot.tag.id.clone());
+            quote! {
+                #[strum(serialize=#str_uid)]
+                #enum_variant_name
+            }
+        })
         .collect::<Vec<_>>();
 
     let field_digest = instantiable
@@ -980,7 +988,7 @@ pub(crate) fn generate_operative_streams(
     quote! {
         #[derive(Clone, Debug, Default)]
         pub struct #struct_name {}
-        #[derive(Clone, Debug, strum_macros::EnumString, PartialEq)]
+        #[derive(Clone, Debug, strum_macros::EnumString, PartialEq, serde::Serialize)]
         pub enum #slot_enum_name {
             #(#slot_enum_variant_names,)*
         }

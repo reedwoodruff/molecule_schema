@@ -1403,6 +1403,8 @@ dependencies = [
  "generate_schema_reactive",
  "generated_crate",
  "leptos",
+ "serde",
+ "serde_json",
  "wasm-bindgen",
  "web-sys",
 ]

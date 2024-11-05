@@ -4,8 +4,8 @@ use base_types::{
     common::Uid,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
-use leptos::prelude::*;
 use leptos::web_sys::MouseEvent;
+use leptos::{logging::log, prelude::*};
 
 use crate::components::{
     app::{SchemaContext, TreeTypes},
