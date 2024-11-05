@@ -2,6 +2,7 @@ use std::{env, fs, path::Path, process::Command};
 
 use generate_schema_reactive::generate_concrete_schema_reactive;
 use generate_schema_reactive::generate_crate;
+// use generate_schema_reactive::inner_generate_crate;
 fn main() {
     // let schema_location = Path::new("../resources/recursive_schema.json");
     // let out_dir = env::var_os("OUT_DIR").unwrap();
@@ -18,8 +19,9 @@ fn main() {
     // if !status.success() {
     //     panic!("rustfmt failed with status: {:?}", status);
     // }
-    generate_crate!(
+    generate_crate(
         "/home/reed/development/molecule_schema/resources/recursive_schema.json",
-        "/home/reed/development/molecule_schema"
+        "/home/reed/development/molecule_schema",
+        Some("/home/reed/development/molecule_schema/resources/initial_schema_editor_data.json"),
     );
 }

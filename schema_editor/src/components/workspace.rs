@@ -18,7 +18,7 @@ pub struct WorkspaceState {
 
 #[component]
 pub fn Workspace(schema_final_id: u128) -> impl IntoView {
-    let ctx = use_context::<Arc<RBaseGraphEnvironment<Schema>>>().unwrap();
+    let ctx = use_context::<SharedGraph<Schema>>().unwrap();
 
     let schema = match ctx.get(&schema_final_id).unwrap() {
         Schema::SchemaConcrete(inner) => inner,

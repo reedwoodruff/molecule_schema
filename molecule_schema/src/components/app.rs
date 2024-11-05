@@ -133,8 +133,16 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
         })
     };
 
+    let serialize_graph = move |_| {
+        // let rbase_graph: std::sync::Arc<RBaseGraphEnvironment<Schema>> =
+        //     shared_graph.clone().into();
+        // let json = serde_json::to_string_pretty(&rbase_graph).unwrap();
+        // leptos::logging::log!("{}", json);
+    };
+
     view! {
         <button on:click=move |_| print_schema_reactive(&reactive_schema)>Export Schema</button>
+        <button on:click=serialize_graph>Export Content of Graph</button>
         <div class="flex">
             <div class="flex-grow ">
                 <div class="large-margin med-pad border-gray">

@@ -4,7 +4,7 @@ use crate::{
     common::u128_to_string,
     constraint_schema::{LibraryOperative, LibraryTemplate, OperativeSlot, SlotBounds},
 };
-use serde::{Deserialize, Serialize};
+use serde::{ser::SerializeSeq, Deserialize, Serialize};
 pub use typenum;
 
 use crate::{
@@ -119,31 +119,40 @@ pub mod hidden {
                 .template_library
                 .get(&value.template)
                 .unwrap();
-            let new_outgoing_slots = value.outgoing_slots.iter().fold(
-                std::collections::BTreeMap::<Uid, SpecializedRActiveSlot<T::SlotEnum>>::new(),
-                |mut agg, slot_ref| {
-                    let operative_slot_ref =
-                        template_ref.operative_slots.get(&slot_ref.slot_id).unwrap();
-                    let enum_variant = T::SlotEnum::from_str(&u128_to_string(slot_ref.slot_id))
+            let mut initial_btree =
+                std::collections::BTreeMap::<Uid, SpecializedRActiveSlot<T::SlotEnum>>::new();
+            template_ref
+                .operative_slots
+                .iter()
+                .for_each(|(slot_id, _slot)| {
+                    let operative_slot_ref = template_ref.operative_slots.get(&slot_id).unwrap();
+                    let enum_variant = T::SlotEnum::from_str(&u128_to_string(slot_id.clone()))
                         .ok()
                         .expect("Slot enum variant mismatched with slot id");
-                    agg.entry(slot_ref.slot_id)
-                        .and_modify(|r_active_slot| {
+                    initial_btree.insert(
+                        slot_id.clone(),
+                        SpecializedRActiveSlot::<T::SlotEnum> {
+                            base: RActiveSlot {
+                                slot: operative_slot_ref,
+                                slotted_instances: RwSignal::new(vec![]),
+                            },
+                            slot_enum: enum_variant,
+                        },
+                    );
+                });
+            let new_outgoing_slots =
+                value
+                    .outgoing_slots
+                    .iter()
+                    .fold(initial_btree, |mut agg, slot_ref| {
+                        agg.entry(slot_ref.slot_id).and_modify(|r_active_slot| {
                             r_active_slot
                                 .base
                                 .slotted_instances
                                 .update_untracked(|prev| prev.push(slot_ref.target_instance_id));
-                        })
-                        .or_insert(SpecializedRActiveSlot::<T::SlotEnum> {
-                            base: RActiveSlot {
-                                slot: operative_slot_ref,
-                                slotted_instances: RwSignal::new(vec![slot_ref.target_instance_id]),
-                            },
-                            slot_enum: enum_variant,
                         });
-                    agg
-                },
-            );
+                        agg
+                    });
             Self {
                 id: value.id,
                 fields: value
@@ -437,7 +446,6 @@ impl<TSchema: Send + Sync + Clone + Into<StandaloneRGSOConcrete> + 'static> Seri
     where
         S: serde::Serializer,
     {
-        let mut s = serializer.serialize_struct("RBaseGraphEnvironment", 1)?;
         let standalone_instances = self
             .created_instances
             .get()
@@ -445,12 +453,11 @@ impl<TSchema: Send + Sync + Clone + Into<StandaloneRGSOConcrete> + 'static> Seri
             // .map(|inst| <StandaloneRGSOConcrete as From<TSchema>>::from(inst))
             .map(|inst| inst.into())
             .collect::<Vec<StandaloneRGSOConcrete>>();
-        serde::ser::SerializeStruct::serialize_field(
-            &mut s,
-            "created_instances",
-            &standalone_instances,
-        )?;
-        serde::ser::SerializeStruct::end(s)
+        let mut s = serializer.serialize_seq(Some(standalone_instances.len()))?;
+        for item in standalone_instances {
+            s.serialize_element(&item)?;
+        }
+        serde::ser::SerializeSeq::end(s)
     }
 }
 
@@ -1610,7 +1617,7 @@ where
     }
 }
 
-mod from_reactive {
+pub mod from_reactive {
     use std::{
         cell::RefCell,
         collections::HashMap,
@@ -1720,5 +1727,13 @@ mod from_reactive {
                 _phantom: std::marker::PhantomData,
             }
         }
+    }
+
+    pub trait FromStandalone {
+        type Schema;
+        fn from_standalone(
+            value: crate::post_generation::StandaloneRGSOConcrete,
+            graph: SharedGraph<Self::Schema>,
+        ) -> Self::Schema;
     }
 }

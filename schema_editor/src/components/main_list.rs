@@ -9,7 +9,7 @@ use super::{
 };
 #[component]
 pub fn MainList() -> impl IntoView {
-    let ctx = use_context::<Arc<RBaseGraphEnvironment<Schema>>>().unwrap();
+    let ctx = use_context::<SharedGraph<Schema>>().unwrap();
     let WorkspaceState {
         schema,
         selected_tab,

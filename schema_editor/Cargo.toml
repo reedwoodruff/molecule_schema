@@ -12,6 +12,10 @@ console_error_panic_hook = "0.1.7"
 generated_crate = { path = "target/generated_crate" }
 leptos = { workspace = true }
 web-sys = { version = "*", features = ["HtmlElement"] }
+
+serde = { version = "1" }
+serde_json = "1"
+
 # thaw = { git = "https://github.com/thaw-ui/thaw", features = ["csr, nightly"] }
 # thaw = { version="0.4.0-beta4", features = ["csr"] }
 # thaw = { path="../../thaw/thaw", features = ["csr"] }

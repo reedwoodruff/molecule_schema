@@ -1,34 +1,44 @@
-// use leptos::prelude::*;
+use std::collections::HashMap;
 
 use crate::components::workspace::Workspace;
 use generated_crate::prelude::*;
 #[component]
 pub fn App() -> impl IntoView {
-    let graph = RBaseGraphEnvironment::<Schema>::new(&CONSTRAINT_SCHEMA);
-    let shared_graph = std::sync::Arc::new(graph.clone());
-    let execution = SchemaConcrete::new(shared_graph.clone())
-        .set_temp_id("schema")
-        .add_new_templates(|template| template.set_name("goofen".to_string()))
-        .add_new_templates(|template| template.set_name("cloo".to_string()))
-        .add_new_templates(|template| template.set_name("aaa".to_string()))
-        .add_new_templates(|template| template.set_name("ccc".to_string()))
-        .execute()
-        .unwrap();
-    let schema_id = execution.get_final_id("schema").unwrap().clone();
+    let shared_graph = initialize_graph();
+    let schema_id = shared_graph
+        .created_instances
+        .get()
+        .values()
+        .find(|instance| instance.operative().tag.id == SchemaConcrete::get_operative_id())
+        .unwrap()
+        .get_id()
+        .clone();
 
-    provide_context(shared_graph);
+    provide_context(shared_graph.clone());
 
-    let ctx_for_undo = graph.clone();
+    print!("{:#?}", shared_graph);
+
+    let ctx_for_undo = shared_graph.clone();
     let undo_graph_action = move |_| {
         ctx_for_undo.undo();
     };
-    let ctx_for_redo = graph.clone();
+    let ctx_for_redo = shared_graph.clone();
     let redo_graph_action = move |_| {
         ctx_for_redo.redo();
+    };
+
+    let serialize_graph = move |_| {
+        let rbase_graph: std::sync::Arc<RBaseGraphEnvironment<Schema>> =
+            shared_graph.clone().into();
+        let json = serde_json::to_string_pretty(&rbase_graph).unwrap();
+        leptos::logging::log!("{}", json);
     };
     view! {
         <div>
             <div style="display:flex;">
+                <div>
+                    <button on:click=serialize_graph>export</button>
+                </div>
                 <div>
                     <button on:click=undo_graph_action>undo</button>
                 </div>

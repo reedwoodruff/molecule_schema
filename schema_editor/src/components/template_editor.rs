@@ -7,7 +7,7 @@ use crate::components::common::{ManagedTextInput, ToggleManagedTextInput};
 use super::workspace::WorkspaceState;
 #[component]
 pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl IntoView {
-    let ctx = use_context::<Arc<RBaseGraphEnvironment<Schema>>>().unwrap();
+    let ctx = use_context::<SharedGraph<Schema>>().unwrap();
     let ctx_clone = ctx.clone();
 
     let template_clone = template.clone();

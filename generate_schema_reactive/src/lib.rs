@@ -2,6 +2,7 @@
 Code generation crate which ingests a schema and outputs static types to be included in a project.
 */
 
+use base_types::post_generation::StandaloneRGSOConcrete;
 pub use to_composite_id_macro;
 
 use base_types::common::Uid;
@@ -109,7 +110,11 @@ fn impl_RGSO_for_enum(enum_name: TokenStream, members: Vec<syn::Ident>) -> Token
 /**
 Given a path to a schema JSON file, returns Rust source code containing types to enable the building of instances of schema objects.
 */
-pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
+pub fn generate_concrete_schema_reactive(
+    // constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
+    raw_json_schema: String,
+    raw_json_initial_population: Option<String>,
+) -> String {
     // The goal here is as follows:
     // 1. Map the constraint objects to individual structs which have:
     //      - The same structure as defined in the field constraints
@@ -123,15 +128,12 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         template_field_trait_info: HashMap::new(),
         template_slots_trait_info: HashMap::new(),
     };
-
-    let raw_json_data = std::fs::read_to_string(schema_location.to_str().unwrap());
-    let raw_json_data = raw_json_data.expect("schema json must be present");
-    let constraint_schema_generated: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
-        serde_json::from_str(&raw_json_data).expect("Schema formatted incorrectly");
+    let constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
+        serde_json::from_str(&raw_json_schema).expect("Schema formatted incorrectly");
 
     // Creates traits which represent geting the fields for each template
     // This should be implemented by every operative which is a subclass of the template
-    let get_template_fields_traits_streams = constraint_schema_generated
+    let get_template_fields_traits_streams = constraint_schema
         .template_library
         .values()
         .map(|template| {
@@ -176,12 +178,12 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
 
     // Creates traits which represent getting the operative slots for every template
     // This should be implemented by every operative which is a subclass of the template
-    let get_template_slots_traits_streams = constraint_schema_generated.template_library.values().map(|template| {
+    let get_template_slots_traits_streams = constraint_schema.template_library.values().map(|template| {
         let mut fns_map = HashMap::new();
         let fn_streams = template.operative_slots.values().map(|operative_slot| {
             let is_single_slot_bound = matches!(operative_slot.bounds, SlotBounds::Single);
             let slot_getter_fn_name = get_template_get_slot_fn_name( &operative_slot.tag.name);
-            let return_enum_type = get_template_slot_enum_name(&constraint_schema_generated, operative_slot);
+            let return_enum_type = get_template_slot_enum_name(&constraint_schema, operative_slot);
             let stream = match is_single_slot_bound {
                 true => quote!{ fn #slot_getter_fn_name(&self) -> #return_enum_type },
                 false => quote!{ fn #slot_getter_fn_name(&self) -> Vec<#return_enum_type> },
@@ -217,135 +219,137 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
 
     // Gets all operatives which have subclasses, and creates an enum with each subclass as a variant
     // Each enum should implement the field getter and slot getter of the root template so as not to have to match as much as an end consumer
-    let subclass_enums_stream = constraint_schema_generated
-        .operative_library
-        .values()
-        .filter_map(|operative| {
-            let template_id = operative.get_template_id();
-            let subclass_op_names =
-                get_all_subclasses(&constraint_schema_generated, &operative.tag.id)
+    let subclass_enums_stream =
+        constraint_schema
+            .operative_library
+            .values()
+            .filter_map(|operative| {
+                let template_id = operative.get_template_id();
+                let subclass_op_names = get_all_subclasses(&constraint_schema, &operative.tag.id)
                     .iter()
                     .map(|op| get_operative_variant_name(&op.tag.name))
                     .collect::<Vec<_>>();
-            let subclass_op_names2 = subclass_op_names.clone();
-            let enum_name =
-                get_operative_subclass_enum_name(&constraint_schema_generated, &operative.tag.id);
-            let op_wrapped_name =
-                get_all_subclasses(&constraint_schema_generated, &operative.tag.id)
+                let subclass_op_names2 = subclass_op_names.clone();
+                let enum_name =
+                    get_operative_subclass_enum_name(&constraint_schema, &operative.tag.id);
+                let op_wrapped_name = get_all_subclasses(&constraint_schema, &operative.tag.id)
                     .iter()
                     .map(|op| get_operative_wrapped_name(&op.tag.name))
                     .collect::<Vec<_>>();
-            let IntermediateFieldTraitInfo {
-                trait_name: field_trait_name,
-                trait_fns: field_trait_fns,
-            } = &meta.template_field_trait_info.get(template_id).unwrap();
-            let field_streams = field_trait_fns.iter().fold(
-                Vec::new(),
-                |mut agg,
-                 (
-                    id,
-                    FieldFnDetails {
-                        fn_signature,
-                        fn_name,
-                        ..
-                    },
-                )| {
-                    let intermediate =
-                        &subclass_op_names
-                            .iter()
-                            .fold(Vec::new(), |mut agg, subclass| {
-                                agg.push(quote! {#enum_name::#subclass(val) => val.#fn_name(),});
-                                agg
-                            });
-                    agg.push(quote! {
-                       #fn_signature {
-                           match self {
-                               #(#intermediate)*
-                               // _ => panic!(),
-                           }
-                       }
-                    });
-                    agg
-                },
-            );
-
-            let IntermediateSlotTraitInfo {
-                trait_name: slot_trait_name,
-                trait_fns: slot_trait_fns,
-            } = meta.template_slots_trait_info.get(template_id).unwrap();
-            let slot_streams = slot_trait_fns.iter().fold(
-                Vec::new(),
-                |mut agg,
-                 (
-                    id,
-                    SlotFnDetails {
-                        fn_name,
-                        fn_signature,
-                        return_enum_type,
-                        is_trait_slot,
-                        id_only_signature,
-                        id_only_name,
-                        is_single_slot_bound,
-                    },
-                )| {
-                    let intermediate = &subclass_op_names.iter().fold(
-                        (Vec::new(), Vec::new()),
-                        |mut agg, subclass| {
-                            agg.0
-                                .push(quote! {#enum_name::#subclass(val) => val.#fn_name(),});
-                            agg.1
-                                .push(quote! {#enum_name::#subclass(val) => val.#id_only_name(),});
-                            agg
+                let IntermediateFieldTraitInfo {
+                    trait_name: field_trait_name,
+                    trait_fns: field_trait_fns,
+                } = &meta.template_field_trait_info.get(template_id).unwrap();
+                let field_streams = field_trait_fns.iter().fold(
+                    Vec::new(),
+                    |mut agg,
+                     (
+                        id,
+                        FieldFnDetails {
+                            fn_signature,
+                            fn_name,
+                            ..
                         },
-                    );
-                    let variant_streams = intermediate.0.clone();
-                    let id_only_variant_streams = intermediate.1.clone();
-                    agg.push(quote! {
-                        #fn_signature {
-                            match self {
-                            #(#variant_streams)*
-                            // _ => panic!(),
-                            }
-                        }
-                        #id_only_signature {
-                            match self {
-                            #(#id_only_variant_streams)*
-                            // _ => panic!(),
-                            }
-                        }
-                    });
-                    agg
-                },
-            );
+                    )| {
+                        let intermediate =
+                            &subclass_op_names
+                                .iter()
+                                .fold(Vec::new(), |mut agg, subclass| {
+                                    agg.push(
+                                        quote! {#enum_name::#subclass(val) => val.#fn_name(),},
+                                    );
+                                    agg
+                                });
+                        agg.push(quote! {
+                           #fn_signature {
+                               match self {
+                                   #(#intermediate)*
+                                   // _ => panic!(),
+                               }
+                           }
+                        });
+                        agg
+                    },
+                );
 
-            let rgso_impl = impl_RGSO_for_enum(enum_name.clone(), subclass_op_names.clone());
-            if subclass_op_names.len() <= 1 {
-                None
-            } else {
-                // TODO: Make this enum implement all traits implemented by the superclass by passing the method call down to its variants
-                Some(quote! {
-                 #[derive(Debug, Clone)]
-                    pub enum #enum_name {
-                        #(#subclass_op_names(#op_wrapped_name),)*
-                    }
-                     impl PartialEq for #enum_name {
-                         fn eq(&self, other: &Self) -> bool {
-                             self.get_id() == other.get_id()
+                let IntermediateSlotTraitInfo {
+                    trait_name: slot_trait_name,
+                    trait_fns: slot_trait_fns,
+                } = meta.template_slots_trait_info.get(template_id).unwrap();
+                let slot_streams = slot_trait_fns.iter().fold(
+                    Vec::new(),
+                    |mut agg,
+                     (
+                        id,
+                        SlotFnDetails {
+                            fn_name,
+                            fn_signature,
+                            return_enum_type,
+                            is_trait_slot,
+                            id_only_signature,
+                            id_only_name,
+                            is_single_slot_bound,
+                        },
+                    )| {
+                        let intermediate = &subclass_op_names.iter().fold(
+                            (Vec::new(), Vec::new()),
+                            |mut agg, subclass| {
+                                agg.0
+                                    .push(quote! {#enum_name::#subclass(val) => val.#fn_name(),});
+                                agg.1.push(
+                                    quote! {#enum_name::#subclass(val) => val.#id_only_name(),},
+                                );
+                                agg
+                            },
+                        );
+                        let variant_streams = intermediate.0.clone();
+                        let id_only_variant_streams = intermediate.1.clone();
+                        agg.push(quote! {
+                            #fn_signature {
+                                match self {
+                                #(#variant_streams)*
+                                // _ => panic!(),
+                                }
+                            }
+                            #id_only_signature {
+                                match self {
+                                #(#id_only_variant_streams)*
+                                // _ => panic!(),
+                                }
+                            }
+                        });
+                        agg
+                    },
+                );
+
+                let rgso_impl = impl_RGSO_for_enum(enum_name.clone(), subclass_op_names.clone());
+                if subclass_op_names.len() <= 1 {
+                    None
+                } else {
+                    // TODO: Make this enum implement all traits implemented by the superclass by passing the method call down to its variants
+                    Some(quote! {
+                     #[derive(Debug, Clone)]
+                        pub enum #enum_name {
+                            #(#subclass_op_names(#op_wrapped_name),)*
+                        }
+                         impl PartialEq for #enum_name {
+                             fn eq(&self, other: &Self) -> bool {
+                                 self.get_id() == other.get_id()
+                             }
                          }
-                     }
-                    impl #field_trait_name for #enum_name {
-                        #(#field_streams)*
-                    }
-                    impl #slot_trait_name for #enum_name {
-                        #(#slot_streams)*
-                    }
-                    #rgso_impl
-                })
-            }
-        });
+                        impl #field_trait_name for #enum_name {
+                            #(#field_streams)*
+                        }
+                        impl #slot_trait_name for #enum_name {
+                            #(#slot_streams)*
+                        }
+                        #rgso_impl
+                    })
+                }
+            });
 
     // Checks every trait-operative slot, finds all unique trait combos, and creates an enum which represents all operatives which fulfill these trait combos
-    let slot_trait_enums_stream = constraint_schema_generated
+    let slot_trait_enums_stream = constraint_schema
         .template_library
         .values()
         .filter_map(|template| {
@@ -376,10 +380,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         })
         .iter()
         .map(|unique_trait_combo| {
-            let enum_name =
-                get_slot_trait_enum_name(&constraint_schema_generated, unique_trait_combo);
+            let enum_name = get_slot_trait_enum_name(&constraint_schema, unique_trait_combo);
             let fulfilling_ops = get_all_operatives_which_implement_trait_set(
-                &constraint_schema_generated,
+                &constraint_schema,
                 unique_trait_combo,
             );
             let fulfilling_ops_names = fulfilling_ops
@@ -411,29 +414,25 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         .collect::<Vec<_>>();
 
     // Creates the traits as defined in the schema
-    let trait_definition_streams = constraint_schema_generated
-        .traits
-        .values()
-        .map(|trait_def| {
-            let trait_name = syn::Ident::new(&trait_def.tag.name, proc_macro2::Span::call_site());
-            let fn_streams = trait_def.methods.values().map(|method_def| {
-                let method_name =
-                    syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
-                let return_type = utils::get_primitive_type(&method_def.return_type);
-                quote! {
-                    fn #method_name(&self) -> #return_type;
-                }
-            });
+    let trait_definition_streams = constraint_schema.traits.values().map(|trait_def| {
+        let trait_name = syn::Ident::new(&trait_def.tag.name, proc_macro2::Span::call_site());
+        let fn_streams = trait_def.methods.values().map(|method_def| {
+            let method_name = syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
+            let return_type = utils::get_primitive_type(&method_def.return_type);
             quote! {
-                pub trait #trait_name {
-                    #(#fn_streams)*
-                }
+                fn #method_name(&self) -> #return_type;
             }
         });
+        quote! {
+            pub trait #trait_name {
+                #(#fn_streams)*
+            }
+        }
+    });
 
     // Gather all slots and create an enum which maps to their ids
     // This to be used when searching an instance's incoming slots
-    let all_slots_enum_prep = constraint_schema_generated.template_library.values().fold(
+    let all_slots_enum_prep = constraint_schema.template_library.values().fold(
         (Vec::<syn::Ident>::new(), Vec::<Uid>::new()),
         |mut agg, template| {
             let slots = template.operative_slots.values().fold(
@@ -469,9 +468,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
     };
 
     let reference_constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
-        constraint_schema_generated.clone();
+        constraint_schema.clone();
 
-    let library_operative_streams = constraint_schema_generated
+    let library_operative_streams = constraint_schema
         .operative_library
         .values()
         .map(|el| {
@@ -482,7 +481,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             )
         })
         .collect::<Vec<_>>();
-    let instance_streams = constraint_schema_generated
+    let instance_streams = constraint_schema
         .instance_library
         .values()
         .map(|el| {
@@ -494,7 +493,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
         })
         .collect::<Vec<_>>();
 
-    let all_lib_op_names = constraint_schema_generated
+    let all_lib_op_names = constraint_schema
         .operative_library
         .values()
         .map(|el| get_operative_variant_name(&el.tag.name))
@@ -505,7 +504,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
     let schema_rgso_impl =
         impl_RGSO_for_enum(schema_name.into_token_stream(), all_lib_op_names.clone());
 
-    let repatriate_num_match_stream = constraint_schema_generated.operative_library.iter().map(
+    let repatriate_num_match_stream = constraint_schema.operative_library.iter().map(
         |(id, op)| {
             let struct_name = get_operative_variant_name(&op.get_tag().name);
             quote! {
@@ -517,6 +516,22 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
             }
         },
     ).collect::<Vec<_>>();
+
+    let doctored_initialize_graph_stream = {
+        if let Some(initial_population) = raw_json_initial_population {
+            quote! {
+                pub fn initialize_graph() -> SharedGraph<Schema> {
+                base_types::utils::initialize_graph_populated(&CONSTRAINT_SCHEMA, #initial_population)
+                }
+            }
+        } else {
+            quote! {
+                pub fn initialize_graph() -> SharedGraph<Schema> {
+                base_types::utils::initialize_graph_unpopulated(&CONSTRAINT_SCHEMA)
+                }
+            }
+        }
+    };
 
     let final_output = quote! {
         pub mod prelude {
@@ -640,7 +655,7 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
 
         lazy_static::lazy_static!{
             pub static ref CONSTRAINT_SCHEMA: base_types::constraint_schema::ConstraintSchema<PrimitiveTypes, PrimitiveValues>
-            = serde_json::from_str::<base_types::constraint_schema::ConstraintSchema<PrimitiveTypes, PrimitiveValues>>(#raw_json_data).expect("Schema formatted incorrectly");
+            = serde_json::from_str::<base_types::constraint_schema::ConstraintSchema<PrimitiveTypes, PrimitiveValues>>(#raw_json_schema).expect("Schema formatted incorrectly");
         }
 
         #all_slots_enum
@@ -721,8 +736,9 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
                     }
                 }
             }
-            impl Schema {
-               pub fn from_standalone(value: base_types::post_generation::StandaloneRGSOConcrete, graph: SharedGraph<Schema>, ) -> Self {
+            impl base_types::post_generation::reactive::from_reactive::FromStandalone for Schema {
+                type Schema = Schema;
+                fn from_standalone(value: base_types::post_generation::StandaloneRGSOConcrete, graph: SharedGraph<Self::Schema>, ) -> Self::Schema {
                    match value.operative {
                        #(#repatriate_num_match_stream)*
                        _ => unreachable!()
@@ -757,38 +773,58 @@ pub fn generate_concrete_schema_reactive(schema_location: &Path) -> String {
            }
         }
 
+        #doctored_initialize_graph_stream
+
         }
     };
     final_output.to_string()
 }
 
-#[macro_export]
 /// first argument is to the schema directory, second is to the molecule_schema project directory
+/// if the third argument is specified, it should point to a json file of a populated graph,
+/// and the graph will be prepoulated with that data
 ///
 /// example usage: generate_crate!("resources/my_schema.json", "../molecule_schema");
-macro_rules! generate_crate {
-    ($location:expr, $molecule_schema_location:expr) => {{
-        use std::{env, fs, path::Path, process::Command};
+/// example usage: generate_crate!("resources/my_schema.json", "../molecule_schema", Some("resources/my_starting_data.json"));
+pub fn generate_crate(
+    schema_location: &str,
+    molecule_schema_workspace_location: &str,
+    initial_population_location: Option<&str>,
+) {
+    use std::{env, fs, path::Path, process::Command};
 
-        // let out_dir = std::env::var("OUT_DIR").unwrap();
-        let generated_crate_dir = Path::new("target").join("generated_crate");
-        let generated_cargo_toml_dir = generated_crate_dir.join("Cargo.toml");
-        let generated_src_dir = generated_crate_dir.join("src");
-        let generated_code_dir = generated_src_dir.join("lib.rs");
-        let schema_path = Path::new($location);
-        let generated_code = generate_concrete_schema_reactive(schema_path);
-        let ms_location = $molecule_schema_location.to_string();
+    // let out_dir = std::env::var("OUT_DIR").unwrap();
+    let generated_crate_dir = Path::new("target").join("generated_crate");
+    let generated_cargo_toml_dir = generated_crate_dir.join("Cargo.toml");
+    let generated_src_dir = generated_crate_dir.join("src");
+    let generated_code_dir = generated_src_dir.join("lib.rs");
+    let schema_path = Path::new(&schema_location);
 
-        // Ensure directory exists
-        fs::create_dir_all(&generated_crate_dir).unwrap();
-        fs::create_dir_all(&generated_src_dir).unwrap();
+    let raw_json_schema = std::fs::read_to_string(schema_location);
+    let raw_json_schema = raw_json_schema.expect("schema json must be present");
 
-        // Delete stale files
-        fs::remove_file(&generated_code_dir);
-        fs::remove_file(&generated_cargo_toml_dir);
+    let initial_population = if let Some(initial_population_location) = initial_population_location
+    {
+        let json_initial_population = std::fs::read_to_string(initial_population_location)
+            .expect("initial population location is incorrect");
 
-        // Write out the crate's Cargo.toml and lib.rs
-        fs::write(
+        Some(json_initial_population)
+    } else {
+        None
+    };
+
+    let generated_code = generate_concrete_schema_reactive(raw_json_schema, initial_population);
+
+    // Ensure directory exists
+    fs::create_dir_all(&generated_crate_dir).unwrap();
+    fs::create_dir_all(&generated_src_dir).unwrap();
+
+    // Delete stale files
+    fs::remove_file(&generated_code_dir);
+    fs::remove_file(&generated_cargo_toml_dir);
+
+    // Write out the crate's Cargo.toml and lib.rs
+    fs::write(
             generated_cargo_toml_dir,
             format!(
                 r#"
@@ -821,37 +857,45 @@ macro_rules! generate_crate {
                         "js",
                     ]
                 "#,
-                ms_location, ms_location, ms_location, ms_location ,
+                molecule_schema_workspace_location, molecule_schema_workspace_location, molecule_schema_workspace_location, molecule_schema_workspace_location ,
             )
         )
         .unwrap();
 
-        fs::write(
-            generated_code_dir.clone(),
-            generated_code,
-        )
-        .unwrap();
+    fs::write(generated_code_dir.clone(), generated_code).unwrap();
 
+    let status = Command::new("rustfmt")
+        .arg(&generated_code_dir)
+        .status()
+        .expect("Failed to run rustfmt");
 
-        let status = Command::new("rustfmt")
-            .arg(&generated_code_dir)
-            .status()
-            .expect("Failed to run rustfmt");
+    if !status.success() {
+        panic!(
+            "failed to format generated code. rustfmt failed with status: {:?}",
+            status
+        );
+    }
 
-        if !status.success() {
-            panic!("failed to format generated code. rustfmt failed with status: {:?}", status);
-        }
+    println!(
+        "cargo::rerun-if-changed={}/generate_schema_reactive/src/lib.rs",
+        molecule_schema_workspace_location
+    );
+    // println!("cargo::rerun-if-changed={}/generate_schema_reactive/src/generate_operative_stream.rs", ms_location);
+    // println!("cargo::rerun-if-changed={}/generate_schema_reactive/src/generate_trait_impl_stream.rs", ms_location);
+    // println!("cargo::rerun-if-changed={}/generate_schema_reactive/src/utils.rs", ms_location);
+    println!("cargo::rerun-if-changed={}", schema_path.to_str().unwrap());
 
-        println!("cargo::rerun-if-changed={}/generate_schema_reactive/src/lib.rs", ms_location);
-        // println!("cargo::rerun-if-changed={}/generate_schema_reactive/src/generate_operative_stream.rs", ms_location);
-        // println!("cargo::rerun-if-changed={}/generate_schema_reactive/src/generate_trait_impl_stream.rs", ms_location);
-        // println!("cargo::rerun-if-changed={}/generate_schema_reactive/src/utils.rs", ms_location);
-        println!("cargo::rerun-if-changed={}", schema_path.to_str().unwrap());
-
-
-        // Emit a warning if the dependency isn't included
-        println!("Make sure to add `generated_crate` as a dependency in Cargo.toml:\ngenerated_crate = {{ path = \"{}\"}}",
+    // Emit a warning if the dependency isn't included
+    println!("Make sure to add `generated_crate` as a dependency in Cargo.toml:\ngenerated_crate = {{ path = \"{}\"}}",
             generated_crate_dir.display());
-
-    }};
 }
+
+// #[macro_export]
+// first argument is to the schema directory, second is to the molecule_schema project directory
+
+// example usage: generate_crate!("resources/my_schema.json", "../molecule_schema");
+// macro_rules! generate_crate {
+//     ($location:expr, $molecule_schema_location:expr) => {
+//         crate::inner_generate_crate($location.to_string(), $molecule_schema_location.to_string())
+//     };
+// }

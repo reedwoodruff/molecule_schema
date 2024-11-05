@@ -1,5 +1,11 @@
+use std::{collections::HashMap, sync::Arc};
+
 use crate::{
     constraint_schema::ConstraintSchema,
+    post_generation::{
+        reactive::{from_reactive::FromStandalone, RBaseGraphEnvironment, SharedGraph},
+        StandaloneRGSOConcrete,
+    },
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 
@@ -160,3 +166,31 @@ impl<T: IntoPrimitiveValue> IntoPrimitiveValue for Vec<T> {
 //         }
 //     }
 // }
+
+pub fn initialize_graph_unpopulated<TSchema: Sync + Send + 'static>(
+    constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
+) -> SharedGraph<TSchema> {
+    Arc::new(RBaseGraphEnvironment::new(&constraint_schema)).into()
+}
+pub fn initialize_graph_populated<
+    TSchema: Sync + Send + FromStandalone<Schema = TSchema> + 'static,
+>(
+    constraint_schema: &'static ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
+    json_initial_population: &str,
+) -> SharedGraph<TSchema> {
+    let initial_population: Vec<StandaloneRGSOConcrete> =
+        serde_json::from_str(json_initial_population)
+            .expect("initial population data formatted incorrectly");
+    let graph = Arc::new(RBaseGraphEnvironment::new(&constraint_schema));
+    let formatted_initial_population = initial_population
+        .into_iter()
+        .map(|standalone| {
+            (
+                standalone.id.clone(),
+                TSchema::from_standalone(standalone, graph.clone().into()),
+            )
+        })
+        .collect::<HashMap<crate::common::Uid, TSchema>>();
+    graph.initialize(formatted_initial_population);
+    graph.into()
+}
