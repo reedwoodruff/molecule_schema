@@ -6,9 +6,9 @@ use generated_crate::prelude::*;
 #[derive(Clone)]
 pub enum WorkspaceTab {
     Template(RwSignal<Option<RGSOConcrete<TemplateConcrete, Schema>>>),
-    Operative(RwSignal<Option<RGSOConcrete<TemplateConcrete, Schema>>>),
-    Instance(RwSignal<Option<RGSOConcrete<TemplateConcrete, Schema>>>),
-    Trait(RwSignal<Option<RGSOConcrete<TemplateConcrete, Schema>>>),
+    Operative(RwSignal<Option<RGSOConcrete<OperativeConcrete, Schema>>>),
+    Instance(RwSignal<Option<RGSOConcrete<InstanceConcrete, Schema>>>),
+    Trait(RwSignal<Option<RGSOConcrete<TraitConcrete, Schema>>>),
 }
 #[derive(Clone)]
 pub struct WorkspaceState {

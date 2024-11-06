@@ -86,3 +86,21 @@ where
     };
     view
 }
+
+#[component]
+pub fn Section(children: Children) -> impl IntoView {
+    view! {
+        <section>
+        {children()}
+        </section>
+    }
+}
+
+#[component]
+pub fn SectionHeader(children: Children) -> impl IntoView {
+    view! {
+        <h2>
+        {children()}
+        </h2>
+    }
+}

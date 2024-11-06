@@ -466,3 +466,8 @@ This layer could be used to build higher-level abstractions which are ultimately
 It gets quite difficult to figure out how to think about where or how the act of schema-editing comes in, and how it would be propagated through the layers of abstraction to create observable changes in the schema metastructure. Maybe you'd need versions? It seems like with those version artifacts and a base-layer compiler, you could autogenerate abstraction layers which allow interfacing with that particular metaschema-version artifact.
 Not loving the idea of versioning, but a better solution is elusive.
 As nice as it would be to have the current idea of Templates, Operatives, Instances, and Traits be the universal primitives, it seems like there would be value in finding some truly basic universal primitives like node and directed edge. Probably be worth it in the long run but the details of how all of these ideas will work together are not yet clear.
+
+## November 6, 2024
+Hypothesis: Schemas ought to be able to be based on one another or reference one another.
+Perhaps the priority at the moment is figuring out how to interpret the *output* of a managed graph environment as a schema for another environment.
+In other words, if I have a graph environment which exposes the primitives for schema-building (i.e. templates, operatives, traits), and I create a new schema in that environment (e.g. for rich text editing), how do I use the artifact from the original environment as the basis/schema for building the second environment?

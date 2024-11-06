@@ -30,6 +30,9 @@
     cursor: pointer;
     font-weight: bold;
 }
+.clickable-list-item.active {
+    color: #007bff;
+}
 
 .list-container {
     margin: 10px;

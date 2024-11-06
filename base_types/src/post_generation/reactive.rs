@@ -1597,7 +1597,7 @@ impl<TSchema> std::ops::Deref for SharedGraph<TSchema> {
 }
 
 pub trait HasSlotEnum {
-    type SlotEnum;
+    type SlotEnum: Send + Sync + Clone;
 }
 
 impl<T: HasSlotEnum, TSchema> RGSOConcrete<T, TSchema>
@@ -1737,3 +1737,6 @@ pub mod from_reactive {
         ) -> Self::Schema;
     }
 }
+
+pub trait RootConstraints: HasSlotEnum + Send + Sync + Clone + 'static {}
+impl<T> RootConstraints for T where T: HasSlotEnum + Send + Sync + Clone + 'static {}
