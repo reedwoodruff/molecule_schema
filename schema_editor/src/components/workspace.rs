@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::components::{editing_space::EditingSpace, main_list::MainList};
-use generated_crate::prelude::*;
+use schema_editor_generated_toolkit::prelude::*;
 
 #[derive(Clone)]
 pub enum WorkspaceTab {

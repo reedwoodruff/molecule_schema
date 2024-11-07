@@ -3,7 +3,7 @@ mod components;
 use components::app::App;
 
 // include!(concat!(env!("OUT_DIR"), "/recursive_schema.rs"));
-use generated_crate::prelude::*;
+use schema_editor_generated_toolkit::prelude::*;
 
 fn main() {
     console_error_panic_hook::set_once();

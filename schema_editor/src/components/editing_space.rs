@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use generated_crate::prelude::*;
 use leptos::either::EitherOf5;
+use schema_editor_generated_toolkit::prelude::*;
 
 use super::{
     template_editor::TemplateEditor,

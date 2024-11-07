@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::components::workspace::Workspace;
-use generated_crate::prelude::*;
+use schema_editor_generated_toolkit::prelude::*;
 #[component]
 pub fn App() -> impl IntoView {
     let shared_graph = initialize_graph();

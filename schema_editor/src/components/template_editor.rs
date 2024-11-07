@@ -1,4 +1,4 @@
-use generated_crate::prelude::*;
+use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::{
     common::{Section, SectionHeader, SignalTextInput, ToggleManagedTextInput},

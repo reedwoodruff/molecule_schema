@@ -10,6 +10,7 @@ edition = "2021"
 second_generation_compiler = { path = "../second_generation_compiler/" }
 
 [dependencies]
+second_generation_compiler_generated_toolkit = { path = "target/second_generation_compiler_generated_toolkit" }
 uuid = { workspace = true }
 to_composite_id_macro = { path = "../to_composite_id_macro" }
 base_types = { path = "../base_types", features = [
@@ -25,3 +26,7 @@ lazy_static = "1.4"
 # leptos = { version = "0.6", features = ["csr"] }
 leptos = { workspace = true }
 typenum = "1"
+
+
+[build-dependencies]
+first_generation_compiler = { path = "../../molecule_schema/first_generation_compiler" }

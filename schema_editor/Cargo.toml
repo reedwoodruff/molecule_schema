@@ -9,7 +9,7 @@ edition = "2021"
 [dependencies]
 wasm-bindgen = "0.2.95"
 console_error_panic_hook = "0.1.7"
-generated_crate = { path = "target/generated_crate" }
+schema_editor_generated_toolkit = { path = "target/schema_editor_generated_toolkit" }
 leptos = { workspace = true }
 web-sys = { version = "*", features = ["HtmlElement"] }
 

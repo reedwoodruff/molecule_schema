@@ -1,5 +1,5 @@
-use generated_crate::prelude::*;
 use leptos::either::EitherOf4;
+use schema_editor_generated_toolkit::prelude::*;
 
 use super::workspace::{WorkspaceState, WorkspaceTab};
 

@@ -790,11 +790,13 @@ pub fn generate_crate(
     schema_location: &str,
     molecule_schema_workspace_location: &str,
     initial_population_location: Option<&str>,
+    generated_crate_name: Option<&str>,
 ) {
     use std::{env, fs, path::Path, process::Command};
+    let generated_crate_name = generated_crate_name.unwrap_or("generated_toolkit");
 
     // let out_dir = std::env::var("OUT_DIR").unwrap();
-    let generated_crate_dir = Path::new("target").join("generated_crate");
+    let generated_crate_dir = Path::new("target").join(&generated_crate_name);
     let generated_cargo_toml_dir = generated_crate_dir.join("Cargo.toml");
     let generated_src_dir = generated_crate_dir.join("src");
     let generated_code_dir = generated_src_dir.join("lib.rs");
@@ -829,7 +831,7 @@ pub fn generate_crate(
             format!(
                 r#"
                     [package]
-                    name = "generated_crate"
+                    name = "{generated_crate_name}"
                     version = "0.1.0"
                     edition = "2021"
 
@@ -837,9 +839,9 @@ pub fn generate_crate(
                     path = "src/lib.rs"
 
                     [dependencies]
-                    to_composite_id_macro = {{ path = "{}/to_composite_id_macro" }}
-                    molecule_core = {{ path = "{}/molecule_core" }}
-                    base_types = {{ path = "{}/base_types", features = ["serde"] }}
+                    to_composite_id_macro = {{ path = "{molecule_schema_workspace_location}/to_composite_id_macro" }}
+                    molecule_core = {{ path = "{molecule_schema_workspace_location}/molecule_core" }}
+                    base_types = {{ path = "{molecule_schema_workspace_location}/base_types", features = ["serde"] }}
                     lazy_static = "1.4"
                     strum = {{version = "0.26.1", features=["derive"]}}
                     strum_macros = "0.26.1"
@@ -856,7 +858,6 @@ pub fn generate_crate(
                         "js",
                     ]
                 "#,
-                molecule_schema_workspace_location, molecule_schema_workspace_location, molecule_schema_workspace_location,
             )
         )
         .unwrap();
@@ -885,7 +886,7 @@ pub fn generate_crate(
     println!("cargo::rerun-if-changed={}", schema_path.to_str().unwrap());
 
     // Emit a warning if the dependency isn't included
-    println!("Make sure to add `generated_crate` as a dependency in Cargo.toml:\ngenerated_crate = {{ path = \"{}\"}}",
+    println!("Make sure to add `{generated_crate_name}` as a dependency in Cargo.toml:\n{generated_crate_name} = {{ path = \"{}\"}}",
             generated_crate_dir.display());
 }
 

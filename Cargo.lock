@@ -437,22 +437,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "generated_crate"
-version = "0.1.0"
-dependencies = [
- "base_types",
- "lazy_static",
- "leptos",
- "molecule_core",
- "serde",
- "serde_json",
- "strum",
- "strum_macros",
- "to_composite_id_macro",
- "uuid",
-]
-
-[[package]]
 name = "getrandom"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1387,12 +1371,28 @@ version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "first_generation_compiler",
- "generated_crate",
  "leptos",
+ "schema_editor_generated_toolkit",
  "serde",
  "serde_json",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "schema_editor_generated_toolkit"
+version = "0.1.0"
+dependencies = [
+ "base_types",
+ "lazy_static",
+ "leptos",
+ "molecule_core",
+ "serde",
+ "serde_json",
+ "strum",
+ "strum_macros",
+ "to_composite_id_macro",
+ "uuid",
 ]
 
 [[package]]
@@ -1406,16 +1406,34 @@ name = "second_generation_compiler"
 version = "0.1.0"
 dependencies = [
  "base_types",
+ "first_generation_compiler",
  "lazy_static",
  "leptos",
  "proc-macro2",
  "quote",
  "second_generation_compiler",
+ "second_generation_compiler_generated_toolkit",
  "serde",
  "serde_json",
  "syn",
  "to_composite_id_macro",
  "typenum",
+ "uuid",
+]
+
+[[package]]
+name = "second_generation_compiler_generated_toolkit"
+version = "0.1.0"
+dependencies = [
+ "base_types",
+ "lazy_static",
+ "leptos",
+ "molecule_core",
+ "serde",
+ "serde_json",
+ "strum",
+ "strum_macros",
+ "to_composite_id_macro",
  "uuid",
 ]
 

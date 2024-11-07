@@ -1,6 +1,5 @@
 use std::{env, fs, path::Path, process::Command};
 
-use first_generation_compiler::generate_concrete_schema_reactive;
 use first_generation_compiler::generate_crate;
 // use generate_schema_reactive::inner_generate_crate;
 fn main() {
@@ -23,5 +22,6 @@ fn main() {
         "/home/reed/development/molecule_schema/resources/recursive_schema.json",
         "/home/reed/development/molecule_schema",
         Some("/home/reed/development/molecule_schema/resources/initial_schema_editor_data.json"),
+        Some("schema_editor_generated_toolkit"),
     );
 }
