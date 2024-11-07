@@ -315,6 +315,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "first_generation_compiler"
+version = "0.1.0"
+dependencies = [
+ "base_types",
+ "first_generation_compiler",
+ "lazy_static",
+ "leptos",
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_json",
+ "syn",
+ "to_composite_id_macro",
+ "typenum",
+ "uuid",
+]
+
+[[package]]
 name = "fnv"
 version = "1.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -419,25 +437,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "generate_schema_reactive"
-version = "0.1.0"
-dependencies = [
- "base_types",
- "generate_schema_reactive",
- "lazy_static",
- "leptos",
- "proc-macro2",
- "quote",
- "reactive_types",
- "serde",
- "serde_json",
- "syn",
- "to_composite_id_macro",
- "typenum",
- "uuid",
-]
-
-[[package]]
 name = "generated_crate"
 version = "0.1.0"
 dependencies = [
@@ -445,7 +444,6 @@ dependencies = [
  "lazy_static",
  "leptos",
  "molecule_core",
- "reactive_types",
  "serde",
  "serde_json",
  "strum",
@@ -958,7 +956,6 @@ dependencies = [
  "console_error_panic_hook",
  "im",
  "leptos",
- "reactive_types",
  "serde",
  "serde_json",
  "strum",
@@ -1305,17 +1302,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "reactive_types"
-version = "0.1.0"
-dependencies = [
- "base_types",
- "leptos",
- "strum",
- "strum_macros",
- "uuid",
-]
-
-[[package]]
 name = "redox_syscall"
 version = "0.5.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1400,7 +1386,7 @@ name = "schema_editor"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
- "generate_schema_reactive",
+ "first_generation_compiler",
  "generated_crate",
  "leptos",
  "serde",
@@ -1414,6 +1400,24 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "second_generation_compiler"
+version = "0.1.0"
+dependencies = [
+ "base_types",
+ "lazy_static",
+ "leptos",
+ "proc-macro2",
+ "quote",
+ "second_generation_compiler",
+ "serde",
+ "serde_json",
+ "syn",
+ "to_composite_id_macro",
+ "typenum",
+ "uuid",
+]
 
 [[package]]
 name = "send_wrapper"

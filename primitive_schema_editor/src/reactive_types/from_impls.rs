@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{
+use super::{
     reactive_types::{
         RConstraintSchema, RFieldConstraint, RLibraryOperative, RLibraryTemplate,
         RLockedFieldConstraint, ROperativeSlot, ROperativeVariants, RSlotBounds, RSlottedInstances,

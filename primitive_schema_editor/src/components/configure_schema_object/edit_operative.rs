@@ -12,7 +12,7 @@ use crate::components::{
     common::{button_show::ButtonShow, select_input::SelectInputOptional, text_input::TextInput},
     tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
 };
-use reactive_types::{
+use crate::reactive_types::{
     reactive_item::RConstraintSchemaItem,
     reactive_types::{
         RLibraryOperative, ROperativeVariants, RSlottedInstances, RTraitMethodImplPath,

@@ -172,6 +172,7 @@ pub fn initialize_graph_unpopulated<TSchema: Sync + Send + 'static>(
 ) -> SharedGraph<TSchema> {
     Arc::new(RBaseGraphEnvironment::new(&constraint_schema)).into()
 }
+#[cfg(feature = "serde")]
 pub fn initialize_graph_populated<
     TSchema: Sync + Send + FromStandalone<Schema = TSchema> + 'static,
 >(

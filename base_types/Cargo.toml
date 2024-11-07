@@ -11,10 +11,7 @@ to_tokens = ["proc-macro2", "quote"]
 
 [dependencies]
 uuid = { workspace = true }
-serde = { version = "1", features = [
-    "derive",
-    "rc",
-], optional = true } # reactive_types = { path = "../reactive_types/" }
+serde = { version = "1", features = ["derive", "rc"], optional = true }
 serde_json = { version = "1", optional = true }
 strum = { version = "0.26.1", features = ["derive"] }
 strum_macros = "0.26.1"

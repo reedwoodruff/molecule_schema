@@ -1,5 +1,5 @@
 [package]
-name = "generate_schema_reactive"
+name = "second_generation_compiler"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,11 +7,11 @@ edition = "2021"
 # proc-macro = true
 
 [dev-dependencies]
-generate_schema_reactive = { path = "../generate_schema_reactive/" }
+second_generation_compiler = { path = "../second_generation_compiler/" }
 
 [dependencies]
-uuid = {workspace = true}
-to_composite_id_macro = {path = "../to_composite_id_macro"}
+uuid = { workspace = true }
+to_composite_id_macro = { path = "../to_composite_id_macro" }
 base_types = { path = "../base_types", features = [
     "to_tokens",
     # "reactive",
@@ -21,9 +21,7 @@ quote = "1.0"
 proc-macro2 = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reactive_types = { path = "../reactive_types" }
-# anyhow = "1.0"
 lazy_static = "1.4"
 # leptos = { version = "0.6", features = ["csr"] }
-leptos = {workspace = true}
+leptos = { workspace = true }
 typenum = "1"

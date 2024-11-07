@@ -840,7 +840,6 @@ pub fn generate_crate(
                     to_composite_id_macro = {{ path = "{}/to_composite_id_macro" }}
                     molecule_core = {{ path = "{}/molecule_core" }}
                     base_types = {{ path = "{}/base_types", features = ["serde"] }}
-                    reactive_types = {{ path = "{}/reactive_types/" }}
                     lazy_static = "1.4"
                     strum = {{version = "0.26.1", features=["derive"]}}
                     strum_macros = "0.26.1"
@@ -857,7 +856,7 @@ pub fn generate_crate(
                         "js",
                     ]
                 "#,
-                molecule_schema_workspace_location, molecule_schema_workspace_location, molecule_schema_workspace_location, molecule_schema_workspace_location ,
+                molecule_schema_workspace_location, molecule_schema_workspace_location, molecule_schema_workspace_location,
             )
         )
         .unwrap();
@@ -877,7 +876,7 @@ pub fn generate_crate(
     }
 
     println!(
-        "cargo::rerun-if-changed={}/generate_schema_reactive/src/lib.rs",
+        "cargo::rerun-if-changed={}/first_generation_compiler/src/lib.rs",
         molecule_schema_workspace_location
     );
     // println!("cargo::rerun-if-changed={}/generate_schema_reactive/src/generate_operative_stream.rs", ms_location);

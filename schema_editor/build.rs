@@ -1,7 +1,7 @@
 use std::{env, fs, path::Path, process::Command};
 
-use generate_schema_reactive::generate_concrete_schema_reactive;
-use generate_schema_reactive::generate_crate;
+use first_generation_compiler::generate_concrete_schema_reactive;
+use first_generation_compiler::generate_crate;
 // use generate_schema_reactive::inner_generate_crate;
 fn main() {
     // let schema_location = Path::new("../resources/recursive_schema.json");

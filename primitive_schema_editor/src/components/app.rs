@@ -7,15 +7,15 @@ use crate::components::{
     tree_view::TreeRef,
 };
 
+use crate::reactive_types::reactive_types::{
+    RConstraintSchema, RLibraryTemplate, RTag, RTraitDef, RTraitOperative,
+};
 use base_types::{
     common::Uid,
     constraint_schema::ConstraintSchema,
     primitives::{PrimitiveTypes, PrimitiveValues},
 };
 use leptos::{logging::log, prelude::*};
-use reactive_types::reactive_types::{
-    RConstraintSchema, RLibraryTemplate, RTag, RTraitDef, RTraitOperative,
-};
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum ListItemTypes {

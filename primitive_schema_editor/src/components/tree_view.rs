@@ -8,7 +8,7 @@ use base_types::{
 use leptos::prelude::*;
 
 use crate::components::app::SchemaContext;
-use reactive_types::{
+use crate::reactive_types::{
     operative_digest::ROperativeDigest,
     reactive_item::RConstraintSchemaItem,
     reactive_types::{

@@ -7,7 +7,7 @@ use crate::components::{
     common::{select_input::SelectInputEnum, text_input::TextInput},
 };
 
-use reactive_types::reactive_types::RTraitMethodDef;
+use crate::reactive_types::reactive_types::RTraitMethodDef;
 #[component]
 pub fn EditTrait(id: RwSignal<Uid>) -> impl IntoView {
     let ctx = use_context::<SchemaContext>().unwrap();

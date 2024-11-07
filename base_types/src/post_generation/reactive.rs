@@ -4,7 +4,6 @@ use crate::{
     common::u128_to_string,
     constraint_schema::{LibraryOperative, LibraryTemplate, OperativeSlot, SlotBounds},
 };
-use serde::{ser::SerializeSeq, Deserialize, Serialize};
 pub use typenum;
 
 use crate::{
@@ -439,7 +438,8 @@ impl<TSchema: EditRGSO + Send + Sync> RGraphEnvironment for RBaseGraphEnvironmen
         self.push_undo(redo_item);
     }
 }
-impl<TSchema: Send + Sync + Clone + Into<StandaloneRGSOConcrete> + 'static> Serialize
+#[cfg(feature = "serde")]
+impl<TSchema: Send + Sync + Clone + Into<StandaloneRGSOConcrete> + 'static> serde::Serialize
     for RBaseGraphEnvironment<TSchema>
 {
     fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
@@ -455,7 +455,7 @@ impl<TSchema: Send + Sync + Clone + Into<StandaloneRGSOConcrete> + 'static> Seri
             .collect::<Vec<StandaloneRGSOConcrete>>();
         let mut s = serializer.serialize_seq(Some(standalone_instances.len()))?;
         for item in standalone_instances {
-            s.serialize_element(&item)?;
+            serde::ser::SerializeSeq::serialize_element(&mut s, &item)?;
         }
         serde::ser::SerializeSeq::end(s)
     }
