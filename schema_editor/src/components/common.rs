@@ -4,12 +4,21 @@ use leptos::{either::Either, prelude::*};
 use schema_editor_generated_toolkit::prelude::{GetName, RGSO};
 
 #[component]
-pub fn SignalTextInput(
-    value: RwSignal<String>,
+pub fn SignalTextInput<T>(
+    value: RwSignal<T>,
     // #[prop(optional)] show_save_button: Option<bool>,
     // on_save: F,
-) -> impl IntoView {
-    view! { <input value=value on:input=move |e| value.set(event_target_value(&e))/> }
+) -> impl IntoView
+where
+    T: ToString + Send + Sync + Clone + FromStr + 'static,
+{
+    let on_input = move |e| {
+        match T::from_str(&event_target_value(&e)) {
+            Ok(val) => value.set(val),
+            Err(_) => (),
+        };
+    };
+    view! { <input value=move || value.get().to_string() on:input=on_input/> }
 }
 
 #[component]

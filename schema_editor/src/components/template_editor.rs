@@ -70,8 +70,33 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     };
 
     let is_building_slot = RwSignal::new(false);
+    let close_building_interface_callback = Callback::new(move |_| is_building_slot.set(false));
 
+    let template_slot_view = |template_slot: RGSOConcrete<TemplateSlot, Schema>| {
+        let template_slot_clone = template_slot.clone();
+        let details_view = move || match template_slot_clone.get_operativevariant_slot() {
+            TemplateSlotVariantTraitObject::TraitOperativeVariant(trait_op_variant) => {
+                let trait_list = trait_op_variant
+                    .get_traits_slot()
+                    .iter()
+                    .map(|item| item.get_name())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                "Traits: ".to_string() + &trait_list
+            }
+            TemplateSlotVariantTraitObject::ConreteOperativeVariant(_) => todo!(),
+        };
+        view! {
+            <div>
+            {move || template_slot.get_name()}
+            </div>
+            <div>
+            {details_view}
+            </div>
+        }
+    };
     let template_clone = template.clone();
+    let template_clone_2 = template.clone();
     let ctx_clone = ctx.clone();
     view! {
         <div>
@@ -96,9 +121,9 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                     <Button on:click=move |_| is_building_slot.set(true)>Add Slot</Button>
                 </Show>
                 <Show when=move || is_building_slot.get()>
-                // <SlotBuilder builder=TemplateSlot::new(ctx_clone.clone()) />
-                <SlotBuilder template=template_clone.clone() />
+                <SlotBuilder template=template_clone.clone() close_callback=close_building_interface_callback/>
                 </Show>
+                <For each=move ||template_clone_2.get_templateslots_slot() key=|item| item.get_id().clone() children=template_slot_view />
 
             </Section>
 

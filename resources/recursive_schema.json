@@ -364,14 +364,14 @@
             "name": "lower_bound",
             "id": 52842160675932395201412490194576865528
           },
-          "value_type": "String"
+          "value_type": "Int"
         },
         "134675934845863845429452105515014050436": {
           "tag": {
             "name": "upper_bound",
             "id": 134675934845863845429452105515014050436
           },
-          "value_type": "String"
+          "value_type": "Int"
         }
       },
       "operative_slots": {},

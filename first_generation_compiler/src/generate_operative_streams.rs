@@ -363,6 +363,36 @@ pub(crate) fn generate_operative_streams(
                     Ident::new(&string1, Span::call_site()).to_token_stream()
                 });
         let main_builder_slot_generics_stream = quote! { #(#main_builder_slot_generics_stream,)*};
+        let generic_slot_generics_stream_with_some_trait_bounds =
+            all_slot_digests
+                .iter()
+                .enumerate()
+                .map(|(i, slot_digest)| {
+                    if slot_digest.slot.tag.id == slot_id {
+                        return quote!{#local_count_generic:
+                            typenum::Integer
+                            + std::ops::Add<typenum::P1>
+                            + std::ops::Sub<typenum::P1>
+                        }
+                    }
+                    let string1 = format!("T{}Slot{}", slot.slot.tag.name, &i.to_string());
+                    let ident = Ident::new(&string1, Span::call_site());
+                    quote! {#ident: base_types::post_generation::type_level::SlotTSMarker}
+                });
+        let generic_slot_generics_stream_with_some_trait_bounds = quote!{#(#generic_slot_generics_stream_with_some_trait_bounds,)* };
+        let generic_slot_generics_stream_without_trait_bound =
+            all_slot_digests
+                .iter()
+                .enumerate()
+                .map(|(i, slot_digest)| {
+                    if slot_digest.slot.tag.id == slot_id {
+                        return quote!{#local_count_generic}
+                    }
+                    let string1 = format!("T{}Slot{}", slot.slot.tag.name, &i.to_string());
+                    let ident = Ident::new(&string1, Span::call_site());
+                    quote! {#ident}
+                });
+        let generic_slot_generics_stream_without_trait_bound = quote!{#(#generic_slot_generics_stream_without_trait_bound,)* };
         let generic_slot_generics_stream_with_trait_bound =
             all_slot_digests
                 .iter()
@@ -428,7 +458,7 @@ pub(crate) fn generate_operative_streams(
             } else {
                 None
             };
-            // let manipulate_slot_trait_name = Ident::new(&format!("ManipulateSlot{}{}", slot_name, struct_name), Span::call_site());
+            let manipulate_slot_trait_name = Ident::new(&format!("ManipulateSlot{}{}", slot_name, struct_name), Span::call_site());
             let marker_trait_name = Ident::new(&format!("{}{}AcceptableTargetMarker", struct_name, slot_name), Span::call_site());
             let marker_impls = items.iter().map(|item| {
                 let item_name = get_operative_variant_name(&item.get_tag().name);
@@ -460,14 +490,16 @@ pub(crate) fn generate_operative_streams(
                     get_operative_variant_name(&
                         item_name_string
                     )};
-                quote!{
-                    pub fn #method_name
+                (quote!{
+                    fn #method_name
                         <SlotsTSInnerSecondary,>
-                    (mut self,
+                    (self,
                         builder_closure: impl Fn( FreshBuilder<#single_item_variant_name, Schema, <#single_item_variant_name as StaticTypestate>::EmptyFieldTypestate, <#single_item_variant_name as StaticTypestate>::InitialSlotTypestate>)
                             -> FreshBuilder<#single_item_variant_name, Schema, <#single_item_variant_name as StaticTypestate>::FulfilledFieldTypestate, SlotsTSInnerSecondary>
                     ) -> #return_type_after_adding
                     where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS
+                },
+                quote!{
                     {
                         let mut new_builder = FreshBuilder {
                             inner_builder: #single_item_variant_name::initiate_build(self.inner_builder.get_graph().clone()),
@@ -481,26 +513,24 @@ pub(crate) fn generate_operative_streams(
                         };
                         new_builder.inner_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
                         let new_builder = builder_closure(new_builder);
-                        self.inner_builder.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder.inner_builder));
+                        // self.inner_builder.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder.inner_builder));
 
-                        let return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
+                        let mut return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
                             inner_builder: self.inner_builder,
                             _fields_typestate: std::marker::PhantomData,
                             _slots_typestate: std::marker::PhantomData,
                         };
+                        return_builder_plus_one_slot_typestate.inner_builder
+                            .add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder.inner_builder));
                         return_builder_plus_one_slot_typestate
                     }
-                }
+                })
             };
             let fresh_multi_item_generate_add_fn_signature = |method_name: Ident| {
-                let method_name_inner = Ident::new(&format!("{}_inner", method_name), Span::call_site());
-                quote!{
-                    fn #method_name_inner(mut self) {
-
-                    }
-                    pub fn #method_name
+                (quote!{
+                    fn #method_name
                         <T, SlotsTSInnerSecondary>
-                    (mut self,
+                    (self,
                         builder_closure: impl Fn( FreshBuilder<T, Schema, <T as StaticTypestate>::EmptyFieldTypestate, <T as StaticTypestate>::InitialSlotTypestate>)
                             -> FreshBuilder<T, Schema, <T as StaticTypestate>::FulfilledFieldTypestate, SlotsTSInnerSecondary>
                     ) -> #return_type_after_adding
@@ -508,6 +538,8 @@ pub(crate) fn generate_operative_streams(
                         T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone +
                         RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name + HasSlotEnum,
                         <T as HasSlotEnum>::SlotEnum: Send + Sync + Clone + std::fmt::Debug,
+                },
+                quote!{
                     {
                         let mut new_builder = FreshBuilder {
                             inner_builder: #single_item_variant_name::initiate_build(self.inner_builder.get_graph().clone()),
@@ -521,16 +553,19 @@ pub(crate) fn generate_operative_streams(
                         };
                         new_builder.inner_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
                         let new_builder = builder_closure(new_builder);
-                        self.inner_builder.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder.inner_builder));
+                        // self.inner_builder.add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder.inner_builder));
 
-                        let return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
+                        let mut return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
                             inner_builder: self.inner_builder,
                             _fields_typestate: std::marker::PhantomData,
                             _slots_typestate: std::marker::PhantomData,
                         };
+
+                        return_builder_plus_one_slot_typestate.inner_builder
+                            .add_outgoing(&#slot_id, BlueprintId::Existing(edge_to_this_element.target_instance_id.clone()), Some(new_builder.inner_builder));
                         return_builder_plus_one_slot_typestate
                     }
-                }
+                })
             };
             let existing_single_item_generate_add_fn_signature = |method_name: Ident, item: &LibraryOperative<PrimitiveTypes, PrimitiveValues>| {
                 let single_item_variant_name = {
@@ -596,7 +631,7 @@ pub(crate) fn generate_operative_streams(
                 }
             };
 
-            let fresh_add_new_fn_definitions = if let Some(item) = single_item_id {
+            let (fresh_add_new_fn_signature, fresh_add_new_fn_body) = if let Some(item) = single_item_id {
                 let add_new_fn_name = Ident::new(
                     &format!("add_new_{}", slot.slot.tag.name.to_lowercase()),
                     Span::call_site(),
@@ -626,7 +661,7 @@ pub(crate) fn generate_operative_streams(
             let fresh_add_existing_fn_signature = if let Some(item) = single_item_id {
                 quote!{
                     fn #add_existing_fn_name
-                    (mut self,
+                    (self,
                         existing_item_id: &Uid,
                         builder_closure: impl Fn(ExistingBuilder<#single_item_variant_name, Schema>)
                             -> ExistingBuilder<#single_item_variant_name, Schema>
@@ -636,7 +671,7 @@ pub(crate) fn generate_operative_streams(
                 quote!{
                     fn #add_existing_fn_name
                         <T: RBuildable<Schema=Schema> + RIntoSchema<Schema=Schema> + #marker_trait_name + Send + Sync + HasSlotEnum>
-                    (mut self,
+                    (self,
                         existing_item_id: &Uid,
                         builder_closure: impl Fn(ExistingBuilder<T, Schema>)
                             -> ExistingBuilder<T, Schema>
@@ -672,50 +707,58 @@ pub(crate) fn generate_operative_streams(
                     get_operative_variant_name(&
                         item_name_string
                     )};
-                quote!{
-                    pub fn #method_name(mut self,
+                (quote!{
+                    fn #method_name(self,
                         str_id: impl AsRef<str>,
                     ) -> #return_type_after_adding
+                },
+                quote!{
                     {
 
                                 let host_id = match &self.inner_builder.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
                                     None => BlueprintId::Existing(self.inner_builder.get_id().clone()),
                                 };
-                                self.inner_builder.temp_add_incoming(str_id.as_ref(), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
-                                self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, BlueprintId::Temporary(str_id.as_ref().to_string()), None);
-                                let return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
+                                // self.inner_builder.temp_add_incoming(str_id.as_ref(), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
+                                // self.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, BlueprintId::Temporary(str_id.as_ref().to_string()), None);
+                                let mut return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
                                     inner_builder: self.inner_builder,
                                     _fields_typestate: std::marker::PhantomData,
                                     _slots_typestate: std::marker::PhantomData,
                                 };
+                                return_builder_plus_one_slot_typestate.inner_builder.temp_add_incoming(str_id.as_ref(), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
+                                return_builder_plus_one_slot_typestate.inner_builder.add_outgoing::<#single_item_variant_name>(&#slot_id, BlueprintId::Temporary(str_id.as_ref().to_string()), None);
                                 return_builder_plus_one_slot_typestate
                     }
-                }
+                })
             };
             let fresh_multi_item_generate_add_temp_fn_definition = |method_name: Ident | {
-                quote!{
-                    pub fn #method_name<T>(mut self,
+                (quote!{
+                    fn #method_name<T>(self,
                         str_id: impl AsRef<str>,
                     ) -> #return_type_after_adding
                     where
                         T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name + HasSlotEnum,
                         <T as HasSlotEnum>::SlotEnum: Send + Sync + Clone + std::fmt::Debug,
+                },
+                quote!{
                     {
                                 let host_id = match &self.inner_builder.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
                                     None => BlueprintId::Existing(self.inner_builder.get_id().clone()),
                                 };
-                                self.inner_builder.temp_add_incoming(str_id.as_ref(), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
-                                self.inner_builder.add_outgoing::<T>(&#slot_id, BlueprintId::Temporary(str_id.as_ref().to_string()), None);
-                                let return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
+                                // self.inner_builder.temp_add_incoming(str_id.as_ref(), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
+                                // self.inner_builder.add_outgoing::<T>(&#slot_id, BlueprintId::Temporary(str_id.as_ref().to_string()), None);
+                                let mut return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
                                     inner_builder: self.inner_builder,
                                     _fields_typestate: std::marker::PhantomData,
                                     _slots_typestate: std::marker::PhantomData,
                                 };
+                                return_builder_plus_one_slot_typestate.inner_builder.temp_add_incoming(str_id.as_ref(), TempAddIncomingSlotRef {host_instance_id: host_id, slot_id:#slot_id });
+                                return_builder_plus_one_slot_typestate.inner_builder.add_outgoing::<T>(&#slot_id, BlueprintId::Temporary(str_id.as_ref().to_string()), None);
                                 return_builder_plus_one_slot_typestate
                     }
-                }
+                })
             };
             let existing_single_item_generate_add_temp_fn_definition = |method_name: Ident, item: &LibraryOperative<PrimitiveTypes, PrimitiveValues>| {
                 let single_item_variant_name = {
@@ -757,7 +800,7 @@ pub(crate) fn generate_operative_streams(
                     }
                 }
             };
-            let fresh_add_temp_fn_definition = if let Some(item) = single_item_id {
+            let (fresh_add_temp_fn_signature, fresh_add_temp_fn_body) = if let Some(item) = single_item_id {
                 let add_new_fn_name = Ident::new(
                         &format!("add_temp_{}", slot.slot.tag.name.to_lowercase()),
                         Span::call_site(),
@@ -811,8 +854,28 @@ pub(crate) fn generate_operative_streams(
             };
 
             quote!{
+                // pub trait #manipulate_slot_trait_name<FieldsTS, #generic_slot_generics_stream_with_trait_bound>
+                // where
+                //     <#local_count_generic as std::ops::Add<PInt<UInt<UTerm, B1>>>>::Output:
+                //     typenum::Integer
+                //     + std::ops::Add<typenum::P1>
+                //     + std::ops::Sub<typenum::P1>
+                //     + IsGreaterOrEqual<#local_min>
+                //     + IsLessOrEqual<#local_max>
+                //     + IsGreater<typenum::Z0>
+                //     + Cmp<Z0>
+                //     + Cmp<#local_min>
+                //     + Cmp<#local_max>
+                //     + Cmp<PInt<UInt<UTerm, B1>>>,
+                // {
+                //     #fresh_add_new_fn_signature;
+                //     #fresh_add_existing_fn_signature;
+                //     #fresh_add_temp_fn_signature;
+                // }
                 #(#marker_trait_stream)*
-                impl< FieldsTS, #generic_slot_generics_stream_with_trait_bound> FreshBuilder<#struct_name, Schema, FieldsTS, (#main_builder_slot_generics_stream)>
+                impl< FieldsTS, #generic_slot_generics_stream_with_trait_bound>
+                // #manipulate_slot_trait_name<FieldsTS, #generic_slot_generics_stream_without_trait_bound> for
+                FreshBuilder<#struct_name, Schema, FieldsTS, (#main_builder_slot_generics_stream)>
                     where
                     <#local_count_generic as std::ops::Add<PInt<UInt<UTerm, B1>>>>::Output:
                     typenum::Integer
@@ -827,11 +890,16 @@ pub(crate) fn generate_operative_streams(
                     + Cmp<PInt<UInt<UTerm, B1>>>,
                     base_types::post_generation::type_level::SlotTS<to_composite_id_macro::to_comp_id!(#slot_index), #local_count_generic,#slot_ts_consts_stream >: base_types::post_generation::type_level::SlotCanAddOne
                 {
-                    #fresh_add_new_fn_definitions
+                    pub #fresh_add_new_fn_signature
+                    #fresh_add_new_fn_body
+
                     pub #fresh_add_existing_fn_signature
                     {
                         let existing_item_id = existing_item_id.clone();
-                        #mismatch_error_handling
+                        // TODO: Disabled because made self immutable here
+                        // Need to check to see if this is the right place to do error checking anyway -- might be best to do it all in the process_blueprint stage
+                        // but if we do want to do it here we just need to propagate the error to the new inner_builder instead of mutating self
+                        // #mismatch_error_handling
 
                         let mut new_builder = ExistingBuilder {
                             inner_builder: #single_item_variant_name::initiate_edit(existing_item_id.clone(), self.inner_builder.get_graph().clone()) ,
@@ -843,15 +911,18 @@ pub(crate) fn generate_operative_streams(
                         };
                         new_builder.inner_builder.add_incoming::<#struct_name>(edge_to_this_element.clone(), None);
                         let new_builder = builder_closure(new_builder);
-                        self.inner_builder.add_outgoing(&#slot_id, BlueprintId::Existing(existing_item_id.clone()), Some(new_builder.inner_builder));
-                        let return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
+                        // self.inner_builder.add_outgoing(&#slot_id, BlueprintId::Existing(existing_item_id.clone()), Some(new_builder.inner_builder));
+                        let mut return_builder_plus_one_slot_typestate = FreshBuilder::<#struct_name, Schema, FieldsTS, (#(#return_slot_generics_after_adding,)*)>  {
                             inner_builder: self.inner_builder,
                             _fields_typestate: std::marker::PhantomData,
                             _slots_typestate: std::marker::PhantomData,
                         };
+                        return_builder_plus_one_slot_typestate.inner_builder
+                            .add_outgoing(&#slot_id, BlueprintId::Existing(existing_item_id.clone()), Some(new_builder.inner_builder));
                         return_builder_plus_one_slot_typestate
                     }
-                    #fresh_add_temp_fn_definition
+                    pub #fresh_add_temp_fn_signature
+                    #fresh_add_temp_fn_body
                 }
 
                 impl ExistingBuilder<#struct_name, Schema>
@@ -1034,6 +1105,7 @@ pub(crate) fn generate_operative_streams(
                 }
             }
         }
+
 
 
         pub trait #edit_rgso_trait_name {
