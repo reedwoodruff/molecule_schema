@@ -1053,6 +1053,7 @@ fn test_failed_search() {}
 pub trait FulfilledSlotTupleTS {
     const IMPLEMENTED: bool = true;
 }
+impl FulfilledSlotTupleTS for () {}
 impl<A> FulfilledSlotTupleTS for (A,) where A: FulfilledSlotTS {}
 impl<A, B> FulfilledSlotTupleTS for (A, B)
 where

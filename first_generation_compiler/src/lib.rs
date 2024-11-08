@@ -79,6 +79,11 @@ fn impl_RGSO_for_enum(enum_name: TokenStream, members: Vec<syn::Ident>) -> Token
                     // _ => panic!(),
                 }
             }
+            // fn get_name(&self) -> &String {
+            //     match self {
+            //         #(Self::#members(item) => RGSO::get_name(item),)*
+            //     }
+            // }
             fn template(&self) -> &'static base_types::constraint_schema::LibraryTemplate<base_types::primitives::PrimitiveTypes, base_types::primitives::PrimitiveValues> {
                 match self {
                     #(Self::#members(item) => item.template(),)*
@@ -399,7 +404,8 @@ pub fn generate_concrete_schema_reactive(
 
             // TODO: Make this enum implement all of these traits by passing the method call down to its variants
             quote! {
-                #[derive(Debug, Clone)]
+                #[derive(Debug, Clone, strum_macros::EnumDiscriminants)]
+                #[strum_discriminants(derive(strum_macros::EnumIter, strum_macros::Display, strum_macros::EnumString))]
                 pub enum #enum_name {
                     #(#fulfilling_ops_names(#fulfilling_ops_wrapped_names),)*
                 }

@@ -471,7 +471,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                 >
                     <div>
                         Slot name: <TextInput value=op_slot.1.tag.name/>
-                        <button on:click=delete_operative_slot(op_slot.0)>Delete Slot</button> <br/>
+                            <button on:click=delete_operative_slot(op_slot.0)>Delete Slot</button> <br/>
                         Operative name:
                         {match op_slot.1.operative_descriptor {
                             ROperativeVariants::TraitOperative(trait_op) => trait_op.tag.name.get(),

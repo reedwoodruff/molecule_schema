@@ -477,6 +477,7 @@ pub trait RGSO: std::fmt::Debug + Clone {
     type Schema;
     /// Instance ID
     fn get_id(&self) -> &Uid;
+    // fn get_name(&self) -> &String;
     fn operative(&self) -> &'static LibraryOperative<PrimitiveTypes, PrimitiveValues>;
     fn template(&self) -> &'static LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
     fn slot_by_id<E: Into<Uid>>(&self, slot_id: E) -> Option<&RActiveSlot> {
@@ -663,6 +664,9 @@ where
     fn get_id(&self) -> &Uid {
         &self.id
     }
+    // fn get_name(&self) -> &String {
+    //     &self.operative.tag.name
+    // }
 
     fn outgoing_slots(&self) -> std::collections::BTreeMap<&Uid, &RActiveSlot> {
         self.outgoing_slots
@@ -684,6 +688,11 @@ where
     }
     fn fields(&self) -> &std::collections::HashMap<Uid, RwSignal<PrimitiveValues>> {
         &self.fields
+    }
+}
+impl<T: HasSlotEnum, TSchema> std::fmt::Display for RGSOConcrete<T, TSchema> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.operative().tag.name)
     }
 }
 // impl<T: HasSlotEnum, TSchema: 'static> Serialize for RGSOConcrete<T, TSchema> {
@@ -992,7 +1001,8 @@ where
     // -------------
     // To be private
     // -------------
-    pub fn delete_recursive_handler(&self, id: &Uid) {
+    pub fn delete_recursive_handler(&mut self, id: &Uid, is_root_deletion: bool) {
+        self.delete(id);
         let item = self.graph.get(id).unwrap();
         let pending_incoming_removals = self.remove_incoming_updates.with(|remove_updates| {
             remove_updates
@@ -1008,14 +1018,17 @@ where
                 .collect::<std::collections::HashSet<_>>()
                 .len()
         });
+        leptos::logging::log!("{}: \nIncoming Slots: {}\nPending incoming additions: {}\nPending incoming removals: {}", item.template().tag.name, item.incoming_slots().get().len(), pending_incoming_additions, pending_incoming_removals);
+        leptos::logging::log!("{:#?}", item.outgoing_slots().values());
         if item.incoming_slots().with(|incoming_slots| {
             incoming_slots.len() + pending_incoming_additions - pending_incoming_removals == 0
-        }) {
+        }) || is_root_deletion
+        {
             let slotted_instances = item
                 .outgoing_slots()
                 .values()
                 .flat_map(|slot| slot.slotted_instances.get())
-                .for_each(|instance_id| self.delete_recursive_handler(&instance_id));
+                .for_each(|instance_id| self.delete_recursive_handler(&instance_id, false));
             slotted_instances
         }
     }
@@ -1139,17 +1152,20 @@ where
         });
         all_errors.extend(temp_outgoing_execution_errors);
 
-        let to_delete = self.to_delete_recursive.get();
-        to_delete.iter().for_each(|to_delete_id| {
-            self.delete(to_delete_id);
-            let item = self.graph.get(to_delete_id).unwrap();
-            let slotted_instances = item
-                .outgoing_slots()
-                .values()
-                .flat_map(|slot| slot.slotted_instances.get())
-                .for_each(|instance_id| self.delete_recursive_handler(&instance_id));
-            slotted_instances
-        });
+        // Run through each node which was marked to be deleted recursively and add them to the delete list
+        // Checks to see if slotted instances have any other references (incoming slots) and deletes them if no
+        // and continues to check their children (and so on)
+        //
+        // TODO: This currently is not as smart or robust as it could be -- could use some investigation.
+        // Starter point: if two nodes have only each other slotted as unaddressed slots, `delete_recursive_handler` currently
+        // would never delete either of them (unless the parent was a root delete node) because the first would have an unaddressed
+        // incoming edge (from the second) which would prevent the algorithm from continuing to the second and checking it.
+        self.to_delete_recursive
+            .get()
+            .iter()
+            .for_each(|to_delete_id| {
+                self.delete_recursive_handler(to_delete_id, true);
+            });
 
         // Get rid of all changes on nodes that will be deleted
         // Also grab and clone the node about to be deleted to facilitate undoing

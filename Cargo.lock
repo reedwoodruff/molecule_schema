@@ -326,6 +326,8 @@ dependencies = [
  "quote",
  "serde",
  "serde_json",
+ "strum",
+ "strum_macros",
  "syn",
  "to_composite_id_macro",
  "typenum",
@@ -1375,6 +1377,8 @@ dependencies = [
  "schema_editor_generated_toolkit",
  "serde",
  "serde_json",
+ "strum",
+ "strum_macros",
  "wasm-bindgen",
  "web-sys",
 ]

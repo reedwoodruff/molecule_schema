@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::components::workspace::Workspace;
+use crate::components::{common::Button, workspace::Workspace};
 use schema_editor_generated_toolkit::prelude::*;
 #[component]
 pub fn App() -> impl IntoView {
@@ -15,8 +15,6 @@ pub fn App() -> impl IntoView {
         .clone();
 
     provide_context(shared_graph.clone());
-
-    print!("{:#?}", shared_graph);
 
     let ctx_for_undo = shared_graph.clone();
     let undo_graph_action = move |_| {
@@ -37,13 +35,13 @@ pub fn App() -> impl IntoView {
         <div>
             <div style="display:flex;">
                 <div>
-                    <button on:click=serialize_graph>export</button>
+                    <Button on:click=serialize_graph>export</Button>
                 </div>
                 <div>
-                    <button on:click=undo_graph_action>undo</button>
+                    <Button on:click=undo_graph_action>undo</Button>
                 </div>
                 <div>
-                    <button on:click=redo_graph_action>redo</button>
+                    <Button on:click=redo_graph_action>redo</Button>
                 </div>
             </div>
             <div style="display:flex">

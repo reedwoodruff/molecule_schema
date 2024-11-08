@@ -1,6 +1,8 @@
 use leptos::either::EitherOf4;
 use schema_editor_generated_toolkit::prelude::*;
 
+use crate::components::common::Button;
+
 use super::workspace::{WorkspaceState, WorkspaceTab};
 
 #[component]
@@ -38,10 +40,35 @@ pub fn MainList() -> impl IntoView {
         }
     }
 
+    let schema_clone = schema.clone();
+    let create_new_button_view = move |variant: <SchemaConcrete as HasSlotEnum>::SlotEnum| {
+        let on_click_button = move |_| {
+            match variant {
+                SchemaConcreteAllSlots::Operatives => unreachable!(),
+                SchemaConcreteAllSlots::Instances => todo!(),
+                SchemaConcreteAllSlots::Templates => schema_clone
+                    .edit(ctx.clone())
+                    .add_new_templates(|new_template| new_template.set_name("new".to_string()))
+                    .execute()
+                    .unwrap(),
+                SchemaConcreteAllSlots::Traits => schema_clone
+                    .edit(ctx.clone())
+                    .add_new_traits(|new_trait| new_trait.set_name("new".to_string()))
+                    .execute()
+                    .unwrap(),
+            };
+        };
+        view! {
+            <Button on:click=on_click_button>Create New</Button>
+        }
+    };
+
     let list = move || {
         let schema = schema.clone();
+        let create_new_button_view = create_new_button_view.clone();
         match selected_tab.get() {
             WorkspaceTab::Template(tab_state) => EitherOf4::A(view! {
+                {move || create_new_button_view.clone()(SchemaConcreteAllSlots::Templates)}
                 <For
                 each=move || schema.get_templates_slot()
                 key=|item| item.get_id().clone()
@@ -66,6 +93,7 @@ pub fn MainList() -> impl IntoView {
                 </For>
             }),
             WorkspaceTab::Trait(tab_state) => EitherOf4::D(view! {
+                {move || create_new_button_view.clone()(SchemaConcreteAllSlots::Traits)}
                 <For
                 each=move || schema.get_traits_slot()
                 key=|item| item.get_id().clone()

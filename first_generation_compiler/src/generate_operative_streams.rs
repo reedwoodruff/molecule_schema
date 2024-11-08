@@ -985,6 +985,21 @@ pub(crate) fn generate_operative_streams(
     });
     let item_default_slot_typestate_stream = quote! { #(#item_default_slot_typestate_stream,)*};
 
+    let delete_existing_item_stream = {
+        quote! {
+            impl ExistingBuilder<#struct_name, Schema> {
+                pub fn delete(mut self) -> Self {
+                    self.inner_builder.delete(&self.inner_builder.id.clone());
+                    self
+                }
+                pub fn delete_recursive(mut self) -> Self {
+                    self.inner_builder.delete_recursive();
+                    self
+                }
+            }
+        }
+    };
+
     quote! {
         #[derive(Clone, Debug, Default)]
         pub struct #struct_name {}
@@ -1071,6 +1086,7 @@ pub(crate) fn generate_operative_streams(
         #(#manipulate_fields_stream)*
         #(#manipulate_slots_stream)*
         #(#get_locked_fields_stream)*
+        #delete_existing_item_stream
 
         #trait_impl_streams
         #get_fields_and_slots_stream

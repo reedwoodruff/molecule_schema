@@ -10,6 +10,8 @@ edition = "2021"
 first_generation_compiler = { path = "../first_generation_compiler/" }
 
 [dependencies]
+strum = "0.26.1"
+strum_macros = "0.26.1"
 uuid = { workspace = true }
 to_composite_id_macro = { path = "../to_composite_id_macro" }
 base_types = { path = "../base_types", features = [

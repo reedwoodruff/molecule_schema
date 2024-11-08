@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::components::{editing_space::EditingSpace, main_list::MainList};
 use schema_editor_generated_toolkit::prelude::*;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum WorkspaceTab {
     Template(RwSignal<Option<RGSOConcrete<TemplateConcrete, Schema>>>),
     Operative(RwSignal<Option<RGSOConcrete<OperativeConcrete, Schema>>>),
@@ -26,41 +26,45 @@ pub fn Workspace(schema_final_id: u128) -> impl IntoView {
     };
 
     let selected_tab = RwSignal::new(WorkspaceTab::Template(RwSignal::new(None)));
-    provide_context(WorkspaceState {
-        schema: schema.clone(),
-        selected_tab: selected_tab.clone(),
-    });
 
-    let schema_clone = schema.clone();
+    // Extra closure here to fix shadowed context
+    move || {
+        provide_context(WorkspaceState {
+            schema: schema.clone(),
+            selected_tab: selected_tab.clone(),
+        });
 
-    view! {
-        <div>
-            <div class="tabs-container">
-                <For each=move || schema.outgoing_slots_with_enum().clone().into_values()
-                    key=move |item| item.base.slot.tag.id.clone()
-                    let:slot
-                    children= move |slot| {
-                        let slot_enum_clone = slot.slot_enum.clone();
-                        let is_active = move || if <WorkspaceTab as Into<SchemaConcreteAllSlots>>::into(selected_tab.get()) == slot_enum_clone {
-                            "active"
-                            } else {
-                                ""
-                        };
-                        let class=move || format!("tab-link {}", is_active());
-                        let slot_enum_clone = slot.slot_enum.clone();
-                        view!{
-                            <a class=class on:click=move |_| selected_tab.set(slot_enum_clone.clone().into()) >
-                                {slot.slot.tag.name.clone()}
-                            </a>
+        let schema_clone = schema.clone();
+
+        view! {
+            <div>
+                <div class="tabs-container">
+                    <For each=move || schema_clone.clone().outgoing_slots_with_enum().clone().into_values()
+                        key=move |item| item.base.slot.tag.id.clone()
+                        let:slot
+                        children= move |slot| {
+                            let slot_enum_clone = slot.slot_enum.clone();
+                            let is_active = move || if <WorkspaceTab as Into<SchemaConcreteAllSlots>>::into(selected_tab.get()) == slot_enum_clone {
+                                "active"
+                                } else {
+                                    ""
+                            };
+                            let class=move || format!("tab-link {}", is_active());
+                            let slot_enum_clone = slot.slot_enum.clone();
+                            view!{
+                                <a class=class on:click=move |_| selected_tab.set(slot_enum_clone.clone().into()) >
+                                    {slot.slot.tag.name.clone()}
+                                </a>
+                            }
                         }
-                    }
-                >
-                </For>
+                    >
+                    </For>
 
+                </div>
+                <MainList />
+                <EditingSpace />
             </div>
-            <MainList />
-            <EditingSpace />
-        </div>
+        }
     }
 }
 
