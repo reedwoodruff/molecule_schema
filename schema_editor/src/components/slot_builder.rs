@@ -413,11 +413,19 @@ pub fn SlotBuilder(
     };
 
     let schema_clone = schema.clone();
+    let close_callback_clone = close_callback.clone();
     view! {
     <SubSection>
-        <SubSectionHeader>
-            Adding New Slot
-        </SubSectionHeader>
+        <div class="flex">
+            <div class="flex-grow">
+                <SubSectionHeader>
+                    Adding New Slot
+                </SubSectionHeader>
+            </div>
+            <div class="align-right">
+                <Button on:click=move|_| close_callback_clone.run(())>Cancel</Button>
+            </div>
+        </div>
         <LeafSection>
             <LeafSectionHeader>
                 Slot Name

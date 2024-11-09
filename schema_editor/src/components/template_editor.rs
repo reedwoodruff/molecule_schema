@@ -3,8 +3,8 @@ use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::{
     common::{
-        Button, LeafSection, LeafSectionHeader, Section, SectionHeader, SignalTextInput,
-        SubSection, SubSectionHeader, ToggleManagedTextInput,
+        Button, LeafSection, LeafSectionHeader, ManagedEnumSelect, Section, SectionHeader,
+        SignalEnumSelect, SignalTextInput, SubSection, SubSectionHeader, ToggleManagedTextInput,
     },
     slot_builder::SlotBuilder,
     workspace::{WorkspaceState, WorkspaceTab},
@@ -133,8 +133,140 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
             </LeafSection>
         }
     };
+
+    let ctx_clone = ctx.clone();
+    let template_field_view = move |field: RGSOConcrete<TemplateField, Schema>| {
+        let ctx_clone = ctx_clone.clone();
+        let ctx_clone_2 = ctx_clone.clone();
+        let field_clone = field.clone();
+        let name_setter = move |new_val: String| {
+            field_clone
+                .edit(ctx_clone_2.clone())
+                .set_fieldname(new_val)
+                .execute()
+                .unwrap();
+        };
+        let field_clone = field.clone();
+        let extraneous_value_type_signal = RwSignal::<FieldVariantTraitObjectDiscriminants>::new(
+            field_clone.get_fieldvariant_slot().into(),
+        );
+        let ctx_clone_2 = ctx_clone.clone();
+        let on_change_field =
+            Callback::new(move |new_value: FieldVariantTraitObjectDiscriminants| {
+                // let ctx_clone = ctx_clone.clone();
+                leptos::logging::log!(
+                    "running effect\nthe_signal: {:?}\n the_graph: {:?}",
+                    extraneous_value_type_signal.clone().get(),
+                    field_clone.get_fieldvariant_slot()
+                );
+                match field_clone.get_fieldvariant_slot() {
+                    FieldVariantTraitObject::StringFieldVariant(item) => {
+                        let mut edit = item.edit(ctx_clone_2.clone()).delete();
+                        match new_value {
+                            FieldVariantTraitObjectDiscriminants::StringFieldVariant => edit
+                                .incorporate(
+                                    field_clone
+                                        .edit(ctx_clone_2.clone())
+                                        .add_new_fieldvariant::<StringFieldVariant, _>(|na| na),
+                                ),
+                            FieldVariantTraitObjectDiscriminants::BoolFieldVariant => edit
+                                .incorporate(
+                                    field_clone
+                                        .edit(ctx_clone_2.clone())
+                                        .add_new_fieldvariant::<BoolFieldVariant, _>(|na| na),
+                                ),
+                            FieldVariantTraitObjectDiscriminants::IntFieldVariant => edit
+                                .incorporate(
+                                    field_clone
+                                        .edit(ctx_clone_2.clone())
+                                        .add_new_fieldvariant::<IntFieldVariant, _>(|na| na),
+                                ),
+                        };
+                        edit.execute().unwrap();
+                    }
+                    FieldVariantTraitObject::BoolFieldVariant(item) => {
+                        let mut edit = item.edit(ctx_clone_2.clone()).delete();
+                        match new_value {
+                            FieldVariantTraitObjectDiscriminants::StringFieldVariant => edit
+                                .incorporate(
+                                    field_clone
+                                        .edit(ctx_clone_2.clone())
+                                        .add_new_fieldvariant::<StringFieldVariant, _>(|na| na),
+                                ),
+                            FieldVariantTraitObjectDiscriminants::BoolFieldVariant => edit
+                                .incorporate(
+                                    field_clone
+                                        .edit(ctx_clone_2.clone())
+                                        .add_new_fieldvariant::<BoolFieldVariant, _>(|na| na),
+                                ),
+                            FieldVariantTraitObjectDiscriminants::IntFieldVariant => edit
+                                .incorporate(
+                                    field_clone
+                                        .edit(ctx_clone_2.clone())
+                                        .add_new_fieldvariant::<IntFieldVariant, _>(|na| na),
+                                ),
+                        };
+                        edit.execute().unwrap();
+                    }
+                    FieldVariantTraitObject::IntFieldVariant(item) => {
+                        let mut edit = item.edit(ctx_clone_2.clone()).delete();
+                        match new_value {
+                            FieldVariantTraitObjectDiscriminants::StringFieldVariant => edit
+                                .incorporate(
+                                    field_clone
+                                        .edit(ctx_clone_2.clone())
+                                        .add_new_fieldvariant::<StringFieldVariant, _>(|na| na),
+                                ),
+                            FieldVariantTraitObjectDiscriminants::BoolFieldVariant => edit
+                                .incorporate(
+                                    field_clone
+                                        .edit(ctx_clone_2.clone())
+                                        .add_new_fieldvariant::<BoolFieldVariant, _>(|na| na),
+                                ),
+                            FieldVariantTraitObjectDiscriminants::IntFieldVariant => edit
+                                .incorporate(
+                                    field_clone
+                                        .edit(ctx_clone_2.clone())
+                                        .add_new_fieldvariant::<IntFieldVariant, _>(|na| na),
+                                ),
+                        };
+                        edit.execute().unwrap();
+                    }
+                };
+            });
+
+        let field_clone = field.clone();
+        let delete_field = move |_| {
+            field_clone
+                .edit(ctx_clone.clone())
+                .delete()
+                .execute()
+                .unwrap();
+        };
+        let field_clone = field.clone();
+        view! {
+            <LeafSection>
+                <div class="flex">
+                <div class="flex-grow">
+                    <LeafSectionHeader>
+                    <ToggleManagedTextInput getter=move || field.get_fieldname_field() setter=name_setter/>
+                    </LeafSectionHeader>
+                    <LeafSection attr:class="leafsection dependent">
+                    <ManagedEnumSelect getter=move || field_clone.get_fieldvariant_slot().into() setter=on_change_field/>
+                    </LeafSection>
+                </div>
+                <div class="align-right">
+                    <Button on:click=delete_field>Delete Field</Button>
+                </div>
+                </div>
+
+            </LeafSection>
+        }
+    };
+
     let template_clone = template.clone();
     let template_clone_2 = template.clone();
+    let template_clone_3 = template.clone();
     let ctx_clone = ctx.clone();
     view! {
         <div>
@@ -158,6 +290,9 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
             <Section>
                 <SectionHeader>Fields</SectionHeader>
                 <Button on:click=on_click_add_field>Add Field</Button>
+                <SubSection>
+                    <For each=move||template_clone_3.get_templatefields_slot() key=|item| item.get_id().clone() children=template_field_view />
+                </SubSection>
 
             </Section>
             <Section>

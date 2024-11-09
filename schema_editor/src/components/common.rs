@@ -2,6 +2,7 @@ use std::{fmt::Display, str::FromStr};
 
 use leptos::{either::Either, prelude::*};
 use schema_editor_generated_toolkit::prelude::{GetName, RGSO};
+use web_sys::Event;
 
 #[component]
 pub fn SignalTextInput<T>(
@@ -92,7 +93,8 @@ where
             ),
             false => Either::Right(view! {
             <span>{getter.clone()}
-                    {toggle_button}
+            <span style="width: 15px; display: inline-block"></span>
+            {toggle_button}
             </span>}),
         }
     };
@@ -161,7 +163,10 @@ pub fn Button(children: Children) -> impl IntoView {
 }
 
 #[component]
-pub fn SignalEnumSelect<T>(value: RwSignal<T>) -> impl IntoView
+pub fn SignalEnumSelect<T>(
+    value: RwSignal<T>,
+    #[prop(optional)] hook: Option<Callback<T>>,
+) -> impl IntoView
 where
     T: Send + Sync + Clone + Display + strum::IntoEnumIterator + FromStr + 'static,
     <T as strum::IntoEnumIterator>::Iterator: Send + Sync,
@@ -170,12 +175,41 @@ where
     let on_change_value = move |e| {
         let return_val = event_target_value(&e);
         value.set(T::from_str(&return_val).ok().unwrap());
+        if let Some(hook) = hook {
+            hook.run(T::from_str(&return_val).ok().unwrap());
+        }
     };
 
     view! {
         <select prop:value=cur_value on:change=on_change_value>
         <For each=move || T::iter() key=|item| item.to_string() let:discriminant>
             <option prop:selected = move || discriminant.to_string() == cur_value()>{discriminant.to_string()}</option>
+        </For>
+        </select>
+    }
+}
+#[component]
+pub fn ManagedEnumSelect<T, F>(getter: F, setter: Callback<T>) -> impl IntoView
+where
+    T: Send + Sync + Clone + Display + strum::IntoEnumIterator + FromStr + 'static + PartialEq,
+    <T as strum::IntoEnumIterator>::Iterator: Send + Sync,
+    F: Fn() -> T + Send + Sync + Clone + 'static,
+{
+    // let cur_value = move || value.get().to_string();
+    let on_change_value = move |e: Event| {
+        let return_val = event_target_value(&e);
+        // value.set(T::from_str(&return_val).ok().unwrap());
+        setter.run(T::from_str(&return_val).ok().unwrap());
+    };
+
+    let getter_clone = getter.clone();
+    view! {
+        <select prop:value=move || getter_clone.clone()().to_string() on:change=on_change_value>
+        <For each=move || T::iter() key=|item| item.to_string() let:discriminant>
+            {
+            let getter_clone = getter.clone();
+            view!{<option prop:selected = move || discriminant == getter_clone()>{discriminant.to_string()}</option>}
+            }
         </For>
         </select>
     }

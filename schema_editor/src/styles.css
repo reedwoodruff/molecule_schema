@@ -85,3 +85,6 @@
 .align-right {
     text-align: right;
 }
+.flex-grow {
+    flex-grow: 1;
+}
