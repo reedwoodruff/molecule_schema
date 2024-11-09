@@ -42,11 +42,6 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
 
     let template_clone = template.clone();
     let ctx_clone = ctx.clone();
-    let delete_template = move |_| {
-        let ctx_clone = ctx_clone.clone();
-        template_clone.edit(ctx_clone).delete().execute().unwrap();
-        selected_tab.set(WorkspaceTab::Template(RwSignal::new(None)))
-    };
     let ctx_clone = ctx.clone();
     let template_clone = template.clone();
     let selected_tab_clone = selected_tab.clone();
@@ -279,8 +274,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                     <ToggleManagedTextInput getter=move || template.get_name_field() setter=update_name />
                 </LeafSection>
                 <LeafSection>
-                    <Button on:click=delete_template>Delete Item</Button>
-                    <Button on:click=delete_template_recursive>Delete Item Recursive</Button>
+                    <Button on:click=delete_template_recursive>Delete Item</Button>
                 </LeafSection>
             </Section>
             <Section>

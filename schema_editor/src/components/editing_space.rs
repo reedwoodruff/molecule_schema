@@ -3,7 +3,9 @@ use std::sync::Arc;
 use leptos::either::EitherOf5;
 use schema_editor_generated_toolkit::prelude::*;
 
-use crate::components::trait_editor::TraitEditor;
+use crate::components::{
+    instance_editor::InstanceEditor, operative_editor::OperativeEditor, trait_editor::TraitEditor,
+};
 
 use super::{
     template_editor::TemplateEditor,
@@ -23,8 +25,14 @@ pub fn EditingSpace() -> impl IntoView {
                 Some(template) => EitherOf5::A(view! {<TemplateEditor template />}),
                 None => EitherOf5::E(()),
             },
-            WorkspaceTab::Operative(_) => EitherOf5::B(view! {}),
-            WorkspaceTab::Instance(_) => EitherOf5::C(view! {}),
+            WorkspaceTab::Operative(operative) => match operative.get() {
+                Some(operative) => EitherOf5::B(view! {<OperativeEditor operative />}),
+                None => EitherOf5::E(()),
+            },
+            WorkspaceTab::Instance(instance) => match instance.get() {
+                Some(instance) => EitherOf5::C(view! {<InstanceEditor instance />}),
+                None => EitherOf5::E(()),
+            },
             WorkspaceTab::Trait(trait_concrete) => match trait_concrete.get() {
                 Some(trait_concrete) => EitherOf5::D(view! {<TraitEditor trait_concrete/>}),
                 None => EitherOf5::E(()),
