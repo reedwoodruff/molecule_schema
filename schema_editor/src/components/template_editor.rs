@@ -1,7 +1,11 @@
+use leptos::either::Either;
 use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::{
-    common::{Button, Section, SectionHeader, SignalTextInput, ToggleManagedTextInput},
+    common::{
+        Button, LeafSection, LeafSectionHeader, Section, SectionHeader, SignalTextInput,
+        SubSection, SubSectionHeader, ToggleManagedTextInput,
+    },
     slot_builder::SlotBuilder,
     workspace::{WorkspaceState, WorkspaceTab},
 };
@@ -45,6 +49,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     };
     let ctx_clone = ctx.clone();
     let template_clone = template.clone();
+    let selected_tab_clone = selected_tab.clone();
     let delete_template_recursive = move |_| {
         let ctx_clone = ctx_clone.clone();
         template_clone
@@ -52,7 +57,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
             .delete_recursive()
             .execute()
             .unwrap();
-        selected_tab.set(WorkspaceTab::Template(RwSignal::new(None)))
+        selected_tab_clone.set(WorkspaceTab::Template(RwSignal::new(None)))
     };
 
     let ctx_clone = ctx.clone();
@@ -72,8 +77,13 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     let is_building_slot = RwSignal::new(false);
     let close_building_interface_callback = Callback::new(move |_| is_building_slot.set(false));
 
-    let template_slot_view = |template_slot: RGSOConcrete<TemplateSlot, Schema>| {
+    let template_clone = template.clone();
+
+    let selected_tab_clone = selected_tab.clone();
+    let ctx_clone = ctx.clone();
+    let template_slot_view = move |template_slot: RGSOConcrete<TemplateSlot, Schema>| {
         let template_slot_clone = template_slot.clone();
+        let selected_tab_clone = selected_tab.clone();
         let details_view = move || match template_slot_clone.get_operativevariant_slot() {
             TemplateSlotVariantTraitObject::TraitOperativeVariant(trait_op_variant) => {
                 let trait_list = trait_op_variant
@@ -82,17 +92,45 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                     .map(|item| item.get_name())
                     .collect::<Vec<_>>()
                     .join(", ");
-                "Traits: ".to_string() + &trait_list
+                Either::Left("Traits: ".to_string() + &trait_list)
             }
-            TemplateSlotVariantTraitObject::ConreteOperativeVariant(_) => todo!(),
+            TemplateSlotVariantTraitObject::ConcreteOperativeVariant(conc_op) => {
+                let op = conc_op.get_operative_slot();
+                let op_clone = op.clone();
+                Either::Right(view! {
+                    <div>
+                    Operative: <a class="clickable-list-item"
+                        on:click=move |_| {selected_tab_clone.set(WorkspaceTab::Operative(RwSignal::new(Some(op_clone.clone()))))}>
+                        {move || op.get_name()}</a>
+                    </div>
+                })
+            }
+        };
+        let ctx_clone = ctx_clone.clone();
+        let template_slot_clone = template_slot.clone();
+        let on_click_delete_slot = move |_| {
+            template_slot_clone
+                .edit(ctx_clone.clone())
+                .delete_recursive()
+                .execute()
+                .unwrap();
         };
         view! {
-            <div>
-            {move || template_slot.get_name()}
-            </div>
-            <div>
-            {details_view}
-            </div>
+            <LeafSection>
+                <LeafSectionHeader>
+                {move || template_slot.get_name()}
+                </LeafSectionHeader>
+                <div class="flex">
+                    <LeafSection>
+                    {details_view}
+                    </LeafSection>
+                </div>
+                <div class="align-right">
+                <Button on:click=on_click_delete_slot>
+                    Delete Slot
+                </Button>
+                </div>
+            </LeafSection>
         }
     };
     let template_clone = template.clone();
@@ -102,9 +140,16 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
         <div>
             <Section>
                 <SectionHeader>Overview</SectionHeader>
-                <ToggleManagedTextInput getter=move || template.get_name_field() setter=update_name />
-                <Button on:click=delete_template>Delete Item</Button>
-                <Button on:click=delete_template_recursive>Delete Item Recursive</Button>
+                <LeafSection>
+                    <LeafSectionHeader>
+                        Name:
+                    </LeafSectionHeader>
+                    <ToggleManagedTextInput getter=move || template.get_name_field() setter=update_name />
+                </LeafSection>
+                <LeafSection>
+                    <Button on:click=delete_template>Delete Item</Button>
+                    <Button on:click=delete_template_recursive>Delete Item Recursive</Button>
+                </LeafSection>
             </Section>
             <Section>
                 <SectionHeader>Create Derivatives</SectionHeader>
@@ -123,7 +168,12 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                 <Show when=move || is_building_slot.get()>
                 <SlotBuilder template=template_clone.clone() close_callback=close_building_interface_callback/>
                 </Show>
+                <SubSection>
+                <SubSectionHeader>
+                    Existing Slots
+                </SubSectionHeader>
                 <For each=move ||template_clone_2.get_templateslots_slot() key=|item| item.get_id().clone() children=template_slot_view />
+                </SubSection>
 
             </Section>
 

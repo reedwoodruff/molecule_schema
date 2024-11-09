@@ -90,18 +90,53 @@ where
             true => Either::Left(
                 view! {<ManagedTextInput input_ref getter=getter.clone() setter=setter.clone() >{toggle_button}</ManagedTextInput>},
             ),
-            false => Either::Right(view! {<p>{getter.clone()}
-                        {toggle_button}
-            </p>}),
+            false => Either::Right(view! {
+            <span>{getter.clone()}
+                    {toggle_button}
+            </span>}),
         }
     };
     view
 }
 
 #[component]
+pub fn LeafSection(children: Children) -> impl IntoView {
+    view! {
+        <div class="leafsection">
+        {children()}
+        </div>
+    }
+}
+#[component]
+pub fn LeafSectionHeader(children: Children) -> impl IntoView {
+    view! {
+        <h4 class="leafsection-header">
+        {children()}
+        </h4>
+    }
+}
+
+#[component]
+pub fn SubSection(children: Children) -> impl IntoView {
+    view! {
+        <div class="subsection">
+        {children()}
+        </div>
+    }
+}
+#[component]
+pub fn SubSectionHeader(children: Children) -> impl IntoView {
+    view! {
+        <h3 class="subsection-header">
+        {children()}
+        </h3>
+    }
+}
+
+#[component]
 pub fn Section(children: Children) -> impl IntoView {
     view! {
-        <section>
+        <section class="section">
         {children()}
         </section>
     }
@@ -110,7 +145,7 @@ pub fn Section(children: Children) -> impl IntoView {
 #[component]
 pub fn SectionHeader(children: Children) -> impl IntoView {
     view! {
-        <h2>
+        <h2 class="section-header">
         {children()}
         </h2>
     }

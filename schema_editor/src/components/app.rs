@@ -25,15 +25,19 @@ pub fn App() -> impl IntoView {
         ctx_for_redo.redo();
     };
 
+    let ctx_clone = shared_graph.clone();
     let serialize_graph = move |_| {
-        let rbase_graph: std::sync::Arc<RBaseGraphEnvironment<Schema>> =
-            shared_graph.clone().into();
+        let rbase_graph: std::sync::Arc<RBaseGraphEnvironment<Schema>> = ctx_clone.clone().into();
         let json = serde_json::to_string_pretty(&rbase_graph).unwrap();
         leptos::logging::log!("{}", json);
     };
+    let ctx_clone = shared_graph.clone();
     view! {
         <div>
             <div style="display:flex;">
+                <div>
+                <Button on:click=move |_| {leptos::logging::log!("{:#?}", ctx_clone.created_instances.get().values())}>debug print</Button>
+                </div>
                 <div>
                     <Button on:click=serialize_graph>export</Button>
                 </div>

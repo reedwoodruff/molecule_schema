@@ -1002,7 +1002,6 @@ where
     // To be private
     // -------------
     pub fn delete_recursive_handler(&mut self, id: &Uid, is_root_deletion: bool) {
-        self.delete(id);
         let item = self.graph.get(id).unwrap();
         let pending_incoming_removals = self.remove_incoming_updates.with(|remove_updates| {
             remove_updates
@@ -1020,10 +1019,9 @@ where
         });
         leptos::logging::log!("{}: \nIncoming Slots: {}\nPending incoming additions: {}\nPending incoming removals: {}", item.template().tag.name, item.incoming_slots().get().len(), pending_incoming_additions, pending_incoming_removals);
         leptos::logging::log!("{:#?}", item.outgoing_slots().values());
-        if item.incoming_slots().with(|incoming_slots| {
-            incoming_slots.len() + pending_incoming_additions - pending_incoming_removals == 0
-        }) || is_root_deletion
-        {
+        let total_incoming = item.incoming_slots().get().len() + pending_incoming_additions;
+        if ((total_incoming == pending_incoming_removals) || is_root_deletion) {
+            self.delete(id);
             let slotted_instances = item
                 .outgoing_slots()
                 .values()
@@ -1463,25 +1461,32 @@ where
             })
         }
     }
+
+    // Add the node to the delete list and remove any references to or from it
     pub fn delete(&mut self, to_delete_id: &Uid) {
         self.deleted_instances.update(|prev| {
             prev.insert(*to_delete_id);
         });
-        let existing_instance = self.graph.get(&self.id).unwrap();
-        existing_instance.incoming_slots().with(|incoming_slots| {
-            incoming_slots.iter().for_each(|incoming_slot| {
-                self.remove_outgoing_updates.update(|removes| {
+        let existing_instance = self.graph.get(to_delete_id).unwrap();
+        self.remove_outgoing_updates.update(|removes| {
+            existing_instance.incoming_slots().with(|incoming_slots| {
+                incoming_slots.iter().for_each(|incoming_slot| {
                     removes.insert((incoming_slot.host_instance_id, incoming_slot.clone()));
                 })
             })
         });
-        existing_instance
-            .outgoing_slots()
-            .values()
-            .for_each(|slot| {
-                slot.slotted_instances.with(|slotted_instances| {
-                    slotted_instances.iter().for_each(|target_instance_id| {
-                        self.remove_incoming_updates.update(|removes| {
+        leptos::logging::log!(
+            "outgoing slots before removing: {:#?}",
+            existing_instance.outgoing_slots().values()
+        );
+        self.remove_incoming_updates.update(|removes| {
+            existing_instance
+                .outgoing_slots()
+                .values()
+                .for_each(|slot| {
+                    slot.slotted_instances.with(|slotted_instances| {
+                        slotted_instances.iter().for_each(|target_instance_id| {
+                            leptos::logging::log!("ran for target: {}", target_instance_id);
                             removes.insert((
                                 *target_instance_id,
                                 SlotRef {
@@ -1493,7 +1498,7 @@ where
                         })
                     })
                 })
-            });
+        });
     }
     pub fn delete_recursive(&mut self) {
         self.to_delete_recursive.update(|prev| {

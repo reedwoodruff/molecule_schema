@@ -672,7 +672,7 @@
     },
     "332786645457086776879473976454556144841": {
       "tag": {
-        "name": "ConreteOperativeVariant",
+        "name": "ConcreteOperativeVariant",
         "id": 332786645457086776879473976454556144841
       },
       "field_constraints": {},
@@ -914,7 +914,7 @@
     },
     "235015730226282279176722887869195639617": {
       "tag": {
-        "name": "ConreteOperativeVariant",
+        "name": "ConcreteOperativeVariant",
         "id": 235015730226282279176722887869195639617
       },
       "template_id": 332786645457086776879473976454556144841,

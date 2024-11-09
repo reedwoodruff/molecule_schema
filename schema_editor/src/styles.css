@@ -30,6 +30,9 @@
     cursor: pointer;
     font-weight: bold;
 }
+.clickable-list-item:hover {
+    color: #999;
+}
 .clickable-list-item.active {
     color: #007bff;
 }
@@ -40,4 +43,45 @@
 
 .editing-space-container {
     margin: 10px;
+}
+
+.section {
+    border-radius: 3px;
+    background-color: #ccc;
+    padding: 6px;
+    margin: 3px;
+    margin-bottom: 10px;
+}
+.section-header {
+    margin: 0px;
+}
+.subsection {
+    border-radius: 3px;
+    background-color: #ddd;
+    padding: 6px;
+    margin: 2px;
+    margin-left: 6px;
+    margin-bottom: 6px;
+}
+.subsection-header {
+    margin: 0px;
+}
+.leafsection {
+    border-radius: 3px;
+    background-color: #eee;
+    padding: 6px;
+    margin-left: 12px;
+}
+.leafsection.dependent {
+    border-left: 4px dotted #888;
+}
+.leafsection-header {
+    margin: 0px;
+}
+
+.flex {
+    display: flex;
+}
+.align-right {
+    text-align: right;
 }
