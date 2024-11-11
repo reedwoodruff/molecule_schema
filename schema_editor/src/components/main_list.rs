@@ -13,7 +13,7 @@ pub fn MainList() -> impl IntoView {
         selected_tab,
     } = use_context::<WorkspaceState>().unwrap();
 
-    fn list_item_view<T: RootConstraints>(
+    fn list_item_view<T: RootConstraints<Schema>>(
         list_item: RGSOConcrete<T, Schema>,
         tab_state: RwSignal<Option<RGSOConcrete<T, Schema>>>,
     ) -> impl IntoView

@@ -29,7 +29,7 @@ pub fn SlotBuilder(
 
     let name = RwSignal::new("new_slot".to_string());
     let slot_type =
-        RwSignal::new(TemplateSlotVariantTraitObjectDiscriminants::ConcreteOperativeVariant);
+        RwSignal::new(TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotSingleOperative);
     let slot_bound = RwSignal::new(SlotBoundVariantTraitObjectDiscriminants::SlotBoundSingle);
     let slot_bound_max = RwSignal::new(0);
     let slot_bound_min = RwSignal::new(0);
@@ -62,7 +62,7 @@ pub fn SlotBuilder(
                                 .add_new_templateslots(|new_template_slot| {
                                     new_template_slot
                                         .set_name(name.get())
-                                        .add_new_operativevariant::<TraitOperativeVariant, _>(
+                                        .add_new_operativevariant::<TemplateSlotTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
                                                     .add_existing_traits(
@@ -84,7 +84,7 @@ pub fn SlotBuilder(
                                 .add_new_templateslots(|new_template_slot| {
                                     new_template_slot
                                         .set_name(name.get())
-                                        .add_new_operativevariant::<TraitOperativeVariant, _>(
+                                        .add_new_operativevariant::<TemplateSlotTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
                                                     .add_existing_traits(
@@ -110,7 +110,7 @@ pub fn SlotBuilder(
                                 .add_new_templateslots(|new_template_slot| {
                                     new_template_slot
                                         .set_name(name.get())
-                                        .add_new_operativevariant::<TraitOperativeVariant, _>(
+                                        .add_new_operativevariant::<TemplateSlotTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
                                                     .add_existing_traits(
@@ -133,7 +133,7 @@ pub fn SlotBuilder(
                             .add_new_templateslots(|new_template_slot| {
                                 new_template_slot
                                     .set_name(name.get())
-                                    .add_new_operativevariant::<TraitOperativeVariant, _>(
+                                    .add_new_operativevariant::<TemplateSlotTraitOperative, _>(
                                         |new_op_var| {
                                             new_op_var
                                                 .add_existing_traits(
@@ -156,7 +156,7 @@ pub fn SlotBuilder(
                                 .add_new_templateslots(|new_template_slot| {
                                     new_template_slot
                                         .set_name(name.get())
-                                        .add_new_operativevariant::<TraitOperativeVariant, _>(
+                                        .add_new_operativevariant::<TemplateSlotTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
                                                     .add_existing_traits(
@@ -177,7 +177,7 @@ pub fn SlotBuilder(
                             .add_new_templateslots(|new_template_slot| {
                                 new_template_slot
                                     .set_name(name.get())
-                                    .add_new_operativevariant::<TraitOperativeVariant, _>(
+                                    .add_new_operativevariant::<TemplateSlotTraitOperative, _>(
                                         |new_op_var| {
                                             new_op_var
                                                 .add_existing_traits(
@@ -200,7 +200,7 @@ pub fn SlotBuilder(
                 } else {
                     let new_template_slot =
                         match ctx_clone.get(&trait_operative_variant_id).unwrap() {
-                            Schema::TraitOperativeVariant(item) => item,
+                            Schema::TemplateSlotTraitOperative(item) => item,
                             _ => panic!(),
                         };
                     new_template_slot
@@ -322,7 +322,7 @@ pub fn SlotBuilder(
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
                         .set_name(name.get())
-                        .add_new_operativevariant::<ConcreteOperativeVariant, _>(|new_op_var| {
+                        .add_new_operativevariant::<TemplateSlotSingleOperative, _>(|new_op_var| {
                             new_op_var.add_existing_operative(op_id, |na| na)
                         })
                         .add_new_slotbound::<SlotBoundUpperBound, _>(|slot_bound| {
@@ -335,7 +335,7 @@ pub fn SlotBuilder(
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
                         .set_name(name.get())
-                        .add_new_operativevariant::<ConcreteOperativeVariant, _>(|new_op_var| {
+                        .add_new_operativevariant::<TemplateSlotSingleOperative, _>(|new_op_var| {
                             new_op_var.add_existing_operative(op_id, |na| na)
                         })
                         .add_new_slotbound::<SlotBoundRangeOrZero, _>(|slot_bound| {
@@ -350,7 +350,7 @@ pub fn SlotBuilder(
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
                         .set_name(name.get())
-                        .add_new_operativevariant::<ConcreteOperativeVariant, _>(|new_op_var| {
+                        .add_new_operativevariant::<TemplateSlotSingleOperative, _>(|new_op_var| {
                             new_op_var.add_existing_operative(op_id, |na| na)
                         })
                         .add_new_slotbound::<SlotBoundLowerBoundOrZero, _>(|slot_bound| {
@@ -363,7 +363,7 @@ pub fn SlotBuilder(
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
                         .set_name(name.get())
-                        .add_new_operativevariant::<ConcreteOperativeVariant, _>(|new_op_var| {
+                        .add_new_operativevariant::<TemplateSlotSingleOperative, _>(|new_op_var| {
                             new_op_var.add_existing_operative(op_id, |na| na)
                         })
                         .add_new_slotbound::<SlotBoundRange, _>(|slot_bound| {
@@ -378,7 +378,7 @@ pub fn SlotBuilder(
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
                         .set_name(name.get())
-                        .add_new_operativevariant::<ConcreteOperativeVariant, _>(|new_op_var| {
+                        .add_new_operativevariant::<TemplateSlotSingleOperative, _>(|new_op_var| {
                             new_op_var.add_existing_operative(op_id, |na| na)
                         })
                         .add_new_slotbound::<SlotBoundLowerBound, _>(|slot_bound| {
@@ -391,7 +391,7 @@ pub fn SlotBuilder(
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
                         .set_name(name.get())
-                        .add_new_operativevariant::<ConcreteOperativeVariant, _>(|new_op_var| {
+                        .add_new_operativevariant::<TemplateSlotSingleOperative, _>(|new_op_var| {
                             new_op_var.add_existing_operative(op_id, |na| na)
                         })
                         .add_new_slotbound::<SlotBoundSingle, _>(|slot_bound| slot_bound)
@@ -448,10 +448,10 @@ pub fn SlotBuilder(
             <SignalEnumSelect value=slot_type/>
             <LeafSection attr:class="leafsection dependent">
                 {move || match slot_type.get() {
-                        TemplateSlotVariantTraitObjectDiscriminants::TraitOperativeVariant => {
+                        TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotTraitOperative => {
                             Either::Left(trait_slot_details_view.clone())
                         }
-                        TemplateSlotVariantTraitObjectDiscriminants::ConcreteOperativeVariant => {
+                        TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotSingleOperative => {
                             Either::Right(concrete_op_slot_details_view.clone())
                         }
                 }}
@@ -460,14 +460,14 @@ pub fn SlotBuilder(
         <div>
             <Button on:click=move |_| {
                 match slot_type.get() {
-                    TemplateSlotVariantTraitObjectDiscriminants::TraitOperativeVariant => on_click_save_trait_slot() ,
-                    TemplateSlotVariantTraitObjectDiscriminants::ConcreteOperativeVariant => on_click_save_single_op(),
+                    TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotTraitOperative => on_click_save_trait_slot() ,
+                    TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotSingleOperative => on_click_save_single_op(),
                 };
                 close_callback.run(());
             } attr:disabled=move || {
                 match slot_type.get() {
-                    TemplateSlotVariantTraitObjectDiscriminants::TraitOperativeVariant => final_selected_trait_list.with(|list| list.is_empty()),
-                    TemplateSlotVariantTraitObjectDiscriminants::ConcreteOperativeVariant => selected_single_operative.with(|item| item.is_none()),
+                    TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotTraitOperative => final_selected_trait_list.with(|list| list.is_empty()),
+                    TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotSingleOperative => selected_single_operative.with(|item| item.is_none()),
                 }
             }>Save New Slot</Button>
         </div>

@@ -402,7 +402,28 @@ pub fn generate_concrete_schema_reactive(
                 fulfilling_ops_names.clone(),
             );
 
-            // TODO: Make this enum implement all of these traits by passing the method call down to its variants
+            let trait_impls = unique_trait_combo.iter().map(|trait_id| {
+                let trait_in_question = constraint_schema.traits.get(trait_id).unwrap();
+                let trait_name = syn::Ident::new(&trait_in_question.tag.name, proc_macro2::Span::call_site());
+                let fn_streams = trait_in_question.methods.values().map(|method_def| {
+                    let method_name =
+                        syn::Ident::new(&method_def.tag.name, proc_macro2::Span::call_site());
+                    let raw_return_type = utils::get_primitive_type(&method_def.return_type);
+                    quote! {
+                        fn #method_name(&self,) -> #raw_return_type {
+                            match self {
+                                #(Self::#fulfilling_ops_names(item) => item.#method_name(),)*
+                            }
+                        }
+                    }
+                });
+                quote!{
+                    impl #trait_name for #enum_name {
+                       #(#fn_streams)*
+                    }
+                }
+            });
+
             quote! {
                 #[derive(Debug, Clone, strum_macros::EnumDiscriminants)]
                 #[strum_discriminants(derive(strum_macros::EnumIter, strum_macros::Display, strum_macros::EnumString))]
@@ -415,6 +436,7 @@ pub fn generate_concrete_schema_reactive(
                     }
                 }
                 #rgso_impl
+                #(#trait_impls)*
             }
         })
         .collect::<Vec<_>>();
@@ -476,28 +498,36 @@ pub fn generate_concrete_schema_reactive(
     let reference_constraint_schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues> =
         constraint_schema.clone();
 
-    let library_operative_streams = constraint_schema
+    let (library_operative_streams, slot_marker_trait_streams) = constraint_schema
         .operative_library
         .values()
-        .map(|el| {
-            generate_operative_streams::generate_operative_streams(
+        .fold((vec![], vec![]), |mut agg, el| {
+            let operative_stream_return = generate_operative_streams::generate_operative_streams(
                 Box::new(el),
                 &reference_constraint_schema,
                 &meta,
-            )
-        })
-        .collect::<Vec<_>>();
-    let instance_streams = constraint_schema
-        .instance_library
-        .values()
-        .map(|el| {
-            generate_operative_streams::generate_operative_streams(
-                Box::new(el),
-                &reference_constraint_schema,
-                &meta,
-            )
-        })
-        .collect::<Vec<_>>();
+            );
+            agg.0.push(operative_stream_return.main_stream);
+            agg.1
+                .push(operative_stream_return.slot_marker_trait_impls_stream);
+            agg
+        });
+    let (instance_streams, _) =
+        constraint_schema
+            .instance_library
+            .values()
+            .fold((vec![], vec![]), |mut agg, el| {
+                let operative_stream_return =
+                    generate_operative_streams::generate_operative_streams(
+                        Box::new(el),
+                        &reference_constraint_schema,
+                        &meta,
+                    );
+                agg.0.push(operative_stream_return.main_stream);
+                agg.1
+                    .push(operative_stream_return.slot_marker_trait_impls_stream);
+                agg
+            });
 
     let all_lib_op_names = constraint_schema
         .operative_library
@@ -540,7 +570,12 @@ pub fn generate_concrete_schema_reactive(
     };
 
     let final_output = quote! {
+        pub mod slot_markers {
+            use crate::prelude::*;
+           #(#slot_marker_trait_streams)*
+        }
         pub mod prelude {
+        use crate::slot_markers::*;
         use base_types::post_generation::reactive::hidden::EditRGSO;
         pub use base_types::post_generation::reactive::*;
         use base_types::post_generation::*;

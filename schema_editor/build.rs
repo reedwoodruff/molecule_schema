@@ -22,6 +22,7 @@ fn main() {
         "/home/reed/development/molecule_schema/resources/recursive_schema.json",
         "/home/reed/development/molecule_schema",
         Some("/home/reed/development/molecule_schema/resources/initial_schema_editor_data.json"),
+        // None,
         Some("schema_editor_generated_toolkit"),
     );
 }

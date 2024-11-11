@@ -13,6 +13,13 @@ pub fn App() -> impl IntoView {
         .unwrap()
         .get_id()
         .clone();
+    // let schema_id = SchemaConcrete::new(shared_graph.clone())
+    //     .set_temp_id("main_template")
+    //     .execute()
+    //     .unwrap()
+    //     .get_final_id("main_template")
+    //     .unwrap()
+    //     .clone();
 
     provide_context(shared_graph.clone());
 

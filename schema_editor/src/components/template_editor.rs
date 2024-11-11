@@ -60,10 +60,8 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     let on_click_add_field = move |_| {
         template_clone
             .edit(ctx_clone.clone())
-            .add_new_templatefields(|field| {
-                field
-                    .set_fieldname("new_field".to_string())
-                    .add_new_fieldvariant::<StringFieldVariant, _>(|field_variant| field_variant)
+            .add_new_fields::<StringTemplateField, _>(|field| {
+                field.set_name("new_field".to_string())
             })
             .execute()
             .unwrap();
@@ -80,7 +78,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
         let template_slot_clone = template_slot.clone();
         let selected_tab_clone = selected_tab.clone();
         let details_view = move || match template_slot_clone.get_operativevariant_slot() {
-            TemplateSlotVariantTraitObject::TraitOperativeVariant(trait_op_variant) => {
+            TemplateSlotVariantTraitObject::TemplateSlotTraitOperative(trait_op_variant) => {
                 let trait_list = trait_op_variant
                     .get_traits_slot()
                     .iter()
@@ -89,7 +87,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                     .join(", ");
                 Either::Left("Traits: ".to_string() + &trait_list)
             }
-            TemplateSlotVariantTraitObject::ConcreteOperativeVariant(conc_op) => {
+            TemplateSlotVariantTraitObject::TemplateSlotSingleOperative(conc_op) => {
                 let op = conc_op.get_operative_slot();
                 let op_clone = op.clone();
                 Either::Right(view! {
@@ -130,124 +128,166 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     };
 
     let ctx_clone = ctx.clone();
-    let template_field_view = move |field: RGSOConcrete<TemplateField, Schema>| {
+    let template_clone = template.clone();
+    // let template_field_view = move |field: RGSOConcrete<TemplateField, Schema>| {
+    let template_field_view = move |field: GetNameFieldVariantTraitObject| {
         let ctx_clone = ctx_clone.clone();
         let ctx_clone_2 = ctx_clone.clone();
         let field_clone = field.clone();
+        let field_clone_inner = field_clone.clone();
         let name_setter = move |new_val: String| {
-            field_clone
-                .edit(ctx_clone_2.clone())
-                .set_fieldname(new_val)
-                .execute()
-                .unwrap();
+            match field_clone_inner.clone() {
+                GetNameFieldVariantTraitObject::StringTemplateField(field) => field
+                    .edit(ctx_clone_2.clone())
+                    .set_name(new_val)
+                    .execute()
+                    .unwrap(),
+                GetNameFieldVariantTraitObject::BoolTemplateField(field) => field
+                    .edit(ctx_clone_2.clone())
+                    .set_name(new_val)
+                    .execute()
+                    .unwrap(),
+                GetNameFieldVariantTraitObject::IntTemplateField(field) => field
+                    .edit(ctx_clone_2.clone())
+                    .set_name(new_val)
+                    .execute()
+                    .unwrap(),
+            };
         };
-        let field_clone = field.clone();
-        let extraneous_value_type_signal = RwSignal::<FieldVariantTraitObjectDiscriminants>::new(
-            field_clone.get_fieldvariant_slot().into(),
-        );
+        let field_clone_inner = field_clone.clone();
+        let extraneous_value_type_signal =
+            RwSignal::<GetNameFieldVariantTraitObjectDiscriminants>::new(field.clone().into());
         let ctx_clone_2 = ctx_clone.clone();
-        let on_change_field =
-            Callback::new(move |new_value: FieldVariantTraitObjectDiscriminants| {
+        let template_clone = template_clone.clone();
+        let on_change_field = Callback::new(
+            move |new_value: GetNameFieldVariantTraitObjectDiscriminants| {
+                let field_clone_inner = field_clone_inner.clone();
                 // let ctx_clone = ctx_clone.clone();
-                leptos::logging::log!(
-                    "running effect\nthe_signal: {:?}\n the_graph: {:?}",
-                    extraneous_value_type_signal.clone().get(),
-                    field_clone.get_fieldvariant_slot()
-                );
-                match field_clone.get_fieldvariant_slot() {
-                    FieldVariantTraitObject::StringFieldVariant(item) => {
+                // leptos::logging::log!(
+                //     "running effect\nthe_signal: {:?}\n the_graph: {:?}",
+                //     extraneous_value_type_signal.clone().get(),
+                //     field_clone.get_fieldvariant_slot()
+                // );
+                match field_clone_inner {
+                    GetNameFieldVariantTraitObject::StringTemplateField(item) => {
                         let mut edit = item.edit(ctx_clone_2.clone()).delete();
                         match new_value {
-                            FieldVariantTraitObjectDiscriminants::StringFieldVariant => edit
-                                .incorporate(
-                                    field_clone
+                            GetNameFieldVariantTraitObjectDiscriminants::StringTemplateField => {
+                                edit.incorporate(
+                                    template_clone
                                         .edit(ctx_clone_2.clone())
-                                        .add_new_fieldvariant::<StringFieldVariant, _>(|na| na),
+                                        .add_new_fields::<StringTemplateField, _>(|new_field| {
+                                            new_field.set_name(item.get_name())
+                                        }),
+                                )
+                            }
+                            GetNameFieldVariantTraitObjectDiscriminants::BoolTemplateField => edit
+                                .incorporate(
+                                    template_clone
+                                        .edit(ctx_clone_2.clone())
+                                        .add_new_fields::<BoolTemplateField, _>(|new_field| {
+                                            new_field.set_name(item.get_name())
+                                        }),
                                 ),
-                            FieldVariantTraitObjectDiscriminants::BoolFieldVariant => edit
+                            GetNameFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
                                 .incorporate(
-                                    field_clone
+                                    template_clone
                                         .edit(ctx_clone_2.clone())
-                                        .add_new_fieldvariant::<BoolFieldVariant, _>(|na| na),
-                                ),
-                            FieldVariantTraitObjectDiscriminants::IntFieldVariant => edit
-                                .incorporate(
-                                    field_clone
-                                        .edit(ctx_clone_2.clone())
-                                        .add_new_fieldvariant::<IntFieldVariant, _>(|na| na),
+                                        .add_new_fields::<IntTemplateField, _>(|new_field| {
+                                            new_field.set_name(item.get_name())
+                                        }),
                                 ),
                         };
                         edit.execute().unwrap();
                     }
-                    FieldVariantTraitObject::BoolFieldVariant(item) => {
+                    GetNameFieldVariantTraitObject::BoolTemplateField(item) => {
                         let mut edit = item.edit(ctx_clone_2.clone()).delete();
                         match new_value {
-                            FieldVariantTraitObjectDiscriminants::StringFieldVariant => edit
-                                .incorporate(
-                                    field_clone
+                            GetNameFieldVariantTraitObjectDiscriminants::StringTemplateField => {
+                                edit.incorporate(
+                                    template_clone
                                         .edit(ctx_clone_2.clone())
-                                        .add_new_fieldvariant::<StringFieldVariant, _>(|na| na),
+                                        .add_new_fields::<StringTemplateField, _>(|new_field| {
+                                            new_field.set_name(item.get_name())
+                                        }),
+                                )
+                            }
+                            GetNameFieldVariantTraitObjectDiscriminants::BoolTemplateField => edit
+                                .incorporate(
+                                    template_clone
+                                        .edit(ctx_clone_2.clone())
+                                        .add_new_fields::<BoolTemplateField, _>(|new_field| {
+                                            new_field.set_name(item.get_name())
+                                        }),
                                 ),
-                            FieldVariantTraitObjectDiscriminants::BoolFieldVariant => edit
+                            GetNameFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
                                 .incorporate(
-                                    field_clone
+                                    template_clone
                                         .edit(ctx_clone_2.clone())
-                                        .add_new_fieldvariant::<BoolFieldVariant, _>(|na| na),
-                                ),
-                            FieldVariantTraitObjectDiscriminants::IntFieldVariant => edit
-                                .incorporate(
-                                    field_clone
-                                        .edit(ctx_clone_2.clone())
-                                        .add_new_fieldvariant::<IntFieldVariant, _>(|na| na),
+                                        .add_new_fields::<IntTemplateField, _>(|new_field| {
+                                            new_field.set_name(item.get_name())
+                                        }),
                                 ),
                         };
                         edit.execute().unwrap();
                     }
-                    FieldVariantTraitObject::IntFieldVariant(item) => {
+                    GetNameFieldVariantTraitObject::IntTemplateField(item) => {
                         let mut edit = item.edit(ctx_clone_2.clone()).delete();
                         match new_value {
-                            FieldVariantTraitObjectDiscriminants::StringFieldVariant => edit
-                                .incorporate(
-                                    field_clone
+                            GetNameFieldVariantTraitObjectDiscriminants::StringTemplateField => {
+                                edit.incorporate(
+                                    template_clone
                                         .edit(ctx_clone_2.clone())
-                                        .add_new_fieldvariant::<StringFieldVariant, _>(|na| na),
+                                        .add_new_fields::<StringTemplateField, _>(|new_field| {
+                                            new_field.set_name(item.get_name())
+                                        }),
+                                )
+                            }
+                            GetNameFieldVariantTraitObjectDiscriminants::BoolTemplateField => edit
+                                .incorporate(
+                                    template_clone
+                                        .edit(ctx_clone_2.clone())
+                                        .add_new_fields::<BoolTemplateField, _>(|new_field| {
+                                            new_field.set_name(item.get_name())
+                                        }),
                                 ),
-                            FieldVariantTraitObjectDiscriminants::BoolFieldVariant => edit
+                            GetNameFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
                                 .incorporate(
-                                    field_clone
+                                    template_clone
                                         .edit(ctx_clone_2.clone())
-                                        .add_new_fieldvariant::<BoolFieldVariant, _>(|na| na),
-                                ),
-                            FieldVariantTraitObjectDiscriminants::IntFieldVariant => edit
-                                .incorporate(
-                                    field_clone
-                                        .edit(ctx_clone_2.clone())
-                                        .add_new_fieldvariant::<IntFieldVariant, _>(|na| na),
+                                        .add_new_fields::<IntTemplateField, _>(|new_field| {
+                                            new_field.set_name(item.get_name())
+                                        }),
                                 ),
                         };
                         edit.execute().unwrap();
                     }
                 };
-            });
+            },
+        );
 
-        let field_clone = field.clone();
-        let delete_field = move |_| {
-            field_clone
-                .edit(ctx_clone.clone())
-                .delete()
-                .execute()
-                .unwrap();
+        let field_clone_inner = field.clone();
+        let delete_field = move |_| match field_clone_inner.clone() {
+            GetNameFieldVariantTraitObject::StringTemplateField(inner) => {
+                inner.edit(ctx_clone.clone()).delete().execute().unwrap();
+            }
+            GetNameFieldVariantTraitObject::BoolTemplateField(inner) => {
+                inner.edit(ctx_clone.clone()).delete().execute().unwrap();
+            }
+            GetNameFieldVariantTraitObject::IntTemplateField(inner) => {
+                inner.edit(ctx_clone.clone()).delete().execute().unwrap();
+            }
         };
-        let field_clone = field.clone();
+        let field_clone_inner = field_clone.clone();
         view! {
             <LeafSection>
                 <div class="flex">
                 <div class="flex-grow">
                     <LeafSectionHeader>
-                    <ToggleManagedTextInput getter=move || field.get_fieldname_field() setter=name_setter/>
+                    <ToggleManagedTextInput getter=move || field.get_name() setter=name_setter/>
                     </LeafSectionHeader>
                     <LeafSection attr:class="leafsection dependent">
-                    <ManagedEnumSelect getter=move || field_clone.get_fieldvariant_slot().into() setter=on_change_field/>
+                    <ManagedEnumSelect getter=move || field_clone_inner.clone().into() setter=on_change_field/>
                     </LeafSection>
                 </div>
                 <div class="align-right">
@@ -277,18 +317,20 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                     <Button on:click=delete_template_recursive>Delete Item</Button>
                 </LeafSection>
             </Section>
+
             <Section>
                 <SectionHeader>Create Derivatives</SectionHeader>
                 <SignalTextInput value=derivative_operative_name/><Button on:click=create_derivative_operative>Create derivative operative</Button>
             </Section>
+
             <Section>
                 <SectionHeader>Fields</SectionHeader>
                 <Button on:click=on_click_add_field>Add Field</Button>
                 <SubSection>
-                    <For each=move||template_clone_3.get_templatefields_slot() key=|item| item.get_id().clone() children=template_field_view />
+                    <For each=move||template_clone_3.get_fields_slot() key=|item| item.get_id().clone() children=template_field_view />
                 </SubSection>
-
             </Section>
+
             <Section>
                 <SectionHeader>Slots</SectionHeader>
                 <Show when=move || !is_building_slot.get()>

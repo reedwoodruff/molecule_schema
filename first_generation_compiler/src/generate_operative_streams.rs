@@ -17,13 +17,20 @@ use crate::{
     SlotFnDetails,
 };
 
+pub struct GenerateOperativeStreamReturn {
+    pub main_stream: TokenStream,
+    pub slot_marker_trait_impls_stream: TokenStream,
+}
+
 pub(crate) fn generate_operative_streams(
     instantiable: Box<
         &dyn ConstraintSchemaItem<TTypes = PrimitiveTypes, TValues = PrimitiveValues>,
     >,
     constraint_schema: &ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
     meta: &MetaData,
-) -> proc_macro2::TokenStream {
+) -> GenerateOperativeStreamReturn {
+    let mut slot_marker_trait_impls_stream = vec![];
+
     let _field_names = Vec::<syn::Ident>::new();
     let _field_names_setters = Vec::<syn::Ident>::new();
     let _field_values = Vec::<proc_macro2::TokenStream>::new();
@@ -452,7 +459,7 @@ pub(crate) fn generate_operative_streams(
         // if there are multiple items, the signature must allow the user to specify which item it is that they are adding
         // - A marker trait is created which represents every type which can be slotted
         // - The marker trait is implemented on all operatives which can be slotted
-        let get_slot_item_implementation = |items: &[LibraryOperative<PrimitiveTypes, PrimitiveValues>]| -> TokenStream {
+        let mut get_slot_item_implementation = |items: &[LibraryOperative<PrimitiveTypes, PrimitiveValues>]| -> TokenStream {
             let single_item_id = if items.len() == 1 {
                 Some(items.first().unwrap())
             } else {
@@ -469,12 +476,13 @@ pub(crate) fn generate_operative_streams(
 
             let marker_trait_stream = if single_item_id.is_none() {
                 vec![quote! {
-                    trait #marker_trait_name {}
+                    pub trait #marker_trait_name {}
                     #(#marker_impls)*
                 }]
             } else {
                 vec![]
             };
+            slot_marker_trait_impls_stream.push(quote!{#(#marker_trait_stream)*});
 
             let single_item_variant_name = if let Some(item) = single_item_id {
                 let item_name_string = item.tag.name.clone();
@@ -849,7 +857,7 @@ pub(crate) fn generate_operative_streams(
                     Some(base_types::post_generation::ElementCreationError::OutgoingElementDoesntExist{id: existing_item_id.clone()})
                 };
                 if error.is_some() {
-                    self.inner_builder.add_error(error.unwrap());
+                    new_builder.inner_builder.add_error(error.unwrap());
                 }
             };
 
@@ -872,7 +880,9 @@ pub(crate) fn generate_operative_streams(
                 //     #fresh_add_existing_fn_signature;
                 //     #fresh_add_temp_fn_signature;
                 // }
-                #(#marker_trait_stream)*
+                //
+                // Moving this to a separate module to be able to make pub without cluttering namespace
+                // #(#marker_trait_stream)*
                 impl< FieldsTS, #generic_slot_generics_stream_with_trait_bound>
                 // #manipulate_slot_trait_name<FieldsTS, #generic_slot_generics_stream_without_trait_bound> for
                 FreshBuilder<#struct_name, Schema, FieldsTS, (#main_builder_slot_generics_stream)>
@@ -896,14 +906,13 @@ pub(crate) fn generate_operative_streams(
                     pub #fresh_add_existing_fn_signature
                     {
                         let existing_item_id = existing_item_id.clone();
-                        // TODO: Disabled because made self immutable here
-                        // Need to check to see if this is the right place to do error checking anyway -- might be best to do it all in the process_blueprint stage
-                        // but if we do want to do it here we just need to propagate the error to the new inner_builder instead of mutating self
-                        // #mismatch_error_handling
 
                         let mut new_builder = ExistingBuilder {
                             inner_builder: #single_item_variant_name::initiate_edit(existing_item_id.clone(), self.inner_builder.get_graph().clone()) ,
                         };
+
+                        #mismatch_error_handling
+
                         let edge_to_this_element = base_types::post_generation::SlotRef {
                             host_instance_id: self.inner_builder.get_id().clone(),
                             target_instance_id: new_builder.inner_builder.get_id().clone(),
@@ -931,11 +940,13 @@ pub(crate) fn generate_operative_streams(
                     pub #existing_add_existing_fn_signature
                     {
                         let existing_item_id = existing_item_id.clone();
-                        #mismatch_error_handling
 
                         let mut new_builder = ExistingBuilder {
                             inner_builder: #single_item_variant_name::initiate_edit(existing_item_id.clone(), self.inner_builder.get_graph().clone()) ,
                         };
+
+                        #mismatch_error_handling
+
                         let edge_to_this_element = base_types::post_generation::SlotRef {
                             host_instance_id: self.inner_builder.get_id().clone(),
                             target_instance_id: new_builder.inner_builder.get_id().clone(),
@@ -1071,97 +1082,100 @@ pub(crate) fn generate_operative_streams(
         }
     };
 
-    quote! {
-        #[derive(Clone, Debug, Default)]
-        pub struct #struct_name {}
-        #[derive(Clone, Debug, strum_macros::EnumString, PartialEq, serde::Serialize)]
-        pub enum #slot_enum_name {
-            #(#slot_enum_variant_names,)*
-        }
-
-        impl StaticTypestate for #struct_name {
-            type InitialSlotTypestate = (#item_default_slot_typestate_stream);
-            type EmptyFieldTypestate = (#empty_field_typestate_stream);
-            type FulfilledFieldTypestate = (#fulfilled_field_typestate_stream);
-        }
-
-        impl HasSlotEnum for #struct_name {
-            type SlotEnum = #slot_enum_name;
-        }
-
-        impl RIntoSchema for #struct_name {
-            type Schema = Schema;
-            fn into_schema(instantiable: RGSOConcrete<Self, Schema>) -> Schema {
-                Schema::#struct_name(instantiable.to_owned())
+    GenerateOperativeStreamReturn {
+        main_stream: quote! {
+            #[derive(Clone, Debug, Default)]
+            pub struct #struct_name {}
+            #[derive(Clone, Debug, strum_macros::EnumString, PartialEq, serde::Serialize)]
+            pub enum #slot_enum_name {
+                #(#slot_enum_variant_names,)*
             }
-        }
 
-        impl #struct_name {
-            pub fn new(graph:impl Into<std::sync::Arc<RBaseGraphEnvironment<Schema>>>) -> FreshBuilder<#struct_name, Schema, <#struct_name as StaticTypestate>::EmptyFieldTypestate, <#struct_name as StaticTypestate>::InitialSlotTypestate> {
-                FreshBuilder {
-                    inner_builder: #struct_name::initiate_build(graph.into()),
-                    _fields_typestate: std::marker::PhantomData,
-                    _slots_typestate: std::marker::PhantomData,
+            impl StaticTypestate for #struct_name {
+                type InitialSlotTypestate = (#item_default_slot_typestate_stream);
+                type EmptyFieldTypestate = (#empty_field_typestate_stream);
+                type FulfilledFieldTypestate = (#fulfilled_field_typestate_stream);
+            }
+
+            impl HasSlotEnum for #struct_name {
+                type SlotEnum = #slot_enum_name;
+            }
+
+            impl RIntoSchema for #struct_name {
+                type Schema = Schema;
+                fn into_schema(instantiable: RGSOConcrete<Self, Schema>) -> Schema {
+                    Schema::#struct_name(instantiable.to_owned())
                 }
             }
-        }
 
-
-
-        pub trait #edit_rgso_trait_name {
-            fn edit(&self, graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Schema>>>) -> ExistingBuilder<#struct_name, Schema> ;
-        }
-        impl #edit_rgso_trait_name for RGSOConcrete<#struct_name, Schema> {
-            fn edit(&self, graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Schema>>>) -> ExistingBuilder<#struct_name, Schema> {
-                ExistingBuilder {
-                    inner_builder: #struct_name::initiate_edit(*self.get_id(), graph.into()),
+            impl #struct_name {
+                pub fn new(graph:impl Into<std::sync::Arc<RBaseGraphEnvironment<Schema>>>) -> FreshBuilder<#struct_name, Schema, <#struct_name as StaticTypestate>::EmptyFieldTypestate, <#struct_name as StaticTypestate>::InitialSlotTypestate> {
+                    FreshBuilder {
+                        inner_builder: #struct_name::initiate_build(graph.into()),
+                        _fields_typestate: std::marker::PhantomData,
+                        _slots_typestate: std::marker::PhantomData,
+                    }
                 }
             }
-        }
-        impl RBuildable for #struct_name {
-            type Schema = Schema;
 
-            fn initiate_build(graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Self::Schema>>>) -> SubgraphBuilder<#struct_name, Schema> {
-                let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
-                let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
-                #[allow(unused_mut)]
-                let mut field_hashmap = std::collections::HashMap::new();
-                #(field_hashmap.insert(#unfulfilled_field_ids, RwSignal::new(None));)*
-                let graph: std::sync::Arc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
-                let wrapper_builder = RGSOConcreteBuilder::new(
-                            field_hashmap,
-                            #active_slot_tokens,
-                            &operative_ref,
-                            &template_ref,
-                            graph.clone(),
-                            );
-                let id = wrapper_builder.get_id().clone();
-                SubgraphBuilder::<#struct_name, Schema>::new(
-                        Some(wrapper_builder),
-                        id,
-                        graph,
-                    )
-            }
-            fn initiate_edit(id: base_types::common::Uid, graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Self::Schema>>>) -> SubgraphBuilder<#struct_name, Schema> {
-                let graph: std::sync::Arc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
-                SubgraphBuilder::<#struct_name, Schema>::new(
-                        None,
-                        id,
-                        graph,
-                    )
-            }
-            fn get_operative_id() -> base_types::common::Uid {
-               #operative_id
-            }
-        }
 
-        #(#manipulate_fields_stream)*
-        #(#manipulate_slots_stream)*
-        #(#get_locked_fields_stream)*
-        #delete_existing_item_stream
 
-        #trait_impl_streams
-        #get_fields_and_slots_stream
+            pub trait #edit_rgso_trait_name {
+                fn edit(&self, graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Schema>>>) -> ExistingBuilder<#struct_name, Schema> ;
+            }
+            impl #edit_rgso_trait_name for RGSOConcrete<#struct_name, Schema> {
+                fn edit(&self, graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Schema>>>) -> ExistingBuilder<#struct_name, Schema> {
+                    ExistingBuilder {
+                        inner_builder: #struct_name::initiate_edit(*self.get_id(), graph.into()),
+                    }
+                }
+            }
+            impl RBuildable for #struct_name {
+                type Schema = Schema;
+
+                fn initiate_build(graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Self::Schema>>>) -> SubgraphBuilder<#struct_name, Schema> {
+                    let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
+                    let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
+                    #[allow(unused_mut)]
+                    let mut field_hashmap = std::collections::HashMap::new();
+                    #(field_hashmap.insert(#unfulfilled_field_ids, RwSignal::new(None));)*
+                    let graph: std::sync::Arc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
+                    let wrapper_builder = RGSOConcreteBuilder::new(
+                                field_hashmap,
+                                #active_slot_tokens,
+                                &operative_ref,
+                                &template_ref,
+                                graph.clone(),
+                                );
+                    let id = wrapper_builder.get_id().clone();
+                    SubgraphBuilder::<#struct_name, Schema>::new(
+                            Some(wrapper_builder),
+                            id,
+                            graph,
+                        )
+                }
+                fn initiate_edit(id: base_types::common::Uid, graph: impl Into<std::sync::Arc<RBaseGraphEnvironment<Self::Schema>>>) -> SubgraphBuilder<#struct_name, Schema> {
+                    let graph: std::sync::Arc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
+                    SubgraphBuilder::<#struct_name, Schema>::new(
+                            None,
+                            id,
+                            graph,
+                        )
+                }
+                fn get_operative_id() -> base_types::common::Uid {
+                   #operative_id
+                }
+            }
+
+            #(#manipulate_fields_stream)*
+            #(#manipulate_slots_stream)*
+            #(#get_locked_fields_stream)*
+            #delete_existing_item_stream
+
+            #trait_impl_streams
+            #get_fields_and_slots_stream
+        },
+        slot_marker_trait_impls_stream: quote! {#(#slot_marker_trait_impls_stream)*},
     }
 }
 
