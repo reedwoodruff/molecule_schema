@@ -306,7 +306,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     view! {
         <div>
             <Section>
-                <SectionHeader>Overview</SectionHeader>
+                <SectionHeader slot>Overview</SectionHeader>
                 <LeafSection>
                     <LeafSectionHeader>
                         Name:
@@ -319,12 +319,12 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
             </Section>
 
             <Section>
-                <SectionHeader>Create Derivatives</SectionHeader>
+                <SectionHeader slot>Create Derivatives</SectionHeader>
                 <SignalTextInput value=derivative_operative_name/><Button on:click=create_derivative_operative>Create derivative operative</Button>
             </Section>
 
             <Section>
-                <SectionHeader>Fields</SectionHeader>
+                <SectionHeader slot>Fields</SectionHeader>
                 <Button on:click=on_click_add_field>Add Field</Button>
                 <SubSection>
                     <For each=move||template_clone_3.get_fields_slot() key=|item| item.get_id().clone() children=template_field_view />
@@ -332,7 +332,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
             </Section>
 
             <Section>
-                <SectionHeader>Slots</SectionHeader>
+                <SectionHeader slot>Slots</SectionHeader>
                 <Show when=move || !is_building_slot.get()>
                     <Button on:click=move |_| is_building_slot.set(true)>Add Slot</Button>
                 </Show>

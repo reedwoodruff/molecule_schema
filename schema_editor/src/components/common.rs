@@ -135,21 +135,39 @@ pub fn SubSectionHeader(children: Children) -> impl IntoView {
     }
 }
 
+#[slot]
+pub struct SectionHeader {
+    // #[prop(optional)]
+    children: Children,
+}
 #[component]
-pub fn Section(children: Children) -> impl IntoView {
+pub fn Section(section_header: SectionHeader, children: Children) -> impl IntoView {
+    let is_collapsed = RwSignal::new(false);
+    let collapsed_class = move || match is_collapsed.get() {
+        true => "collapsed-children",
+        false => "",
+    };
+    let children_div_class = move || format!("{}", collapsed_class());
     view! {
         <section class="section">
+        <div class="flex">
+            <div class="flex-grow">
+            <h2 class="section-header">
+            {(section_header.children)()}
+            </h2>
+            </div>
+            <div>
+            <Button on:click=move |_| is_collapsed.update(|prev| *prev = !*prev)>{move || match is_collapsed.get() {
+                true => "+".to_string(),
+                false => "-".to_string(),
+            }}
+            </Button>
+            </div>
+        </div>
+        <div class=children_div_class>
         {children()}
+        </div>
         </section>
-    }
-}
-
-#[component]
-pub fn SectionHeader(children: Children) -> impl IntoView {
-    view! {
-        <h2 class="section-header">
-        {children()}
-        </h2>
     }
 }
 

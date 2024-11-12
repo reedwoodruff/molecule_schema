@@ -2,6 +2,7 @@ use std::str::FromStr;
 
 use crate::components::{
     common::*,
+    operative_lineage::OperativeLineage,
     workspace::{WorkspaceState, WorkspaceTab},
 };
 use leptos::either::EitherOf3;
@@ -109,7 +110,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
     };
 
     let operative_clone = operative.clone();
-    let non_locked_fields = Memo::new(move |_| {
+    let non_locked_fields: Memo<(Vec<_>, Vec<_>)> = Memo::new(move |_| {
         let locked_fields = operative_clone
             .get_lockedfields_slot()
             .into_iter()
@@ -125,12 +126,18 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 }
             })
             .collect::<Vec<_>>();
-        operative_clone
+        let non_locked = operative_clone
             .get_roottemplate_slot()
             .get_fields_slot()
             .into_iter()
-            .filter(|field| !locked_fields.contains(field.get_id()))
-            .collect::<Vec<_>>()
+            .filter(|field| !locked_fields.contains(field.get_id()));
+        // .collect::<Vec<_>>();
+        non_locked.partition(|item| {
+            recursive_search_for_locked_field(
+                operative_clone.get_childrenoperatives_slot(),
+                item.get_id(),
+            )
+        })
     });
 
     let operative_clone = operative.clone();
@@ -201,6 +208,17 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             {move || field.get_name()}
             </LeafSectionHeader>
             {string_of_thing.to_string()} <Button on:click=on_click_lock>Lock</Button>
+            </LeafSection>
+        }
+    };
+    let non_locked_but_dependent_field_view = move |field: GetNameFieldVariantTraitObject| {
+        let string_of_thing: GetNameFieldVariantTraitObjectDiscriminants = field.clone().into();
+        view! {
+            <LeafSection>
+            <LeafSectionHeader>
+            {move || field.get_name()}
+            </LeafSectionHeader>
+            {string_of_thing.to_string()}
             </LeafSection>
         }
     };
@@ -373,7 +391,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
     let operative_clone_3 = operative.clone();
     view! {
         <Section>
-            <SectionHeader>Overview</SectionHeader>
+            <SectionHeader slot>Overview</SectionHeader>
             <SubSection>
                 <SubSectionHeader>
                     Name:
@@ -383,19 +401,52 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             <SubSection>
                 <Button on:click=delete_operative>Delete Item</Button>
             </SubSection>
+            <SubSection>
+                <OperativeLineage operative/>
+            </SubSection>
         </Section>
 
         <Section>
-            <SectionHeader>Create Derivatives</SectionHeader>
+            <SectionHeader slot>Create Derivatives</SectionHeader>
             <SignalTextInput value=derivative_operative_name/><Button on:click=create_derivative_operative>Create derivative operative</Button>
         </Section>
         <Section>
-            <SectionHeader>Fields</SectionHeader>
+            <SectionHeader slot>Fields</SectionHeader>
             <SubSection>
+            <Show when=move|| {locked_fields.get().1.len() > 0}>
+            {let unowned_locked_field_view = unowned_locked_field_view.clone();
+                view!{
+                <SubSectionHeader>Locked By Parent</SubSectionHeader>
                 <For each=move||locked_fields.get().1 key=|item| item.get_id().clone() children=unowned_locked_field_view />
-                <For each=move||locked_fields.get().0 key=|item| item.get_id().clone() children=owned_locked_field_view />
-                <For each=move || non_locked_fields.get() key=|item| item.get_id().clone() children=non_locked_field_view />
+                }}
+            </Show>
+            <Show when=move|| {locked_fields.get().0.len() > 0}>
+                {let owned_locked_field_view = owned_locked_field_view.clone();
+                    view!{
+                    <SubSectionHeader>Locked Here</SubSectionHeader>
+                    <For each=move||locked_fields.get().0 key=|item| item.get_id().clone() children=owned_locked_field_view />
+                    }
+                }
+            </Show>
+            <Show when=move|| {non_locked_fields.get().1.len() > 0}>
+            {let non_locked_field_view = non_locked_field_view.clone();
+                view!{
+                <SubSectionHeader>Unlocked and Independent</SubSectionHeader>
+                <For each=move || non_locked_fields.get().1 key=|item| item.get_id().clone() children=non_locked_field_view />
+                }}
+            </Show>
+            <Show when=move|| {non_locked_fields.get().0.len() > 0}>
+            {let non_locked_but_dependent_field_view = non_locked_but_dependent_field_view.clone();
+                view!{
+                <SubSectionHeader>Unlocked but locked downstream and therefore dependent</SubSectionHeader>
+                <For each=move || non_locked_fields.get().0 key=|item| item.get_id().clone() children=non_locked_but_dependent_field_view />
+                }}
+            </Show>
             </SubSection>
+        </Section>
+        <Section>
+            <SectionHeader slot>Operatives</SectionHeader>
+            Operatives Here
         </Section>
     }
 }
@@ -417,4 +468,32 @@ fn recurse_add_locked_field<
         );
         recurse_add_locked_field::<T>(child.get_childrenoperatives_slot(), mut_editor, ctx_clone)
     });
+}
+
+fn recursive_search_for_locked_field(
+    children: Vec<RGSOConcrete<OperativeConcrete, Schema>>,
+    field_id: &Uid,
+) -> bool {
+    children.into_iter().any(|child| {
+        let is_match =
+            child
+                .get_lockedfields_slot()
+                .iter()
+                .any(|locked_field| match locked_field {
+                    FulfilledFieldVariantTraitObject::BoolFulfilledField(locked_field) => {
+                        locked_field.get_constraintreference_slot().get_id() == field_id
+                    }
+                    FulfilledFieldVariantTraitObject::IntFulfilledField(locked_field) => {
+                        locked_field.get_constraintreference_slot().get_id() == field_id
+                    }
+                    FulfilledFieldVariantTraitObject::StringFulfilledField(locked_field) => {
+                        locked_field.get_constraintreference_slot().get_id() == field_id
+                    }
+                });
+        if is_match {
+            true
+        } else {
+            recursive_search_for_locked_field(child.get_childrenoperatives_slot(), field_id)
+        }
+    })
 }

@@ -88,3 +88,9 @@
 .flex-grow {
     flex-grow: 1;
 }
+
+.collapsed-children {
+    height: 0px;
+    overflow: none;
+    visibility: hidden;
+}
