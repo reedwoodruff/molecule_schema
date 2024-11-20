@@ -19,6 +19,7 @@ use crate::utils::IntoPrimitiveValue;
 use leptos::prelude::*;
 use std::{
     collections::{BTreeMap, HashMap},
+    hash::Hash,
     io::Seek,
     marker::PhantomData,
     str::FromStr,
@@ -618,6 +619,23 @@ where
 impl<T: HasSlotEnum, TSchema> PartialEq for RGSOConcrete<T, TSchema> {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
+    }
+}
+impl<T: HasSlotEnum, TSchema> PartialOrd for RGSOConcrete<T, TSchema> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.id.partial_cmp(&other.id)
+    }
+}
+impl<T: HasSlotEnum, TSchema> Ord for RGSOConcrete<T, TSchema> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl<T: HasSlotEnum, TSchema> Eq for RGSOConcrete<T, TSchema> {}
+impl<T: HasSlotEnum, TSchema> Hash for RGSOConcrete<T, TSchema> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
     }
 }
 impl<T: HasSlotEnum, TSchema> std::fmt::Debug for RGSOConcrete<T, TSchema> {

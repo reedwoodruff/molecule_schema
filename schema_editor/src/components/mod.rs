@@ -8,4 +8,5 @@ pub mod operative_lineage;
 pub mod slot_builder;
 pub mod template_editor;
 pub mod trait_editor;
+pub mod utils;
 pub mod workspace;
