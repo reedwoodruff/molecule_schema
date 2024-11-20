@@ -58,7 +58,7 @@
       "operative_slots": {
         "221183145673091391408454692380175149027": {
           "tag": {
-            "name": "OperativeVariant",
+            "name": "TemplateSlotVariant",
             "id": 221183145673091391408454692380175149027
           },
           "operative_descriptor": {
@@ -305,6 +305,7 @@
         }
       },
       "trait_impls": {
+        "257183523223639879383916779697438059690": {},
         "268683212901137295678840178238752051138": {}
       },
       "instances": []
@@ -333,6 +334,58 @@
           ]
         },
         "248363541964975793281693277478390330819": {}
+      },
+      "instances": []
+    },
+    "119086934705820853473810155790061828575": {
+      "tag": {
+        "name": "OperativeSlotMultiSpecialization",
+        "id": 119086934705820853473810155790061828575
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "125056915937343487152948179732402591571": {
+          "tag": {
+            "name": "Operatives",
+            "id": 125056915937343487152948179732402591571
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": {
+            "LowerBound": 2
+          }
+        },
+        "248701490399212212665530000075833835356": {
+          "tag": {
+            "name": "Specializer",
+            "id": 248701490399212212665530000075833835356
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        },
+        "284736257751937315702510631568937627372": {
+          "tag": {
+            "name": "SpecializationTarget",
+            "id": 284736257751937315702510631568937627372
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [257183523223639879383916779697438059690],
+              "tag": {
+                "name": "SpecializationTarget",
+                "id": 275813228539894682204464560147129386847
+              }
+            }
+          },
+          "bounds": "Single"
+        }
+      },
+      "trait_impls": {
+        "194411240715964071839860568001695142238": {},
+        "257183523223639879383916779697438059690": {}
       },
       "instances": []
     },
@@ -420,6 +473,81 @@
       },
       "instances": []
     },
+    "162694842771510144729826670474436797986": {
+      "tag": {
+        "name": "OperativeSlotSingleSpecialization",
+        "id": 162694842771510144729826670474436797986
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "97284032531681890527236593542128468674": {
+          "tag": {
+            "name": "SpecializationTarget",
+            "id": 97284032531681890527236593542128468674
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [257183523223639879383916779697438059690],
+              "tag": {
+                "name": "SpecializationTarget",
+                "id": 37207597520335091285222863040614242583
+              }
+            }
+          },
+          "bounds": "Single"
+        },
+        "236096703725661385483362665268696701257": {
+          "tag": {
+            "name": "Operative",
+            "id": 236096703725661385483362665268696701257
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        },
+        "326096923064435455521305307795221835660": {
+          "tag": {
+            "name": "Specializer",
+            "id": 326096923064435455521305307795221835660
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        }
+      },
+      "trait_impls": {
+        "194411240715964071839860568001695142238": {}
+      },
+      "instances": []
+    },
+    "172184359982369353872143572569828519561": {
+      "tag": {
+        "name": "TemplateSlotMultiOperative",
+        "id": 172184359982369353872143572569828519561
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "62411516075218361457457574189436636112": {
+          "tag": {
+            "name": "Operatives",
+            "id": 62411516075218361457457574189436636112
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": {
+            "LowerBound": 2
+          }
+        }
+      },
+      "trait_impls": {
+        "257183523223639879383916779697438059690": {},
+        "268683212901137295678840178238752051138": {}
+      },
+      "instances": []
+    },
     "198118528716451909746307309129857117648": {
       "tag": {
         "name": "OperativeConcrete",
@@ -458,6 +586,24 @@
               "tag": {
                 "name": "LockedField",
                 "id": 140089399657186277691201511726500576280
+              }
+            }
+          },
+          "bounds": {
+            "LowerBound": 0
+          }
+        },
+        "168060448990063149226670345708013064416": {
+          "tag": {
+            "name": "SlotSpecializations",
+            "id": 168060448990063149226670345708013064416
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [194411240715964071839860568001695142238],
+              "tag": {
+                "name": "SlotSpecialization",
+                "id": 40783044618842135814860876678074099187
               }
             }
           },
@@ -898,12 +1044,36 @@
       "trait_impls": {},
       "_phantom": null
     },
+    "162258484672089782171436081409796260098": {
+      "tag": {
+        "name": "OperativeSlotSingleSpecialization",
+        "id": 162258484672089782171436081409796260098
+      },
+      "template_id": 162694842771510144729826670474436797986,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
     "173419172892809116665434241791320147061": {
       "tag": {
         "name": "SlottedInstance",
         "id": 173419172892809116665434241791320147061
       },
       "template_id": 27675548214121968886441650323715773637,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "173478492557576869684733225937437799927": {
+      "tag": {
+        "name": "OperativeSlotMultiSpecialization",
+        "id": 173478492557576869684733225937437799927
+      },
+      "template_id": 119086934705820853473810155790061828575,
       "parent_operative_id": null,
       "slotted_instances": {},
       "locked_fields": {},
@@ -994,6 +1164,18 @@
       "trait_impls": {},
       "_phantom": null
     },
+    "264757828709393034601955096983840029650": {
+      "tag": {
+        "name": "TemplateSlotMultiOperative",
+        "id": 264757828709393034601955096983840029650
+      },
+      "template_id": 172184359982369353872143572569828519561,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
     "282754878768449679153758877317862393927": {
       "tag": {
         "name": "OperativeConcrete",
@@ -1061,10 +1243,24 @@
       },
       "methods": {}
     },
+    "194411240715964071839860568001695142238": {
+      "tag": {
+        "name": "SlotSpecialization",
+        "id": 194411240715964071839860568001695142238
+      },
+      "methods": {}
+    },
     "248363541964975793281693277478390330819": {
       "tag": {
         "name": "FieldVariant",
         "id": 248363541964975793281693277478390330819
+      },
+      "methods": {}
+    },
+    "257183523223639879383916779697438059690": {
+      "tag": {
+        "name": "SlotSpecializable",
+        "id": 257183523223639879383916779697438059690
       },
       "methods": {}
     },

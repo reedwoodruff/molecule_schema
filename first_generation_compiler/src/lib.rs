@@ -632,6 +632,19 @@ pub fn generate_concrete_schema_reactive(
             _fields_typestate: std::marker::PhantomData<FieldsTS>,
             _slots_typestate: std::marker::PhantomData<SlotsTS>,
         }
+        impl <T: std::clone::Clone + std::fmt::Debug + HasSlotEnum, TSchema, FieldsTS, SlotsTS> Clone for FreshBuilder<T,TSchema,FieldsTS,SlotsTS>
+        where TSchema: Clone + 'static,
+        <T as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug + Send + Sync,
+        {
+            fn clone(&self) -> Self {
+                Self {
+                    inner_builder: self.inner_builder.clone(),
+                    _fields_typestate: std::marker::PhantomData,
+                    _slots_typestate: std::marker::PhantomData,
+                }
+            }
+
+        }
         impl <T, TSchema: hidden::EditRGSO<Schema = TSchema> + 'static> ExistingBuilder<T, TSchema>
         where
             TSchema: Send + Sync,

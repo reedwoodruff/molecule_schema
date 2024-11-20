@@ -416,7 +416,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
         let schema = schema_clone.clone();
         let operative = operative_clone.clone();
         let slot_clone = slot.clone();
-        let slot_variant = move || match slot_clone.get_operativevariant_slot() {
+        let slot_variant = move || match slot_clone.get_templateslotvariant_slot() {
             TemplateSlotVariantTraitObject::TemplateSlotTraitOperative(trait_op) => {
                 let traits_string = move || {
                     trait_op
@@ -427,7 +427,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                         .join(", ")
                 };
                 let view = move || format!("Trait-Bound Slot: [{}]", traits_string());
-                Either::Left(view)
+                EitherOf3::A(view)
             }
             TemplateSlotVariantTraitObject::TemplateSlotSingleOperative(single_op) => {
                 let view = move || {
@@ -436,7 +436,21 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                         single_op.get_operative_slot().get_name()
                     )
                 };
-                Either::Right(view)
+                EitherOf3::B(view)
+            }
+            TemplateSlotVariantTraitObject::TemplateSlotMultiOperative(multi_op) => {
+                let view = move || {
+                    format!(
+                        "Multiple Operative Slot: [{}]",
+                        multi_op
+                            .get_operatives_slot()
+                            .into_iter()
+                            .map(|op| op.get_name())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    )
+                };
+                EitherOf3::C(view)
             }
         };
         let operative_clone = operative.clone();
@@ -600,7 +614,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 RwSignal::<Option<RGSOConcrete<InstanceConcrete, Schema>>>::new(None);
             let allowed_instances = Memo::new(move |_| {
                 let schema_clone = schema_clone.clone();
-                match slot_clone.get_operativevariant_slot() {
+                match slot_clone.get_templateslotvariant_slot() {
                     TemplateSlotVariantTraitObject::TemplateSlotTraitOperative(trait_op) => {
                         get_all_instances_which_impl_trait_set(
                             trait_op.get_traits_slot(),
@@ -611,6 +625,15 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                         get_all_descendent_instances(
                             single_op.get_operative_slot(),
                             schema_clone.clone(),
+                        )
+                    }
+                    TemplateSlotVariantTraitObject::TemplateSlotMultiOperative(multi_op) => {
+                        multi_op.get_operatives_slot().into_iter().fold(
+                            BTreeSet::new(),
+                            |mut agg, op| {
+                                agg.extend(get_all_descendent_instances(op, schema_clone.clone()));
+                                agg
+                            },
                         )
                     }
                 }

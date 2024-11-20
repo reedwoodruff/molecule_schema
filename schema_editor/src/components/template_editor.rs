@@ -1,4 +1,4 @@
-use leptos::either::Either;
+use leptos::either::{Either, EitherOf3};
 use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::{
@@ -77,7 +77,27 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     let template_slot_view = move |template_slot: RGSOConcrete<TemplateSlot, Schema>| {
         let template_slot_clone = template_slot.clone();
         let selected_tab_clone = selected_tab.clone();
-        let details_view = move || match template_slot_clone.get_operativevariant_slot() {
+        let details_view = move || match template_slot_clone.get_templateslotvariant_slot() {
+            TemplateSlotVariantTraitObject::TemplateSlotMultiOperative(conc_ops) => {
+                EitherOf3::A(view! {
+                <div>
+                "Operatives: ["
+                    <For each=move || conc_ops.get_operatives_slot() key=|op| op.get_id().clone() let:op>
+                        {
+                        let op_clone = op.clone();
+                        view!{
+                        <a class="clickable-list-item"
+                        on:click=move |_| {selected_tab_clone.set(WorkspaceTab::Operative(RwSignal::new(Some(op_clone.clone()))))}>
+                            {move || op.get_name()}
+                        </a>
+                        ", "
+                        }
+                        }
+                    </For>
+                "]"
+                </div>
+                })
+            }
             TemplateSlotVariantTraitObject::TemplateSlotTraitOperative(trait_op_variant) => {
                 let trait_list = trait_op_variant
                     .get_traits_slot()
@@ -85,12 +105,12 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                     .map(|item| item.get_name())
                     .collect::<Vec<_>>()
                     .join(", ");
-                Either::Left("Traits: ".to_string() + &trait_list)
+                EitherOf3::B("Traits: ".to_string() + &trait_list)
             }
             TemplateSlotVariantTraitObject::TemplateSlotSingleOperative(conc_op) => {
                 let op = conc_op.get_operative_slot();
                 let op_clone = op.clone();
-                Either::Right(view! {
+                EitherOf3::C(view! {
                     <div>
                     Operative: <a class="clickable-list-item"
                         on:click=move |_| {selected_tab_clone.set(WorkspaceTab::Operative(RwSignal::new(Some(op_clone.clone()))))}>
@@ -346,6 +366,11 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                 <For each=move ||template_clone_2.get_templateslots_slot() key=|item| item.get_id().clone() children=template_slot_view />
                 </SubSection>
 
+            </Section>
+
+            <Section>
+            <SectionHeader slot>Trait Impls</SectionHeader>
+            stuff
             </Section>
 
        </div>

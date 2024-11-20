@@ -244,6 +244,16 @@ where
     T: GetName + RGSO + Send + Sync + Clone + 'static,
     // V: Send + Sync + 'static,
 {
+    Effect::new(move || {
+        options.track();
+        if empty_allowed {
+            value.set(None);
+        } else {
+            if let Some(first_option) = options.get().into_iter().next() {
+                value.set(Some(first_option))
+            }
+        }
+    });
     let options = move || {
         let mut formatted_options = options
             .get()

@@ -14,6 +14,7 @@ pub trait SlotTSMarker {
     type CountIsLessThanOrEqualToMax: Bit;
     type CountIsLessThanMax: Bit;
 }
+#[derive(Clone)]
 pub struct SlotTS<
     Id,
     Count: Integer + IsGreaterOrEqual<Min> + IsLessOrEqual<Max> + IsGreater<Z0>,
