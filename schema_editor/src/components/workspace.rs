@@ -37,7 +37,7 @@ pub fn Workspace(schema_final_id: u128) -> impl IntoView {
         let schema_clone = schema.clone();
 
         view! {
-            <div>
+            <div class="workspace-container">
                 <div class="tabs-container">
                     <For each=move || schema_clone.clone().outgoing_slots_with_enum().clone().into_values()
                         key=move |item| item.base.slot.tag.id.clone()

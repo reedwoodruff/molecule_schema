@@ -99,7 +99,6 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
     let operative_clone = operative.clone();
     let schema_clone = schema.clone();
     let create_derivative_instance = move |_| {
-        // Really not liking being forced to do two graph actions -- need to figure out how to fix the api.
         let derivative_instance_name = derivative_instance_name.clone().get();
         let mut editor = schema_clone
             .edit(ctx_clone.clone())
@@ -417,25 +416,44 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
         let schema = schema_clone.clone();
         let operative = operative_clone.clone();
         let slot_clone = slot.clone();
-        let slot_bound_type = move || {
-            <SlotBoundVariantTraitObject as Into<SlotBoundVariantTraitObjectDiscriminants>>::into(
-                slot_clone.get_slotbound_slot(),
-            )
-            .to_string()
+        let slot_variant = move || match slot_clone.get_operativevariant_slot() {
+            TemplateSlotVariantTraitObject::TemplateSlotTraitOperative(trait_op) => {
+                let traits_string = move || {
+                    trait_op
+                        .get_traits_slot()
+                        .into_iter()
+                        .map(|trait_conc| trait_conc.get_name())
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                };
+                let view = move || format!("Trait-Bound Slot: [{}]", traits_string());
+                Either::Left(view)
+            }
+            TemplateSlotVariantTraitObject::TemplateSlotSingleOperative(single_op) => {
+                let view = move || {
+                    format!(
+                        "Single Operative Slot: {}",
+                        single_op.get_operative_slot().get_name()
+                    )
+                };
+                Either::Right(view)
+            }
         };
         let operative_clone = operative.clone();
-        // let locally_slotted_items = Memo::new(move || {
-        //     operative_clone
-        //         .get_slottedinstances_slot()
-        //         .into_iter()
-        //         .filter(|slotted_instance| {
-        //             slotted_instance.get_fulfiller_slot().get_id() == operative_clone.get_id()
-        //         }).collect::<Vec<_>>()
-        // });
+        let slot_clone = slot.clone();
+        let slotted_instances_for_slot = Memo::new(move |_| {
+            operative_clone
+                .get_slottedinstances_slot()
+                .into_iter()
+                .filter(|slotted_inst| {
+                    slotted_inst.get_slottedslot_slot().get_id() == slot_clone.get_id()
+                })
+                .collect::<Vec<_>>()
+        });
         let operative_clone = operative.clone();
         let upstream_and_local_slotted_number =
-            move || operative_clone.get_slottedinstances_slot().len() as u32;
-        let currently_slotted_number_clone = upstream_and_local_slotted_number.clone();
+            move || slotted_instances_for_slot.get().len() as u32;
+        let upstream_and_local_slotted_number_clone = upstream_and_local_slotted_number.clone();
         let operative_clone = operative.clone();
         let slot_clone = slot.clone();
         let recursive_downstream_search =
@@ -475,13 +493,14 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
         let is_maxed_independently = RwSignal::new(false);
         let is_maxed_considering_children = RwSignal::new(false);
         let slot_bound_view = move || {
-            let cur_slot_num = currently_slotted_number_clone.clone()();
+            let cur_slot_num = upstream_and_local_slotted_number_clone.clone()();
             let cur_downstream_slot_num = downstream_slotted_number.clone()();
             match slot_clone.get_slotbound_slot() {
                 SlotBoundVariantTraitObject::SlotBoundUpperBound(inner) => {
                     is_fulfilled.set(true);
-                    is_maxed_independently
-                        .set(inner.get_upper_bound_field() == currently_slotted_number_clone());
+                    is_maxed_independently.set(
+                        inner.get_upper_bound_field() == upstream_and_local_slotted_number_clone(),
+                    );
                     is_maxed_considering_children
                         .set(inner.get_upper_bound_field() == (cur_downstream_slot_num));
 
@@ -535,7 +554,6 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             }
         };
 
-        let operative_clone = operative.clone();
         let operative_clone = operative.clone();
         let ctx_clone = ctx.clone();
         let currently_slotted_view = move |instance: RGSOConcrete<SlottedInstance, Schema>| {
@@ -637,17 +655,6 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             }
         };
         let operative_clone = operative.clone();
-        let slot_clone = slot.clone();
-        let slotted_instances_for_slot = Memo::new(move |_| {
-            operative_clone
-                .get_slottedinstances_slot()
-                .into_iter()
-                .filter(|slotted_inst| {
-                    slotted_inst.get_slottedslot_slot().get_id() == slot_clone.get_id()
-                })
-                .collect::<Vec<_>>()
-        });
-        let operative_clone = operative.clone();
         view! {
             <SubSection>
             <SubSectionHeader>
@@ -658,20 +665,21 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 <LeafSectionHeader>
                 Slot Details
                 </LeafSectionHeader>
-                {slot_bound_type}
-                <br/>
-                "Required:" {slot_bound_view}
-                <br/>
-                "Upstream (including this node) slotted instances:" {upstream_and_local_slotted_number}
-                <br/>
-                "Downstream slotted instances:" {downstream_slotted_number_clone}
-                <br/>
-                "Is Fulfilled:" {is_fulfilled}
-                <br/>
-                "Is Maxed Independently:" {is_maxed_independently}
-                <br/>
-                "Is Maxed Considering Children:" {is_maxed_considering_children}
-                <br/>
+                <LeafSection attr:class="leafsection dependent">
+                    {slot_variant}
+                    <br/>
+                    "Required:" {slot_bound_view}
+                    <br/>
+                    "Upstream (including this node) slotted instances:" {upstream_and_local_slotted_number}
+                    <br/>
+                    "Downstream slotted instances:" {downstream_slotted_number_clone}
+                    <br/>
+                    "Is Fulfilled:" {is_fulfilled}
+                    <br/>
+                    "Is Maxed Independently:" {is_maxed_independently}
+                    <br/>
+                    "Is Maxed Considering Children:" {is_maxed_considering_children}
+                </LeafSection>
 
             </LeafSection>
             <LeafSection>
@@ -710,7 +718,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 <Button on:click=delete_operative>Delete Item</Button>
             </SubSection>
             <SubSection>
-                <OperativeLineage operative=operative_clone_3/>
+                <OperativeLineage operative=operative_clone_3 is_entry_point=true/>
             </SubSection>
         </Section>
 
