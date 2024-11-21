@@ -82,7 +82,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                 EitherOf3::A(view! {
                 <div>
                 "Operatives: ["
-                    <For each=move || conc_ops.get_operatives_slot() key=|op| op.get_id().clone() let:op>
+                    <For each=move || conc_ops.get_allowedoperatives_slot() key=|op| op.get_id().clone() let:op>
                         {
                         let op_clone = op.clone();
                         view!{
@@ -100,7 +100,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
             }
             TemplateSlotVariantTraitObject::TemplateSlotTraitOperative(trait_op_variant) => {
                 let trait_list = trait_op_variant
-                    .get_traits_slot()
+                    .get_allowedtraits_slot()
                     .iter()
                     .map(|item| item.get_name())
                     .collect::<Vec<_>>()
@@ -108,7 +108,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                 EitherOf3::B("Traits: ".to_string() + &trait_list)
             }
             TemplateSlotVariantTraitObject::TemplateSlotSingleOperative(conc_op) => {
-                let op = conc_op.get_operative_slot();
+                let op = conc_op.get_allowedoperative_slot();
                 let op_clone = op.clone();
                 EitherOf3::C(view! {
                     <div>

@@ -293,7 +293,7 @@
       "operative_slots": {
         "39719939415486511947328049041640984529": {
           "tag": {
-            "name": "AllowedTraits",
+            "name": "Traits",
             "id": 39719939415486511947328049041640984529
           },
           "operative_descriptor": {
@@ -302,20 +302,9 @@
           "bounds": {
             "LowerBound": 1
           }
-        },
-        "52255131503127851516921851748680970564": {
-          "tag": {
-            "name": "RootTemplateSlot",
-            "id": 52255131503127851516921851748680970564
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
-          },
-          "bounds": "Single"
         }
       },
       "trait_impls": {
-        "138775780297201214816387388007818658691": {},
         "257183523223639879383916779697438059690": {},
         "268683212901137295678840178238752051138": {}
       },
@@ -357,7 +346,7 @@
       "operative_slots": {
         "125056915937343487152948179732402591571": {
           "tag": {
-            "name": "AllowedOperatives",
+            "name": "Operatives",
             "id": 125056915937343487152948179732402591571
           },
           "operative_descriptor": {
@@ -390,16 +379,6 @@
                 "id": 275813228539894682204464560147129386847
               }
             }
-          },
-          "bounds": "Single"
-        },
-        "313958924266353957649854818622448415750": {
-          "tag": {
-            "name": "RootTemplateSlot",
-            "id": 313958924266353957649854818622448415750
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
           },
           "bounds": "Single"
         }
@@ -519,21 +498,11 @@
         },
         "236096703725661385483362665268696701257": {
           "tag": {
-            "name": "AllowedOperative",
+            "name": "Operative",
             "id": 236096703725661385483362665268696701257
           },
           "operative_descriptor": {
             "LibraryOperative": 282754878768449679153758877317862393927
-          },
-          "bounds": "Single"
-        },
-        "290909284312890053152307651267592761924": {
-          "tag": {
-            "name": "RootTemplateSlot",
-            "id": 290909284312890053152307651267592761924
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
           },
           "bounds": "Single"
         },
@@ -562,7 +531,7 @@
       "operative_slots": {
         "62411516075218361457457574189436636112": {
           "tag": {
-            "name": "AllowedOperatives",
+            "name": "Operatives",
             "id": 62411516075218361457457574189436636112
           },
           "operative_descriptor": {
@@ -571,16 +540,6 @@
           "bounds": {
             "LowerBound": 2
           }
-        },
-        "160875060806860294456225159769092919952": {
-          "tag": {
-            "name": "RootTemplateSlot",
-            "id": 160875060806860294456225159769092919952
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
-          },
-          "bounds": "Single"
         }
       },
       "trait_impls": {
@@ -898,69 +857,6 @@
       },
       "instances": []
     },
-    "311893769320296165986487104755911510788": {
-      "tag": {
-        "name": "OperativeSlotTraitObjectSpecialization",
-        "id": 311893769320296165986487104755911510788
-      },
-      "field_constraints": {},
-      "operative_slots": {
-        "232973303942344549888636173107639879619": {
-          "tag": {
-            "name": "AllowedTraits",
-            "id": 232973303942344549888636173107639879619
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 88514864505434199223308527499153129389
-          },
-          "bounds": {
-            "LowerBound": 1
-          }
-        },
-        "264225623550756322060277407572826684679": {
-          "tag": {
-            "name": "SpecializationTarget",
-            "id": 264225623550756322060277407572826684679
-          },
-          "operative_descriptor": {
-            "TraitOperative": {
-              "trait_ids": [138775780297201214816387388007818658691],
-              "tag": {
-                "name": "SpecializationTarget",
-                "id": 155414950116376138544174434408676437286
-              }
-            }
-          },
-          "bounds": "Single"
-        },
-        "328018648715234753193945275348727967603": {
-          "tag": {
-            "name": "RootTemplateSlot",
-            "id": 328018648715234753193945275348727967603
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
-          },
-          "bounds": "Single"
-        },
-        "340151523738328453895291685173063464963": {
-          "tag": {
-            "name": "Specializer",
-            "id": 340151523738328453895291685173063464963
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 282754878768449679153758877317862393927
-          },
-          "bounds": "Single"
-        }
-      },
-      "trait_impls": {
-        "138775780297201214816387388007818658691": {},
-        "194411240715964071839860568001695142238": {},
-        "257183523223639879383916779697438059690": {}
-      },
-      "instances": []
-    },
     "322196738895969886930396540792905447581": {
       "tag": {
         "name": "BoolFulfilledField",
@@ -1011,21 +907,11 @@
       "operative_slots": {
         "180790327343893564104651733652490152763": {
           "tag": {
-            "name": "AllowedOperative",
+            "name": "Operative",
             "id": 180790327343893564104651733652490152763
           },
           "operative_descriptor": {
             "LibraryOperative": 282754878768449679153758877317862393927
-          },
-          "bounds": "Single"
-        },
-        "326036747662804191921016450456624199984": {
-          "tag": {
-            "name": "RootTemplateSlot",
-            "id": 326036747662804191921016450456624199984
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
           },
           "bounds": "Single"
         }
@@ -1302,18 +1188,6 @@
       "trait_impls": {},
       "_phantom": null
     },
-    "292663566618869490130986795272103602681": {
-      "tag": {
-        "name": "OperativeSlotTraitObjectSpecialization",
-        "id": 292663566618869490130986795272103602681
-      },
-      "template_id": 311893769320296165986487104755911510788,
-      "parent_operative_id": null,
-      "slotted_instances": {},
-      "locked_fields": {},
-      "trait_impls": {},
-      "_phantom": null
-    },
     "296396914592207048144260718890758504922": {
       "tag": {
         "name": "StringFulfilledField",
@@ -1361,13 +1235,6 @@
           "return_type": "String"
         }
       }
-    },
-    "138775780297201214816387388007818658691": {
-      "tag": {
-        "name": "SlotSpecializableTraitOperative",
-        "id": 138775780297201214816387388007818658691
-      },
-      "methods": {}
     },
     "176242272120702728271037506779036200862": {
       "tag": {

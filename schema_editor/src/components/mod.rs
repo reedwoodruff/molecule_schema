@@ -6,6 +6,8 @@ pub mod main_list;
 pub mod operative_editor;
 pub mod operative_lineage;
 pub mod slot_builder;
+pub mod specialization_builder;
+pub mod specialization_lineage;
 pub mod template_editor;
 pub mod trait_editor;
 pub mod utils;

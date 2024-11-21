@@ -3,13 +3,15 @@ use std::{collections::BTreeSet, str::FromStr};
 use crate::components::{
     common::*,
     operative_lineage::OperativeLineage,
+    specialization_builder::SpecializationBuilder,
+    specialization_lineage::SpecializationLineage,
     utils::{
         get_all_descendent_instances, get_all_descendent_operators,
         get_all_instances_which_impl_trait_set,
     },
     workspace::{WorkspaceState, WorkspaceTab},
 };
-use leptos::either::{Either, EitherOf3, EitherOf6};
+use leptos::either::{Either, EitherOf3, EitherOf4, EitherOf6};
 use schema_editor_generated_toolkit::{
     prelude::*, slot_markers::OperativeConcreteLockedFieldsAcceptableTargetMarker,
 };
@@ -420,7 +422,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             TemplateSlotVariantTraitObject::TemplateSlotTraitOperative(trait_op) => {
                 let traits_string = move || {
                     trait_op
-                        .get_traits_slot()
+                        .get_allowedtraits_slot()
                         .into_iter()
                         .map(|trait_conc| trait_conc.get_name())
                         .collect::<Vec<_>>()
@@ -433,7 +435,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 let view = move || {
                     format!(
                         "Single Operative Slot: {}",
-                        single_op.get_operative_slot().get_name()
+                        single_op.get_allowedoperative_slot().get_name()
                     )
                 };
                 EitherOf3::B(view)
@@ -443,7 +445,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                     format!(
                         "Multiple Operative Slot: [{}]",
                         multi_op
-                            .get_operatives_slot()
+                            .get_allowedoperatives_slot()
                             .into_iter()
                             .map(|op| op.get_name())
                             .collect::<Vec<_>>()
@@ -617,18 +619,18 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 match slot_clone.get_templateslotvariant_slot() {
                     TemplateSlotVariantTraitObject::TemplateSlotTraitOperative(trait_op) => {
                         get_all_instances_which_impl_trait_set(
-                            trait_op.get_traits_slot(),
+                            trait_op.get_allowedtraits_slot(),
                             schema_clone.clone(),
                         )
                     }
                     TemplateSlotVariantTraitObject::TemplateSlotSingleOperative(single_op) => {
                         get_all_descendent_instances(
-                            single_op.get_operative_slot(),
+                            single_op.get_allowedoperative_slot(),
                             schema_clone.clone(),
                         )
                     }
                     TemplateSlotVariantTraitObject::TemplateSlotMultiOperative(multi_op) => {
-                        multi_op.get_operatives_slot().into_iter().fold(
+                        multi_op.get_allowedoperatives_slot().into_iter().fold(
                             BTreeSet::new(),
                             |mut agg, op| {
                                 agg.extend(get_all_descendent_instances(op, schema_clone.clone()));
@@ -678,6 +680,149 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             }
         };
         let operative_clone = operative.clone();
+        let slot_clone = slot.clone();
+
+        let ctx_clone = ctx.clone();
+        let specialization_view = move || {
+            let ctx_clone = ctx_clone.clone();
+            let operative_clone = operative_clone.clone();
+            let slot_clone = slot_clone.clone();
+            let view = move || {
+                let ctx_clone = ctx_clone.clone();
+                let operative_clone = operative_clone.clone();
+                let operative_clone2 = operative_clone.clone();
+                let operative_clone3 = operative_clone.clone();
+                let operative_clone4 = operative_clone.clone();
+                let slot = slot_clone.clone();
+                let slot_clone = slot.clone();
+                let all_specs_for_slot = move || {
+                    operative_clone
+                        .clone()
+                        .get_slotspecializations_slot()
+                        .into_iter()
+                        .filter(|specialization| {
+                            match specialization {
+                        SlotSpecializationTraitObject::OperativeSlotSingleSpecialization(
+                            single,
+                        ) => single.get_roottemplateslot_slot().get_id() == slot_clone.get_id(),
+                        SlotSpecializationTraitObject::OperativeSlotMultiSpecialization(multi) => {
+                            multi.get_roottemplateslot_slot().get_id() == slot_clone.get_id()
+                        }
+                        SlotSpecializationTraitObject::OperativeSlotTraitObjectSpecialization(
+                            traits,
+                        ) => traits.get_roottemplateslot_slot().get_id() == slot_clone.get_id(),
+                    }
+                        })
+                        .collect::<Vec<_>>()
+                };
+                let maybe_childest_spec = Memo::new(move |_| {
+                    let specs = all_specs_for_slot();
+                    let specs_clone = specs.clone();
+                    if specs.len() == 0 {
+                        None
+                    } else if specs.len() == 1 {
+                        Some(specs.into_iter().next().unwrap())
+                    } else {
+                        let all_parent_ids = specs.into_iter().map(|spec| {
+                           match spec {
+                                SlotSpecializationTraitObject::OperativeSlotSingleSpecialization(item) => *item.get_specializationtarget_slot().get_id(),
+                                SlotSpecializationTraitObject::OperativeSlotMultiSpecialization(item) => *item.get_specializationtarget_slot().get_id(),
+                                SlotSpecializationTraitObject::OperativeSlotTraitObjectSpecialization(item) => *item.get_specializationtarget_slot().get_id(),
+                            }
+                        }).collect::<Vec<_>>();
+                        let childest_spec = specs_clone
+                            .into_iter()
+                            .find(|spec| !all_parent_ids.contains(spec.get_id()));
+                        childest_spec
+                    }
+                });
+                let slot_clone = slot.clone();
+                let operative_clone = operative_clone4.clone();
+
+                move || {
+                    let ctx_clone = ctx_clone.clone();
+                    if let Some(specialization) = maybe_childest_spec.get() {
+                        let spec_clone = specialization.clone();
+                        let is_locally_owned_spec = match spec_clone.clone() {
+                            SlotSpecializationTraitObject::OperativeSlotSingleSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
+                            SlotSpecializationTraitObject::OperativeSlotMultiSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
+                            SlotSpecializationTraitObject::OperativeSlotTraitObjectSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
+                        };
+                        let operative_clone3 = operative_clone3.clone();
+                        let modify_view = move || {
+                            let ctx_clone = ctx_clone.clone();
+                            if is_locally_owned_spec {
+                                match spec_clone.clone() {
+                                SlotSpecializationTraitObject::OperativeSlotSingleSpecialization( single, ) => {
+                                    let on_delete = move |_| {
+                                        single.edit(ctx_clone.clone()).delete().execute().unwrap();
+                                    };
+                                    EitherOf6::A(view! {
+                                        <LeafSection><Button on:click=on_delete>Delete Specialization</Button></LeafSection>
+                                    })
+                                }
+                                SlotSpecializationTraitObject::OperativeSlotMultiSpecialization(multi) => {
+                                    let on_delete = move |_| {
+                                        multi.edit(ctx_clone.clone()).delete().execute().unwrap();
+                                    };
+                                    EitherOf6::B(view! {
+                                        <LeafSection><Button on:click=on_delete>Delete Specialization</Button></LeafSection>
+                                    })
+                                }
+                                SlotSpecializationTraitObject::OperativeSlotTraitObjectSpecialization(
+                                    trait_object,
+                                ) => {
+                                    let on_delete = move |_| {
+                                        trait_object.edit(ctx_clone.clone()).delete().execute().unwrap();
+                                    };
+                                    EitherOf6::C(view! {
+                                        <LeafSection><Button on:click=on_delete>Delete Specialization</Button></LeafSection>
+                                    })
+                                },
+                            }
+                            } else {
+                                match spec_clone.clone() {
+                                    SlotSpecializationTraitObject::OperativeSlotSingleSpecialization(_) => EitherOf6::D(()),
+                                    SlotSpecializationTraitObject::OperativeSlotMultiSpecialization(multi) => {
+                                        EitherOf6::E(view!{<SpecializationBuilder operative=operative_clone3.clone() spec_target=SlotSpecializableTraitObject::OperativeSlotMultiSpecialization(multi) />})
+                                    },
+                                    SlotSpecializationTraitObject::OperativeSlotTraitObjectSpecialization(trait_obj) =>
+                                    EitherOf6::F(view!{<SpecializationBuilder operative=operative_clone3.clone() spec_target=SlotSpecializableTraitObject::OperativeSlotTraitObjectSpecialization(trait_obj) />})
+,
+                                }
+                            }
+                        };
+                        EitherOf4::A(view! {
+                            <LeafSectionHeader>Specialization</LeafSectionHeader>
+                            <LeafSection attr:class="leafsection dependent">
+                            <SpecializationLineage specialization=specialization is_entry_point=true/>
+                            </LeafSection>
+                            {modify_view}
+                        })
+                    } else {
+                        match slot_clone.get_templateslotvariant_slot() {
+                            TemplateSlotVariantTraitObject::TemplateSlotTraitOperative(
+                                trait_op,
+                            ) => EitherOf4::B(view! {
+                                <LeafSectionHeader>Specialization</LeafSectionHeader>
+                                <SpecializationBuilder operative=operative_clone.clone() spec_target=SlotSpecializableTraitObject::TemplateSlotTraitOperative(trait_op) />
+                            }),
+                            TemplateSlotVariantTraitObject::TemplateSlotSingleOperative(single) => {
+                                EitherOf4::C(view! {})
+                            }
+                            TemplateSlotVariantTraitObject::TemplateSlotMultiOperative(multi) => {
+                                EitherOf4::D(view! {
+                                    <LeafSectionHeader>Specialization</LeafSectionHeader>
+                                    <SpecializationBuilder operative=operative_clone.clone() spec_target=SlotSpecializableTraitObject::TemplateSlotMultiOperative(multi) />
+                                })
+                            }
+                        }
+                    }
+                }
+            };
+            view
+        };
+
         view! {
             <SubSection>
             <SubSectionHeader>
@@ -720,6 +865,9 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             <Show when=move|| is_adding_slotted_instance.get()>
             {add_slotted_instance_view.clone()}
             </Show>
+            <LeafSection>
+            {specialization_view}
+            </LeafSection>
             </SubSection>
         }
     };

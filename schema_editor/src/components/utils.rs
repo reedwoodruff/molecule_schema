@@ -66,3 +66,60 @@ pub fn get_all_instances_which_impl_trait_set(
         });
     instances_which_impl
 }
+
+pub fn get_all_traits_in_specialization(
+    specialization: RGSOConcrete<OperativeSlotTraitObjectSpecialization, Schema>,
+) -> BTreeSet<RGSOConcrete<TraitConcrete, Schema>> {
+    let mut found_terminal = false;
+    let mut rolling_trait_set = BTreeSet::new();
+    let mut cur_spec =
+        SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(
+            specialization,
+        );
+    while !found_terminal {
+        match cur_spec {
+            SlotSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(terminal) => {
+                rolling_trait_set.extend(terminal.get_allowedtraits_slot());
+                found_terminal = true;
+                break;
+            }
+            SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(
+                spec,
+            ) => {
+                rolling_trait_set.extend(spec.get_allowedtraits_slot());
+                cur_spec = spec.get_specializationtarget_slot();
+            }
+        }
+    }
+    rolling_trait_set
+}
+
+pub fn get_all_operatives_which_satisfy_specializable(
+    schema_concrete: RGSOConcrete<SchemaConcrete, Schema>,
+    specializable: SlotSpecializableTraitObject,
+) -> BTreeSet<RGSOConcrete<OperativeConcrete, Schema>> {
+    match specializable {
+        SlotSpecializableTraitObject::TemplateSlotTraitOperative(trait_op) => {
+            get_all_operatives_which_impl_trait_set(
+                trait_op.get_allowedtraits_slot(),
+                schema_concrete,
+            )
+        }
+        SlotSpecializableTraitObject::OperativeSlotMultiSpecialization(multi) => multi
+            .get_allowedoperatives_slot()
+            .into_iter()
+            .collect::<BTreeSet<_>>(),
+        SlotSpecializableTraitObject::TemplateSlotMultiOperative(multi) => multi
+            .get_allowedoperatives_slot()
+            .into_iter()
+            .collect::<BTreeSet<_>>(),
+        SlotSpecializableTraitObject::OperativeSlotTraitObjectSpecialization(trait_spec) => {
+            let trait_set = get_all_traits_in_specialization(trait_spec);
+
+            get_all_operatives_which_impl_trait_set(
+                trait_set.into_iter().collect::<Vec<_>>(),
+                schema_concrete,
+            )
+        }
+    }
+}

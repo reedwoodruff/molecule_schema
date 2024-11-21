@@ -1077,17 +1077,21 @@ where
         // updated to reflect whatever edge is created, but you can't be sure that the instantiable
         // has actually been created yet because the user can reference the tempid at any point in
         // the tree.
+        // TODO: Known issue -- when temp_id is not set very first, there can be some sequences of actions
+        // which cause the old "temp_id" (which is the actual id) to be stored for certain updates
+        // When that old id is searched for in the temp map it is no longer there because it is replaced with a user-provided temp-id.
         let temp_incoming_execution_errors = self.temp_add_incoming_updates.with(|updates| {
             updates
                 .iter()
                 .filter_map(|update| {
                     let final_host_id = match &update.1.host_instance_id {
                         BlueprintId::Existing(existing_id) => Ok(*existing_id),
-                        BlueprintId::Temporary(temp_id) => temp_id_map.get(temp_id).cloned().ok_or(
-                            ElementCreationError::NonexistentTempId {
+                        BlueprintId::Temporary(temp_id) => temp_id_map
+                            .get(temp_id)
+                            .cloned()
+                            .ok_or_else(|| ElementCreationError::NonexistentTempId {
                                 temp_id: temp_id.clone(),
-                            },
-                        ),
+                            }),
                     };
                     if let Some(error) = final_host_id.clone().err() {
                         return Some(error);

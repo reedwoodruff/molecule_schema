@@ -61,15 +61,17 @@ pub fn SlotBuilder(
                                 .edit(ctx_clone.clone())
                                 .add_new_templateslots(|new_template_slot| {
                                     new_template_slot
+                                        .set_temp_id("template_slot")
                                         .set_name(name.get())
                                         .add_new_templateslotvariant::<TemplateSlotTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
-                                                    .add_existing_traits(
+                                                    .set_temp_id("this_is_ugly")
+                                                    .add_temp_roottemplateslot("template_slot")
+                                                    .add_existing_allowedtraits(
                                                         trait_concrete.get_id(),
                                                         |na| na,
                                                     )
-                                                    .set_temp_id("this_is_ugly")
                                             },
                                         )
                                         .add_new_slotbound::<SlotBoundUpperBound, _>(|slot_bound| {
@@ -83,15 +85,17 @@ pub fn SlotBuilder(
                                 .edit(ctx_clone.clone())
                                 .add_new_templateslots(|new_template_slot| {
                                     new_template_slot
+                                        .set_temp_id("template_slot")
                                         .set_name(name.get())
                                         .add_new_templateslotvariant::<TemplateSlotTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
-                                                    .add_existing_traits(
+                                                    .set_temp_id("this_is_ugly")
+                                                    .add_temp_roottemplateslot("template_slot")
+                                                    .add_existing_allowedtraits(
                                                         trait_concrete.get_id(),
                                                         |na| na,
                                                     )
-                                                    .set_temp_id("this_is_ugly")
                                             },
                                         )
                                         .add_new_slotbound::<SlotBoundRangeOrZero, _>(
@@ -109,15 +113,17 @@ pub fn SlotBuilder(
                                 .edit(ctx_clone.clone())
                                 .add_new_templateslots(|new_template_slot| {
                                     new_template_slot
+                                        .set_temp_id("template_slot")
                                         .set_name(name.get())
                                         .add_new_templateslotvariant::<TemplateSlotTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
-                                                    .add_existing_traits(
+                                                    .set_temp_id("this_is_ugly")
+                                                    .add_temp_roottemplateslot("template_slot")
+                                                    .add_existing_allowedtraits(
                                                         trait_concrete.get_id(),
                                                         |na| na,
                                                     )
-                                                    .set_temp_id("this_is_ugly")
                                             },
                                         )
                                         .add_new_slotbound::<SlotBoundLowerBoundOrZero, _>(
@@ -132,15 +138,17 @@ pub fn SlotBuilder(
                             .edit(ctx_clone.clone())
                             .add_new_templateslots(|new_template_slot| {
                                 new_template_slot
+                                    .set_temp_id("template_slot")
                                     .set_name(name.get())
                                     .add_new_templateslotvariant::<TemplateSlotTraitOperative, _>(
                                         |new_op_var| {
                                             new_op_var
-                                                .add_existing_traits(
+                                                .set_temp_id("this_is_ugly")
+                                                .add_temp_roottemplateslot("template_slot")
+                                                .add_existing_allowedtraits(
                                                     trait_concrete.get_id(),
                                                     |na| na,
                                                 )
-                                                .set_temp_id("this_is_ugly")
                                         },
                                     )
                                     .add_new_slotbound::<SlotBoundRange, _>(|slot_bound| {
@@ -155,15 +163,17 @@ pub fn SlotBuilder(
                                 .edit(ctx_clone.clone())
                                 .add_new_templateslots(|new_template_slot| {
                                     new_template_slot
+                                        .set_temp_id("template_slot")
                                         .set_name(name.get())
                                         .add_new_templateslotvariant::<TemplateSlotTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
-                                                    .add_existing_traits(
+                                                    .set_temp_id("this_is_ugly")
+                                                    .add_temp_roottemplateslot("template_slot")
+                                                    .add_existing_allowedtraits(
                                                         trait_concrete.get_id(),
                                                         |na| na,
                                                     )
-                                                    .set_temp_id("this_is_ugly")
                                             },
                                         )
                                         .add_new_slotbound::<SlotBoundLowerBound, _>(|slot_bound| {
@@ -176,15 +186,17 @@ pub fn SlotBuilder(
                             .edit(ctx_clone.clone())
                             .add_new_templateslots(|new_template_slot| {
                                 new_template_slot
+                                    .set_temp_id("template_slot")
                                     .set_name(name.get())
                                     .add_new_templateslotvariant::<TemplateSlotTraitOperative, _>(
                                         |new_op_var| {
                                             new_op_var
-                                                .add_existing_traits(
+                                                .set_temp_id("this_is_ugly")
+                                                .add_temp_roottemplateslot("template_slot")
+                                                .add_existing_allowedtraits(
                                                     trait_concrete.get_id(),
                                                     |na| na,
                                                 )
-                                                .set_temp_id("this_is_ugly")
                                         },
                                     )
                                     .add_new_slotbound::<SlotBoundSingle, _>(|slot_bound| {
@@ -205,7 +217,7 @@ pub fn SlotBuilder(
                         };
                     new_template_slot
                         .edit(ctx_clone.clone())
-                        .add_existing_traits(trait_concrete.get_id(), |na| na)
+                        .add_existing_allowedtraits(trait_concrete.get_id(), |na| na)
                         .execute()
                         .unwrap();
                 }
@@ -314,8 +326,9 @@ pub fn SlotBuilder(
     let ctx_clone = ctx.clone();
     let on_click_save_multi_op = move || {
         let mut editor = template_clone.edit(ctx_clone.clone());
-        let mut tempslotvariant =
-            TemplateSlotMultiOperative::new(ctx_clone.clone()).set_temp_id("tempslotvariant");
+        let mut tempslotvariant = TemplateSlotMultiOperative::new(ctx_clone.clone())
+            .set_temp_id("tempslotvariant")
+            .add_temp_roottemplateslot("new_template_slot");
         // This is a bad hack and is subject to suddenly failing to work as intended.
         // I think it is relying on the merging of multiple "new" nodes into one since they share the same temp_id
         // The better solution would be to make a typestate-erased version of the FreshBuilder which can be opted into
@@ -323,7 +336,7 @@ pub fn SlotBuilder(
             editor.incorporate(
                 tempslotvariant
                     .clone()
-                    .add_existing_operatives(op.get_id(), |na| na),
+                    .add_existing_allowedoperatives(op.get_id(), |na| na),
             )
         });
         match slot_bound.get() {
@@ -418,7 +431,11 @@ pub fn SlotBuilder(
                     new_template_slot
                         .set_name(name.get())
                         .add_new_templateslotvariant::<TemplateSlotSingleOperative, _>(
-                            |new_op_var| new_op_var.add_existing_operative(op_id, |na| na),
+                            |new_op_var| {
+                                new_op_var
+                                    .add_existing_allowedoperative(op_id, |na| na)
+                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
+                            },
                         )
                         .add_new_slotbound::<SlotBoundUpperBound, _>(|slot_bound| {
                             slot_bound.set_upper_bound(slot_bound_max.get())
@@ -431,7 +448,11 @@ pub fn SlotBuilder(
                     new_template_slot
                         .set_name(name.get())
                         .add_new_templateslotvariant::<TemplateSlotSingleOperative, _>(
-                            |new_op_var| new_op_var.add_existing_operative(op_id, |na| na),
+                            |new_op_var| {
+                                new_op_var
+                                    .add_existing_allowedoperative(op_id, |na| na)
+                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
+                            },
                         )
                         .add_new_slotbound::<SlotBoundRangeOrZero, _>(|slot_bound| {
                             slot_bound
@@ -446,7 +467,11 @@ pub fn SlotBuilder(
                     new_template_slot
                         .set_name(name.get())
                         .add_new_templateslotvariant::<TemplateSlotSingleOperative, _>(
-                            |new_op_var| new_op_var.add_existing_operative(op_id, |na| na),
+                            |new_op_var| {
+                                new_op_var
+                                    .add_existing_allowedoperative(op_id, |na| na)
+                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
+                            },
                         )
                         .add_new_slotbound::<SlotBoundLowerBoundOrZero, _>(|slot_bound| {
                             slot_bound.set_lower_bound(slot_bound_min.get())
@@ -459,7 +484,11 @@ pub fn SlotBuilder(
                     new_template_slot
                         .set_name(name.get())
                         .add_new_templateslotvariant::<TemplateSlotSingleOperative, _>(
-                            |new_op_var| new_op_var.add_existing_operative(op_id, |na| na),
+                            |new_op_var| {
+                                new_op_var
+                                    .add_existing_allowedoperative(op_id, |na| na)
+                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
+                            },
                         )
                         .add_new_slotbound::<SlotBoundRange, _>(|slot_bound| {
                             slot_bound
@@ -474,7 +503,11 @@ pub fn SlotBuilder(
                     new_template_slot
                         .set_name(name.get())
                         .add_new_templateslotvariant::<TemplateSlotSingleOperative, _>(
-                            |new_op_var| new_op_var.add_existing_operative(op_id, |na| na),
+                            |new_op_var| {
+                                new_op_var
+                                    .add_existing_allowedoperative(op_id, |na| na)
+                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
+                            },
                         )
                         .add_new_slotbound::<SlotBoundLowerBound, _>(|slot_bound| {
                             slot_bound.set_lower_bound(slot_bound_min.get())
@@ -487,7 +520,11 @@ pub fn SlotBuilder(
                     new_template_slot
                         .set_name(name.get())
                         .add_new_templateslotvariant::<TemplateSlotSingleOperative, _>(
-                            |new_op_var| new_op_var.add_existing_operative(op_id, |na| na),
+                            |new_op_var| {
+                                new_op_var
+                                    .add_existing_allowedoperative(op_id, |na| na)
+                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
+                            },
                         )
                         .add_new_slotbound::<SlotBoundSingle, _>(|slot_bound| slot_bound)
                 })
