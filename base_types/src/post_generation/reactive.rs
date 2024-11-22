@@ -1497,10 +1497,6 @@ where
                 })
             })
         });
-        leptos::logging::log!(
-            "outgoing slots before removing: {:#?}",
-            existing_instance.outgoing_slots().values()
-        );
         self.remove_incoming_updates.update(|removes| {
             existing_instance
                 .outgoing_slots()
@@ -1508,7 +1504,6 @@ where
                 .for_each(|slot| {
                     slot.slotted_instances.with(|slotted_instances| {
                         slotted_instances.iter().for_each(|target_instance_id| {
-                            leptos::logging::log!("ran for target: {}", target_instance_id);
                             removes.insert((
                                 *target_instance_id,
                                 SlotRef {

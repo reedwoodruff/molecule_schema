@@ -49,7 +49,7 @@ pub fn SpecializationBuilder(
         let schema_clone = schema.clone();
         let spec_target_clone = spec_target_clone.clone();
         let mut ops =
-            get_all_operatives_which_satisfy_specializable(schema_clone, spec_target_clone);
+            get_all_operatives_which_satisfy_specializable(&schema_clone, spec_target_clone);
         ops.retain(|item| !selected_list_of_ops.get().contains(item));
         ops.into_iter().collect::<Vec<_>>()
     });
@@ -335,7 +335,7 @@ pub fn TraitSpecializationBuilder(
         let schema_clone = schema_clone.clone();
         let spec_target_clone = spec_target_clone.clone();
         let mut ops =
-            get_all_operatives_which_satisfy_specializable(schema_clone, match spec_target_clone {
+            get_all_operatives_which_satisfy_specializable(&schema_clone, match spec_target_clone {
             SlotSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => SlotSpecializableTraitObject::TemplateSlotTraitOperative(item),
             SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(item) => SlotSpecializableTraitObject::OperativeSlotTraitObjectSpecialization(item),
         });
@@ -469,7 +469,7 @@ pub fn TraitSpecializationBuilder(
                 total_trait_list.extend(selected_list_of_traits.get());
                 let total_trait_list = total_trait_list.into_iter().collect::<Vec<_>>();
                 let all_compliant_ops =
-                    get_all_operatives_which_impl_trait_set(total_trait_list, schema_clone.clone());
+                    get_all_operatives_which_impl_trait_set(total_trait_list, &schema_clone);
                 all_descendent_ops.clone().into_iter().any(|op| {
                     op.get_slottedinstances_slot()
                         .into_iter()
