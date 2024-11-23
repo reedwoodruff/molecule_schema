@@ -9,6 +9,7 @@ pub enum WorkspaceTab {
     Operative(RwSignal<Option<RGSOConcrete<OperativeConcrete, Schema>>>),
     Instance(RwSignal<Option<RGSOConcrete<InstanceConcrete, Schema>>>),
     Trait(RwSignal<Option<RGSOConcrete<TraitConcrete, Schema>>>),
+    Function(RwSignal<Option<RGSOConcrete<FunctionDefinition, Schema>>>),
 }
 #[derive(Clone)]
 pub struct WorkspaceState {
@@ -75,12 +76,14 @@ impl From<WorkspaceTab> for SchemaConcreteAllSlots {
             WorkspaceTab::Template(_) => SchemaConcreteAllSlots::Templates,
             WorkspaceTab::Operative(_) => SchemaConcreteAllSlots::Operatives,
             WorkspaceTab::Trait(_) => SchemaConcreteAllSlots::Traits,
+            WorkspaceTab::Function(_) => SchemaConcreteAllSlots::Functions,
         }
     }
 }
 impl From<SchemaConcreteAllSlots> for WorkspaceTab {
     fn from(value: SchemaConcreteAllSlots) -> Self {
         match value {
+            SchemaConcreteAllSlots::Functions => WorkspaceTab::Function(RwSignal::new(None)),
             SchemaConcreteAllSlots::Instances => WorkspaceTab::Instance(RwSignal::new(None)),
             SchemaConcreteAllSlots::Templates => WorkspaceTab::Template(RwSignal::new(None)),
             SchemaConcreteAllSlots::Operatives => WorkspaceTab::Operative(RwSignal::new(None)),

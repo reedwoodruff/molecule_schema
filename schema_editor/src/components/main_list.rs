@@ -1,4 +1,4 @@
-use leptos::either::EitherOf4;
+use leptos::either::{either, EitherOf4, EitherOf6};
 use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::common::Button;
@@ -56,6 +56,11 @@ pub fn MainList() -> impl IntoView {
                     .add_new_traits(|new_trait| new_trait.set_name("new".to_string()))
                     .execute()
                     .unwrap(),
+                SchemaConcreteAllSlots::Functions => schema_clone
+                    .edit(ctx.clone())
+                    .add_new_functions(|new_fn_def| new_fn_def.set_name("new".to_string()))
+                    .execute()
+                    .unwrap(),
             };
         };
         view! {
@@ -66,8 +71,8 @@ pub fn MainList() -> impl IntoView {
     let list = move || {
         let schema = schema.clone();
         let create_new_button_view = create_new_button_view.clone();
-        match selected_tab.get() {
-            WorkspaceTab::Template(tab_state) => EitherOf4::A(view! {
+        either!(selected_tab.get(),
+            WorkspaceTab::Template(tab_state) => view! {
                 {move || create_new_button_view.clone()(SchemaConcreteAllSlots::Templates)}
                 <For
                 each=move || schema.get_templates_slot()
@@ -75,24 +80,24 @@ pub fn MainList() -> impl IntoView {
                 children=move |item| list_item_view(item, tab_state.clone())
                 >
                 </For>
-            }),
-            WorkspaceTab::Operative(tab_state) => EitherOf4::B(view! {
+            },
+            WorkspaceTab::Operative(tab_state) => view! {
                 <For
                 each=move || schema.get_operatives_slot()
                 key=|item| item.get_id().clone()
                 children=move |item| list_item_view(item, tab_state.clone())
                 >
                 </For>
-            }),
-            WorkspaceTab::Instance(tab_state) => EitherOf4::C(view! {
+            },
+            WorkspaceTab::Instance(tab_state) => view! {
                 <For
                 each=move || schema.get_instances_slot()
                 key=|item| item.get_id().clone()
                 children=move |item| list_item_view(item, tab_state.clone())
                 >
                 </For>
-            }),
-            WorkspaceTab::Trait(tab_state) => EitherOf4::D(view! {
+            },
+            WorkspaceTab::Trait(tab_state) => view! {
                 {move || create_new_button_view.clone()(SchemaConcreteAllSlots::Traits)}
                 <For
                 each=move || schema.get_traits_slot()
@@ -100,8 +105,17 @@ pub fn MainList() -> impl IntoView {
                 children=move |item| list_item_view(item, tab_state.clone())
                 >
                 </For>
-            }),
-        }
+            },
+            WorkspaceTab::Function(tab_state) => view! {
+                {move || create_new_button_view.clone()(SchemaConcreteAllSlots::Functions)}
+                <For
+                each=move || schema.get_functions_slot()
+                key=|item| item.get_id().clone()
+                children=move |item| list_item_view(item, tab_state.clone())
+                >
+                </For>
+            },
+        )
     };
 
     view! {

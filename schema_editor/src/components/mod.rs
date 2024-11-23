@@ -1,6 +1,8 @@
 pub mod app;
 pub mod common;
 pub mod editing_space;
+pub mod function_definition_editor;
+pub mod function_implementation_editor;
 pub mod instance_editor;
 pub mod main_list;
 pub mod operative_editor;

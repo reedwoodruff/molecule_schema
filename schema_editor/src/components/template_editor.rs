@@ -327,15 +327,15 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
         <div>
             <Section>
                 <SectionHeader slot>Overview</SectionHeader>
-                <LeafSection>
-                    <LeafSectionHeader>
+                <SubSection>
+                    <SubSectionHeader>
                         Name:
-                    </LeafSectionHeader>
+                    </SubSectionHeader>
                     <ToggleManagedTextInput getter=move || template.get_name_field() setter=update_name />
-                </LeafSection>
-                <LeafSection>
+                </SubSection>
+                <SubSection>
                     <Button on:click=delete_template_recursive>Delete Item</Button>
-                </LeafSection>
+                </SubSection>
             </Section>
 
             <Section>
