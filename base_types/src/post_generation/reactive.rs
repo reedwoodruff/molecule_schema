@@ -1796,3 +1796,18 @@ impl<T, TSchema> RootConstraints<TSchema> for T where
         + 'static
 {
 }
+
+pub trait Incorporatable<T: std::clone::Clone + std::fmt::Debug + HasSlotEnum, TSchema>
+where
+    <T as HasSlotEnum>::SlotEnum: std::clone::Clone + std::fmt::Debug + Send + Sync,
+{
+    fn get_inner_builder(&self) -> &SubgraphBuilder<T, TSchema>;
+}
+
+impl<T: RootConstraints<TSchema>, TSchema> Incorporatable<T, TSchema>
+    for Box<dyn Incorporatable<T, TSchema>>
+{
+    fn get_inner_builder(&self) -> &SubgraphBuilder<T, TSchema> {
+        self.as_ref().get_inner_builder()
+    }
+}

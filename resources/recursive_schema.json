@@ -308,18 +308,6 @@
           "bounds": {
             "LowerBound": 0
           }
-        },
-        "41606538299005379416734804374328725388": {
-          "tag": {
-            "name": "TraitImpls",
-            "id": 41606538299005379416734804374328725388
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 88514864505434199223308527499153129389
-          },
-          "bounds": {
-            "LowerBound": 0
-          }
         }
       },
       "trait_impls": {

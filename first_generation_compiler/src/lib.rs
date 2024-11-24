@@ -590,17 +590,12 @@ pub fn generate_concrete_schema_reactive(
             type EmptyFieldTypestate;
             type FulfilledFieldTypestate;
         }
-        pub trait Incorporatable<T: std::clone::Clone + std::fmt::Debug + HasSlotEnum, TSchema>
-        where <T as HasSlotEnum>::SlotEnum: std::clone::Clone + std::fmt::Debug + Send + Sync
-        {
-            fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema>;
-        }
         impl <T, TSchema: hidden::EditRGSO<Schema = TSchema> + 'static> Incorporatable<T, TSchema> for ExistingBuilder<T, TSchema>
             where T: Clone + std::fmt::Debug + Send + Sync + HasSlotEnum,
             <T as HasSlotEnum>::SlotEnum: std::clone::Clone + std::fmt::Debug + Send + Sync
             {
-            fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema> {
-                self.inner_builder
+            fn get_inner_builder(&self) -> &SubgraphBuilder<T, TSchema> {
+                &self.inner_builder
             }
         }
         impl <T, TSchema: hidden::EditRGSO<Schema = TSchema>  +'static, FieldsTS, SlotsTS> Incorporatable<T, TSchema> for FreshBuilder<T, TSchema, FieldsTS, SlotsTS>
@@ -609,8 +604,8 @@ pub fn generate_concrete_schema_reactive(
                 T: Send + Sync + RIntoSchema<Schema = TSchema> + Clone + std::fmt::Debug + 'static + HasSlotEnum,
                 <T as HasSlotEnum>::SlotEnum: std::clone::Clone + std::fmt::Debug + Send + Sync
             {
-                fn get_inner_builder(self) -> SubgraphBuilder<T, TSchema> {
-                    self.inner_builder
+                fn get_inner_builder(&self) -> &SubgraphBuilder<T, TSchema> {
+                    &self.inner_builder
                 }
             }
 

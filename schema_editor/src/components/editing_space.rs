@@ -4,8 +4,7 @@ use leptos::either::{EitherOf5, EitherOf6, EitherOf7};
 use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::{
-    function_definition_editor::FunctionDefinitionEditor,
-    function_implementation_editor::FunctionImplementationEditor, instance_editor::InstanceEditor,
+    function_definition_editor::FunctionDefinitionEditor, instance_editor::InstanceEditor,
     operative_editor::OperativeEditor, trait_editor::TraitEditor,
 };
 

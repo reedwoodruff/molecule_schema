@@ -2,6 +2,7 @@ use std::{collections::BTreeSet, str::FromStr};
 
 use crate::components::{
     common::*,
+    operative_function_implementations::OperativeFunctionImplementations,
     operative_lineage::OperativeLineage,
     specialization_builder::SpecializationBuilder,
     specialization_lineage::SpecializationLineage,
@@ -833,7 +834,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             </LeafSection>
             <LeafSection>
                 <LeafSectionHeader>
-                Currently Slotted
+                Currently Slotted Instances
                 </LeafSectionHeader>
                 <For each=move || slotted_instances_for_slot.get() key=|item| item.get_id().clone() children=currently_slotted_view />
             </LeafSection>
@@ -857,6 +858,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
 
     let operative_clone_3 = operative.clone();
     let operative_clone_4 = operative.clone();
+    let operative_clone_5 = operative.clone();
     view! {
         <Section>
             <SectionHeader slot>Overview</SectionHeader>
@@ -921,6 +923,11 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             <SectionHeader slot>Slots</SectionHeader>
             <For each=move || operative_clone_4.get_roottemplate_slot().get_templateslots_slot() key=|slot| slot.get_id().clone() children=each_slot_view>
             </For>
+        </Section>
+
+        <Section>
+            <SectionHeader slot>Function Implementations</SectionHeader>
+            <OperativeFunctionImplementations operative=operative_clone_5/>
         </Section>
     }
 }

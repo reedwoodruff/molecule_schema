@@ -367,12 +367,6 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                 </SubSection>
 
             </Section>
-
-            <Section>
-            <SectionHeader slot>Trait Impls</SectionHeader>
-            stuff
-            </Section>
-
        </div>
     }
 }

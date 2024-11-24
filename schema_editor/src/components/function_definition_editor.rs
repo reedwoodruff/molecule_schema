@@ -53,9 +53,33 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
                         .unwrap();
                 }
             }
-            GetNameFunctionIOTraitObjectDiscriminants::FunctionIOPrimitiveBool => todo!(),
-            GetNameFunctionIOTraitObjectDiscriminants::FunctionIOPrimitiveInt => todo!(),
-            GetNameFunctionIOTraitObjectDiscriminants::FunctionIOPrimitiveString => todo!(),
+            GetNameFunctionIOTraitObjectDiscriminants::FunctionIOPrimitiveBool => {
+                fn_def_clone
+                    .edit(ctx_clone.clone())
+                    .add_new_inputs::<FunctionIOPrimitiveBool, _>(|new| {
+                        new.set_name(input_name.get())
+                    })
+                    .execute()
+                    .unwrap();
+            }
+            GetNameFunctionIOTraitObjectDiscriminants::FunctionIOPrimitiveInt => {
+                fn_def_clone
+                    .edit(ctx_clone.clone())
+                    .add_new_inputs::<FunctionIOPrimitiveInt, _>(|new| {
+                        new.set_name(input_name.get())
+                    })
+                    .execute()
+                    .unwrap();
+            }
+            GetNameFunctionIOTraitObjectDiscriminants::FunctionIOPrimitiveString => {
+                fn_def_clone
+                    .edit(ctx_clone.clone())
+                    .add_new_inputs::<FunctionIOPrimitiveString, _>(|new| {
+                        new.set_name(input_name.get())
+                    })
+                    .execute()
+                    .unwrap();
+            }
         };
         is_adding_input.set(false);
     };
@@ -82,9 +106,33 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
                         .unwrap();
                 }
             }
-            GetNameFunctionIOTraitObjectDiscriminants::FunctionIOPrimitiveBool => todo!(),
-            GetNameFunctionIOTraitObjectDiscriminants::FunctionIOPrimitiveInt => todo!(),
-            GetNameFunctionIOTraitObjectDiscriminants::FunctionIOPrimitiveString => todo!(),
+            GetNameFunctionIOTraitObjectDiscriminants::FunctionIOPrimitiveBool => {
+                fn_def_clone
+                    .edit(ctx_clone.clone())
+                    .add_new_outputs::<FunctionIOPrimitiveBool, _>(|new| {
+                        new.set_name(output_name.get())
+                    })
+                    .execute()
+                    .unwrap();
+            }
+            GetNameFunctionIOTraitObjectDiscriminants::FunctionIOPrimitiveInt => {
+                fn_def_clone
+                    .edit(ctx_clone.clone())
+                    .add_new_outputs::<FunctionIOPrimitiveInt, _>(|new| {
+                        new.set_name(output_name.get())
+                    })
+                    .execute()
+                    .unwrap();
+            }
+            GetNameFunctionIOTraitObjectDiscriminants::FunctionIOPrimitiveString => {
+                fn_def_clone
+                    .edit(ctx_clone.clone())
+                    .add_new_outputs::<FunctionIOPrimitiveString, _>(|new| {
+                        new.set_name(output_name.get())
+                    })
+                    .execute()
+                    .unwrap();
+            }
         };
         is_adding_output.set(false);
     };
@@ -146,6 +194,7 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
 
                         <LeafSection>
                             <Button on:click=on_click_add_input>Add Input</Button>
+                            <Button on:click=move |_| is_adding_input.set(false)>Cancel</Button>
                         </LeafSection>
                     </SubSection>
                     }}
@@ -217,6 +266,7 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
 
                         <LeafSection>
                             <Button on:click=on_click_add_output>Add Output</Button>
+                            <Button on:click=move |_| is_adding_output.set(false)>Cancel</Button>
                         </LeafSection>
                     </SubSection>
                     }}
