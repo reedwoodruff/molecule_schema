@@ -611,7 +611,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             let operative_clone = operative_clone.clone();
             let slot_clone = slot_clone.clone();
             // For some reason you have to call this in the closure to get the correct reactive tracking.
-            operative_clone.get_slotspecializations_slot();
+            operative_clone.get_slottypespecializations_slot();
             get_childest_specialization_for_op_and_slot(operative_clone, slot_clone)
         });
         let is_adding_slotted_instance = RwSignal::new(false);
@@ -726,16 +726,16 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                     if let Some(specialization) = maybe_childest_spec.get() {
                         let spec_clone = specialization.clone();
                         let is_locally_owned_spec = match spec_clone.clone() {
-                            SlotSpecializationTraitObject::OperativeSlotSingleSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
-                            SlotSpecializationTraitObject::OperativeSlotMultiSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
-                            SlotSpecializationTraitObject::OperativeSlotTraitObjectSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
+                            SlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
+                            SlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
+                            SlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
                         };
                         let operative_clone3 = operative_clone3.clone();
                         let modify_view = move || {
                             let ctx_clone = ctx_clone.clone();
                             if is_locally_owned_spec {
                                 match spec_clone.clone() {
-                                SlotSpecializationTraitObject::OperativeSlotSingleSpecialization( single, ) => {
+                                SlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization( single, ) => {
                                     let on_delete = move |_| {
                                         single.edit(ctx_clone.clone()).delete().execute().unwrap();
                                     };
@@ -743,7 +743,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                                         <LeafSection><Button on:click=on_delete>Delete Specialization</Button></LeafSection>
                                     })
                                 }
-                                SlotSpecializationTraitObject::OperativeSlotMultiSpecialization(multi) => {
+                                SlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
                                     let on_delete = move |_| {
                                         multi.edit(ctx_clone.clone()).delete().execute().unwrap();
                                     };
@@ -751,7 +751,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                                         <LeafSection><Button on:click=on_delete>Delete Specialization</Button></LeafSection>
                                     })
                                 }
-                                SlotSpecializationTraitObject::OperativeSlotTraitObjectSpecialization(
+                                SlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
                                     trait_object,
                                 ) => {
                                     let on_delete = move |_| {
@@ -764,12 +764,12 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                             }
                             } else {
                                 match spec_clone.clone() {
-                                    SlotSpecializationTraitObject::OperativeSlotSingleSpecialization(_) => EitherOf6::D(()),
-                                    SlotSpecializationTraitObject::OperativeSlotMultiSpecialization(multi) => {
-                                        EitherOf6::E(view!{<SpecializationBuilder operative=operative_clone3.clone() spec_target=SlotSpecializableTraitObject::OperativeSlotMultiSpecialization(multi) />})
+                                    SlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(_) => EitherOf6::D(()),
+                                    SlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
+                                        EitherOf6::E(view!{<SpecializationBuilder operative=operative_clone3.clone() spec_target=SlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(multi) />})
                                     },
-                                    SlotSpecializationTraitObject::OperativeSlotTraitObjectSpecialization(trait_obj) =>
-                                    EitherOf6::F(view!{<SpecializationBuilder operative=operative_clone3.clone() spec_target=SlotSpecializableTraitObject::OperativeSlotTraitObjectSpecialization(trait_obj) />})
+                                    SlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_obj) =>
+                                    EitherOf6::F(view!{<SpecializationBuilder operative=operative_clone3.clone() spec_target=SlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_obj) />})
 ,
                                 }
                             }
@@ -787,7 +787,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                                 trait_op,
                             ) => EitherOf4::B(view! {
                                 <LeafSectionHeader>Specialization</LeafSectionHeader>
-                                <SpecializationBuilder operative=operative_clone.clone() spec_target=SlotSpecializableTraitObject::TemplateSlotTraitOperative(trait_op) />
+                                <SpecializationBuilder operative=operative_clone.clone() spec_target=SlotTypeSpecializableTraitObject::TemplateSlotTraitOperative(trait_op) />
                             }),
                             TemplateSlotVariantTraitObject::TemplateSlotSingleOperative(single) => {
                                 EitherOf4::C(view! {})
@@ -795,7 +795,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                             TemplateSlotVariantTraitObject::TemplateSlotMultiOperative(multi) => {
                                 EitherOf4::D(view! {
                                     <LeafSectionHeader>Specialization</LeafSectionHeader>
-                                    <SpecializationBuilder operative=operative_clone.clone() spec_target=SlotSpecializableTraitObject::TemplateSlotMultiOperative(multi) />
+                                    <SpecializationBuilder operative=operative_clone.clone() spec_target=SlotTypeSpecializableTraitObject::TemplateSlotMultiOperative(multi) />
                                 })
                             }
                         }

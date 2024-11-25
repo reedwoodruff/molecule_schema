@@ -133,17 +133,17 @@
           },
           "bounds": "Single"
         },
-        "97164940677530544058398222422417453959": {
+        "234727513938610615689397657043851088769": {
           "tag": {
             "name": "Output",
-            "id": 97164940677530544058398222422417453959
+            "id": 234727513938610615689397657043851088769
           },
           "operative_descriptor": {
             "TraitOperative": {
-              "trait_ids": [71864576612232298052795219027564390569],
+              "trait_ids": [209703076463985895248989833192010930547],
               "tag": {
                 "name": "Output",
-                "id": 18065620644463901503267147758118367948
+                "id": 8511041035747132621288554956247429499
               }
             }
           },
@@ -511,7 +511,7 @@
     },
     "119086934705820853473810155790061828575": {
       "tag": {
-        "name": "OperativeSlotMultiSpecialization",
+        "name": "OperativeSlotTypeMultiSpecialization",
         "id": 119086934705820853473810155790061828575
       },
       "field_constraints": {},
@@ -632,7 +632,8 @@
             }
           ]
         },
-        "167367351170251468661985326772610265460": {}
+        "167367351170251468661985326772610265460": {},
+        "209703076463985895248989833192010930547": {}
       },
       "instances": []
     },
@@ -685,7 +686,7 @@
     },
     "162694842771510144729826670474436797986": {
       "tag": {
-        "name": "OperativeSlotSingleSpecialization",
+        "name": "OperativeSlotTypeSingleSpecialization",
         "id": 162694842771510144729826670474436797986
       },
       "field_constraints": {},
@@ -802,7 +803,8 @@
             }
           ]
         },
-        "167367351170251468661985326772610265460": {}
+        "167367351170251468661985326772610265460": {},
+        "209703076463985895248989833192010930547": {}
       },
       "instances": []
     },
@@ -863,24 +865,6 @@
             "LowerBound": 0
           }
         },
-        "168060448990063149226670345708013064416": {
-          "tag": {
-            "name": "SlotSpecializations",
-            "id": 168060448990063149226670345708013064416
-          },
-          "operative_descriptor": {
-            "TraitOperative": {
-              "trait_ids": [194411240715964071839860568001695142238],
-              "tag": {
-                "name": "SlotSpecialization",
-                "id": 40783044618842135814860876678074099187
-              }
-            }
-          },
-          "bounds": {
-            "LowerBound": 0
-          }
-        },
         "271938763147738781995453864487273086147": {
           "tag": {
             "name": "SlottedInstances",
@@ -922,6 +906,24 @@
           },
           "operative_descriptor": {
             "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": {
+            "LowerBound": 0
+          }
+        },
+        "334267004730269675417129453042505791391": {
+          "tag": {
+            "name": "SlotTypeSpecializations",
+            "id": 334267004730269675417129453042505791391
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [194411240715964071839860568001695142238],
+              "tag": {
+                "name": "SlotTypeSpecialization",
+                "id": 19410536094426402804200364044934714972
+              }
+            }
           },
           "bounds": {
             "LowerBound": 0
@@ -993,6 +995,30 @@
       },
       "instances": []
     },
+    "201092551158466403846253203264494298213": {
+      "tag": {
+        "name": "ImplIntermediatePrimitiveInt",
+        "id": 201092551158466403846253203264494298213
+      },
+      "field_constraints": {},
+      "operative_slots": {},
+      "trait_impls": {
+        "209703076463985895248989833192010930547": {}
+      },
+      "instances": []
+    },
+    "203866576083080931810331215993734793804": {
+      "tag": {
+        "name": "ImplIntermediatePrimitiveString",
+        "id": 203866576083080931810331215993734793804
+      },
+      "field_constraints": {},
+      "operative_slots": {},
+      "trait_impls": {
+        "209703076463985895248989833192010930547": {}
+      },
+      "instances": []
+    },
     "216621601944127206255495903098147818129": {
       "tag": {
         "name": "StringTemplateField",
@@ -1043,6 +1069,18 @@
             }
           ]
         }
+      },
+      "instances": []
+    },
+    "217307526627230937118850537521579754229": {
+      "tag": {
+        "name": "ImplIntermediatePrimitiveBool",
+        "id": 217307526627230937118850537521579754229
+      },
+      "field_constraints": {},
+      "operative_slots": {},
+      "trait_impls": {
+        "209703076463985895248989833192010930547": {}
       },
       "instances": []
     },
@@ -1141,7 +1179,7 @@
     },
     "311893769320296165986487104755911510788": {
       "tag": {
-        "name": "OperativeSlotTraitObjectSpecialization",
+        "name": "OperativeSlotTypeTraitObjectSpecialization",
         "id": 311893769320296165986487104755911510788
       },
       "field_constraints": {},
@@ -1307,19 +1345,13 @@
             "Range": [0, 1]
           }
         },
-        "239120622996931370124824551074913228463": {
+        "221141240467966930475041267234580459023": {
           "tag": {
-            "name": "Output",
-            "id": 239120622996931370124824551074913228463
+            "name": "TraversalSlot",
+            "id": 221141240467966930475041267234580459023
           },
           "operative_descriptor": {
-            "TraitOperative": {
-              "trait_ids": [293534423711736618164979948363593033862],
-              "tag": {
-                "name": "Output",
-                "id": 141903488157657294318045019604549934150
-              }
-            }
+            "LibraryOperative": 7740341945123630371223527175825509452
           },
           "bounds": "Single"
         },
@@ -1338,6 +1370,24 @@
             }
           },
           "bounds": "Single"
+        },
+        "303306211333129659649110051696569780107": {
+          "tag": {
+            "name": "TraversalSlotSpecialization",
+            "id": 303306211333129659649110051696569780107
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [194411240715964071839860568001695142238],
+              "tag": {
+                "name": "TraversalSlotSpecialization",
+                "id": 233022624878697397028536266716293355476
+              }
+            }
+          },
+          "bounds": {
+            "Range": [0, 1]
+          }
         }
       },
       "trait_impls": {
@@ -1369,7 +1419,8 @@
             }
           ]
         },
-        "167367351170251468661985326772610265460": {}
+        "167367351170251468661985326772610265460": {},
+        "209703076463985895248989833192010930547": {}
       },
       "instances": []
     },
@@ -1529,12 +1580,48 @@
       "trait_impls": {},
       "_phantom": null
     },
+    "131911446861689280183207463697716173637": {
+      "tag": {
+        "name": "ImplIntermediatePrimitiveBool",
+        "id": 131911446861689280183207463697716173637
+      },
+      "template_id": 217307526627230937118850537521579754229,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
     "132953745900918427546432346099827800392": {
       "tag": {
         "name": "BoolTemplateField",
         "id": 132953745900918427546432346099827800392
       },
       "template_id": 99781037660725030018299119519868715075,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "136261587224443876126783277768402863149": {
+      "tag": {
+        "name": "ImplIntermediatePrimitiveInt",
+        "id": 136261587224443876126783277768402863149
+      },
+      "template_id": 201092551158466403846253203264494298213,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "138189723121724437185748833939524736291": {
+      "tag": {
+        "name": "ImplIntermediatePrimitiveString",
+        "id": 138189723121724437185748833939524736291
+      },
+      "template_id": 203866576083080931810331215993734793804,
       "parent_operative_id": null,
       "slotted_instances": {},
       "locked_fields": {},
@@ -1567,7 +1654,7 @@
     },
     "162258484672089782171436081409796260098": {
       "tag": {
-        "name": "OperativeSlotSingleSpecialization",
+        "name": "OperativeSlotTypeSingleSpecialization",
         "id": 162258484672089782171436081409796260098
       },
       "template_id": 162694842771510144729826670474436797986,
@@ -1591,7 +1678,7 @@
     },
     "173478492557576869684733225937437799927": {
       "tag": {
-        "name": "OperativeSlotMultiSpecialization",
+        "name": "OperativeSlotTypeMultiSpecialization",
         "id": 173478492557576869684733225937437799927
       },
       "template_id": 119086934705820853473810155790061828575,
@@ -1771,7 +1858,7 @@
     },
     "292663566618869490130986795272103602681": {
       "tag": {
-        "name": "OperativeSlotTraitObjectSpecialization",
+        "name": "OperativeSlotTypeTraitObjectSpecialization",
         "id": 292663566618869490130986795272103602681
       },
       "template_id": 311893769320296165986487104755911510788,
@@ -1850,7 +1937,7 @@
     },
     "138775780297201214816387388007818658691": {
       "tag": {
-        "name": "SlotSpecializableTraitOperative",
+        "name": "SlotTypeSpecializableTraitOperative",
         "id": 138775780297201214816387388007818658691
       },
       "methods": {}
@@ -1878,8 +1965,15 @@
     },
     "194411240715964071839860568001695142238": {
       "tag": {
-        "name": "SlotSpecialization",
+        "name": "SlotTypeSpecialization",
         "id": 194411240715964071839860568001695142238
+      },
+      "methods": {}
+    },
+    "209703076463985895248989833192010930547": {
+      "tag": {
+        "name": "ImplPrimitiveIO",
+        "id": 209703076463985895248989833192010930547
       },
       "methods": {}
     },
@@ -1892,7 +1986,7 @@
     },
     "257183523223639879383916779697438059690": {
       "tag": {
-        "name": "SlotSpecializable",
+        "name": "SlotTypeSpecializable",
         "id": 257183523223639879383916779697438059690
       },
       "methods": {}

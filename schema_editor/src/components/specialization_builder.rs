@@ -22,7 +22,7 @@ enum LimitedSpecOptions {
 #[component]
 pub fn SpecializationBuilder(
     operative: RGSOConcrete<OperativeConcrete, Schema>,
-    spec_target: SlotSpecializableTraitObject,
+    spec_target: SlotTypeSpecializableTraitObject,
 ) -> impl IntoView {
     let ctx = use_context::<SharedGraph<Schema>>().unwrap();
     let WorkspaceState {
@@ -30,11 +30,11 @@ pub fn SpecializationBuilder(
         selected_tab,
     } = use_context::<WorkspaceState>().unwrap();
     match spec_target {
-        SlotSpecializableTraitObject::TemplateSlotTraitOperative(trait_item) => {
-            return view! {<TraitSpecializationBuilder operative spec_target=SlotSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(trait_item) />}.into_any()
+        SlotTypeSpecializableTraitObject::TemplateSlotTraitOperative(trait_item) => {
+            return view! {<TraitSpecializationBuilder operative spec_target=SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(trait_item) />}.into_any()
         }
-        SlotSpecializableTraitObject::OperativeSlotTraitObjectSpecialization(trait_item) => {
-            return view! {<TraitSpecializationBuilder operative spec_target=SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(trait_item) />}.into_any()
+        SlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_item) => {
+            return view! {<TraitSpecializationBuilder operative spec_target=SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_item) />}.into_any()
         }
         _ => (),
     }
@@ -96,10 +96,10 @@ pub fn SpecializationBuilder(
                 op.get_slottedinstances_slot()
                     .into_iter()
                     .filter(|slint| *slint.get_slottedslot_slot().get_id() == match spec_target_clone.clone(){
-    SlotSpecializableTraitObject::TemplateSlotTraitOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
-    SlotSpecializableTraitObject::OperativeSlotMultiSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
-    SlotSpecializableTraitObject::TemplateSlotMultiOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
-    SlotSpecializableTraitObject::OperativeSlotTraitObjectSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
+    SlotTypeSpecializableTraitObject::TemplateSlotTraitOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
+    SlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
+    SlotTypeSpecializableTraitObject::TemplateSlotMultiOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
+    SlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
 })
                     .map(|slint| slint.get_instance_slot().get_parentoperative_slot())
                     .any(|slotted_op| {
@@ -110,10 +110,10 @@ pub fn SpecializationBuilder(
                 op.get_slottedinstances_slot()
                     .into_iter()
                     .filter(|slint| *slint.get_slottedslot_slot().get_id() == match spec_target_clone.clone(){
-    SlotSpecializableTraitObject::TemplateSlotTraitOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
-    SlotSpecializableTraitObject::OperativeSlotMultiSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
-    SlotSpecializableTraitObject::TemplateSlotMultiOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
-    SlotSpecializableTraitObject::OperativeSlotTraitObjectSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
+    SlotTypeSpecializableTraitObject::TemplateSlotTraitOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
+    SlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
+    SlotTypeSpecializableTraitObject::TemplateSlotMultiOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
+    SlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
 })
                     .map(|slint| slint.get_instance_slot().get_parentoperative_slot())
                     .any(|slotted_op| !selected_list_of_ops.get().contains(&slotted_op))
@@ -129,15 +129,16 @@ pub fn SpecializationBuilder(
         match selected_spec.get() {
             LimitedSpecOptions::Single => {
                 let mut editor = operative.edit(ctx_clone.clone());
-                let mut new_slot_spec = OperativeSlotSingleSpecialization::new(ctx_clone.clone())
-                    .set_temp_id("new_slot_spec")
-                    .add_existing_allowedoperative(
-                        selected_single_op.get().unwrap().get_id(),
-                        |na| na,
-                    )
-                    .add_existing_specializer(operative_clone.get_id(), |na| na);
+                let mut new_slot_spec =
+                    OperativeSlotTypeSingleSpecialization::new(ctx_clone.clone())
+                        .set_temp_id("new_slot_spec")
+                        .add_existing_allowedoperative(
+                            selected_single_op.get().unwrap().get_id(),
+                            |na| na,
+                        )
+                        .add_existing_specializer(operative_clone.get_id(), |na| na);
                 match spec_target_clone.clone() {
-                    SlotSpecializableTraitObject::TemplateSlotTraitOperative(item) => {
+                    SlotTypeSpecializableTraitObject::TemplateSlotTraitOperative(item) => {
                         editor.incorporate(
                             new_slot_spec
                                 .clone()
@@ -151,19 +152,21 @@ pub fn SpecializationBuilder(
                                 ),
                         );
                     }
-                    SlotSpecializableTraitObject::OperativeSlotMultiSpecialization(item) => {
+                    SlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(
+                        item,
+                    ) => {
                         editor.incorporate(
                         new_slot_spec.clone()
                             .add_existing_roottemplateslot(
                                 item.get_roottemplateslot_slot().get_id(),
                                 |na| na,
                             )
-                            .add_existing_specializationtarget::<OperativeSlotMultiSpecialization>(
+                            .add_existing_specializationtarget::<OperativeSlotTypeMultiSpecialization>(
                                 spec_target_clone.get_id(),
                                 |na| na,
                             ));
                     }
-                    SlotSpecializableTraitObject::TemplateSlotMultiOperative(item) => {
+                    SlotTypeSpecializableTraitObject::TemplateSlotMultiOperative(item) => {
                         editor.incorporate(
                             new_slot_spec
                                 .clone()
@@ -177,14 +180,16 @@ pub fn SpecializationBuilder(
                                 ),
                         );
                     }
-                    SlotSpecializableTraitObject::OperativeSlotTraitObjectSpecialization(item) => {
+                    SlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+                        item,
+                    ) => {
                         editor.incorporate(
                         new_slot_spec.clone()
                             .add_existing_roottemplateslot(
                                 item.get_roottemplateslot_slot().get_id(),
                                 |na| na,
                             )
-                            .add_existing_specializationtarget::<OperativeSlotTraitObjectSpecialization>(spec_target_clone.get_id(), |na| na)
+                            .add_existing_specializationtarget::<OperativeSlotTypeTraitObjectSpecialization>(spec_target_clone.get_id(), |na| na)
                         );
                     }
                 };
@@ -192,7 +197,7 @@ pub fn SpecializationBuilder(
                     editor.incorporate(
                         desc_op
                             .edit(ctx_clone.clone())
-                            .add_temp_slotspecializations::<OperativeSlotSingleSpecialization>(
+                            .add_temp_slottypespecializations::<OperativeSlotTypeSingleSpecialization>(
                                 "new_slot_spec",
                             ),
                     );
@@ -201,11 +206,12 @@ pub fn SpecializationBuilder(
             }
             LimitedSpecOptions::Multiple => {
                 let mut editor = operative.edit(ctx_clone.clone());
-                let mut new_slot_spec = OperativeSlotMultiSpecialization::new(ctx_clone.clone())
-                    .set_temp_id("new_slot_spec")
-                    .add_existing_specializer(operative_clone.get_id(), |na| na);
+                let mut new_slot_spec =
+                    OperativeSlotTypeMultiSpecialization::new(ctx_clone.clone())
+                        .set_temp_id("new_slot_spec")
+                        .add_existing_specializer(operative_clone.get_id(), |na| na);
                 match spec_target_clone.clone() {
-                    SlotSpecializableTraitObject::TemplateSlotTraitOperative(item) => {
+                    SlotTypeSpecializableTraitObject::TemplateSlotTraitOperative(item) => {
                         editor.incorporate(
                             new_slot_spec
                                 .clone()
@@ -219,19 +225,21 @@ pub fn SpecializationBuilder(
                                 ),
                         );
                     }
-                    SlotSpecializableTraitObject::OperativeSlotMultiSpecialization(item) => {
+                    SlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(
+                        item,
+                    ) => {
                         editor.incorporate(
                         new_slot_spec.clone()
                             .add_existing_roottemplateslot(
                                 item.get_roottemplateslot_slot().get_id(),
                                 |na| na,
                             )
-                            .add_existing_specializationtarget::<OperativeSlotMultiSpecialization>(
+                            .add_existing_specializationtarget::<OperativeSlotTypeMultiSpecialization>(
                                 spec_target_clone.get_id(),
                                 |na| na,
                             ));
                     }
-                    SlotSpecializableTraitObject::TemplateSlotMultiOperative(item) => {
+                    SlotTypeSpecializableTraitObject::TemplateSlotMultiOperative(item) => {
                         editor.incorporate(
                             new_slot_spec
                                 .clone()
@@ -245,14 +253,16 @@ pub fn SpecializationBuilder(
                                 ),
                         );
                     }
-                    SlotSpecializableTraitObject::OperativeSlotTraitObjectSpecialization(item) => {
+                    SlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+                        item,
+                    ) => {
                         editor.incorporate(
                         new_slot_spec.clone()
                             .add_existing_roottemplateslot(
                                 item.get_roottemplateslot_slot().get_id(),
                                 |na| na,
                             )
-                            .add_existing_specializationtarget::<OperativeSlotTraitObjectSpecialization>(spec_target_clone.get_id(), |na| na)
+                            .add_existing_specializationtarget::<OperativeSlotTypeTraitObjectSpecialization>(spec_target_clone.get_id(), |na| na)
                         );
                     }
                 };
@@ -267,7 +277,7 @@ pub fn SpecializationBuilder(
                     editor.incorporate(
                         desc_op
                             .edit(ctx_clone.clone())
-                            .add_temp_slotspecializations::<OperativeSlotMultiSpecialization>(
+                            .add_temp_slottypespecializations::<OperativeSlotTypeMultiSpecialization>(
                                 "new_slot_spec",
                             ),
                     );
@@ -312,7 +322,7 @@ pub fn SpecializationBuilder(
 #[component]
 pub fn TraitSpecializationBuilder(
     operative: RGSOConcrete<OperativeConcrete, Schema>,
-    spec_target: SlotSpecializableTraitOperativeTraitObject,
+    spec_target: SlotTypeSpecializableTraitOperativeTraitObject,
 ) -> impl IntoView {
     let ctx = use_context::<SharedGraph<Schema>>().unwrap();
     let WorkspaceState {
@@ -321,7 +331,7 @@ pub fn TraitSpecializationBuilder(
     } = use_context::<WorkspaceState>().unwrap();
     let is_adding = RwSignal::new(false);
     let selected_spec = RwSignal::new(
-        SlotSpecializationTraitObjectDiscriminants::OperativeSlotSingleSpecialization,
+        SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization,
     );
 
     let selected_single_op = RwSignal::<Option<RGSOConcrete<OperativeConcrete, Schema>>>::new(None);
@@ -336,8 +346,8 @@ pub fn TraitSpecializationBuilder(
         let spec_target_clone = spec_target_clone.clone();
         let mut ops =
             get_all_operatives_which_satisfy_specializable(&schema_clone, match spec_target_clone {
-            SlotSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => SlotSpecializableTraitObject::TemplateSlotTraitOperative(item),
-            SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(item) => SlotSpecializableTraitObject::OperativeSlotTraitObjectSpecialization(item),
+            SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => SlotTypeSpecializableTraitObject::TemplateSlotTraitOperative(item),
+            SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => SlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(item),
         });
         ops.retain(|item| !selected_list_of_ops.get().contains(item));
         ops.into_iter().collect::<Vec<_>>()
@@ -348,11 +358,11 @@ pub fn TraitSpecializationBuilder(
         let schema_clone = schema_clone.clone();
         let spec_target_clone = spec_target_clone.clone();
         let mut upstream_traits = match spec_target_clone {
-            SlotSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => item
+            SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => item
                 .get_allowedtraits_slot()
                 .into_iter()
                 .collect::<BTreeSet<_>>(),
-            SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(
+            SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(
                 item,
             ) => get_all_traits_in_specialization(item),
         };
@@ -363,13 +373,14 @@ pub fn TraitSpecializationBuilder(
         selectable_traits.into_iter().collect::<Vec<_>>()
     });
 
-    let choose_ops_view = move || match selected_spec.get() {
-        SlotSpecializationTraitObjectDiscriminants::OperativeSlotSingleSpecialization => {
+    let choose_ops_view = move || {
+        match selected_spec.get() {
+        SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization => {
             EitherOf3::A(view! {
                     <SignalSelectWithOptions value=selected_single_op options=selectable_op_options empty_allowed=true />
             })
         }
-        SlotSpecializationTraitObjectDiscriminants::OperativeSlotMultiSpecialization => {
+        SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeMultiSpecialization => {
             EitherOf3::B(view! {
                 <LeafSectionHeader>
                 Selected:
@@ -392,7 +403,7 @@ pub fn TraitSpecializationBuilder(
                 </div>
             })
         }
-        SlotSpecializationTraitObjectDiscriminants::OperativeSlotTraitObjectSpecialization => {
+        SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeTraitObjectSpecialization => {
             EitherOf3::C(view! {
                 <LeafSectionHeader>
                 Selected:
@@ -416,6 +427,7 @@ pub fn TraitSpecializationBuilder(
 
             })
         }
+    }
     };
 
     let ctx_clone = ctx.clone();
@@ -430,13 +442,13 @@ pub fn TraitSpecializationBuilder(
         let mut all_descendent_ops = BTreeSet::new();
         get_all_descendent_operators(operative_clone, &mut all_descendent_ops);
         let is_error = match selected_spec.get() {
-            SlotSpecializationTraitObjectDiscriminants::OperativeSlotSingleSpecialization => {
+            SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization => {
                 all_descendent_ops.clone().into_iter().any(|op| {
                     op.get_slottedinstances_slot()
                         .into_iter()
                         .filter(|slint| *slint.get_slottedslot_slot().get_id() == match spec_target_clone.clone(){
-                            SlotSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
-                            SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
+                            SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
+                            SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
                         })
                         .map(|slint| slint.get_instance_slot().get_parentoperative_slot())
                         .any(|slotted_op| {
@@ -444,25 +456,25 @@ pub fn TraitSpecializationBuilder(
                         })
                 })
             }
-            SlotSpecializationTraitObjectDiscriminants::OperativeSlotMultiSpecialization => {
+            SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeMultiSpecialization => {
                 all_descendent_ops.clone().into_iter().any(|op| {
                     op.get_slottedinstances_slot()
                         .into_iter()
                         .filter(|slint| *slint.get_slottedslot_slot().get_id() == match spec_target_clone.clone(){
-                            SlotSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
-                            SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
+                            SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
+                            SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
                         })
                         .map(|slint| slint.get_instance_slot().get_parentoperative_slot())
                         .any(|slotted_op| !selected_list_of_ops.get().contains(&slotted_op))
                 })
             }
-            SlotSpecializationTraitObjectDiscriminants::OperativeSlotTraitObjectSpecialization => {
+            SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeTraitObjectSpecialization => {
                 let mut total_trait_list =  match spec_target_clone.clone() {
-                            SlotSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => item
+                            SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => item
                                 .get_allowedtraits_slot()
                                 .into_iter()
                                 .collect::<BTreeSet<_>>(),
-                            SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(
+                            SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(
                                 item,
                             ) => get_all_traits_in_specialization(item),
                         };
@@ -474,8 +486,8 @@ pub fn TraitSpecializationBuilder(
                     op.get_slottedinstances_slot()
                         .into_iter()
                         .filter(|slint| *slint.get_slottedslot_slot().get_id() == match spec_target_clone.clone(){
-                            SlotSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
-                            SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
+                            SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => item.get_roottemplateslot_slot().get_id().clone(),
+                            SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => item.get_roottemplateslot_slot().get_id().clone(),
                         })
                         .map(|slint| slint.get_instance_slot().get_parentoperative_slot())
                         .any(|slotted_op| !all_compliant_ops.contains(&slotted_op))
@@ -490,9 +502,9 @@ pub fn TraitSpecializationBuilder(
         }
         let operative_clone = operative.clone();
         match selected_spec.get() {
-            SlotSpecializationTraitObjectDiscriminants::OperativeSlotSingleSpecialization => {
+            SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization => {
                 let mut editor = operative.edit(ctx_clone.clone());
-                let mut new_slot_spec = OperativeSlotSingleSpecialization::new(ctx_clone.clone())
+                let mut new_slot_spec = OperativeSlotTypeSingleSpecialization::new(ctx_clone.clone())
                     .set_temp_id("new_slot_spec")
                     .add_existing_allowedoperative(
                         selected_single_op.get().unwrap().get_id(),
@@ -500,7 +512,7 @@ pub fn TraitSpecializationBuilder(
                     )
                     .add_existing_specializer(operative_clone.get_id(), |na| na);
                 match spec_target_clone.clone() {
-    SlotSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => {
+    SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => {
                             editor.incorporate(
                                 new_slot_spec
                                     .clone()
@@ -514,7 +526,7 @@ pub fn TraitSpecializationBuilder(
                                     ),
                             );
                         },
-    SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(item) => {
+    SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => {
                                 editor.incorporate(
                                     new_slot_spec
                                         .clone()
@@ -522,7 +534,7 @@ pub fn TraitSpecializationBuilder(
                                             item.get_roottemplateslot_slot().get_id(),
                                             |na| na,
                                         )
-                                        .add_existing_specializationtarget::<OperativeSlotTraitObjectSpecialization>(
+                                        .add_existing_specializationtarget::<OperativeSlotTypeTraitObjectSpecialization>(
                                             spec_target_clone.get_id(),
                                             |na| na,
                                         ),
@@ -533,20 +545,20 @@ pub fn TraitSpecializationBuilder(
                     editor.incorporate(
                         desc_op
                             .edit(ctx_clone.clone())
-                            .add_temp_slotspecializations::<OperativeSlotSingleSpecialization>(
+                            .add_temp_slottypespecializations::<OperativeSlotTypeSingleSpecialization>(
                                 "new_slot_spec",
                             ),
                     );
                 });
                 editor.execute().unwrap();
             }
-            SlotSpecializationTraitObjectDiscriminants::OperativeSlotMultiSpecialization => {
+            SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeMultiSpecialization => {
                 let mut editor = operative.edit(ctx_clone.clone());
-                let mut new_slot_spec = OperativeSlotMultiSpecialization::new(ctx_clone.clone())
+                let mut new_slot_spec = OperativeSlotTypeMultiSpecialization::new(ctx_clone.clone())
                     .set_temp_id("new_slot_spec")
                     .add_existing_specializer(operative_clone.get_id(), |na| na);
                 match spec_target_clone.clone() {
-    SlotSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => {
+    SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => {
                             editor.incorporate(
                                 new_slot_spec
                                     .clone()
@@ -560,7 +572,7 @@ pub fn TraitSpecializationBuilder(
                                     ),
                             );
                         },
-    SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(item) => {
+    SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => {
                             editor.incorporate(
                                 new_slot_spec
                                     .clone()
@@ -568,7 +580,7 @@ pub fn TraitSpecializationBuilder(
                                         item.get_roottemplateslot_slot().get_id(),
                                         |na| na,
                                     )
-                                    .add_existing_specializationtarget::<OperativeSlotTraitObjectSpecialization>(
+                                    .add_existing_specializationtarget::<OperativeSlotTypeTraitObjectSpecialization>(
                                         spec_target_clone.get_id(),
                                         |na| na,
                                     ),
@@ -586,7 +598,7 @@ pub fn TraitSpecializationBuilder(
                     editor.incorporate(
                         desc_op
                             .edit(ctx_clone.clone())
-                            .add_temp_slotspecializations::<OperativeSlotMultiSpecialization>(
+                            .add_temp_slottypespecializations::<OperativeSlotTypeMultiSpecialization>(
                                 "new_slot_spec",
                             ),
                     );
@@ -594,14 +606,14 @@ pub fn TraitSpecializationBuilder(
                 editor.execute().unwrap();
             }
 
-            SlotSpecializationTraitObjectDiscriminants::OperativeSlotTraitObjectSpecialization => {
+            SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeTraitObjectSpecialization => {
                 let mut editor = operative.edit(ctx_clone.clone());
                 let mut new_slot_spec =
-                    OperativeSlotTraitObjectSpecialization::new(ctx_clone.clone())
+                    OperativeSlotTypeTraitObjectSpecialization::new(ctx_clone.clone())
                         .set_temp_id("new_slot_spec")
                         .add_existing_specializer(operative_clone.get_id(), |na| na);
                 match spec_target_clone.clone() {
-                SlotSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => {
+                SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(item) => {
                                         editor.incorporate(
                                             new_slot_spec
                                                 .clone()
@@ -615,7 +627,7 @@ pub fn TraitSpecializationBuilder(
                                                 ),
                                         );
                                     },
-                SlotSpecializableTraitOperativeTraitObject::OperativeSlotTraitObjectSpecialization(item) => {
+                SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => {
                                         editor.incorporate(
                                             new_slot_spec
                                                 .clone()
@@ -623,7 +635,7 @@ pub fn TraitSpecializationBuilder(
                                                     item.get_roottemplateslot_slot().get_id(),
                                                     |na| na,
                                                 )
-                                                .add_existing_specializationtarget::<OperativeSlotTraitObjectSpecialization>(
+                                                .add_existing_specializationtarget::<OperativeSlotTypeTraitObjectSpecialization>(
                                                     spec_target_clone.get_id(),
                                                     |na| na,
                                                 ),
@@ -644,7 +656,7 @@ pub fn TraitSpecializationBuilder(
                     editor.incorporate(
                         desc_op
                             .edit(ctx_clone.clone())
-                            .add_temp_slotspecializations::<OperativeSlotMultiSpecialization>(
+                            .add_temp_slottypespecializations::<OperativeSlotTypeMultiSpecialization>(
                                 "new_slot_spec",
                             ),
                     );
@@ -670,15 +682,15 @@ pub fn TraitSpecializationBuilder(
                 <div>
                 <Button on:click=on_save.clone() attr:disabled=move||{
                     match selected_spec.get() {
-                        SlotSpecializationTraitObjectDiscriminants::OperativeSlotSingleSpecialization => {
+                        SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization => {
 
                                 selected_single_op.get().is_none()
                         },
-                        SlotSpecializationTraitObjectDiscriminants::OperativeSlotMultiSpecialization => {
+                        SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeMultiSpecialization => {
                                 selected_list_of_ops.get().len() < 2
 
                         },
-                        SlotSpecializationTraitObjectDiscriminants::OperativeSlotTraitObjectSpecialization => {
+                        SlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeTraitObjectSpecialization => {
                                 selected_list_of_traits.get().len() == 0
                         },
 
