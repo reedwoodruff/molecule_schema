@@ -56,30 +56,6 @@ pub fn SlotBuilder(
             .for_each(|(index, trait_concrete)| {
                 if index == 0 {
                     trait_operative_variant_id = match slot_bound.get() {
-                        SlotBoundVariantTraitObjectDiscriminants::SlotBoundUpperBound => {
-                            template_clone
-                                .edit(ctx_clone.clone())
-                                .add_new_templateslots(|new_template_slot| {
-                                    new_template_slot
-                                        .set_temp_id("template_slot")
-                                        .set_name(name.get())
-                                        .add_new_templateslotvariant::<TemplateSlotTraitOperative, _>(
-                                            |new_op_var| {
-                                                new_op_var
-                                                    .set_temp_id("this_is_ugly")
-                                                    .add_temp_roottemplateslot("template_slot")
-                                                    .add_existing_allowedtraits(
-                                                        trait_concrete.get_id(),
-                                                        |na| na,
-                                                    )
-                                            },
-                                        )
-                                        .add_new_slotbound::<SlotBoundUpperBound, _>(|slot_bound| {
-                                            slot_bound.set_upper_bound(slot_bound_max.get())
-                                        })
-                                })
-                                .execute()
-                        }
                         SlotBoundVariantTraitObjectDiscriminants::SlotBoundRangeOrZero => {
                             template_clone
                                 .edit(ctx_clone.clone())
@@ -271,12 +247,6 @@ pub fn SlotBuilder(
     };
     let slot_bound_input_view = move || {
         match slot_bound.get() {
-        SlotBoundVariantTraitObjectDiscriminants::SlotBoundUpperBound => view! {
-            <div>
-            Upper Bound: <SignalTextInput prop:min=0 prop:type="number" value=slot_bound_max />
-            </div>
-        }
-        .into_any(),
         SlotBoundVariantTraitObjectDiscriminants::SlotBoundRangeOrZero => view! {
             <div>
             Lower Bound: <SignalTextInput prop:min=0 prop:max=move||slot_bound_max.get() prop:type="number" value=slot_bound_min />
@@ -340,17 +310,6 @@ pub fn SlotBuilder(
             )
         });
         match slot_bound.get() {
-            SlotBoundVariantTraitObjectDiscriminants::SlotBoundUpperBound => editor.incorporate(
-                TemplateSlot::new(ctx_clone.clone())
-                    .add_new_slotbound::<SlotBoundUpperBound, _>(|new_slot_bound| {
-                        new_slot_bound
-                            .set_temp_id("slot_bound")
-                            .set_upper_bound(slot_bound_max.get())
-                    })
-                    .set_name(name.get())
-                    .set_temp_id("new_template_slot")
-                    .add_temp_templateslotvariant::<TemplateSlotMultiOperative>("tempslotvariant"),
-            ),
             SlotBoundVariantTraitObjectDiscriminants::SlotBoundRangeOrZero => editor.incorporate(
                 TemplateSlot::new(ctx_clone.clone())
                     .add_new_slotbound::<SlotBoundRangeOrZero, _>(|new_slot_bound| {
@@ -425,23 +384,6 @@ pub fn SlotBuilder(
         }
         let op_id = &maybe_op_id.unwrap().get_id().clone();
         match slot_bound.get() {
-            SlotBoundVariantTraitObjectDiscriminants::SlotBoundUpperBound => template_clone
-                .edit(ctx_clone.clone())
-                .add_new_templateslots(|new_template_slot| {
-                    new_template_slot
-                        .set_name(name.get())
-                        .add_new_templateslotvariant::<TemplateSlotSingleOperative, _>(
-                            |new_op_var| {
-                                new_op_var
-                                    .add_existing_allowedoperative(op_id, |na| na)
-                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
-                            },
-                        )
-                        .add_new_slotbound::<SlotBoundUpperBound, _>(|slot_bound| {
-                            slot_bound.set_upper_bound(slot_bound_max.get())
-                        })
-                })
-                .execute(),
             SlotBoundVariantTraitObjectDiscriminants::SlotBoundRangeOrZero => template_clone
                 .edit(ctx_clone.clone())
                 .add_new_templateslots(|new_template_slot| {

@@ -14,7 +14,7 @@ use crate::components::{
     },
     workspace::{WorkspaceState, WorkspaceTab},
 };
-use leptos::either::{Either, EitherOf3, EitherOf4, EitherOf6};
+use leptos::either::{Either, EitherOf3, EitherOf4, EitherOf5, EitherOf6};
 use schema_editor_generated_toolkit::{
     prelude::*, slot_markers::OperativeConcreteLockedFieldsAcceptableTargetMarker,
 };
@@ -515,18 +515,8 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             let cur_slot_num = upstream_and_local_slotted_number_clone.clone()();
             let cur_downstream_slot_num = downstream_slotted_number.clone()();
             match slot_clone.get_slotbound_slot() {
-                SlotBoundVariantTraitObject::SlotBoundUpperBound(inner) => {
-                    is_fulfilled.set(true);
-                    is_maxed_independently.set(
-                        inner.get_upper_bound_field() == upstream_and_local_slotted_number_clone(),
-                    );
-                    is_maxed_considering_children
-                        .set(inner.get_upper_bound_field() == (cur_downstream_slot_num));
-
-                    EitherOf6::A(move || inner.get_upper_bound_field())
-                }
                 SlotBoundVariantTraitObject::SlotBoundRangeOrZero(inner) => {
-                    EitherOf6::B(move || {
+                    EitherOf5::B(move || {
                         is_fulfilled.set(
                             cur_slot_num == 0 || (cur_slot_num >= inner.get_lower_bound_field()),
                         );
@@ -545,9 +535,9 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                         .set(cur_slot_num == 0 || (cur_slot_num >= inner.get_lower_bound_field()));
                     is_maxed_independently.set(false);
                     is_maxed_considering_children.set(false);
-                    EitherOf6::C(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),))
+                    EitherOf5::C(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),))
                 }
-                SlotBoundVariantTraitObject::SlotBoundRange(inner) => EitherOf6::D(move || {
+                SlotBoundVariantTraitObject::SlotBoundRange(inner) => EitherOf5::D(move || {
                     is_fulfilled.set(cur_slot_num >= inner.get_lower_bound_field());
                     is_maxed_independently.set(inner.get_upper_bound_field() == cur_slot_num);
                     is_maxed_considering_children
@@ -562,13 +552,13 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                     is_fulfilled.set(cur_slot_num >= inner.get_lower_bound_field());
                     is_maxed_independently.set(false);
                     is_maxed_considering_children.set(false);
-                    EitherOf6::E(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),))
+                    EitherOf5::E(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),))
                 }
                 SlotBoundVariantTraitObject::SlotBoundSingle(inner) => {
                     is_fulfilled.set(cur_slot_num == 1);
                     is_maxed_independently.set(cur_slot_num == 1);
                     is_maxed_considering_children.set((cur_downstream_slot_num) == 1);
-                    EitherOf6::F(move || "Exactly 1")
+                    EitherOf5::A(move || "Exactly 1")
                 }
             }
         };
