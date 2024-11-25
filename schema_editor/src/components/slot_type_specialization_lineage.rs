@@ -3,10 +3,10 @@ use schema_editor_generated_toolkit::prelude::*;
 
 #[component]
 pub fn TraitSpecializationTargetView(
-    target: SlotTypeSpecializableTraitOperativeTraitObject,
+    target: OperativeSlotTypeSpecializableTraitOperativeTraitObject,
 ) -> impl IntoView {
     match target {
-        SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(trait_op) => {
+        OperativeSlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTypeTraitOperative(trait_op) => {
             let text = format!(
                 "Root Trait List: [{}]",
                 trait_op
@@ -25,7 +25,7 @@ pub fn TraitSpecializationTargetView(
             }
             .into_any()
         }
-        SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+        OperativeSlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(
             trait_op,
         ) => {
             let text = format!(
@@ -49,9 +49,11 @@ pub fn TraitSpecializationTargetView(
     }
 }
 #[component]
-pub fn GeneralSpecializationTargetView(target: SlotTypeSpecializableTraitObject) -> impl IntoView {
+pub fn GeneralSpecializationTargetView(
+    target: OperativeSlotTypeSpecializableTraitObject,
+) -> impl IntoView {
     match target {
-        SlotTypeSpecializableTraitObject::TemplateSlotTraitOperative(trait_op) => {
+        OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeTraitOperative(trait_op) => {
             let text = format!(
                 "Root Trait List: [{}]",
                 trait_op
@@ -70,7 +72,7 @@ pub fn GeneralSpecializationTargetView(target: SlotTypeSpecializableTraitObject)
             }
             .into_any()
         }
-        SlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
+        OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
             let text = format!(
                 "Narrowed to this operative list: [{}]",
                 multi
@@ -90,7 +92,7 @@ pub fn GeneralSpecializationTargetView(target: SlotTypeSpecializableTraitObject)
             }
             .into_any()
         }
-        SlotTypeSpecializableTraitObject::TemplateSlotMultiOperative(multi) => {
+        OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(multi) => {
             let text = format!(
                 "Root Operative List: [{}]",
                 multi
@@ -109,7 +111,9 @@ pub fn GeneralSpecializationTargetView(target: SlotTypeSpecializableTraitObject)
             }
             .into_any()
         }
-        SlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_op) => {
+        OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+            trait_op,
+        ) => {
             let text = format!(
                 "Added to Trait List: [{}]",
                 trait_op
@@ -131,50 +135,55 @@ pub fn GeneralSpecializationTargetView(target: SlotTypeSpecializableTraitObject)
     }
 }
 #[component]
-pub fn SpecializationLineage(
-    specialization: SlotTypeSpecializationTraitObject,
+pub fn SlotTypeSpecializationLineage(
+    specialization: OperativeSlotTypeSpecializationTraitObject,
     is_entry_point: bool,
 ) -> impl IntoView {
     // let operative_clone = operative.clone();
     let specialization_clone = specialization.clone();
     let trait_specialization_target_view =
-        move |target: SlotTypeSpecializableTraitOperativeTraitObject| {
+        move |target: OperativeSlotTypeSpecializableTraitOperativeTraitObject| {
             match target {
-            SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(_) => todo!(),
-            SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+            OperativeSlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTypeTraitOperative(_) => todo!(),
+            OperativeSlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(
                 _,
             ) => todo!(),
         }
         };
     let parent_view = move || match specialization_clone.clone() {
-        SlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => view! {
-            <GeneralSpecializationTargetView target=item.get_specializationtarget_slot() />
-        }
-        .into_any(),
-        SlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => view! {
-
-            <GeneralSpecializationTargetView target=item.get_specializationtarget_slot() />
-        }
-        .into_any(),
-        SlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => {
+        OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => {
             view! {
-                <TraitSpecializationTargetView target=item.get_specializationtarget_slot() />
+                <GeneralSpecializationTargetView target=item.get_specializationtarget_slot() />
             }
             .into_any()
         }
+        OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => {
+            view! {
+
+                <GeneralSpecializationTargetView target=item.get_specializationtarget_slot() />
+            }
+            .into_any()
+        }
+        OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+            item,
+        ) => view! {
+            <TraitSpecializationTargetView target=item.get_specializationtarget_slot() />
+        }
+        .into_any(),
     };
     let specialization_clone = specialization.clone();
     let origin_view = move || {
         let specialization_clone = specialization_clone.clone();
         if is_entry_point {
-            let inner_view = move || match specialization_clone.clone() {
-                SlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(
+            let inner_view = move || {
+                match specialization_clone.clone() {
+                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(
                     single,
                 ) => EitherOf3::A(format!(
                     "Single Option Specialization: {}",
                     single.get_allowedoperative_slot().get_name()
                 )),
-                SlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
+                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
                     EitherOf3::B(format!(
                         "Multiple Options Specialization: [{}]",
                         multi
@@ -185,7 +194,7 @@ pub fn SpecializationLineage(
                             .join(", ")
                     ))
                 }
-                SlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
                     trait_object,
                 ) => EitherOf3::C(format!(
                     "Trait Addition Specialization: [{}]",
@@ -196,6 +205,7 @@ pub fn SpecializationLineage(
                         .collect::<Vec<_>>()
                         .join(", ")
                 )),
+            }
             };
             Either::Left(view! {
                 <div>

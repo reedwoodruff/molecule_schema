@@ -28,9 +28,12 @@ pub fn SlotBuilder(
     let schema_clone = schema.clone();
 
     let name = RwSignal::new("new_slot".to_string());
-    let slot_type =
-        RwSignal::new(TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotSingleOperative);
-    let slot_bound = RwSignal::new(SlotBoundVariantTraitObjectDiscriminants::SlotBoundSingle);
+    let slot_type = RwSignal::new(
+        TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeSingleOperative,
+    );
+    let slot_bound = RwSignal::new(
+        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalitySingle,
+    );
     let slot_bound_max = RwSignal::new(0);
     let slot_bound_min = RwSignal::new(0);
 
@@ -56,14 +59,14 @@ pub fn SlotBuilder(
             .for_each(|(index, trait_concrete)| {
                 if index == 0 {
                     trait_operative_variant_id = match slot_bound.get() {
-                        SlotBoundVariantTraitObjectDiscriminants::SlotBoundRangeOrZero => {
+                        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRangeOrZero => {
                             template_clone
                                 .edit(ctx_clone.clone())
                                 .add_new_templateslots(|new_template_slot| {
                                     new_template_slot
                                         .set_temp_id("template_slot")
                                         .set_name(name.get())
-                                        .add_new_templateslotvariant::<TemplateSlotTraitOperative, _>(
+                                        .add_new_templateslotvariant::<TemplateSlotTypeTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
                                                     .set_temp_id("this_is_ugly")
@@ -74,7 +77,7 @@ pub fn SlotBuilder(
                                                     )
                                             },
                                         )
-                                        .add_new_slotbound::<SlotBoundRangeOrZero, _>(
+                                        .add_new_slotbound::<TemplateSlotCardinalityRangeOrZero, _>(
                                             |slot_bound| {
                                                 slot_bound
                                                     .set_upper_bound(slot_bound_max.get())
@@ -84,14 +87,14 @@ pub fn SlotBuilder(
                                 })
                                 .execute()
                         }
-                        SlotBoundVariantTraitObjectDiscriminants::SlotBoundLowerBoundOrZero => {
+                        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBoundOrZero => {
                             template_clone
                                 .edit(ctx_clone.clone())
                                 .add_new_templateslots(|new_template_slot| {
                                     new_template_slot
                                         .set_temp_id("template_slot")
                                         .set_name(name.get())
-                                        .add_new_templateslotvariant::<TemplateSlotTraitOperative, _>(
+                                        .add_new_templateslotvariant::<TemplateSlotTypeTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
                                                     .set_temp_id("this_is_ugly")
@@ -102,7 +105,7 @@ pub fn SlotBuilder(
                                                     )
                                             },
                                         )
-                                        .add_new_slotbound::<SlotBoundLowerBoundOrZero, _>(
+                                        .add_new_slotbound::<TemplateSlotCardinalityLowerBoundOrZero, _>(
                                             |slot_bound| {
                                                 slot_bound.set_lower_bound(slot_bound_min.get())
                                             },
@@ -110,13 +113,13 @@ pub fn SlotBuilder(
                                 })
                                 .execute()
                         }
-                        SlotBoundVariantTraitObjectDiscriminants::SlotBoundRange => template_clone
+                        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRange => template_clone
                             .edit(ctx_clone.clone())
                             .add_new_templateslots(|new_template_slot| {
                                 new_template_slot
                                     .set_temp_id("template_slot")
                                     .set_name(name.get())
-                                    .add_new_templateslotvariant::<TemplateSlotTraitOperative, _>(
+                                    .add_new_templateslotvariant::<TemplateSlotTypeTraitOperative, _>(
                                         |new_op_var| {
                                             new_op_var
                                                 .set_temp_id("this_is_ugly")
@@ -127,21 +130,21 @@ pub fn SlotBuilder(
                                                 )
                                         },
                                     )
-                                    .add_new_slotbound::<SlotBoundRange, _>(|slot_bound| {
+                                    .add_new_slotbound::<TemplateSlotCardinalityRange, _>(|slot_bound| {
                                         slot_bound
                                             .set_upper_bound(slot_bound_max.get())
                                             .set_lower_bound(slot_bound_min.get())
                                     })
                             })
                             .execute(),
-                        SlotBoundVariantTraitObjectDiscriminants::SlotBoundLowerBound => {
+                        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBound => {
                             template_clone
                                 .edit(ctx_clone.clone())
                                 .add_new_templateslots(|new_template_slot| {
                                     new_template_slot
                                         .set_temp_id("template_slot")
                                         .set_name(name.get())
-                                        .add_new_templateslotvariant::<TemplateSlotTraitOperative, _>(
+                                        .add_new_templateslotvariant::<TemplateSlotTypeTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
                                                     .set_temp_id("this_is_ugly")
@@ -152,19 +155,19 @@ pub fn SlotBuilder(
                                                     )
                                             },
                                         )
-                                        .add_new_slotbound::<SlotBoundLowerBound, _>(|slot_bound| {
+                                        .add_new_slotbound::<TemplateSlotCardinalityLowerBound, _>(|slot_bound| {
                                             slot_bound.set_lower_bound(slot_bound_min.get())
                                         })
                                 })
                                 .execute()
                         }
-                        SlotBoundVariantTraitObjectDiscriminants::SlotBoundSingle => template_clone
+                        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalitySingle => template_clone
                             .edit(ctx_clone.clone())
                             .add_new_templateslots(|new_template_slot| {
                                 new_template_slot
                                     .set_temp_id("template_slot")
                                     .set_name(name.get())
-                                    .add_new_templateslotvariant::<TemplateSlotTraitOperative, _>(
+                                    .add_new_templateslotvariant::<TemplateSlotTypeTraitOperative, _>(
                                         |new_op_var| {
                                             new_op_var
                                                 .set_temp_id("this_is_ugly")
@@ -175,7 +178,7 @@ pub fn SlotBuilder(
                                                 )
                                         },
                                     )
-                                    .add_new_slotbound::<SlotBoundSingle, _>(|slot_bound| {
+                                    .add_new_slotbound::<TemplateSlotCardinalitySingle, _>(|slot_bound| {
                                         slot_bound
                                     })
                             })
@@ -188,7 +191,7 @@ pub fn SlotBuilder(
                 } else {
                     let new_template_slot =
                         match ctx_clone.get(&trait_operative_variant_id).unwrap() {
-                            Schema::TemplateSlotTraitOperative(item) => item,
+                            Schema::TemplateSlotTypeTraitOperative(item) => item,
                             _ => panic!(),
                         };
                     new_template_slot
@@ -247,7 +250,7 @@ pub fn SlotBuilder(
     };
     let slot_bound_input_view = move || {
         match slot_bound.get() {
-        SlotBoundVariantTraitObjectDiscriminants::SlotBoundRangeOrZero => view! {
+        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRangeOrZero => view! {
             <div>
             Lower Bound: <SignalTextInput prop:min=0 prop:max=move||slot_bound_max.get() prop:type="number" value=slot_bound_min />
             </div>
@@ -257,13 +260,13 @@ pub fn SlotBuilder(
 
         }
         .into_any(),
-        SlotBoundVariantTraitObjectDiscriminants::SlotBoundLowerBoundOrZero => view! {
+        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBoundOrZero => view! {
             <div>
             Lower Bound: <SignalTextInput prop:min=0 prop:type="number" value=slot_bound_min />
             </div>
         }
         .into_any(),
-        SlotBoundVariantTraitObjectDiscriminants::SlotBoundRange => view! {
+        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRange => view! {
             <div>
             Lower Bound: <SignalTextInput prop:min=0 prop:max=move||slot_bound_max.get() prop:type="number" value=slot_bound_min />
             </div>
@@ -273,13 +276,13 @@ pub fn SlotBuilder(
 
         }
         .into_any(),
-        SlotBoundVariantTraitObjectDiscriminants::SlotBoundLowerBound => view! {
+        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBound => view! {
             <div>
             Lower Bound: <SignalTextInput prop:min=0 prop:type="number" value=slot_bound_min />
             </div>
         }
         .into_any(),
-        SlotBoundVariantTraitObjectDiscriminants::SlotBoundSingle => view! {
+        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalitySingle => view! {
             <div>
             Exactly: 1
             </div>
@@ -296,7 +299,7 @@ pub fn SlotBuilder(
     let ctx_clone = ctx.clone();
     let on_click_save_multi_op = move || {
         let mut editor = template_clone.edit(ctx_clone.clone());
-        let mut tempslotvariant = TemplateSlotMultiOperative::new(ctx_clone.clone())
+        let mut tempslotvariant = TemplateSlotTypeMultiOperative::new(ctx_clone.clone())
             .set_temp_id("tempslotvariant")
             .add_temp_roottemplateslot("new_template_slot");
         // This is a bad hack and is subject to suddenly failing to work as intended.
@@ -310,35 +313,40 @@ pub fn SlotBuilder(
             )
         });
         match slot_bound.get() {
-            SlotBoundVariantTraitObjectDiscriminants::SlotBoundRangeOrZero => editor.incorporate(
-                TemplateSlot::new(ctx_clone.clone())
-                    .add_new_slotbound::<SlotBoundRangeOrZero, _>(|new_slot_bound| {
-                        new_slot_bound
-                            .set_temp_id("slot_bound")
-                            .set_upper_bound(slot_bound_max.get())
-                            .set_lower_bound(slot_bound_min.get())
-                    })
-                    .set_name(name.get())
-                    .set_temp_id("new_template_slot")
-                    .add_temp_templateslotvariant::<TemplateSlotMultiOperative>("tempslotvariant"),
-            ),
-            SlotBoundVariantTraitObjectDiscriminants::SlotBoundLowerBoundOrZero => editor
+            TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRangeOrZero => editor
                 .incorporate(
                     TemplateSlot::new(ctx_clone.clone())
-                        .add_new_slotbound::<SlotBoundLowerBoundOrZero, _>(|new_slot_bound| {
+                        .add_new_slotbound::<TemplateSlotCardinalityRangeOrZero, _>(
+                            |new_slot_bound| {
+                                new_slot_bound
+                                    .set_temp_id("slot_bound")
+                                    .set_upper_bound(slot_bound_max.get())
+                                    .set_lower_bound(slot_bound_min.get())
+                            },
+                        )
+                        .set_name(name.get())
+                        .set_temp_id("new_template_slot")
+                        .add_temp_templateslotvariant::<TemplateSlotTypeMultiOperative>(
+                            "tempslotvariant",
+                        ),
+                ),
+            TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBoundOrZero => editor
+                .incorporate(
+                    TemplateSlot::new(ctx_clone.clone())
+                        .add_new_slotbound::<TemplateSlotCardinalityLowerBoundOrZero, _>(|new_slot_bound| {
                             new_slot_bound
                                 .set_temp_id("slot_bound")
                                 .set_lower_bound(slot_bound_min.get())
                         })
                         .set_name(name.get())
                         .set_temp_id("new_template_slot")
-                        .add_temp_templateslotvariant::<TemplateSlotMultiOperative>(
+                        .add_temp_templateslotvariant::<TemplateSlotTypeMultiOperative>(
                             "tempslotvariant",
                         ),
                 ),
-            SlotBoundVariantTraitObjectDiscriminants::SlotBoundRange => editor.incorporate(
+            TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRange => editor.incorporate(
                 TemplateSlot::new(ctx_clone.clone())
-                    .add_new_slotbound::<SlotBoundRange, _>(|new_slot_bound| {
+                    .add_new_slotbound::<TemplateSlotCardinalityRange, _>(|new_slot_bound| {
                         new_slot_bound
                             .set_temp_id("slot_bound")
                             .set_upper_bound(slot_bound_max.get())
@@ -346,27 +354,27 @@ pub fn SlotBuilder(
                     })
                     .set_name(name.get())
                     .set_temp_id("new_template_slot")
-                    .add_temp_templateslotvariant::<TemplateSlotMultiOperative>("tempslotvariant"),
+                    .add_temp_templateslotvariant::<TemplateSlotTypeMultiOperative>("tempslotvariant"),
             ),
-            SlotBoundVariantTraitObjectDiscriminants::SlotBoundLowerBound => editor.incorporate(
+            TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBound => editor.incorporate(
                 TemplateSlot::new(ctx_clone.clone())
-                    .add_new_slotbound::<SlotBoundLowerBound, _>(|new_slot_bound| {
+                    .add_new_slotbound::<TemplateSlotCardinalityLowerBound, _>(|new_slot_bound| {
                         new_slot_bound
                             .set_temp_id("slot_bound")
                             .set_lower_bound(slot_bound_min.get())
                     })
                     .set_name(name.get())
                     .set_temp_id("new_template_slot")
-                    .add_temp_templateslotvariant::<TemplateSlotMultiOperative>("tempslotvariant"),
+                    .add_temp_templateslotvariant::<TemplateSlotTypeMultiOperative>("tempslotvariant"),
             ),
-            SlotBoundVariantTraitObjectDiscriminants::SlotBoundSingle => editor.incorporate(
+            TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalitySingle => editor.incorporate(
                 TemplateSlot::new(ctx_clone.clone())
-                    .add_new_slotbound::<SlotBoundSingle, _>(|new_slot_bound| {
+                    .add_new_slotbound::<TemplateSlotCardinalitySingle, _>(|new_slot_bound| {
                         new_slot_bound.set_temp_id("slot_bound")
                     })
                     .set_name(name.get())
                     .set_temp_id("new_template_slot")
-                    .add_temp_templateslotvariant::<TemplateSlotMultiOperative>("tempslotvariant"),
+                    .add_temp_templateslotvariant::<TemplateSlotTypeMultiOperative>("tempslotvariant"),
             ),
         }
         editor
@@ -384,91 +392,98 @@ pub fn SlotBuilder(
         }
         let op_id = &maybe_op_id.unwrap().get_id().clone();
         match slot_bound.get() {
-            SlotBoundVariantTraitObjectDiscriminants::SlotBoundRangeOrZero => template_clone
+            TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRangeOrZero => {
+                template_clone
+                    .edit(ctx_clone.clone())
+                    .add_new_templateslots(|new_template_slot| {
+                        new_template_slot
+                            .set_name(name.get())
+                            .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
+                                |new_op_var| {
+                                    new_op_var
+                                        .add_existing_allowedoperative(op_id, |na| na)
+                                        .add_existing_roottemplateslot(
+                                            template_clone.get_id(),
+                                            |na| na,
+                                        )
+                                },
+                            )
+                            .add_new_slotbound::<TemplateSlotCardinalityRangeOrZero, _>(
+                                |slot_bound| {
+                                    slot_bound
+                                        .set_upper_bound(slot_bound_max.get())
+                                        .set_lower_bound(slot_bound_min.get())
+                                },
+                            )
+                    })
+                    .execute()
+            }
+            TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBoundOrZero => template_clone
                 .edit(ctx_clone.clone())
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
                         .set_name(name.get())
-                        .add_new_templateslotvariant::<TemplateSlotSingleOperative, _>(
+                        .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
                             |new_op_var| {
                                 new_op_var
                                     .add_existing_allowedoperative(op_id, |na| na)
                                     .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
                             },
                         )
-                        .add_new_slotbound::<SlotBoundRangeOrZero, _>(|slot_bound| {
+                        .add_new_slotbound::<TemplateSlotCardinalityLowerBoundOrZero, _>(|slot_bound| {
+                            slot_bound.set_lower_bound(slot_bound_min.get())
+                        })
+                })
+                .execute(),
+            TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRange => template_clone
+                .edit(ctx_clone.clone())
+                .add_new_templateslots(|new_template_slot| {
+                    new_template_slot
+                        .set_name(name.get())
+                        .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
+                            |new_op_var| {
+                                new_op_var
+                                    .add_existing_allowedoperative(op_id, |na| na)
+                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
+                            },
+                        )
+                        .add_new_slotbound::<TemplateSlotCardinalityRange, _>(|slot_bound| {
                             slot_bound
                                 .set_upper_bound(slot_bound_max.get())
                                 .set_lower_bound(slot_bound_min.get())
                         })
                 })
                 .execute(),
-            SlotBoundVariantTraitObjectDiscriminants::SlotBoundLowerBoundOrZero => template_clone
+            TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBound => template_clone
                 .edit(ctx_clone.clone())
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
                         .set_name(name.get())
-                        .add_new_templateslotvariant::<TemplateSlotSingleOperative, _>(
+                        .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
                             |new_op_var| {
                                 new_op_var
                                     .add_existing_allowedoperative(op_id, |na| na)
                                     .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
                             },
                         )
-                        .add_new_slotbound::<SlotBoundLowerBoundOrZero, _>(|slot_bound| {
+                        .add_new_slotbound::<TemplateSlotCardinalityLowerBound, _>(|slot_bound| {
                             slot_bound.set_lower_bound(slot_bound_min.get())
                         })
                 })
                 .execute(),
-            SlotBoundVariantTraitObjectDiscriminants::SlotBoundRange => template_clone
+            TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalitySingle => template_clone
                 .edit(ctx_clone.clone())
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
                         .set_name(name.get())
-                        .add_new_templateslotvariant::<TemplateSlotSingleOperative, _>(
+                        .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
                             |new_op_var| {
                                 new_op_var
                                     .add_existing_allowedoperative(op_id, |na| na)
                                     .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
                             },
                         )
-                        .add_new_slotbound::<SlotBoundRange, _>(|slot_bound| {
-                            slot_bound
-                                .set_upper_bound(slot_bound_max.get())
-                                .set_lower_bound(slot_bound_min.get())
-                        })
-                })
-                .execute(),
-            SlotBoundVariantTraitObjectDiscriminants::SlotBoundLowerBound => template_clone
-                .edit(ctx_clone.clone())
-                .add_new_templateslots(|new_template_slot| {
-                    new_template_slot
-                        .set_name(name.get())
-                        .add_new_templateslotvariant::<TemplateSlotSingleOperative, _>(
-                            |new_op_var| {
-                                new_op_var
-                                    .add_existing_allowedoperative(op_id, |na| na)
-                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
-                            },
-                        )
-                        .add_new_slotbound::<SlotBoundLowerBound, _>(|slot_bound| {
-                            slot_bound.set_lower_bound(slot_bound_min.get())
-                        })
-                })
-                .execute(),
-            SlotBoundVariantTraitObjectDiscriminants::SlotBoundSingle => template_clone
-                .edit(ctx_clone.clone())
-                .add_new_templateslots(|new_template_slot| {
-                    new_template_slot
-                        .set_name(name.get())
-                        .add_new_templateslotvariant::<TemplateSlotSingleOperative, _>(
-                            |new_op_var| {
-                                new_op_var
-                                    .add_existing_allowedoperative(op_id, |na| na)
-                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
-                            },
-                        )
-                        .add_new_slotbound::<SlotBoundSingle, _>(|slot_bound| slot_bound)
+                        .add_new_slotbound::<TemplateSlotCardinalitySingle, _>(|slot_bound| slot_bound)
                 })
                 .execute(),
         }
@@ -564,13 +579,13 @@ pub fn SlotBuilder(
             <SignalEnumSelect value=slot_type/>
             <LeafSection attr:class="leafsection dependent">
                 {move || match slot_type.get() {
-                        TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotTraitOperative => {
+                        TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeTraitOperative => {
                             EitherOf3::A(trait_slot_details_view.clone())
                         }
-                        TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotSingleOperative => {
+                        TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeSingleOperative => {
                             EitherOf3::B(single_op_slot_details_view.clone())
                         }
-                        TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotMultiOperative => {
+                        TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeMultiOperative => {
                             EitherOf3::C(multi_op_slot_details_view.clone())
                         }
                 }}
@@ -579,16 +594,16 @@ pub fn SlotBuilder(
         <div>
             <Button on:click=move |_| {
                 match slot_type.get() {
-                    TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotTraitOperative => on_click_save_trait_slot() ,
-                    TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotSingleOperative => on_click_save_single_op(),
-                    TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotMultiOperative => on_click_save_multi_op(),
+                    TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeTraitOperative => on_click_save_trait_slot() ,
+                    TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeSingleOperative => on_click_save_single_op(),
+                    TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeMultiOperative => on_click_save_multi_op(),
                 };
                 close_callback.run(());
             } attr:disabled=move || {
                 match slot_type.get() {
-                    TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotTraitOperative => final_selected_trait_list.with(|list| list.is_empty()),
-                    TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotSingleOperative => selected_single_operative.with(|item| item.is_none()),
-                    TemplateSlotVariantTraitObjectDiscriminants::TemplateSlotMultiOperative => multi_operative_list.with(|list| list.len() < 2),
+                    TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeTraitOperative => final_selected_trait_list.with(|list| list.is_empty()),
+                    TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeSingleOperative => selected_single_operative.with(|item| item.is_none()),
+                    TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeMultiOperative => multi_operative_list.with(|list| list.len() < 2),
                 }
             }>Save New Slot</Button>
         </div>

@@ -73,17 +73,17 @@ pub fn get_all_traits_in_specialization(
     let mut found_terminal = false;
     let mut rolling_trait_set = BTreeSet::new();
     let mut cur_spec =
-        SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+        OperativeSlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(
             specialization,
         );
     while !found_terminal {
         match cur_spec {
-            SlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTraitOperative(terminal) => {
+            OperativeSlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTypeTraitOperative(terminal) => {
                 rolling_trait_set.extend(terminal.get_allowedtraits_slot());
                 found_terminal = true;
                 break;
             }
-            SlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+            OperativeSlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(
                 spec,
             ) => {
                 rolling_trait_set.extend(spec.get_allowedtraits_slot());
@@ -96,24 +96,26 @@ pub fn get_all_traits_in_specialization(
 
 pub fn get_all_operatives_which_satisfy_specializable(
     schema_concrete: &RGSOConcrete<SchemaConcrete, Schema>,
-    specializable: SlotTypeSpecializableTraitObject,
+    specializable: OperativeSlotTypeSpecializableTraitObject,
 ) -> BTreeSet<RGSOConcrete<OperativeConcrete, Schema>> {
     match specializable {
-        SlotTypeSpecializableTraitObject::TemplateSlotTraitOperative(trait_op) => {
+        OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeTraitOperative(trait_op) => {
             get_all_operatives_which_impl_trait_set(
                 trait_op.get_allowedtraits_slot(),
                 schema_concrete,
             )
         }
-        SlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(multi) => multi
+        OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
+            multi
+                .get_allowedoperatives_slot()
+                .into_iter()
+                .collect::<BTreeSet<_>>()
+        }
+        OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(multi) => multi
             .get_allowedoperatives_slot()
             .into_iter()
             .collect::<BTreeSet<_>>(),
-        SlotTypeSpecializableTraitObject::TemplateSlotMultiOperative(multi) => multi
-            .get_allowedoperatives_slot()
-            .into_iter()
-            .collect::<BTreeSet<_>>(),
-        SlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+        OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(
             trait_spec,
         ) => {
             let trait_set = get_all_traits_in_specialization(trait_spec);
@@ -128,17 +130,19 @@ pub fn get_all_operatives_which_satisfy_specializable(
 
 pub fn get_all_operatives_which_satisfy_specialization(
     schema_concrete: &RGSOConcrete<SchemaConcrete, Schema>,
-    specializable: SlotTypeSpecializationTraitObject,
+    specializable: OperativeSlotTypeSpecializationTraitObject,
 ) -> BTreeSet<RGSOConcrete<OperativeConcrete, Schema>> {
     match specializable {
-        SlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => multi
-            .get_allowedoperatives_slot()
-            .into_iter()
-            .collect::<BTreeSet<_>>(),
-        SlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(single) => {
-            BTreeSet::from([single.get_allowedoperative_slot()])
+        OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
+            multi
+                .get_allowedoperatives_slot()
+                .into_iter()
+                .collect::<BTreeSet<_>>()
         }
-        SlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+        OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(
+            single,
+        ) => BTreeSet::from([single.get_allowedoperative_slot()]),
+        OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
             trait_spec,
         ) => {
             let trait_set = get_all_traits_in_specialization(trait_spec);
@@ -152,7 +156,7 @@ pub fn get_all_operatives_which_satisfy_specialization(
 }
 pub fn get_all_instances_which_satisfy_specialization(
     schema_concrete: &RGSOConcrete<SchemaConcrete, Schema>,
-    specializable: SlotTypeSpecializationTraitObject,
+    specializable: OperativeSlotTypeSpecializationTraitObject,
 ) -> BTreeSet<RGSOConcrete<InstanceConcrete, Schema>> {
     let satisfactory_ops =
         get_all_operatives_which_satisfy_specialization(schema_concrete, specializable);
@@ -167,19 +171,19 @@ pub fn get_all_instances_which_satisfy_specialization(
 pub fn get_childest_specialization_for_op_and_slot(
     op: RGSOConcrete<OperativeConcrete, Schema>,
     slot: RGSOConcrete<TemplateSlot, Schema>,
-) -> Option<SlotTypeSpecializationTraitObject> {
+) -> Option<OperativeSlotTypeSpecializationTraitObject> {
     let specs = op
         .clone()
         .get_slottypespecializations_slot()
         .into_iter()
         .filter(|specialization| match specialization {
-            SlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(single) => {
+            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(single) => {
                 single.get_roottemplateslot_slot().get_id() == slot.get_id()
             }
-            SlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
+            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
                 multi.get_roottemplateslot_slot().get_id() == slot.get_id()
             }
-            SlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
                 traits,
             ) => traits.get_roottemplateslot_slot().get_id() == slot.get_id(),
         })
@@ -193,13 +197,13 @@ pub fn get_childest_specialization_for_op_and_slot(
         let all_parent_ids = specs
             .iter()
             .map(|spec| match spec {
-                SlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => {
+                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => {
                     *item.get_specializationtarget_slot().get_id()
                 }
-                SlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => {
+                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => {
                     *item.get_specializationtarget_slot().get_id()
                 }
-                SlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
                     item,
                 ) => *item.get_specializationtarget_slot().get_id(),
             })

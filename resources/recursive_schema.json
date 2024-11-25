@@ -323,7 +323,7 @@
     },
     "64001713652366866508449176825911967707": {
       "tag": {
-        "name": "SlotBoundSingle",
+        "name": "TemplateSlotCardinalitySingle",
         "id": 64001713652366866508449176825911967707
       },
       "field_constraints": {},
@@ -451,7 +451,44 @@
         "id": 78517308660468234713052697305700967852
       },
       "field_constraints": {},
-      "operative_slots": {},
+      "operative_slots": {
+        "16569605261811674613157200046044777819": {
+          "tag": {
+            "name": "RootTemplateSlot",
+            "id": 16569605261811674613157200046044777819
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 7740341945123630371223527175825509452
+          },
+          "bounds": "Single"
+        },
+        "180267158143956329307233756244991947794": {
+          "tag": {
+            "name": "Specializer",
+            "id": 180267158143956329307233756244991947794
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        },
+        "232919257961073314234609362732901986414": {
+          "tag": {
+            "name": "SpecializationTarget",
+            "id": 232919257961073314234609362732901986414
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [297927264952109735515376026237497069951],
+              "tag": {
+                "name": "SpecializationTarget",
+                "id": 111563490090254392848768899303989059373
+              }
+            }
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {
         "305961141896660261428600203427492641437": {}
       },
@@ -459,7 +496,7 @@
     },
     "96391200532345511566583766234666314009": {
       "tag": {
-        "name": "TemplateSlotTraitOperative",
+        "name": "TemplateSlotTypeTraitOperative",
         "id": 96391200532345511566583766234666314009
       },
       "field_constraints": {},
@@ -588,10 +625,63 @@
         "name": "OperativeSlotCardinalityRangeSpecialization",
         "id": 119410650193701418791904066984643417737
       },
-      "field_constraints": {},
-      "operative_slots": {},
+      "field_constraints": {
+        "59850463072419482309570755519112072072": {
+          "tag": {
+            "name": "lower_bound",
+            "id": 59850463072419482309570755519112072072
+          },
+          "value_type": "Int"
+        },
+        "114848523602379682599786303980449850757": {
+          "tag": {
+            "name": "upper_bound",
+            "id": 114848523602379682599786303980449850757
+          },
+          "value_type": "Int"
+        }
+      },
+      "operative_slots": {
+        "57676189404969722342906976521724088241": {
+          "tag": {
+            "name": "RootTemplateSlot",
+            "id": 57676189404969722342906976521724088241
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 7740341945123630371223527175825509452
+          },
+          "bounds": "Single"
+        },
+        "92188376385423049891360703456189622775": {
+          "tag": {
+            "name": "SpecializationTarget",
+            "id": 92188376385423049891360703456189622775
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [297927264952109735515376026237497069951],
+              "tag": {
+                "name": "SpecializationTarget",
+                "id": 236837125188382399564791340977777397009
+              }
+            }
+          },
+          "bounds": "Single"
+        },
+        "262473203326323047052061517137974680403": {
+          "tag": {
+            "name": "Specializer",
+            "id": 262473203326323047052061517137974680403
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {
         "54063214285677426865208002869740891199": {},
+        "297927264952109735515376026237497069951": {},
         "305961141896660261428600203427492641437": {}
       },
       "instances": []
@@ -664,7 +754,7 @@
     },
     "154414863774902638871151715580239590406": {
       "tag": {
-        "name": "SlotBoundRangeOrZero",
+        "name": "TemplateSlotCardinalityRangeOrZero",
         "id": 154414863774902638871151715580239590406
       },
       "field_constraints": {
@@ -686,13 +776,15 @@
       "operative_slots": {},
       "trait_impls": {
         "54063214285677426865208002869740891199": {},
-        "82297216375932930535884559186912095493": {}
+        "82297216375932930535884559186912095493": {},
+        "286968657872264898795510840649696431222": {},
+        "297927264952109735515376026237497069951": {}
       },
       "instances": []
     },
     "161036285013136581285373664092235310324": {
       "tag": {
-        "name": "SlotBoundLowerBound",
+        "name": "TemplateSlotCardinalityLowerBound",
         "id": 161036285013136581285373664092235310324
       },
       "field_constraints": {
@@ -707,7 +799,9 @@
       "operative_slots": {},
       "trait_impls": {
         "54063214285677426865208002869740891199": {},
-        "82297216375932930535884559186912095493": {}
+        "82297216375932930535884559186912095493": {},
+        "112525414141200425477980346177356993899": {},
+        "297927264952109735515376026237497069951": {}
       },
       "instances": []
     },
@@ -772,7 +866,7 @@
     },
     "172184359982369353872143572569828519561": {
       "tag": {
-        "name": "TemplateSlotMultiOperative",
+        "name": "TemplateSlotTypeMultiOperative",
         "id": 172184359982369353872143572569828519561
       },
       "field_constraints": {},
@@ -840,10 +934,64 @@
         "name": "OperativeSlotCardinalityRangeOrZeroSpecialization",
         "id": 188505424656150611777770593723382256315
       },
-      "field_constraints": {},
-      "operative_slots": {},
+      "field_constraints": {
+        "74798802516845610424068644548969893652": {
+          "tag": {
+            "name": "upper_bound",
+            "id": 74798802516845610424068644548969893652
+          },
+          "value_type": "Int"
+        },
+        "106502413170664933739017947394457587805": {
+          "tag": {
+            "name": "lower_bound",
+            "id": 106502413170664933739017947394457587805
+          },
+          "value_type": "Int"
+        }
+      },
+      "operative_slots": {
+        "145879141386367624490035633441293400949": {
+          "tag": {
+            "name": "SpecializationTarget",
+            "id": 145879141386367624490035633441293400949
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [286968657872264898795510840649696431222],
+              "tag": {
+                "name": "SpecializationTarget",
+                "id": 338351342518939084663614867891559576849
+              }
+            }
+          },
+          "bounds": "Single"
+        },
+        "259664057398383335937952526821040396568": {
+          "tag": {
+            "name": "RootTemplateSlot",
+            "id": 259664057398383335937952526821040396568
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 7740341945123630371223527175825509452
+          },
+          "bounds": "Single"
+        },
+        "329686298777077300714942295656990684800": {
+          "tag": {
+            "name": "Specializer",
+            "id": 329686298777077300714942295656990684800
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {
         "54063214285677426865208002869740891199": {},
+        "286968657872264898795510840649696431222": {},
+        "297927264952109735515376026237497069951": {},
         "305961141896660261428600203427492641437": {}
       },
       "instances": []
@@ -855,6 +1003,16 @@
       },
       "field_constraints": {},
       "operative_slots": {
+        "108788114049414484770562864518076394428": {
+          "tag": {
+            "name": "Specializer",
+            "id": 108788114049414484770562864518076394428
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        },
         "175340276502017752247364616190888570822": {
           "tag": {
             "name": "SpecializationTarget",
@@ -868,6 +1026,16 @@
                 "id": 160727481669899813900140338139798256969
               }
             }
+          },
+          "bounds": "Single"
+        },
+        "212655933322579667980389350382834243421": {
+          "tag": {
+            "name": "RootTemplateSlot",
+            "id": 212655933322579667980389350382834243421
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 7740341945123630371223527175825509452
           },
           "bounds": "Single"
         }
@@ -929,6 +1097,24 @@
           },
           "operative_descriptor": {
             "LibraryOperative": 287245525247588349653719087186295411443
+          },
+          "bounds": {
+            "LowerBound": 0
+          }
+        },
+        "186239308629398576917731129118563974704": {
+          "tag": {
+            "name": "SlotCardinalitySpecializations",
+            "id": 186239308629398576917731129118563974704
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [305961141896660261428600203427492641437],
+              "tag": {
+                "name": "SlotCardinalitySpecialization",
+                "id": 29642714838095163510749642647417656698
+              }
+            }
           },
           "bounds": {
             "LowerBound": 0
@@ -1012,7 +1198,7 @@
     },
     "198306397722510173026107569795659801938": {
       "tag": {
-        "name": "SlotBoundRange",
+        "name": "TemplateSlotCardinalityRange",
         "id": 198306397722510173026107569795659801938
       },
       "field_constraints": {
@@ -1034,7 +1220,8 @@
       "operative_slots": {},
       "trait_impls": {
         "54063214285677426865208002869740891199": {},
-        "82297216375932930535884559186912095493": {}
+        "82297216375932930535884559186912095493": {},
+        "297927264952109735515376026237497069951": {}
       },
       "instances": []
     },
@@ -1156,7 +1343,7 @@
     },
     "226575026050322851050068406590647257440": {
       "tag": {
-        "name": "SlotBoundLowerBoundOrZero",
+        "name": "TemplateSlotCardinalityLowerBoundOrZero",
         "id": 226575026050322851050068406590647257440
       },
       "field_constraints": {
@@ -1170,8 +1357,12 @@
       },
       "operative_slots": {},
       "trait_impls": {
+        "30425667676384131969466448741774165198": {},
         "54063214285677426865208002869740891199": {},
-        "82297216375932930535884559186912095493": {}
+        "82297216375932930535884559186912095493": {},
+        "112525414141200425477980346177356993899": {},
+        "286968657872264898795510840649696431222": {},
+        "297927264952109735515376026237497069951": {}
       },
       "instances": []
     },
@@ -1233,10 +1424,57 @@
         "name": "OperativeSlotCardinalityLowerBoundSpecialization",
         "id": 301012337831735960428075974993803127877
       },
-      "field_constraints": {},
-      "operative_slots": {},
+      "field_constraints": {
+        "314067212584060687443684489376531691202": {
+          "tag": {
+            "name": "lower_bound",
+            "id": 314067212584060687443684489376531691202
+          },
+          "value_type": "Int"
+        }
+      },
+      "operative_slots": {
+        "152650408324112621607326145920520650723": {
+          "tag": {
+            "name": "SpecializationTarget",
+            "id": 152650408324112621607326145920520650723
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [112525414141200425477980346177356993899],
+              "tag": {
+                "name": "SpecializationTarget",
+                "id": 296371973365635864920404015451787395110
+              }
+            }
+          },
+          "bounds": "Single"
+        },
+        "170378506127075706014216558559081155620": {
+          "tag": {
+            "name": "Specializer",
+            "id": 170378506127075706014216558559081155620
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        },
+        "233640333201790202113444429182698609494": {
+          "tag": {
+            "name": "RootTemplateSlot",
+            "id": 233640333201790202113444429182698609494
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 7740341945123630371223527175825509452
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {
         "54063214285677426865208002869740891199": {},
+        "112525414141200425477980346177356993899": {},
+        "297927264952109735515376026237497069951": {},
         "305961141896660261428600203427492641437": {}
       },
       "instances": []
@@ -1493,17 +1731,66 @@
         "name": "OperativeSlotCardinalityLowerBoundOrZeroSpecialization",
         "id": 324182575485166611553504507078425880521
       },
-      "field_constraints": {},
-      "operative_slots": {},
+      "field_constraints": {
+        "316097120213108680260037559696457135529": {
+          "tag": {
+            "name": "lower_bound",
+            "id": 316097120213108680260037559696457135529
+          },
+          "value_type": "Int"
+        }
+      },
+      "operative_slots": {
+        "8603790806199601294190427317343641209": {
+          "tag": {
+            "name": "SpecializationTarget",
+            "id": 8603790806199601294190427317343641209
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [30425667676384131969466448741774165198],
+              "tag": {
+                "name": "SpecializationTarget",
+                "id": 265414504723758824272779084082526687309
+              }
+            }
+          },
+          "bounds": "Single"
+        },
+        "66205023136157651864508450546558279072": {
+          "tag": {
+            "name": "RootTemplateSlot",
+            "id": 66205023136157651864508450546558279072
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 7740341945123630371223527175825509452
+          },
+          "bounds": "Single"
+        },
+        "284484147965670219198629473043584895065": {
+          "tag": {
+            "name": "Specializer",
+            "id": 284484147965670219198629473043584895065
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {
+        "30425667676384131969466448741774165198": {},
         "54063214285677426865208002869740891199": {},
+        "112525414141200425477980346177356993899": {},
+        "286968657872264898795510840649696431222": {},
+        "297927264952109735515376026237497069951": {},
         "305961141896660261428600203427492641437": {}
       },
       "instances": []
     },
     "332786645457086776879473976454556144841": {
       "tag": {
-        "name": "TemplateSlotSingleOperative",
+        "name": "TemplateSlotTypeSingleOperative",
         "id": 332786645457086776879473976454556144841
       },
       "field_constraints": {},
@@ -1597,6 +1884,30 @@
       "trait_impls": {},
       "_phantom": null
     },
+    "56660692630849923189158530901704205088": {
+      "tag": {
+        "name": "OperativeSlotCardinalityLowerBoundOrZeroSpecialization",
+        "id": 56660692630849923189158530901704205088
+      },
+      "template_id": 324182575485166611553504507078425880521,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "60550585664171876895935779654317911206": {
+      "tag": {
+        "name": "OperativeSlotCardinalitySingleSpecialization",
+        "id": 60550585664171876895935779654317911206
+      },
+      "template_id": 78517308660468234713052697305700967852,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
     "63261412784180420665318253438834019987": {
       "tag": {
         "name": "InstanceConcrete",
@@ -1611,7 +1922,7 @@
     },
     "87143921789222600919801413132236236320": {
       "tag": {
-        "name": "TemplateSlotTraitOperative",
+        "name": "TemplateSlotTypeTraitOperative",
         "id": 87143921789222600919801413132236236320
       },
       "template_id": 96391200532345511566583766234666314009,
@@ -1755,7 +2066,7 @@
     },
     "175031575910484467498526314956268285031": {
       "tag": {
-        "name": "SlotBoundRangeOrZero",
+        "name": "TemplateSlotCardinalityRangeOrZero",
         "id": 175031575910484467498526314956268285031
       },
       "template_id": 154414863774902638871151715580239590406,
@@ -1789,9 +2100,21 @@
       "trait_impls": {},
       "_phantom": null
     },
+    "192315076829559108361251109471603602488": {
+      "tag": {
+        "name": "OperativeSlotCardinalityRangeSpecialization",
+        "id": 192315076829559108361251109471603602488
+      },
+      "template_id": 119410650193701418791904066984643417737,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
     "198481014452270332556597957577099295967": {
       "tag": {
-        "name": "SlotBoundLowerBoundOrZero",
+        "name": "TemplateSlotCardinalityLowerBoundOrZero",
         "id": 198481014452270332556597957577099295967
       },
       "template_id": 226575026050322851050068406590647257440,
@@ -1827,7 +2150,7 @@
     },
     "217269837794409076543514756985146806994": {
       "tag": {
-        "name": "SlotBoundRange",
+        "name": "TemplateSlotCardinalityRange",
         "id": 217269837794409076543514756985146806994
       },
       "template_id": 198306397722510173026107569795659801938,
@@ -1837,9 +2160,21 @@
       "trait_impls": {},
       "_phantom": null
     },
+    "219050946175467215490445130385990093622": {
+      "tag": {
+        "name": "OperativeSlotCardinalityZeroSpecialization",
+        "id": 219050946175467215490445130385990093622
+      },
+      "template_id": 191396018591140473765841446170967291052,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
     "230818265192588222773249221944006002822": {
       "tag": {
-        "name": "SlotBoundLowerBound",
+        "name": "TemplateSlotCardinalityLowerBound",
         "id": 230818265192588222773249221944006002822
       },
       "template_id": 161036285013136581285373664092235310324,
@@ -1863,7 +2198,7 @@
     },
     "235015730226282279176722887869195639617": {
       "tag": {
-        "name": "TemplateSlotSingleOperative",
+        "name": "TemplateSlotTypeSingleOperative",
         "id": 235015730226282279176722887869195639617
       },
       "template_id": 332786645457086776879473976454556144841,
@@ -1873,9 +2208,33 @@
       "trait_impls": {},
       "_phantom": null
     },
+    "238198079235053618883114983600251390837": {
+      "tag": {
+        "name": "OperativeSlotCardinalityRangeOrZeroSpecialization",
+        "id": 238198079235053618883114983600251390837
+      },
+      "template_id": 188505424656150611777770593723382256315,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "263608912682123212388422093064061485695": {
+      "tag": {
+        "name": "OperativeSlotCardinalityLowerBoundSpecialization",
+        "id": 263608912682123212388422093064061485695
+      },
+      "template_id": 301012337831735960428075974993803127877,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
     "264757828709393034601955096983840029650": {
       "tag": {
-        "name": "TemplateSlotMultiOperative",
+        "name": "TemplateSlotTypeMultiOperative",
         "id": 264757828709393034601955096983840029650
       },
       "template_id": 172184359982369353872143572569828519561,
@@ -1947,7 +2306,7 @@
     },
     "329191953495774182891995497083245011025": {
       "tag": {
-        "name": "SlotBoundSingle",
+        "name": "TemplateSlotCardinalitySingle",
         "id": 329191953495774182891995497083245011025
       },
       "template_id": 64001713652366866508449176825911967707,
@@ -1971,16 +2330,16 @@
     }
   },
   "traits": {
-    "49923818632996442865738477270724469065": {
+    "30425667676384131969466448741774165198": {
       "tag": {
-        "name": "SlotCardinalitySpecializable",
-        "id": 49923818632996442865738477270724469065
+        "name": "OperativeSlotCardinalitySpecializableByLowerBoundOrZero",
+        "id": 30425667676384131969466448741774165198
       },
       "methods": {}
     },
     "54063214285677426865208002869740891199": {
       "tag": {
-        "name": "SlotCardinalitySpecializableByZero",
+        "name": "OperativeSlotCardinalitySpecializableByZero",
         "id": 54063214285677426865208002869740891199
       },
       "methods": {}
@@ -1994,8 +2353,15 @@
     },
     "82297216375932930535884559186912095493": {
       "tag": {
-        "name": "SlotBoundVariant",
+        "name": "TemplateSlotCardinalityVariant",
         "id": 82297216375932930535884559186912095493
+      },
+      "methods": {}
+    },
+    "112525414141200425477980346177356993899": {
+      "tag": {
+        "name": "OperativeSlotCardinalitySpecializableByLowerBound",
+        "id": 112525414141200425477980346177356993899
       },
       "methods": {}
     },
@@ -2016,7 +2382,7 @@
     },
     "138775780297201214816387388007818658691": {
       "tag": {
-        "name": "SlotTypeSpecializableTraitOperative",
+        "name": "OperativeSlotTypeSpecializableTraitOperative",
         "id": 138775780297201214816387388007818658691
       },
       "methods": {}
@@ -2044,7 +2410,7 @@
     },
     "194411240715964071839860568001695142238": {
       "tag": {
-        "name": "SlotTypeSpecialization",
+        "name": "OperativeSlotTypeSpecialization",
         "id": 194411240715964071839860568001695142238
       },
       "methods": {}
@@ -2065,15 +2431,22 @@
     },
     "257183523223639879383916779697438059690": {
       "tag": {
-        "name": "SlotTypeSpecializable",
+        "name": "OperativeSlotTypeSpecializable",
         "id": 257183523223639879383916779697438059690
       },
       "methods": {}
     },
     "268683212901137295678840178238752051138": {
       "tag": {
-        "name": "TemplateSlotVariant",
+        "name": "TemplateSlotTypeVariant",
         "id": 268683212901137295678840178238752051138
+      },
+      "methods": {}
+    },
+    "286968657872264898795510840649696431222": {
+      "tag": {
+        "name": "OperativeSlotCardinalitySpecializableByRangeOrZero",
+        "id": 286968657872264898795510840649696431222
       },
       "methods": {}
     },
@@ -2084,9 +2457,16 @@
       },
       "methods": {}
     },
+    "297927264952109735515376026237497069951": {
+      "tag": {
+        "name": "OperativeSlotCardinalitySpecializableBySingleOrRange",
+        "id": 297927264952109735515376026237497069951
+      },
+      "methods": {}
+    },
     "305961141896660261428600203427492641437": {
       "tag": {
-        "name": "SlotCardinalitySpecialization",
+        "name": "OperativeSlotCardinalitySpecialization",
         "id": 305961141896660261428600203427492641437
       },
       "methods": {}

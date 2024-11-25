@@ -4,8 +4,8 @@ use crate::components::{
     common::*,
     operative_function_implementations::OperativeFunctionImplementations,
     operative_lineage::OperativeLineage,
-    specialization_builder::SpecializationBuilder,
-    specialization_lineage::SpecializationLineage,
+    slot_type_specialization_builder::SlotTypeSpecializationBuilder,
+    slot_type_specialization_lineage::SlotTypeSpecializationLineage,
     utils::{
         get_all_descendent_instances, get_all_descendent_operators,
         get_all_instances_which_impl_trait_set, get_all_instances_which_satisfy_specialization,
@@ -422,7 +422,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
         let operative = operative_clone.clone();
         let slot_clone = slot.clone();
         let slot_variant = move || match slot_clone.get_templateslotvariant_slot() {
-            TemplateSlotVariantTraitObject::TemplateSlotTraitOperative(trait_op) => {
+            TemplateSlotTypeVariantTraitObject::TemplateSlotTypeTraitOperative(trait_op) => {
                 let traits_string = move || {
                     trait_op
                         .get_allowedtraits_slot()
@@ -434,7 +434,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 let view = move || format!("Trait-Bound Slot: [{}]", traits_string());
                 EitherOf3::A(view)
             }
-            TemplateSlotVariantTraitObject::TemplateSlotSingleOperative(single_op) => {
+            TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(single_op) => {
                 let view = move || {
                     format!(
                         "Single Operative Slot: {}",
@@ -443,7 +443,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 };
                 EitherOf3::B(view)
             }
-            TemplateSlotVariantTraitObject::TemplateSlotMultiOperative(multi_op) => {
+            TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(multi_op) => {
                 let view = move || {
                     format!(
                         "Multiple Operative Slot: [{}]",
@@ -515,11 +515,30 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             let cur_slot_num = upstream_and_local_slotted_number_clone.clone()();
             let cur_downstream_slot_num = downstream_slotted_number.clone()();
             match slot_clone.get_slotbound_slot() {
-                SlotBoundVariantTraitObject::SlotBoundRangeOrZero(inner) => {
-                    EitherOf5::B(move || {
-                        is_fulfilled.set(
-                            cur_slot_num == 0 || (cur_slot_num >= inner.get_lower_bound_field()),
-                        );
+                TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRangeOrZero(
+                    inner,
+                ) => EitherOf5::B(move || {
+                    is_fulfilled
+                        .set(cur_slot_num == 0 || (cur_slot_num >= inner.get_lower_bound_field()));
+                    is_maxed_independently.set(inner.get_upper_bound_field() == cur_slot_num);
+                    is_maxed_considering_children
+                        .set(inner.get_upper_bound_field() == (cur_downstream_slot_num));
+                    format!(
+                        "Lower Bound: {}, Upper Bound: {}",
+                        inner.get_lower_bound_field(),
+                        inner.get_upper_bound_field()
+                    )
+                }),
+                TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBoundOrZero(inner) => {
+                    is_fulfilled
+                        .set(cur_slot_num == 0 || (cur_slot_num >= inner.get_lower_bound_field()));
+                    is_maxed_independently.set(false);
+                    is_maxed_considering_children.set(false);
+                    EitherOf5::C(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),))
+                }
+                TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRange(inner) => {
+                    EitherOf5::D(move || {
+                        is_fulfilled.set(cur_slot_num >= inner.get_lower_bound_field());
                         is_maxed_independently.set(inner.get_upper_bound_field() == cur_slot_num);
                         is_maxed_considering_children
                             .set(inner.get_upper_bound_field() == (cur_downstream_slot_num));
@@ -530,31 +549,13 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                         )
                     })
                 }
-                SlotBoundVariantTraitObject::SlotBoundLowerBoundOrZero(inner) => {
-                    is_fulfilled
-                        .set(cur_slot_num == 0 || (cur_slot_num >= inner.get_lower_bound_field()));
-                    is_maxed_independently.set(false);
-                    is_maxed_considering_children.set(false);
-                    EitherOf5::C(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),))
-                }
-                SlotBoundVariantTraitObject::SlotBoundRange(inner) => EitherOf5::D(move || {
-                    is_fulfilled.set(cur_slot_num >= inner.get_lower_bound_field());
-                    is_maxed_independently.set(inner.get_upper_bound_field() == cur_slot_num);
-                    is_maxed_considering_children
-                        .set(inner.get_upper_bound_field() == (cur_downstream_slot_num));
-                    format!(
-                        "Lower Bound: {}, Upper Bound: {}",
-                        inner.get_lower_bound_field(),
-                        inner.get_upper_bound_field()
-                    )
-                }),
-                SlotBoundVariantTraitObject::SlotBoundLowerBound(inner) => {
+                TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBound(inner) => {
                     is_fulfilled.set(cur_slot_num >= inner.get_lower_bound_field());
                     is_maxed_independently.set(false);
                     is_maxed_considering_children.set(false);
                     EitherOf5::E(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),))
                 }
-                SlotBoundVariantTraitObject::SlotBoundSingle(inner) => {
+                TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalitySingle(inner) => {
                     is_fulfilled.set(cur_slot_num == 1);
                     is_maxed_independently.set(cur_slot_num == 1);
                     is_maxed_considering_children.set((cur_downstream_slot_num) == 1);
@@ -623,27 +624,27 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                     get_all_instances_which_satisfy_specialization(&schema_clone, childest_spec)
                 } else {
                     match slot_clone.get_templateslotvariant_slot() {
-                        TemplateSlotVariantTraitObject::TemplateSlotTraitOperative(trait_op) => {
-                            get_all_instances_which_impl_trait_set(
-                                trait_op.get_allowedtraits_slot(),
-                                &schema_clone,
-                            )
-                        }
-                        TemplateSlotVariantTraitObject::TemplateSlotSingleOperative(single_op) => {
-                            get_all_descendent_instances(
-                                single_op.get_allowedoperative_slot(),
-                                &schema_clone,
-                            )
-                        }
-                        TemplateSlotVariantTraitObject::TemplateSlotMultiOperative(multi_op) => {
-                            multi_op.get_allowedoperatives_slot().into_iter().fold(
-                                BTreeSet::new(),
-                                |mut agg, op| {
-                                    agg.extend(get_all_descendent_instances(op, &schema_clone));
-                                    agg
-                                },
-                            )
-                        }
+                        TemplateSlotTypeVariantTraitObject::TemplateSlotTypeTraitOperative(
+                            trait_op,
+                        ) => get_all_instances_which_impl_trait_set(
+                            trait_op.get_allowedtraits_slot(),
+                            &schema_clone,
+                        ),
+                        TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(
+                            single_op,
+                        ) => get_all_descendent_instances(
+                            single_op.get_allowedoperative_slot(),
+                            &schema_clone,
+                        ),
+                        TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(
+                            multi_op,
+                        ) => multi_op.get_allowedoperatives_slot().into_iter().fold(
+                            BTreeSet::new(),
+                            |mut agg, op| {
+                                agg.extend(get_all_descendent_instances(op, &schema_clone));
+                                agg
+                            },
+                        ),
                     }
                 }
                 .into_iter()
@@ -716,16 +717,16 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                     if let Some(specialization) = maybe_childest_spec.get() {
                         let spec_clone = specialization.clone();
                         let is_locally_owned_spec = match spec_clone.clone() {
-                            SlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
-                            SlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
-                            SlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
+                            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
+                            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
+                            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
                         };
                         let operative_clone3 = operative_clone3.clone();
                         let modify_view = move || {
                             let ctx_clone = ctx_clone.clone();
                             if is_locally_owned_spec {
                                 match spec_clone.clone() {
-                                SlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization( single, ) => {
+                                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization( single, ) => {
                                     let on_delete = move |_| {
                                         single.edit(ctx_clone.clone()).delete().execute().unwrap();
                                     };
@@ -733,7 +734,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                                         <LeafSection><Button on:click=on_delete>Delete Specialization</Button></LeafSection>
                                     })
                                 }
-                                SlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
+                                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
                                     let on_delete = move |_| {
                                         multi.edit(ctx_clone.clone()).delete().execute().unwrap();
                                     };
@@ -741,7 +742,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                                         <LeafSection><Button on:click=on_delete>Delete Specialization</Button></LeafSection>
                                     })
                                 }
-                                SlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+                                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
                                     trait_object,
                                 ) => {
                                     let on_delete = move |_| {
@@ -754,12 +755,12 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                             }
                             } else {
                                 match spec_clone.clone() {
-                                    SlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(_) => EitherOf6::D(()),
-                                    SlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
-                                        EitherOf6::E(view!{<SpecializationBuilder operative=operative_clone3.clone() spec_target=SlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(multi) />})
+                                    OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(_) => EitherOf6::D(()),
+                                    OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
+                                        EitherOf6::E(view!{<SlotTypeSpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(multi) />})
                                     },
-                                    SlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_obj) =>
-                                    EitherOf6::F(view!{<SpecializationBuilder operative=operative_clone3.clone() spec_target=SlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_obj) />})
+                                    OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_obj) =>
+                                    EitherOf6::F(view!{<SlotTypeSpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_obj) />})
 ,
                                 }
                             }
@@ -767,27 +768,27 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                         EitherOf4::A(view! {
                             <LeafSectionHeader>Specialization</LeafSectionHeader>
                             <LeafSection attr:class="leafsection dependent">
-                            <SpecializationLineage specialization=specialization is_entry_point=true/>
+                            <SlotTypeSpecializationLineage specialization=specialization is_entry_point=true/>
                             </LeafSection>
                             {modify_view}
                         })
                     } else {
                         match slot_clone.get_templateslotvariant_slot() {
-                            TemplateSlotVariantTraitObject::TemplateSlotTraitOperative(
+                            TemplateSlotTypeVariantTraitObject::TemplateSlotTypeTraitOperative(
                                 trait_op,
                             ) => EitherOf4::B(view! {
                                 <LeafSectionHeader>Specialization</LeafSectionHeader>
-                                <SpecializationBuilder operative=operative_clone.clone() spec_target=SlotTypeSpecializableTraitObject::TemplateSlotTraitOperative(trait_op) />
+                                <SlotTypeSpecializationBuilder operative=operative_clone.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeTraitOperative(trait_op) />
                             }),
-                            TemplateSlotVariantTraitObject::TemplateSlotSingleOperative(single) => {
-                                EitherOf4::C(view! {})
-                            }
-                            TemplateSlotVariantTraitObject::TemplateSlotMultiOperative(multi) => {
-                                EitherOf4::D(view! {
-                                    <LeafSectionHeader>Specialization</LeafSectionHeader>
-                                    <SpecializationBuilder operative=operative_clone.clone() spec_target=SlotTypeSpecializableTraitObject::TemplateSlotMultiOperative(multi) />
-                                })
-                            }
+                            TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(
+                                single,
+                            ) => EitherOf4::C(view! {}),
+                            TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(
+                                multi,
+                            ) => EitherOf4::D(view! {
+                                <LeafSectionHeader>Specialization</LeafSectionHeader>
+                                <SlotTypeSpecializationBuilder operative=operative_clone.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(multi) />
+                            }),
                         }
                     }
                 }
