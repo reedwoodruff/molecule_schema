@@ -22,6 +22,14 @@
     border: 1px solid #ccc;
 }
 
+.infonote {
+    font-style: italic;
+    color: #666;
+    padding: 6px;
+    background-color: lightyellow;
+    width: fit-content;
+}
+
 .workspace-container {
     height: 96vh;
     overflow: scroll;

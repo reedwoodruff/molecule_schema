@@ -322,7 +322,7 @@ fn DetailSelectionView(
                     Selected Operative:
                 </LeafSectionHeader>
                 <LeafSection>
-                <SignalSelectWithOptions value=selected_op options=Signal::derive(move || schema.get_operatives_slot()) />
+                <SignalSelectRGSOWithOptions value=selected_op options=Signal::derive(move || schema.get_operatives_slot()) />
                 </LeafSection>
                 </LeafSection>
             },

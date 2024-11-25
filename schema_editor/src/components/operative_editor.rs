@@ -4,17 +4,10 @@ use crate::components::{
     common::*,
     operative_function_implementations::OperativeFunctionImplementations,
     operative_lineage::OperativeLineage,
-    slot_type_specialization_builder::SlotTypeSpecializationBuilder,
-    slot_type_specialization_lineage::SlotTypeSpecializationLineage,
-    utils::{
-        get_all_descendent_instances, get_all_descendent_operators,
-        get_all_instances_which_impl_trait_set, get_all_instances_which_satisfy_specialization,
-        get_all_operatives_which_satisfy_specializable,
-        get_childest_specialization_for_op_and_slot,
-    },
+    operative_slot_section::OperativeSlotSection,
     workspace::{WorkspaceState, WorkspaceTab},
 };
-use leptos::either::{Either, EitherOf3, EitherOf4, EitherOf5, EitherOf6};
+use leptos::either::EitherOf3;
 use schema_editor_generated_toolkit::{
     prelude::*, slot_markers::OperativeConcreteLockedFieldsAcceptableTargetMarker,
 };
@@ -417,439 +410,15 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
     let operative_clone = operative.clone();
 
     let schema_clone = schema.clone();
-    let each_slot_view = move |slot: RGSOConcrete<TemplateSlot, Schema>| {
-        let schema = schema_clone.clone();
-        let operative = operative_clone.clone();
-        let slot_clone = slot.clone();
-        let slot_variant = move || match slot_clone.get_templateslotvariant_slot() {
-            TemplateSlotTypeVariantTraitObject::TemplateSlotTypeTraitOperative(trait_op) => {
-                let traits_string = move || {
-                    trait_op
-                        .get_allowedtraits_slot()
-                        .into_iter()
-                        .map(|trait_conc| trait_conc.get_name())
-                        .collect::<Vec<_>>()
-                        .join(", ")
-                };
-                let view = move || format!("Trait-Bound Slot: [{}]", traits_string());
-                EitherOf3::A(view)
-            }
-            TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(single_op) => {
-                let view = move || {
-                    format!(
-                        "Single Operative Slot: {}",
-                        single_op.get_allowedoperative_slot().get_name()
-                    )
-                };
-                EitherOf3::B(view)
-            }
-            TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(multi_op) => {
-                let view = move || {
-                    format!(
-                        "Multiple Operative Slot: [{}]",
-                        multi_op
-                            .get_allowedoperatives_slot()
-                            .into_iter()
-                            .map(|op| op.get_name())
-                            .collect::<Vec<_>>()
-                            .join(", ")
-                    )
-                };
-                EitherOf3::C(view)
-            }
-        };
-        let operative_clone = operative.clone();
-        let slot_clone = slot.clone();
-        let slotted_instances_for_slot = Memo::new(move |_| {
-            operative_clone
-                .get_slottedinstances_slot()
-                .into_iter()
-                .filter(|slotted_inst| {
-                    slotted_inst.get_slottedslot_slot().get_id() == slot_clone.get_id()
-                })
-                .collect::<Vec<_>>()
-        });
-        let operative_clone = operative.clone();
-        let upstream_and_local_slotted_number =
-            move || slotted_instances_for_slot.get().len() as u32;
-        let upstream_and_local_slotted_number_clone = upstream_and_local_slotted_number.clone();
-        let operative_clone = operative.clone();
-        let slot_clone = slot.clone();
-        let recursive_downstream_search =
-            move |children: Vec<RGSOConcrete<OperativeConcrete, Schema>>,
-                  slot: RGSOConcrete<TemplateSlot, Schema>,
-                  current_largest: u32|
-                  -> u32 {
-                {
-                    children.into_iter().fold(current_largest, |agg, child| {
-                        let node_num = child
-                            .get_slottedinstances_slot()
-                            .into_iter()
-                            .filter(|slotted_instance| {
-                                slotted_instance.get_slottedslot_slot().get_id() == slot.get_id()
-                            })
-                            .collect::<Vec<_>>()
-                            .len();
-                        let branch_num = gather_all_downstream_slotted_instances(
-                            child.get_childrenoperatives_slot(),
-                            slot.clone(),
-                            node_num as u32,
-                        );
-                        agg.max(branch_num)
-                    })
-                }
-            };
-        let downstream_slotted_number = move || {
-            recursive_downstream_search(
-                operative_clone.get_childrenoperatives_slot(),
-                slot_clone.clone(),
-                0,
-            )
-        };
-        let downstream_slotted_number_clone = downstream_slotted_number.clone();
-        let slot_clone = slot.clone();
-        let is_fulfilled = RwSignal::new(false);
-        let is_maxed_independently = RwSignal::new(false);
-        let is_maxed_considering_children = RwSignal::new(false);
-        let slot_bound_view = move || {
-            let cur_slot_num = upstream_and_local_slotted_number_clone.clone()();
-            let cur_downstream_slot_num = downstream_slotted_number.clone()();
-            match slot_clone.get_slotbound_slot() {
-                TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRangeOrZero(
-                    inner,
-                ) => EitherOf5::B(move || {
-                    is_fulfilled
-                        .set(cur_slot_num == 0 || (cur_slot_num >= inner.get_lower_bound_field()));
-                    is_maxed_independently.set(inner.get_upper_bound_field() == cur_slot_num);
-                    is_maxed_considering_children
-                        .set(inner.get_upper_bound_field() == (cur_downstream_slot_num));
-                    format!(
-                        "Lower Bound: {}, Upper Bound: {}",
-                        inner.get_lower_bound_field(),
-                        inner.get_upper_bound_field()
-                    )
-                }),
-                TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBoundOrZero(inner) => {
-                    is_fulfilled
-                        .set(cur_slot_num == 0 || (cur_slot_num >= inner.get_lower_bound_field()));
-                    is_maxed_independently.set(false);
-                    is_maxed_considering_children.set(false);
-                    EitherOf5::C(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),))
-                }
-                TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRange(inner) => {
-                    EitherOf5::D(move || {
-                        is_fulfilled.set(cur_slot_num >= inner.get_lower_bound_field());
-                        is_maxed_independently.set(inner.get_upper_bound_field() == cur_slot_num);
-                        is_maxed_considering_children
-                            .set(inner.get_upper_bound_field() == (cur_downstream_slot_num));
-                        format!(
-                            "Lower Bound: {}, Upper Bound: {}",
-                            inner.get_lower_bound_field(),
-                            inner.get_upper_bound_field()
-                        )
-                    })
-                }
-                TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBound(inner) => {
-                    is_fulfilled.set(cur_slot_num >= inner.get_lower_bound_field());
-                    is_maxed_independently.set(false);
-                    is_maxed_considering_children.set(false);
-                    EitherOf5::E(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),))
-                }
-                TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalitySingle(inner) => {
-                    is_fulfilled.set(cur_slot_num == 1);
-                    is_maxed_independently.set(cur_slot_num == 1);
-                    is_maxed_considering_children.set((cur_downstream_slot_num) == 1);
-                    EitherOf5::A(move || "Exactly 1")
-                }
-            }
-        };
-
-        let operative_clone = operative.clone();
-        let ctx_clone = ctx.clone();
-        let currently_slotted_view = move |instance: RGSOConcrete<SlottedInstance, Schema>| {
-            let ctx_clone = ctx_clone.clone();
-            let instance_clone = instance.clone();
-            let operative_clone = operative_clone.clone();
-            let is_owned_by_this_op =
-                move || instance_clone.get_fulfiller_slot().get_id() == operative_clone.get_id();
-            let instance_clone = instance.clone();
-            move || {
-                let ctx_clone = ctx_clone.clone();
-                let instance_clone = instance_clone.clone();
-                if is_owned_by_this_op() {
-                    let instance_clone_2 = instance_clone.clone();
-                    let on_click_remove = move |_| {
-                        instance_clone_2
-                            .edit(ctx_clone.clone())
-                            .delete()
-                            .execute()
-                            .unwrap();
-                    };
-                    let instance_clone_3 = instance_clone.clone();
-                    Either::Left(
-                        view! {<LeafSection>{move || instance_clone_3.get_instance_slot().get_name()} <Button on:click=on_click_remove>Remove</Button></LeafSection>},
-                    )
-                } else {
-                    Either::Right(
-                        view! {<LeafSection>{move || instance_clone.get_instance_slot().get_name()} (Slotted Upstream)</LeafSection>},
-                    )
-                }
-            }
-        };
-        let operative_clone = operative.clone();
-        let slot_clone = slot.clone();
-        let maybe_childest_spec = Memo::new(move |_| {
-            let operative_clone = operative_clone.clone();
-            let slot_clone = slot_clone.clone();
-            // For some reason you have to call this in the closure to get the correct reactive tracking.
-            operative_clone.get_slottypespecializations_slot();
-            get_childest_specialization_for_op_and_slot(operative_clone, slot_clone)
-        });
-        let is_adding_slotted_instance = RwSignal::new(false);
-        let operative_clone = operative.clone();
-        let slot_clone = slot.clone();
-        let ctx_clone = ctx.clone();
-        let add_slotted_instance_view = move || {
-            let operative_clone = operative_clone.clone();
-            let ctx_clone = ctx_clone.clone();
-            let slot = slot_clone.clone();
-            let schema_clone = schema.clone();
-            let slot_clone = slot.clone();
-            let selected_value =
-                RwSignal::<Option<RGSOConcrete<InstanceConcrete, Schema>>>::new(None);
-            let allowed_instances = Memo::new(move |_| {
-                let schema_clone = schema_clone.clone();
-
-                if let Some(childest_spec) = maybe_childest_spec.get() {
-                    get_all_instances_which_satisfy_specialization(&schema_clone, childest_spec)
-                } else {
-                    match slot_clone.get_templateslotvariant_slot() {
-                        TemplateSlotTypeVariantTraitObject::TemplateSlotTypeTraitOperative(
-                            trait_op,
-                        ) => get_all_instances_which_impl_trait_set(
-                            trait_op.get_allowedtraits_slot(),
-                            &schema_clone,
-                        ),
-                        TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(
-                            single_op,
-                        ) => get_all_descendent_instances(
-                            single_op.get_allowedoperative_slot(),
-                            &schema_clone,
-                        ),
-                        TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(
-                            multi_op,
-                        ) => multi_op.get_allowedoperatives_slot().into_iter().fold(
-                            BTreeSet::new(),
-                            |mut agg, op| {
-                                agg.extend(get_all_descendent_instances(op, &schema_clone));
-                                agg
-                            },
-                        ),
-                    }
-                }
-                .into_iter()
-                .collect::<Vec<_>>()
-            });
-            let slot_clone = slot.clone();
-            let on_click_save_slotted_instance = move |_| {
-                let slot_clone = slot_clone.clone();
-                let mut editor = operative_clone
-                    .edit(ctx_clone.clone())
-                    .add_new_slottedinstances(|new_slotted_instance| {
-                        new_slotted_instance
-                            .set_temp_id("the_new_slotted_instance")
-                            .add_existing_fulfiller(operative_clone.get_id(), |na| na)
-                            .add_existing_instance(selected_value.get().unwrap().get_id(), |na| na)
-                            .add_existing_slottedslot(slot_clone.get_id(), |na| na)
-                    });
-                let mut all_descendents = BTreeSet::new();
-                get_all_descendent_operators(operative_clone.clone(), &mut all_descendents);
-                all_descendents.into_iter().for_each(|descendent| {
-                    editor.incorporate(
-                        descendent
-                            .edit(ctx_clone.clone())
-                            .add_temp_slottedinstances("the_new_slotted_instance"),
-                    );
-                });
-                editor.execute().unwrap();
-                is_adding_slotted_instance.set(false);
-            };
-            view! {
-                <LeafSection>
-                <LeafSectionHeader>Adding A Slotted Instance</LeafSectionHeader>
-                <LeafSection>
-                <SignalSelectWithOptions value=selected_value options=Signal::derive(move || allowed_instances.get()) empty_allowed=true/>
-                </LeafSection>
-                <LeafSection>
-                <Button on:click=on_click_save_slotted_instance attr:disabled=move || is_maxed_considering_children.get() || is_maxed_independently.get()>Save</Button>
-                <Button on:click=move |_| is_adding_slotted_instance.set(false)>Cancel</Button>
-                </LeafSection>
-                </LeafSection>
-            }
-        };
-        let operative_clone = operative.clone();
-        let slot_clone = slot.clone();
-
-        let ctx_clone = ctx.clone();
-        let specialization_view = move || {
-            let ctx_clone = ctx_clone.clone();
-            let operative_clone = operative_clone.clone();
-            let slot_clone = slot_clone.clone();
-            let view = move || {
-                let ctx_clone = ctx_clone.clone();
-                let operative_clone = operative_clone.clone();
-                let operative_clone2 = operative_clone.clone();
-                let operative_clone3 = operative_clone.clone();
-                let operative_clone4 = operative_clone.clone();
-                let slot = slot_clone.clone();
-                let slot_clone = slot.clone();
-                let maybe_childest_spec = Memo::new(move |_| {
-                    get_childest_specialization_for_op_and_slot(
-                        operative_clone.clone(),
-                        slot_clone.clone(),
-                    )
-                });
-                let slot_clone = slot.clone();
-                let operative_clone = operative_clone4.clone();
-
-                move || {
-                    let ctx_clone = ctx_clone.clone();
-                    if let Some(specialization) = maybe_childest_spec.get() {
-                        let spec_clone = specialization.clone();
-                        let is_locally_owned_spec = match spec_clone.clone() {
-                            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
-                            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
-                            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
-                        };
-                        let operative_clone3 = operative_clone3.clone();
-                        let modify_view = move || {
-                            let ctx_clone = ctx_clone.clone();
-                            if is_locally_owned_spec {
-                                match spec_clone.clone() {
-                                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization( single, ) => {
-                                    let on_delete = move |_| {
-                                        single.edit(ctx_clone.clone()).delete().execute().unwrap();
-                                    };
-                                    EitherOf6::A(view! {
-                                        <LeafSection><Button on:click=on_delete>Delete Specialization</Button></LeafSection>
-                                    })
-                                }
-                                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
-                                    let on_delete = move |_| {
-                                        multi.edit(ctx_clone.clone()).delete().execute().unwrap();
-                                    };
-                                    EitherOf6::B(view! {
-                                        <LeafSection><Button on:click=on_delete>Delete Specialization</Button></LeafSection>
-                                    })
-                                }
-                                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
-                                    trait_object,
-                                ) => {
-                                    let on_delete = move |_| {
-                                        trait_object.edit(ctx_clone.clone()).delete().execute().unwrap();
-                                    };
-                                    EitherOf6::C(view! {
-                                        <LeafSection><Button on:click=on_delete>Delete Specialization</Button></LeafSection>
-                                    })
-                                },
-                            }
-                            } else {
-                                match spec_clone.clone() {
-                                    OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(_) => EitherOf6::D(()),
-                                    OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
-                                        EitherOf6::E(view!{<SlotTypeSpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(multi) />})
-                                    },
-                                    OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_obj) =>
-                                    EitherOf6::F(view!{<SlotTypeSpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_obj) />})
-,
-                                }
-                            }
-                        };
-                        EitherOf4::A(view! {
-                            <LeafSectionHeader>Specialization</LeafSectionHeader>
-                            <LeafSection attr:class="leafsection dependent">
-                            <SlotTypeSpecializationLineage specialization=specialization is_entry_point=true/>
-                            </LeafSection>
-                            {modify_view}
-                        })
-                    } else {
-                        match slot_clone.get_templateslotvariant_slot() {
-                            TemplateSlotTypeVariantTraitObject::TemplateSlotTypeTraitOperative(
-                                trait_op,
-                            ) => EitherOf4::B(view! {
-                                <LeafSectionHeader>Specialization</LeafSectionHeader>
-                                <SlotTypeSpecializationBuilder operative=operative_clone.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeTraitOperative(trait_op) />
-                            }),
-                            TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(
-                                single,
-                            ) => EitherOf4::C(view! {}),
-                            TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(
-                                multi,
-                            ) => EitherOf4::D(view! {
-                                <LeafSectionHeader>Specialization</LeafSectionHeader>
-                                <SlotTypeSpecializationBuilder operative=operative_clone.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(multi) />
-                            }),
-                        }
-                    }
-                }
-            };
-            view
-        };
-
-        view! {
-            <SubSection>
-            <SubSectionHeader>
-            {move || slot.get_name()}
-            </SubSectionHeader>
-
-            <LeafSection>
-                <LeafSectionHeader>
-                Slot Details
-                </LeafSectionHeader>
-                <LeafSection attr:class="leafsection dependent">
-                    {slot_variant}
-                    <br/>
-                    "Required:" {slot_bound_view}
-                    <br/>
-                    "Upstream (including this node) slotted instances:" {upstream_and_local_slotted_number}
-                    <br/>
-                    "Downstream slotted instances:" {downstream_slotted_number_clone}
-                    <br/>
-                    "Is Fulfilled:" {is_fulfilled}
-                    <br/>
-                    "Is Maxed Independently:" {is_maxed_independently}
-                    <br/>
-                    "Is Maxed Considering Children:" {is_maxed_considering_children}
-                </LeafSection>
-
-            </LeafSection>
-            <LeafSection>
-                <LeafSectionHeader>
-                Currently Slotted Instances
-                </LeafSectionHeader>
-                <For each=move || slotted_instances_for_slot.get() key=|item| item.get_id().clone() children=currently_slotted_view />
-            </LeafSection>
-
-            <Show when=move|| !is_maxed_considering_children.get() && !is_maxed_independently.get() && !is_adding_slotted_instance.get()>
-            <LeafSection>
-                <Button on:click=move |_| is_adding_slotted_instance.set(true)>Slot an instance</Button>
-            </LeafSection>
-            </Show>
-            <Show when=move|| is_adding_slotted_instance.get()>
-            {add_slotted_instance_view.clone()}
-            </Show>
-            <LeafSection>
-            {specialization_view}
-            </LeafSection>
-            </SubSection>
-        }
-    };
 
     let operative_clone = operative.clone();
+
+    let master_collapser = RwSignal::new(false);
 
     let operative_clone_3 = operative.clone();
     let operative_clone_4 = operative.clone();
     let operative_clone_5 = operative.clone();
+    let operative_clone_6 = operative.clone();
     view! {
         <Section>
             <SectionHeader slot>Overview</SectionHeader>
@@ -912,7 +481,15 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
         </Section>
         <Section>
             <SectionHeader slot>Slots</SectionHeader>
-            <For each=move || operative_clone_4.get_roottemplate_slot().get_templateslots_slot() key=|slot| slot.get_id().clone() children=each_slot_view>
+            <Button on:click=move|_| master_collapser.update(|prev| *prev = !*prev)>Toggle Slot Collapse</Button>
+            <For each=move || operative_clone_4.get_roottemplate_slot().get_templateslots_slot() key=|slot| slot.get_id().clone() let:slot children=move|slot|{
+                let master_collapser = master_collapser.clone();
+
+                let operative_clone_6 = operative_clone_6.clone();
+                view!{
+                    <OperativeSlotSection operative=operative_clone_6 slot_item=slot master_collapser=master_collapser/>
+                }
+            }>
             </For>
         </Section>
 
@@ -920,6 +497,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             <SectionHeader slot>Function Implementations</SectionHeader>
             <OperativeFunctionImplementations operative=operative_clone_5/>
         </Section>
+
     }
 }
 
@@ -967,29 +545,5 @@ fn recursive_search_for_locked_field(
         } else {
             recursive_search_for_locked_field(child.get_childrenoperatives_slot(), field_id)
         }
-    })
-}
-
-// Should take into account all children-trees and return the branch with the largest number of children
-fn gather_all_downstream_slotted_instances(
-    children: Vec<RGSOConcrete<OperativeConcrete, Schema>>,
-    slot: RGSOConcrete<TemplateSlot, Schema>,
-    current_largest: u32,
-) -> u32 {
-    children.into_iter().fold(current_largest, |agg, child| {
-        let node_num = child
-            .get_slottedinstances_slot()
-            .into_iter()
-            .filter(|slotted_instance| {
-                slotted_instance.get_slottedslot_slot().get_id() == slot.get_id()
-            })
-            .collect::<Vec<_>>()
-            .len();
-        let branch_num = gather_all_downstream_slotted_instances(
-            child.get_childrenoperatives_slot(),
-            slot.clone(),
-            node_num as u32,
-        );
-        agg.max(branch_num)
     })
 }

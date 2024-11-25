@@ -3,7 +3,7 @@ use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::{
     common::{
-        Button, LeafSection, LeafSectionHeader, SignalEnumSelect, SignalSelectWithOptions,
+        Button, LeafSection, LeafSectionHeader, SignalEnumSelect, SignalSelectRGSOWithOptions,
         SignalTextInput, SubSection, SubSectionHeader,
     },
     workspace::WorkspaceState,
@@ -229,7 +229,7 @@ pub fn SlotBuilder(
                 Required Traits For Slot
             </LeafSectionHeader>
             <div>
-                <SignalSelectWithOptions value=dropdown_selected_trait options=trait_options empty_allowed=true/>
+                <SignalSelectRGSOWithOptions value=dropdown_selected_trait options=trait_options empty_allowed=true/>
                 <Button on:click=on_click_add_trait>Add</Button>
             </div>
             <div>
@@ -497,7 +497,7 @@ pub fn SlotBuilder(
                 Operative Chosen for Slot
             </LeafSectionHeader>
             <div>
-               <SignalSelectWithOptions value=selected_single_operative options=operative_options empty_allowed=true/>
+               <SignalSelectRGSOWithOptions value=selected_single_operative options=operative_options empty_allowed=true/>
             </div>
         }
     };
@@ -537,7 +537,7 @@ pub fn SlotBuilder(
             } />
             </LeafSection>
             <div>
-               <SignalSelectWithOptions value=selected_single_operative options=operative_options empty_allowed=true/>
+               <SignalSelectRGSOWithOptions value=selected_single_operative options=operative_options empty_allowed=true/>
                <Button on:click=add_to_multi_select attr:disabled=move || selected_single_operative.get().is_none()>+</Button>
             </div>
         }

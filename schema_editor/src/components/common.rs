@@ -141,8 +141,17 @@ pub struct SectionHeader {
     children: Children,
 }
 #[component]
-pub fn Section(section_header: SectionHeader, children: Children) -> impl IntoView {
-    let is_collapsed = RwSignal::new(false);
+pub fn Section(
+    section_header: SectionHeader,
+    children: Children,
+    #[prop(optional)] master_collapser: Option<RwSignal<bool>>,
+) -> impl IntoView {
+    let is_collapsed = RwSignal::new(master_collapser.map_or(false, |inner| inner.get()));
+    Effect::new(move || {
+        if let Some(master_collapser) = master_collapser {
+            is_collapsed.set(master_collapser.get());
+        }
+    });
     let collapsed_class = move || match is_collapsed.get() {
         true => "collapsed-children",
         false => "",
@@ -168,6 +177,15 @@ pub fn Section(section_header: SectionHeader, children: Children) -> impl IntoVi
         {children()}
         </div>
         </section>
+    }
+}
+
+#[component]
+pub fn InfoNote(children: Children) -> impl IntoView {
+    view! {
+        <div class="infonote">
+        {children()}
+        </div>
     }
 }
 
@@ -234,7 +252,7 @@ where
 }
 
 #[component]
-pub fn SignalSelectWithOptions<T>(
+pub fn SignalSelectRGSOWithOptions<T>(
     value: RwSignal<Option<T>>,
     #[prop(into)] options: Signal<Vec<T>>,
     #[prop(optional)] empty_allowed: bool,
@@ -251,6 +269,8 @@ where
         } else {
             if let Some(first_option) = options.get().into_iter().next() {
                 value.set(Some(first_option))
+            } else {
+                value.set(None);
             }
         }
     });
@@ -298,6 +318,81 @@ where
                 let discriminant_string = discriminant.clone().map_or("None".to_string(), |item| item.get_name());
             view!{<option
                 prop:value=discriminant.map_or(0, |item| item.get_id().clone())
+                prop:selected = move || discriminant_string.clone() == cur_value()>
+                    {discriminant_string.clone()}
+                </option>}
+            }
+        </For>
+        </select>
+
+    }
+}
+
+#[component]
+pub fn SignalSelectWithOptions<T>(
+    value: RwSignal<Option<T>>,
+    #[prop(into)] options: Signal<Vec<T>>,
+    #[prop(optional)] empty_allowed: bool,
+) -> impl IntoView
+where
+    T: ToString + Send + Sync + Clone + 'static,
+{
+    Effect::new(move || {
+        options.track();
+        if empty_allowed {
+            value.set(None);
+        } else {
+            if let Some(first_option) = options.get().into_iter().next() {
+                value.set(Some(first_option))
+            } else {
+                value.set(None);
+            }
+        }
+    });
+    let options = move || {
+        let mut formatted_options = options
+            .get()
+            .into_iter()
+            .map(|item| Some(item))
+            .collect::<Vec<_>>();
+        if empty_allowed {
+            formatted_options.push(None)
+        }
+        formatted_options
+    };
+    let cur_value = move || match value.get() {
+        Some(item) => item.to_string(),
+        None => "None".to_string(),
+    };
+    let options_clone = options.clone();
+    let on_change_value = move |e| {
+        let id = event_target_value(&e);
+        let return_val = if id == "None" {
+            None
+        } else {
+            options_clone()
+                .into_iter()
+                .find(|item| {
+                    if let Some(item) = item {
+                        item.to_string() == id
+                    } else {
+                        false
+                    }
+                })
+                .unwrap()
+        };
+        value.set(return_val);
+    };
+    let options_clone = options.clone();
+    view! {
+        <select prop:value=cur_value on:change=on_change_value>
+        <For each=move || options_clone()
+            key=|item| match item  {Some(item) => item.to_string(), None => "None".to_string()}
+            let:discriminant>
+            {
+                let discriminant_string = discriminant.clone().map_or("None".to_string(), |item| item.to_string());
+            view!{<option
+                prop:value=discriminant.map_or("None".to_string(), |item| item.to_string())
                 prop:selected = move || discriminant_string.clone() == cur_value()>
                     {discriminant_string.clone()}
                 </option>}

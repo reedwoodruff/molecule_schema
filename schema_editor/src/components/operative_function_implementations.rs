@@ -42,7 +42,7 @@ pub fn OperativeFunctionImplementations(
         <Show when=move || !is_adding_impl.get()>
         <Button attr:disabled=move||selected_fn_def.get().is_none() on:click=move|_| {if selected_fn_def.get().is_some() {is_adding_impl.set(true)}}>
         Add New Implementation</Button>" "
-            for <SignalSelectWithOptions value=selected_fn_def options=Signal::derive(move || fn_def_options.get()) empty_allowed=true/>
+            for <SignalSelectRGSOWithOptions value=selected_fn_def options=Signal::derive(move || fn_def_options.get()) empty_allowed=true/>
         </Show>
         <Show when=move || is_adding_impl.get()>
             <FunctionImplementationBuilder

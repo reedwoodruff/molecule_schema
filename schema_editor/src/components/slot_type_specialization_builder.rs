@@ -56,7 +56,7 @@ pub fn SlotTypeSpecializationBuilder(
 
     let choose_ops_view = move || match selected_spec.get() {
         LimitedSpecOptions::Single => Either::Right(view! {
-                <SignalSelectWithOptions value=selected_single_op options=selectable_options empty_allowed=true />
+                <SignalSelectRGSOWithOptions value=selected_single_op options=selectable_options empty_allowed=true />
         }),
         LimitedSpecOptions::Multiple => Either::Left(view! {
             <LeafSectionHeader>
@@ -71,7 +71,7 @@ pub fn SlotTypeSpecializationBuilder(
                 </LeafSection>}
             }/>
             <div>
-            <SignalSelectWithOptions value=selected_single_op options=selectable_options empty_allowed=true />
+            <SignalSelectRGSOWithOptions value=selected_single_op options=selectable_options empty_allowed=true />
             <Button attr:disabled=move || selected_single_op.get().is_none() on:click=move |_| {
                 if let Some(selected_single_op) = selected_single_op.get() {
                     selected_list_of_ops.update(|prev| prev.push(selected_single_op));
@@ -89,10 +89,11 @@ pub fn SlotTypeSpecializationBuilder(
         leptos::logging::log!("running");
         let operative = operative_clone.clone();
         let operative_clone = operative.clone();
-        let mut all_descendent_ops = BTreeSet::new();
-        get_all_descendent_operators(operative_clone, &mut all_descendent_ops);
-        let is_error = match selected_spec.get() {
-            LimitedSpecOptions::Single => all_descendent_ops.clone().into_iter().any(|op| {
+        let mut all_descendent_ops_and_this_op = BTreeSet::new();
+        all_descendent_ops_and_this_op.insert(operative_clone.clone());
+        get_all_descendent_operators(operative_clone, &mut all_descendent_ops_and_this_op);
+        let is_already_slotted_uncompliant_downstream_error = match selected_spec.get() {
+            LimitedSpecOptions::Single => all_descendent_ops_and_this_op.clone().into_iter().any(|op| {
                 op.get_slottedinstances_slot()
                     .into_iter()
                     .filter(|slint| *slint.get_slottedslot_slot().get_id() == match spec_target_clone.clone(){
@@ -106,7 +107,7 @@ pub fn SlotTypeSpecializationBuilder(
                         slotted_op.get_id() != selected_single_op.get().unwrap().get_id()
                     })
             }),
-            LimitedSpecOptions::Multiple => all_descendent_ops.clone().into_iter().any(|op| {
+            LimitedSpecOptions::Multiple => all_descendent_ops_and_this_op.clone().into_iter().any(|op| {
                 op.get_slottedinstances_slot()
                     .into_iter()
                     .filter(|slint| *slint.get_slottedslot_slot().get_id() == match spec_target_clone.clone(){
@@ -119,7 +120,7 @@ pub fn SlotTypeSpecializationBuilder(
                     .any(|slotted_op| !selected_list_of_ops.get().contains(&slotted_op))
             }),
         };
-        if is_error {
+        if is_already_slotted_uncompliant_downstream_error {
             leptos::logging::warn!(
                 "Some downstream operative has an incompatible instance slotted"
             );
@@ -193,7 +194,7 @@ pub fn SlotTypeSpecializationBuilder(
                         );
                     }
                 };
-                all_descendent_ops.into_iter().for_each(|desc_op| {
+                all_descendent_ops_and_this_op.into_iter().for_each(|desc_op| {
                     editor.incorporate(
                         desc_op
                             .edit(ctx_clone.clone())
@@ -273,7 +274,7 @@ pub fn SlotTypeSpecializationBuilder(
                             .add_existing_allowedoperatives(op.get_id(), |na| na),
                     )
                 });
-                all_descendent_ops.into_iter().for_each(|desc_op| {
+                all_descendent_ops_and_this_op.into_iter().for_each(|desc_op| {
                     editor.incorporate(
                         desc_op
                             .edit(ctx_clone.clone())
@@ -285,7 +286,6 @@ pub fn SlotTypeSpecializationBuilder(
                 editor.execute().unwrap();
             }
         };
-        is_adding.set(false);
     };
 
     view! {
@@ -377,7 +377,7 @@ pub fn TraitSpecializationBuilder(
         match selected_spec.get() {
         OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization => {
             EitherOf3::A(view! {
-                    <SignalSelectWithOptions value=selected_single_op options=selectable_op_options empty_allowed=true />
+                    <SignalSelectRGSOWithOptions value=selected_single_op options=selectable_op_options empty_allowed=true />
             })
         }
         OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeMultiSpecialization => {
@@ -394,7 +394,7 @@ pub fn TraitSpecializationBuilder(
                     </LeafSection>}
                 }/>
                 <div>
-                <SignalSelectWithOptions value=selected_single_op options=selectable_op_options empty_allowed=true />
+                <SignalSelectRGSOWithOptions value=selected_single_op options=selectable_op_options empty_allowed=true />
                 <Button attr:disabled=move || selected_single_op.get().is_none() on:click=move |_| {
                     if let Some(selected_single_op) = selected_single_op.get() {
                         selected_list_of_ops.update(|prev| prev.push(selected_single_op));
@@ -417,7 +417,7 @@ pub fn TraitSpecializationBuilder(
                     </LeafSection>}
                 }/>
                 <div>
-                <SignalSelectWithOptions value=selected_single_trait options=selectable_trait_options empty_allowed=true />
+                <SignalSelectRGSOWithOptions value=selected_single_trait options=selectable_trait_options empty_allowed=true />
                 <Button attr:disabled=move || selected_single_trait.get().is_none() on:click=move |_| {
                     if let Some(selected_single_trait) = selected_single_trait.get() {
                         selected_list_of_traits.update(|prev| prev.push(selected_single_trait));
@@ -439,11 +439,12 @@ pub fn TraitSpecializationBuilder(
         leptos::logging::log!("running");
         let operative = operative_clone.clone();
         let operative_clone = operative.clone();
-        let mut all_descendent_ops = BTreeSet::new();
-        get_all_descendent_operators(operative_clone, &mut all_descendent_ops);
+        let mut all_descendent_ops_and_this_op = BTreeSet::new();
+        all_descendent_ops_and_this_op.insert(operative_clone.clone());
+        get_all_descendent_operators(operative_clone, &mut all_descendent_ops_and_this_op);
         let is_error = match selected_spec.get() {
             OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization => {
-                all_descendent_ops.clone().into_iter().any(|op| {
+                all_descendent_ops_and_this_op.clone().into_iter().any(|op| {
                     op.get_slottedinstances_slot()
                         .into_iter()
                         .filter(|slint| *slint.get_slottedslot_slot().get_id() == match spec_target_clone.clone(){
@@ -457,7 +458,7 @@ pub fn TraitSpecializationBuilder(
                 })
             }
             OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeMultiSpecialization => {
-                all_descendent_ops.clone().into_iter().any(|op| {
+                all_descendent_ops_and_this_op.clone().into_iter().any(|op| {
                     op.get_slottedinstances_slot()
                         .into_iter()
                         .filter(|slint| *slint.get_slottedslot_slot().get_id() == match spec_target_clone.clone(){
@@ -482,7 +483,7 @@ pub fn TraitSpecializationBuilder(
                 let total_trait_list = total_trait_list.into_iter().collect::<Vec<_>>();
                 let all_compliant_ops =
                     get_all_operatives_which_impl_trait_set(total_trait_list, &schema_clone);
-                all_descendent_ops.clone().into_iter().any(|op| {
+                all_descendent_ops_and_this_op.clone().into_iter().any(|op| {
                     op.get_slottedinstances_slot()
                         .into_iter()
                         .filter(|slint| *slint.get_slottedslot_slot().get_id() == match spec_target_clone.clone(){
@@ -541,7 +542,7 @@ pub fn TraitSpecializationBuilder(
                                 );
                             },
                 };
-                all_descendent_ops.into_iter().for_each(|desc_op| {
+                all_descendent_ops_and_this_op.into_iter().for_each(|desc_op| {
                     editor.incorporate(
                         desc_op
                             .edit(ctx_clone.clone())
@@ -594,7 +595,7 @@ pub fn TraitSpecializationBuilder(
                             .add_existing_allowedoperatives(op.get_id(), |na| na),
                     )
                 });
-                all_descendent_ops.into_iter().for_each(|desc_op| {
+                all_descendent_ops_and_this_op.into_iter().for_each(|desc_op| {
                     editor.incorporate(
                         desc_op
                             .edit(ctx_clone.clone())
@@ -652,7 +653,7 @@ pub fn TraitSpecializationBuilder(
                                 .add_existing_allowedtraits(trait_item.get_id(), |na| na),
                         )
                     });
-                all_descendent_ops.into_iter().for_each(|desc_op| {
+                all_descendent_ops_and_this_op.into_iter().for_each(|desc_op| {
                     editor.incorporate(
                         desc_op
                             .edit(ctx_clone.clone())
