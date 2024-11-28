@@ -23,10 +23,9 @@ pub fn OperativeFunctionImplementations(
     let operative_clone = operative.clone();
     let on_save_new_fn_impl = Callback::new(
         move |incorporatable: Box<dyn Incorporatable<FunctionImplementation, Schema>>| {
-            let mut editor = operative_clone
-                .edit(ctx_clone.clone())
-                .add_temp_functionimpls("new_fn_impl");
-            editor.incorporate(incorporatable);
+            let mut editor = operative_clone.edit(ctx_clone.clone());
+            editor.add_temp_functionimpls("new_fn_impl");
+            editor.incorporate(&incorporatable);
             editor.execute().unwrap();
 
             is_adding_impl.set(false);

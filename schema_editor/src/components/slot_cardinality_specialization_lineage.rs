@@ -32,7 +32,7 @@ pub fn SlotCardinalitySpecializationLineage(
                 view! {<GeneralSpecializationTargetView is_entry_point=true target=target />}.into_any()
             },
             OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(item) => {
-                let parent = match item.get_specializationtarget_slot() {
+                let parent = match item.get_upstreamcardinality_slot() {
                     OperativeSlotCardinalitySpecializableByZeroTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {
                         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item)
                     },
@@ -64,7 +64,7 @@ pub fn SlotCardinalitySpecializationLineage(
                 }.into_any()
             },
             OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalitySingleSpecialization(item) => {
-                let parent = match item.get_specializationtarget_slot() {
+                let parent = match item.get_upstreamcardinality_slot() {
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {
                         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item)
                     },
@@ -121,7 +121,7 @@ pub fn GeneralSpecializationTargetView(
             view!{}.into_any()
         }
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {
-            let target = match item.get_specializationtarget_slot() {
+            let target = match item.get_upstreamcardinality_slot() {
                 OperativeSlotCardinalitySpecializableByLowerBoundOrZeroTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) =>
                 OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item),
                 OperativeSlotCardinalitySpecializableByLowerBoundOrZeroTraitObject::TemplateSlotCardinalityLowerBoundOrZero(item) =>
@@ -130,11 +130,11 @@ pub fn GeneralSpecializationTargetView(
             view!{<GeneralSpecializationTargetView is_entry_point=false  target=target />}.into_any()
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => {
-            view!{<GeneralSpecializationTargetView is_entry_point=false  target=item.get_specializationtarget_slot() />}.into_any()
+            view!{<GeneralSpecializationTargetView is_entry_point=false  target=item.get_upstreamcardinality_slot() />}.into_any()
 
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => {
-            let target = match item.get_specializationtarget_slot() {
+            let target = match item.get_upstreamcardinality_slot() {
                 OperativeSlotCardinalitySpecializableByRangeOrZeroTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item)
                 },
@@ -152,7 +152,7 @@ pub fn GeneralSpecializationTargetView(
 
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => {
-            let target = match item.get_specializationtarget_slot() {
+            let target = match item.get_upstreamcardinality_slot() {
                 OperativeSlotCardinalitySpecializableByLowerBoundTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item)
                 },

@@ -4,7 +4,7 @@ resolver = "2"
 members = [
     "primitive_schema_editor",
     "first_generation_compiler",
-    "second_generation_compiler",
+    # "second_generation_compiler",
     "base_types",
     "to_composite_id_macro",
     "molecule_core",
@@ -27,6 +27,22 @@ features = [
     "js",
 ]
 
-# [profile.dev]
-# debug = 0
-# codegen-backend = "cranelift"
+[profile.dev]
+opt-level = 0      # Low optimization for default crates
+debug = 2
+incremental = true
+
+# High optimization for dependencies (crates you don't change often)
+[profile.dev.package.schema_editor_generated_toolkit]
+opt-level = 0
+debug = 1
+
+# High optimization for dependencies (crates you don't change often)
+[profile.dev.package."*"]
+opt-level = 3
+debug = 1
+
+# Minimal optimization for build dependencies
+[profile.dev.build-override]
+opt-level = 0
+debug = 1

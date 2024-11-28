@@ -107,3 +107,9 @@
     overflow: none;
     visibility: hidden;
 }
+
+.hidden {
+    height: 0px;
+    overflow: none;
+    visibility: hidden;
+}

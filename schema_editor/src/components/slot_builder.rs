@@ -12,11 +12,6 @@ use crate::components::{
 #[component]
 pub fn SlotBuilder(
     template: RGSOConcrete<TemplateConcrete, Schema>, // builder: FreshBuilder<
-    //     TemplateSlot,
-    //     Schema,
-    //     <TemplateSlot as StaticTypestate>::EmptyFieldTypestate,
-    //     <TemplateSlot as StaticTypestate>::InitialSlotTypestate,
-    // >,
     close_callback: Callback<()>,
 ) -> impl IntoView {
     let ctx = use_context::<SharedGraph<Schema>>().unwrap();
@@ -307,7 +302,7 @@ pub fn SlotBuilder(
         // The better solution would be to make a typestate-erased version of the FreshBuilder which can be opted into
         multi_operative_list.get().into_iter().for_each(|op| {
             editor.incorporate(
-                tempslotvariant
+                &tempslotvariant
                     .clone()
                     .add_existing_allowedoperatives(op.get_id(), |na| na),
             )
@@ -315,7 +310,7 @@ pub fn SlotBuilder(
         match slot_bound.get() {
             TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRangeOrZero => editor
                 .incorporate(
-                    TemplateSlot::new(ctx_clone.clone())
+                    &TemplateSlot::new(ctx_clone.clone())
                         .add_new_slotbound::<TemplateSlotCardinalityRangeOrZero, _>(
                             |new_slot_bound| {
                                 new_slot_bound
@@ -332,7 +327,7 @@ pub fn SlotBuilder(
                 ),
             TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBoundOrZero => editor
                 .incorporate(
-                    TemplateSlot::new(ctx_clone.clone())
+                    &TemplateSlot::new(ctx_clone.clone())
                         .add_new_slotbound::<TemplateSlotCardinalityLowerBoundOrZero, _>(|new_slot_bound| {
                             new_slot_bound
                                 .set_temp_id("slot_bound")
@@ -345,7 +340,7 @@ pub fn SlotBuilder(
                         ),
                 ),
             TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRange => editor.incorporate(
-                TemplateSlot::new(ctx_clone.clone())
+                &TemplateSlot::new(ctx_clone.clone())
                     .add_new_slotbound::<TemplateSlotCardinalityRange, _>(|new_slot_bound| {
                         new_slot_bound
                             .set_temp_id("slot_bound")
@@ -357,7 +352,7 @@ pub fn SlotBuilder(
                     .add_temp_templateslotvariant::<TemplateSlotTypeMultiOperative>("tempslotvariant"),
             ),
             TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBound => editor.incorporate(
-                TemplateSlot::new(ctx_clone.clone())
+                &TemplateSlot::new(ctx_clone.clone())
                     .add_new_slotbound::<TemplateSlotCardinalityLowerBound, _>(|new_slot_bound| {
                         new_slot_bound
                             .set_temp_id("slot_bound")
@@ -368,7 +363,7 @@ pub fn SlotBuilder(
                     .add_temp_templateslotvariant::<TemplateSlotTypeMultiOperative>("tempslotvariant"),
             ),
             TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalitySingle => editor.incorporate(
-                TemplateSlot::new(ctx_clone.clone())
+                &TemplateSlot::new(ctx_clone.clone())
                     .add_new_slotbound::<TemplateSlotCardinalitySingle, _>(|new_slot_bound| {
                         new_slot_bound.set_temp_id("slot_bound")
                     })

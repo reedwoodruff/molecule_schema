@@ -328,12 +328,10 @@ pub(crate) fn generate_operative_streams(
             }
             impl ExistingBuilder<#struct_name, Schema >
             {
-                pub fn #field_setter_fn_name(mut self, new_val: #field_value_type) -> Self {
+                pub fn #field_setter_fn_name(&mut self, new_val: #field_value_type) -> &mut Self {
                     let value = new_val.into_primitive_value();
                     self.inner_builder.edit_field(#field_id, value);
-                    Self {
-                        inner_builder: self.inner_builder,
-                    }
+                    self
                 }
             }
         }
@@ -584,10 +582,10 @@ pub(crate) fn generate_operative_streams(
                 quote!{
                     pub fn #method_name
                         <SlotsTSInnerSecondary>
-                    (mut self,
+                    (&mut self,
                         builder_closure: impl Fn( FreshBuilder<#single_item_variant_name, Schema, <#single_item_variant_name as StaticTypestate>::EmptyFieldTypestate, <#single_item_variant_name as StaticTypestate>::InitialSlotTypestate>)
                             -> FreshBuilder<#single_item_variant_name, Schema, <#single_item_variant_name as StaticTypestate>::FulfilledFieldTypestate, SlotsTSInnerSecondary>
-                    ) -> Self
+                    ) -> &mut Self
                     where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS
                     {
                         let mut new_builder = FreshBuilder {
@@ -612,10 +610,10 @@ pub(crate) fn generate_operative_streams(
                 quote!{
                     pub fn #method_name
                         <T, SlotsTSInnerSecondary>
-                    (mut self,
+                    (&mut self,
                         builder_closure: impl Fn( FreshBuilder<T, Schema, <T as StaticTypestate>::EmptyFieldTypestate, <T as StaticTypestate>::InitialSlotTypestate>)
                             -> FreshBuilder<T, Schema, <T as StaticTypestate>::FulfilledFieldTypestate, SlotsTSInnerSecondary>
-                    ) -> Self
+                    ) -> &mut Self
                     where SlotsTSInnerSecondary: base_types::post_generation::type_level::FulfilledSlotTupleTS,
                         T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name + HasSlotEnum,
                         <T as HasSlotEnum>::SlotEnum: Send + Sync + Clone + std::fmt::Debug,
@@ -775,9 +773,9 @@ pub(crate) fn generate_operative_streams(
                         item_name_string
                     )};
                 quote!{
-                    pub fn #method_name(mut self,
+                    pub fn #method_name(&mut self,
                         str_id: impl AsRef<str>,
-                    ) -> Self
+                    ) -> &mut Self
                     {
                                 let host_id = match &self.inner_builder.wip_instance {
                                     Some(instance) => BlueprintId::Temporary(instance.get_temp_id().clone()),
@@ -791,9 +789,9 @@ pub(crate) fn generate_operative_streams(
             };
             let existing_multi_item_generate_add_temp_fn_definition = |method_name: Ident | {
                 quote!{
-                    pub fn #method_name<T>(mut self,
+                    pub fn #method_name<T>(&mut self,
                         str_id: impl AsRef<str>,
-                    ) -> Self
+                    ) -> &mut Self
                     where
                     T: Send + Sync + StaticTypestate + std::fmt::Debug + std::clone::Clone + RBuildable<Schema = Schema> + RIntoSchema<Schema = Schema> + #marker_trait_name + HasSlotEnum,
                     <T as HasSlotEnum>::SlotEnum: Send + Sync + Clone + std::fmt::Debug,
@@ -958,6 +956,7 @@ pub(crate) fn generate_operative_streams(
                         self
                     }
                     #existing_add_temp_fn_definition
+
                 }
             }
         };
@@ -1017,6 +1016,16 @@ pub(crate) fn generate_operative_streams(
                     return_builder_minus_one_slot_typestate
                 }
             }
+            impl ExistingBuilder<#struct_name, Schema> {
+                pub fn #remove_from_slot_fn_name(&mut self, target_id: &Uid) -> &mut Self {
+                    self.inner_builder.remove_outgoing(base_types::post_generation::SlotRef{
+                        host_instance_id: self.inner_builder.get_id().clone(),
+                        target_instance_id: target_id.clone(),
+                        slot_id: #slot_id,
+                    });
+                    self
+                }
+            }
 
             #add_to_slot_stream
         }
@@ -1070,11 +1079,11 @@ pub(crate) fn generate_operative_streams(
     let delete_existing_item_stream = {
         quote! {
             impl ExistingBuilder<#struct_name, Schema> {
-                pub fn delete(mut self) -> Self {
+                pub fn delete(&mut self) -> &mut Self {
                     self.inner_builder.delete(&self.inner_builder.id.clone());
                     self
                 }
-                pub fn delete_recursive(mut self) -> Self {
+                pub fn delete_recursive(&mut self) -> &mut Self {
                     self.inner_builder.delete_recursive();
                     self
                 }

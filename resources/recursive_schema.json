@@ -86,13 +86,13 @@
           },
           "bounds": "Single"
         },
-        "80771728637153161334067380379759625045": {
+        "160016695975170655056976933104912570131": {
           "tag": {
             "name": "SlottedSlot",
-            "id": 80771728637153161334067380379759625045
+            "id": 160016695975170655056976933104912570131
           },
           "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
+            "LibraryOperative": 60265249704941002263294853316985166680
           },
           "bounds": "Single"
         },
@@ -204,6 +204,7 @@
         }
       },
       "trait_impls": {
+        "50371681687015139319465558632877885485": {},
         "126831637068183444206449483546552649222": {
           "258380955653095608834384786163178087857": [
             {
@@ -452,39 +453,29 @@
       },
       "field_constraints": {},
       "operative_slots": {
-        "16569605261811674613157200046044777819": {
+        "217488148744383666181274952779631320902": {
           "tag": {
-            "name": "RootTemplateSlot",
-            "id": 16569605261811674613157200046044777819
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
-          },
-          "bounds": "Single"
-        },
-        "180267158143956329307233756244991947794": {
-          "tag": {
-            "name": "Specializer",
-            "id": 180267158143956329307233756244991947794
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 282754878768449679153758877317862393927
-          },
-          "bounds": "Single"
-        },
-        "232919257961073314234609362732901986414": {
-          "tag": {
-            "name": "SpecializationTarget",
-            "id": 232919257961073314234609362732901986414
+            "name": "UpstreamCardinality",
+            "id": 217488148744383666181274952779631320902
           },
           "operative_descriptor": {
             "TraitOperative": {
               "trait_ids": [297927264952109735515376026237497069951],
               "tag": {
-                "name": "SpecializationTarget",
-                "id": 111563490090254392848768899303989059373
+                "name": "UpstreamCardinality",
+                "id": 161268180975749836224026125580164922789
               }
             }
+          },
+          "bounds": "Single"
+        },
+        "258773907810329740352426088889509282917": {
+          "tag": {
+            "name": "SpecializedSlot",
+            "id": 258773907810329740352426088889509282917
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 60265249704941002263294853316985166680
           },
           "bounds": "Single"
         }
@@ -565,6 +556,22 @@
       },
       "field_constraints": {},
       "operative_slots": {
+        "40480062384994206445761423486125190311": {
+          "tag": {
+            "name": "UpstreamType",
+            "id": 40480062384994206445761423486125190311
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [257183523223639879383916779697438059690],
+              "tag": {
+                "name": "UpstreamType",
+                "id": 327459455300121512676574547482251308207
+              }
+            }
+          },
+          "bounds": "Single"
+        },
         "125056915937343487152948179732402591571": {
           "tag": {
             "name": "AllowedOperatives",
@@ -577,39 +584,13 @@
             "LowerBound": 2
           }
         },
-        "248701490399212212665530000075833835356": {
+        "262271113853657479987622157181123676261": {
           "tag": {
-            "name": "Specializer",
-            "id": 248701490399212212665530000075833835356
+            "name": "SpecializedSlot",
+            "id": 262271113853657479987622157181123676261
           },
           "operative_descriptor": {
-            "LibraryOperative": 282754878768449679153758877317862393927
-          },
-          "bounds": "Single"
-        },
-        "284736257751937315702510631568937627372": {
-          "tag": {
-            "name": "SpecializationTarget",
-            "id": 284736257751937315702510631568937627372
-          },
-          "operative_descriptor": {
-            "TraitOperative": {
-              "trait_ids": [257183523223639879383916779697438059690],
-              "tag": {
-                "name": "SpecializationTarget",
-                "id": 275813228539894682204464560147129386847
-              }
-            }
-          },
-          "bounds": "Single"
-        },
-        "313958924266353957649854818622448415750": {
-          "tag": {
-            "name": "RootTemplateSlot",
-            "id": 313958924266353957649854818622448415750
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
+            "LibraryOperative": 60265249704941002263294853316985166680
           },
           "bounds": "Single"
         }
@@ -642,39 +623,29 @@
         }
       },
       "operative_slots": {
-        "57676189404969722342906976521724088241": {
+        "81757219817762440306281839018329365236": {
           "tag": {
-            "name": "RootTemplateSlot",
-            "id": 57676189404969722342906976521724088241
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
-          },
-          "bounds": "Single"
-        },
-        "92188376385423049891360703456189622775": {
-          "tag": {
-            "name": "SpecializationTarget",
-            "id": 92188376385423049891360703456189622775
+            "name": "UpstreamCardinality",
+            "id": 81757219817762440306281839018329365236
           },
           "operative_descriptor": {
             "TraitOperative": {
               "trait_ids": [297927264952109735515376026237497069951],
               "tag": {
-                "name": "SpecializationTarget",
-                "id": 236837125188382399564791340977777397009
+                "name": "UpstreamCardinality",
+                "id": 3490493977778246221668485338067066230
               }
             }
           },
           "bounds": "Single"
         },
-        "262473203326323047052061517137974680403": {
+        "260396848930471101798683536773771272367": {
           "tag": {
-            "name": "Specializer",
-            "id": 262473203326323047052061517137974680403
+            "name": "SpecializedSlot",
+            "id": 260396848930471101798683536773771272367
           },
           "operative_descriptor": {
-            "LibraryOperative": 282754878768449679153758877317862393927
+            "LibraryOperative": 60265249704941002263294853316985166680
           },
           "bounds": "Single"
         }
@@ -812,17 +783,17 @@
       },
       "field_constraints": {},
       "operative_slots": {
-        "97284032531681890527236593542128468674": {
+        "74088268003360057285165052799048590902": {
           "tag": {
-            "name": "SpecializationTarget",
-            "id": 97284032531681890527236593542128468674
+            "name": "UpstreamType",
+            "id": 74088268003360057285165052799048590902
           },
           "operative_descriptor": {
             "TraitOperative": {
               "trait_ids": [257183523223639879383916779697438059690],
               "tag": {
-                "name": "SpecializationTarget",
-                "id": 37207597520335091285222863040614242583
+                "name": "UpstreamType",
+                "id": 297438278793421088291704022528792039700
               }
             }
           },
@@ -838,23 +809,13 @@
           },
           "bounds": "Single"
         },
-        "290909284312890053152307651267592761924": {
+        "329754479918875234773734715295470131680": {
           "tag": {
-            "name": "RootTemplateSlot",
-            "id": 290909284312890053152307651267592761924
+            "name": "SpecializedSlot",
+            "id": 329754479918875234773734715295470131680
           },
           "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
-          },
-          "bounds": "Single"
-        },
-        "326096923064435455521305307795221835660": {
-          "tag": {
-            "name": "Specializer",
-            "id": 326096923064435455521305307795221835660
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 282754878768449679153758877317862393927
+            "LibraryOperative": 60265249704941002263294853316985166680
           },
           "bounds": "Single"
         }
@@ -951,39 +912,29 @@
         }
       },
       "operative_slots": {
-        "145879141386367624490035633441293400949": {
+        "302097001683743846469023668256477521100": {
           "tag": {
-            "name": "SpecializationTarget",
-            "id": 145879141386367624490035633441293400949
+            "name": "SpecializedSlot",
+            "id": 302097001683743846469023668256477521100
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 60265249704941002263294853316985166680
+          },
+          "bounds": "Single"
+        },
+        "302415353131671595152152438132428210379": {
+          "tag": {
+            "name": "UpstreamCardinality",
+            "id": 302415353131671595152152438132428210379
           },
           "operative_descriptor": {
             "TraitOperative": {
               "trait_ids": [286968657872264898795510840649696431222],
               "tag": {
-                "name": "SpecializationTarget",
-                "id": 338351342518939084663614867891559576849
+                "name": "UpstreamCardinality",
+                "id": 304778500821693981272711194175670385930
               }
             }
-          },
-          "bounds": "Single"
-        },
-        "259664057398383335937952526821040396568": {
-          "tag": {
-            "name": "RootTemplateSlot",
-            "id": 259664057398383335937952526821040396568
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
-          },
-          "bounds": "Single"
-        },
-        "329686298777077300714942295656990684800": {
-          "tag": {
-            "name": "Specializer",
-            "id": 329686298777077300714942295656990684800
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 282754878768449679153758877317862393927
           },
           "bounds": "Single"
         }
@@ -1003,39 +954,29 @@
       },
       "field_constraints": {},
       "operative_slots": {
-        "108788114049414484770562864518076394428": {
+        "136812457480298396893179675969350484282": {
           "tag": {
-            "name": "Specializer",
-            "id": 108788114049414484770562864518076394428
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 282754878768449679153758877317862393927
-          },
-          "bounds": "Single"
-        },
-        "175340276502017752247364616190888570822": {
-          "tag": {
-            "name": "SpecializationTarget",
-            "id": 175340276502017752247364616190888570822
+            "name": "UpstreamCardinality",
+            "id": 136812457480298396893179675969350484282
           },
           "operative_descriptor": {
             "TraitOperative": {
               "trait_ids": [54063214285677426865208002869740891199],
               "tag": {
-                "name": "SpecializationTarget",
-                "id": 160727481669899813900140338139798256969
+                "name": "UpstreamCardinality",
+                "id": 112669228679595870365204273150290708211
               }
             }
           },
           "bounds": "Single"
         },
-        "212655933322579667980389350382834243421": {
+        "297889814630285361340773114761464519575": {
           "tag": {
-            "name": "RootTemplateSlot",
-            "id": 212655933322579667980389350382834243421
+            "name": "SpecializedSlot",
+            "id": 297889814630285361340773114761464519575
           },
           "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
+            "LibraryOperative": 60265249704941002263294853316985166680
           },
           "bounds": "Single"
         }
@@ -1102,31 +1043,13 @@
             "LowerBound": 0
           }
         },
-        "186239308629398576917731129118563974704": {
+        "175604511137265561670205722567957880669": {
           "tag": {
-            "name": "SlotCardinalitySpecializations",
-            "id": 186239308629398576917731129118563974704
+            "name": "SlotSpecializations",
+            "id": 175604511137265561670205722567957880669
           },
           "operative_descriptor": {
-            "TraitOperative": {
-              "trait_ids": [305961141896660261428600203427492641437],
-              "tag": {
-                "name": "SlotCardinalitySpecialization",
-                "id": 29642714838095163510749642647417656698
-              }
-            }
-          },
-          "bounds": {
-            "LowerBound": 0
-          }
-        },
-        "271938763147738781995453864487273086147": {
-          "tag": {
-            "name": "SlottedInstances",
-            "id": 271938763147738781995453864487273086147
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 173419172892809116665434241791320147061
+            "LibraryOperative": 60265249704941002263294853316985166680
           },
           "bounds": {
             "LowerBound": 0
@@ -1161,24 +1084,6 @@
           },
           "operative_descriptor": {
             "LibraryOperative": 282754878768449679153758877317862393927
-          },
-          "bounds": {
-            "LowerBound": 0
-          }
-        },
-        "334267004730269675417129453042505791391": {
-          "tag": {
-            "name": "SlotTypeSpecializations",
-            "id": 334267004730269675417129453042505791391
-          },
-          "operative_descriptor": {
-            "TraitOperative": {
-              "trait_ids": [194411240715964071839860568001695142238],
-              "tag": {
-                "name": "SlotTypeSpecialization",
-                "id": 19410536094426402804200364044934714972
-              }
-            }
           },
           "bounds": {
             "LowerBound": 0
@@ -1419,6 +1324,103 @@
       },
       "instances": []
     },
+    "268645231570099960257016483367386424522": {
+      "tag": {
+        "name": "OperativeSlotSpecialized",
+        "id": 268645231570099960257016483367386424522
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "12619066786233628512224926849440280142": {
+          "tag": {
+            "name": "RootTemplateSlot",
+            "id": 12619066786233628512224926849440280142
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 7740341945123630371223527175825509452
+          },
+          "bounds": "Single"
+        },
+        "78784443019964407963733274215721200355": {
+          "tag": {
+            "name": "Specializer",
+            "id": 78784443019964407963733274215721200355
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        },
+        "171083746255995698409213496404611222820": {
+          "tag": {
+            "name": "TypeSpecialization",
+            "id": 171083746255995698409213496404611222820
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [194411240715964071839860568001695142238],
+              "tag": {
+                "name": "TypeSpecialization",
+                "id": 299085250417184393844402759279406357300
+              }
+            }
+          },
+          "bounds": {
+            "Range": [0, 1]
+          }
+        },
+        "216252093819388127417762931582612915525": {
+          "tag": {
+            "name": "UpstreamSlotDescription",
+            "id": 216252093819388127417762931582612915525
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [50371681687015139319465558632877885485],
+              "tag": {
+                "name": "UpstreamSlotDescription",
+                "id": 310833760814097277199807443796148593996
+              }
+            }
+          },
+          "bounds": "Single"
+        },
+        "265180713234569873857449737438607674604": {
+          "tag": {
+            "name": "SlottedInstances",
+            "id": 265180713234569873857449737438607674604
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 173419172892809116665434241791320147061
+          },
+          "bounds": {
+            "LowerBound": 0
+          }
+        },
+        "305702469981775120837099721820543427549": {
+          "tag": {
+            "name": "CardinalitySpecialization",
+            "id": 305702469981775120837099721820543427549
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [305961141896660261428600203427492641437],
+              "tag": {
+                "name": "CardinalitySpecialization",
+                "id": 132173352897620596874831852333291786784
+              }
+            }
+          },
+          "bounds": {
+            "Range": [0, 1]
+          }
+        }
+      },
+      "trait_impls": {
+        "50371681687015139319465558632877885485": {}
+      },
+      "instances": []
+    },
     "301012337831735960428075974993803127877": {
       "tag": {
         "name": "OperativeSlotCardinalityLowerBoundSpecialization",
@@ -1434,39 +1436,29 @@
         }
       },
       "operative_slots": {
-        "152650408324112621607326145920520650723": {
+        "200656776609767184229576048423042963244": {
           "tag": {
-            "name": "SpecializationTarget",
-            "id": 152650408324112621607326145920520650723
+            "name": "SpecializedSlot",
+            "id": 200656776609767184229576048423042963244
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 60265249704941002263294853316985166680
+          },
+          "bounds": "Single"
+        },
+        "292626035501952759147469975727734690799": {
+          "tag": {
+            "name": "UpstreamCardinality",
+            "id": 292626035501952759147469975727734690799
           },
           "operative_descriptor": {
             "TraitOperative": {
               "trait_ids": [112525414141200425477980346177356993899],
               "tag": {
-                "name": "SpecializationTarget",
-                "id": 296371973365635864920404015451787395110
+                "name": "UpstreamCardinality",
+                "id": 176623254180530447302595070181424106070
               }
             }
-          },
-          "bounds": "Single"
-        },
-        "170378506127075706014216558559081155620": {
-          "tag": {
-            "name": "Specializer",
-            "id": 170378506127075706014216558559081155620
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 282754878768449679153758877317862393927
-          },
-          "bounds": "Single"
-        },
-        "233640333201790202113444429182698609494": {
-          "tag": {
-            "name": "RootTemplateSlot",
-            "id": 233640333201790202113444429182698609494
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
           },
           "bounds": "Single"
         }
@@ -1486,6 +1478,32 @@
       },
       "field_constraints": {},
       "operative_slots": {
+        "68755415819139874374697467529410678191": {
+          "tag": {
+            "name": "UpstreamType",
+            "id": 68755415819139874374697467529410678191
+          },
+          "operative_descriptor": {
+            "TraitOperative": {
+              "trait_ids": [138775780297201214816387388007818658691],
+              "tag": {
+                "name": "UpstreamType",
+                "id": 89203998456014381099544669944359846799
+              }
+            }
+          },
+          "bounds": "Single"
+        },
+        "164959551812155021764590657895462388468": {
+          "tag": {
+            "name": "SpecializedSlot",
+            "id": 164959551812155021764590657895462388468
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 60265249704941002263294853316985166680
+          },
+          "bounds": "Single"
+        },
         "232973303942344549888636173107639879619": {
           "tag": {
             "name": "AllowedTraits",
@@ -1497,42 +1515,6 @@
           "bounds": {
             "LowerBound": 1
           }
-        },
-        "264225623550756322060277407572826684679": {
-          "tag": {
-            "name": "SpecializationTarget",
-            "id": 264225623550756322060277407572826684679
-          },
-          "operative_descriptor": {
-            "TraitOperative": {
-              "trait_ids": [138775780297201214816387388007818658691],
-              "tag": {
-                "name": "SpecializationTarget",
-                "id": 155414950116376138544174434408676437286
-              }
-            }
-          },
-          "bounds": "Single"
-        },
-        "328018648715234753193945275348727967603": {
-          "tag": {
-            "name": "RootTemplateSlot",
-            "id": 328018648715234753193945275348727967603
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
-          },
-          "bounds": "Single"
-        },
-        "340151523738328453895291685173063464963": {
-          "tag": {
-            "name": "Specializer",
-            "id": 340151523738328453895291685173063464963
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 282754878768449679153758877317862393927
-          },
-          "bounds": "Single"
         }
       },
       "trait_impls": {
@@ -1647,13 +1629,19 @@
             "Range": [0, 1]
           }
         },
-        "221141240467966930475041267234580459023": {
+        "135723425255571023771063581545510666929": {
           "tag": {
-            "name": "TraversalSlot",
-            "id": 221141240467966930475041267234580459023
+            "name": "SlotToTraverse",
+            "id": 135723425255571023771063581545510666929
           },
           "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
+            "TraitOperative": {
+              "trait_ids": [50371681687015139319465558632877885485],
+              "tag": {
+                "name": "SlotToTraverse",
+                "id": 195171930377479391637295801010502710966
+              }
+            }
           },
           "bounds": "Single"
         },
@@ -1672,24 +1660,6 @@
             }
           },
           "bounds": "Single"
-        },
-        "303306211333129659649110051696569780107": {
-          "tag": {
-            "name": "TraversalSlotSpecialization",
-            "id": 303306211333129659649110051696569780107
-          },
-          "operative_descriptor": {
-            "TraitOperative": {
-              "trait_ids": [194411240715964071839860568001695142238],
-              "tag": {
-                "name": "TraversalSlotSpecialization",
-                "id": 233022624878697397028536266716293355476
-              }
-            }
-          },
-          "bounds": {
-            "Range": [0, 1]
-          }
         }
       },
       "trait_impls": {
@@ -1741,39 +1711,29 @@
         }
       },
       "operative_slots": {
-        "8603790806199601294190427317343641209": {
+        "36553995476560910549955377673381915939": {
           "tag": {
-            "name": "SpecializationTarget",
-            "id": 8603790806199601294190427317343641209
+            "name": "SpecializedSlot",
+            "id": 36553995476560910549955377673381915939
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 60265249704941002263294853316985166680
+          },
+          "bounds": "Single"
+        },
+        "218521714200098670122546822394740588083": {
+          "tag": {
+            "name": "UpstreamCardinality",
+            "id": 218521714200098670122546822394740588083
           },
           "operative_descriptor": {
             "TraitOperative": {
               "trait_ids": [30425667676384131969466448741774165198],
               "tag": {
-                "name": "SpecializationTarget",
-                "id": 265414504723758824272779084082526687309
+                "name": "UpstreamCardinality",
+                "id": 288946215442646329901896585199076393031
               }
             }
-          },
-          "bounds": "Single"
-        },
-        "66205023136157651864508450546558279072": {
-          "tag": {
-            "name": "RootTemplateSlot",
-            "id": 66205023136157651864508450546558279072
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 7740341945123630371223527175825509452
-          },
-          "bounds": "Single"
-        },
-        "284484147965670219198629473043584895065": {
-          "tag": {
-            "name": "Specializer",
-            "id": 284484147965670219198629473043584895065
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 282754878768449679153758877317862393927
           },
           "bounds": "Single"
         }
@@ -1890,6 +1850,18 @@
         "id": 56660692630849923189158530901704205088
       },
       "template_id": 324182575485166611553504507078425880521,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "60265249704941002263294853316985166680": {
+      "tag": {
+        "name": "OperativeSlotSpecialized",
+        "id": 60265249704941002263294853316985166680
+      },
+      "template_id": 268645231570099960257016483367386424522,
       "parent_operative_id": null,
       "slotted_instances": {},
       "locked_fields": {},
@@ -2334,6 +2306,13 @@
       "tag": {
         "name": "OperativeSlotCardinalitySpecializableByLowerBoundOrZero",
         "id": 30425667676384131969466448741774165198
+      },
+      "methods": {}
+    },
+    "50371681687015139319465558632877885485": {
+      "tag": {
+        "name": "SlotDescription",
+        "id": 50371681687015139319465558632877885485
       },
       "methods": {}
     },

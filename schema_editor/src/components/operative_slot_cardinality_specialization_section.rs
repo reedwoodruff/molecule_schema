@@ -9,8 +9,10 @@ use super::operative_slot_section::OperativeSlotContext;
 use super::slot_cardinality_specialization_builder::SlotCardinalitySpecializationBuilder;
 
 use super::slot_cardinality_specialization_lineage::SlotCardinalitySpecializationLineage;
-use super::utils::get_all_descendent_operators;
+use super::utils::{get_all_descendent_operators, get_deepest_downstream_specializations};
 
+const DOWNSTREAM_NOTICE: &str =
+    "There exists a downstream specialization. Remove it to create a specialization here.";
 #[component]
 pub fn OperativeSlotCardinalitySpecializationSection() -> impl IntoView {
     let ctx = use_context::<SharedGraph<Schema>>().unwrap();
@@ -21,7 +23,7 @@ pub fn OperativeSlotCardinalitySpecializationSection() -> impl IntoView {
     let OperativeSlotContext {
         max_downstream_slotted_instances,
         operative,
-        slot_item,
+        template_slot,
         maybe_childest_type_spec,
         maybe_childest_cardinality_spec,
     } = use_context::<OperativeSlotContext>().unwrap();
@@ -30,70 +32,53 @@ pub fn OperativeSlotCardinalitySpecializationSection() -> impl IntoView {
     let schema_clone = schema.clone();
 
     let operative_clone = operative.clone();
-    let slot_clone = slot_item.clone();
+    let slot_clone = template_slot.clone();
     let operative_clone2 = operative_clone.clone();
     let operative_clone3 = operative_clone.clone();
     let operative_clone4 = operative_clone.clone();
-    let slot_clone = slot_item.clone();
+    let slot_clone = template_slot.clone();
     let operative_clone = operative_clone4.clone();
 
-    let exists_downstream_spec = move || {
-        let this_ops_specs = operative_clone.get_slotcardinalityspecializations_slot().into_iter().filter(|spec| {
-            match spec {
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {
-                    item.get_roottemplateslot_slot().get_id() == slot_item.get_id()
-                },
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalitySingleSpecialization(item) => {
-                    item.get_roottemplateslot_slot().get_id() == slot_item.get_id()
-                },
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => {
-                    item.get_roottemplateslot_slot().get_id() == slot_item.get_id()
-                },
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(item) => {
-                    item.get_roottemplateslot_slot().get_id() == slot_item.get_id()
-                },
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => {
-                    item.get_roottemplateslot_slot().get_id() == slot_item.get_id()
-                },
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => {
-                    item.get_roottemplateslot_slot().get_id() == slot_item.get_id()
-                },
-            }
-        }).map(|item| item.get_id().clone()).collect::<Vec<_>>();
-        let mut downstream_ops = BTreeSet::new();
-        get_all_descendent_operators(operative_clone, &mut downstream_ops);
+    let exists_downstream_spec = Memo::new(move |_| {
+        let ds_specs = get_deepest_downstream_specializations(
+            operative_clone.clone(),
+            slot_clone.get_id(),
+            false,
+        );
 
-        downstream_ops
+        let maybe_this_op_and_slot_spec = operative_clone
+            .get_slotspecializations_slot()
             .into_iter()
-            .flat_map(|op| op.get_slotcardinalityspecializations_slot().into_iter().filter(|spec| {
-                match spec {
-                    OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => item.get_roottemplateslot_slot().get_id() == slot_item.get_id(),
-                    OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalitySingleSpecialization(item) => item.get_roottemplateslot_slot().get_id() == slot_item.get_id(),
-                    OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => item.get_roottemplateslot_slot().get_id() == slot_item.get_id(),
-                    OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(item) => item.get_roottemplateslot_slot().get_id() == slot_item.get_id(),
-                    OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => item.get_roottemplateslot_slot().get_id() == slot_item.get_id(),
-                    OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => item.get_roottemplateslot_slot().get_id() == slot_item.get_id(),
-                }
-            }).map(|item| item.get_id().clone()))
-            .any(|downstream_spec_id| !this_ops_specs.contains(&downstream_spec_id))
-    };
-    let exists_downstream_spec_clone = exists_downstream_spec.clone();
+            .filter(|spec| spec.get_roottemplateslot_slot().get_id() == slot_clone.get_id())
+            .next();
+        if let Some(this_op_and_slot_spec) = maybe_this_op_and_slot_spec {
+            ds_specs.into_iter().any(|ds_spec| {
+                !ds_spec.get_cardinalityspecialization_slot().is_empty()
+                    && ds_spec.get_specializer_slot().get_id()
+                        != this_op_and_slot_spec.get_specializer_slot().get_id()
+            })
+        } else {
+            ds_specs
+                .into_iter()
+                .any(|ds_spec| !ds_spec.get_cardinalityspecialization_slot().is_empty())
+        }
+    });
 
+    let slot_clone = template_slot.clone();
     move || {
         let ctx_clone = ctx_clone.clone();
         if let Some(specialization) = maybe_childest_cardinality_spec.get() {
             let spec_clone = specialization.clone();
             let is_locally_owned_spec = match spec_clone.clone() {
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalitySingleSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => item.get_specializer_slot().get_id() == operative_clone2.get_id(),
+                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => item.get_specializedslot_slot().get_specializer_slot().get_id() == operative_clone2.get_id(),
+                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalitySingleSpecialization(item) => item.get_specializedslot_slot().get_specializer_slot().get_id() == operative_clone2.get_id(),
+                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => item.get_specializedslot_slot().get_specializer_slot().get_id() == operative_clone2.get_id(),
+                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(item) => item.get_specializedslot_slot().get_specializer_slot().get_id() == operative_clone2.get_id(),
+                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => item.get_specializedslot_slot().get_specializer_slot().get_id() == operative_clone2.get_id(),
+                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => item.get_specializedslot_slot().get_specializer_slot().get_id() == operative_clone2.get_id(),
             };
             let operative_clone3 = operative_clone3.clone();
             let spec_clone = specialization.clone();
-            let exists_downstream_spec_clone = exists_downstream_spec_clone.clone();
 
             let builder_view = move || {
                 match spec_clone.clone() {
@@ -130,72 +115,70 @@ pub fn OperativeSlotCardinalitySpecializationSection() -> impl IntoView {
                 }
             };
 
-            let exists_downstream_spec_clone = exists_downstream_spec_clone.clone();
             let spec_clone = specialization.clone();
             let modify_view = move || {
-                let exists_downstream_spec_clone = exists_downstream_spec_clone.clone();
                 let ctx_clone = ctx_clone.clone();
                 if is_locally_owned_spec {
                     match spec_clone.clone() {
                     OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {
 
                         let on_delete = move |_| {
-                            item.edit(ctx_clone.clone()).delete().execute().unwrap();
+                            item.edit(ctx_clone.clone()).delete_recursive().execute().unwrap();
                         };
                         EitherOf8::A(view! {
-                            <LeafSection><Button on:click=on_delete attr:disabled=move||exists_downstream_spec_clone.clone()()>Delete Specialization</Button></LeafSection>
+                            <LeafSection><Button on:click=on_delete attr:disabled=move||exists_downstream_spec.get()>Delete Specialization</Button></LeafSection>
                         })
                     },
                     OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalitySingleSpecialization(item) => {
 
                         let on_delete = move |_| {
-                            item.edit(ctx_clone.clone()).delete().execute().unwrap();
+                            item.edit(ctx_clone.clone()).delete_recursive().execute().unwrap();
                         };
                         EitherOf8::B(view! {
-                            <LeafSection><Button on:click=on_delete attr:disabled=move||exists_downstream_spec_clone.clone()()>Delete Specialization</Button></LeafSection>
+                            <LeafSection><Button on:click=on_delete attr:disabled=move||exists_downstream_spec.get()>Delete Specialization</Button></LeafSection>
                         })
                     },
                     OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => {
 
                         let on_delete = move |_| {
-                            item.edit(ctx_clone.clone()).delete().execute().unwrap();
+                            item.edit(ctx_clone.clone()).delete_recursive().execute().unwrap();
                         };
                         EitherOf8::C(view! {
-                            <LeafSection><Button on:click=on_delete attr:disabled=move||exists_downstream_spec_clone.clone()()>Delete Specialization</Button></LeafSection>
+                            <LeafSection><Button on:click=on_delete attr:disabled=move||exists_downstream_spec.get()>Delete Specialization</Button></LeafSection>
                         })
                     },
                     OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(item) => {
 
                         let on_delete = move |_| {
-                            item.edit(ctx_clone.clone()).delete().execute().unwrap();
+                            item.edit(ctx_clone.clone()).delete_recursive().execute().unwrap();
                         };
                         EitherOf8::D(view! {
-                            <LeafSection><Button on:click=on_delete attr:disabled=move||exists_downstream_spec_clone.clone()()>Delete Specialization</Button></LeafSection>
+                            <LeafSection><Button on:click=on_delete attr:disabled=move||exists_downstream_spec.get()>Delete Specialization</Button></LeafSection>
                         })
                     },
                     OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => {
 
                         let on_delete = move |_| {
-                            item.edit(ctx_clone.clone()).delete().execute().unwrap();
+                            item.edit(ctx_clone.clone()).delete_recursive().execute().unwrap();
                         };
                         EitherOf8::E(view! {
-                            <LeafSection><Button on:click=on_delete attr:disabled=move||exists_downstream_spec_clone.clone()()>Delete Specialization</Button></LeafSection>
+                            <LeafSection><Button on:click=on_delete attr:disabled=move||exists_downstream_spec.get()>Delete Specialization</Button></LeafSection>
                         })
                     },
                     OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => {
 
                         let on_delete = move |_| {
-                            item.edit(ctx_clone.clone()).delete().execute().unwrap();
+                            item.edit(ctx_clone.clone()).delete_recursive().execute().unwrap();
                         };
                         EitherOf8::F(view! {
-                            <LeafSection><Button on:click=on_delete attr:disabled=move||exists_downstream_spec_clone.clone()()>Delete Specialization</Button></LeafSection>
+                            <LeafSection><Button on:click=on_delete attr:disabled=move||exists_downstream_spec.get()>Delete Specialization</Button></LeafSection>
                         })
                     },
                 }
-                } else if exists_downstream_spec_clone.clone()() {
+                } else if exists_downstream_spec.get() {
                     EitherOf8::H(view! {
                         <LeafSection>
-                        <InfoNote>There exists a downstream specialization. Remove it to create a specialization here.</InfoNote>
+                        <InfoNote>{DOWNSTREAM_NOTICE}</InfoNote>
                         </LeafSection>
                     })
                 } else {
@@ -208,10 +191,10 @@ pub fn OperativeSlotCardinalitySpecializationSection() -> impl IntoView {
                 </LeafSection>
                 {modify_view}
             })
-        } else if exists_downstream_spec.clone()() {
+        } else if exists_downstream_spec.get() {
             EitherOf7::G(view! {
                 <LeafSection>
-                <InfoNote>There exists a downstream specialization. Remove it to create a specialization here.</InfoNote>
+                <InfoNote>{DOWNSTREAM_NOTICE}</InfoNote>
                 </LeafSection>
             })
         } else {

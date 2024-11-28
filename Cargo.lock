@@ -1412,42 +1412,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
-name = "second_generation_compiler"
-version = "0.1.0"
-dependencies = [
- "base_types",
- "first_generation_compiler",
- "lazy_static",
- "leptos",
- "proc-macro2",
- "quote",
- "second_generation_compiler",
- "second_generation_compiler_generated_toolkit",
- "serde",
- "serde_json",
- "syn",
- "to_composite_id_macro",
- "typenum",
- "uuid",
-]
-
-[[package]]
-name = "second_generation_compiler_generated_toolkit"
-version = "0.1.0"
-dependencies = [
- "base_types",
- "lazy_static",
- "leptos",
- "molecule_core",
- "serde",
- "serde_json",
- "strum",
- "strum_macros",
- "to_composite_id_macro",
- "uuid",
-]
-
-[[package]]
 name = "send_wrapper"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

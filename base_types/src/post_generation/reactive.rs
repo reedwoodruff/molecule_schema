@@ -1804,6 +1804,14 @@ where
     fn get_inner_builder(&self) -> &SubgraphBuilder<T, TSchema>;
 }
 
+impl<T, U: std::clone::Clone + std::fmt::Debug + HasSlotEnum, V> Incorporatable<U, V> for &T
+where
+    T: Incorporatable<U, V>,
+{
+    fn get_inner_builder(&self) -> &SubgraphBuilder<U, V> {
+        (**self).get_inner_builder()
+    }
+}
 impl<T: RootConstraints<TSchema>, TSchema> Incorporatable<T, TSchema>
     for Box<dyn Incorporatable<T, TSchema>>
 {

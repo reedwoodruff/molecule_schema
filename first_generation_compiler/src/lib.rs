@@ -653,11 +653,11 @@ pub fn generate_concrete_schema_reactive(
             pub fn execute(&self) -> Result<ExecutionResult, ElementCreationError> {
                 self.inner_builder.execute()
             }
-            pub fn incorporate<C: Send + Sync + std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + HasSlotEnum>(&mut self, other_builder: impl Incorporatable<C, TSchema>)
+            pub fn incorporate<C: Send + Sync + std::fmt::Debug + Clone + RIntoSchema<Schema = TSchema> + 'static + HasSlotEnum>(&mut self, other_builder: &impl Incorporatable<C, TSchema>)
             where
                 <C as HasSlotEnum>::SlotEnum: Clone + std::fmt::Debug + Send + Sync,
             {
-                self.inner_builder.incorporate(&other_builder.get_inner_builder())
+                self.inner_builder.incorporate(other_builder.get_inner_builder())
             }
             pub fn set_temp_id(mut self, temp_id: &str) -> Self {
                 self.inner_builder.set_temp_id(temp_id);

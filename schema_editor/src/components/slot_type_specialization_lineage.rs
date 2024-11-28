@@ -38,7 +38,7 @@ pub fn TraitSpecializationTargetView(
                     .join(", ")
             );
             view! {
-                        <TraitSpecializationTargetView target=trait_op.get_specializationtarget_slot() />
+                        <TraitSpecializationTargetView target=trait_op.get_upstreamtype_slot() />
                          {text}
                          <br/>
                          "↓"
@@ -83,7 +83,7 @@ pub fn GeneralSpecializationTargetView(
                     .join(", ")
             );
             view! {
-                <GeneralSpecializationTargetView target=multi.get_specializationtarget_slot() />
+                <GeneralSpecializationTargetView target=multi.get_upstreamtype_slot() />
                          {text}
                          <br/>
                          "↓"
@@ -124,13 +124,14 @@ pub fn GeneralSpecializationTargetView(
                     .join(", ")
             );
             view! {
-                        <TraitSpecializationTargetView target=trait_op.get_specializationtarget_slot() />
+                        <TraitSpecializationTargetView target=trait_op.get_upstreamtype_slot() />
                          {text}
                          <br/>
                          "↓"
                          <br/>
 
-            }.into_any()
+            }
+            .into_any()
         }
     }
 }
@@ -153,21 +154,21 @@ pub fn SlotTypeSpecializationLineage(
     let parent_view = move || match specialization_clone.clone() {
         OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => {
             view! {
-                <GeneralSpecializationTargetView target=item.get_specializationtarget_slot() />
+                <GeneralSpecializationTargetView target=item.get_upstreamtype_slot() />
             }
             .into_any()
         }
         OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => {
             view! {
 
-                <GeneralSpecializationTargetView target=item.get_specializationtarget_slot() />
+                <GeneralSpecializationTargetView target=item.get_upstreamtype_slot() />
             }
             .into_any()
         }
         OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
             item,
         ) => view! {
-            <TraitSpecializationTargetView target=item.get_specializationtarget_slot() />
+            <TraitSpecializationTargetView target=item.get_upstreamtype_slot() />
         }
         .into_any(),
     };

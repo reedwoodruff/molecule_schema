@@ -21,11 +21,13 @@ use leptos::{
 };
 use schema_editor_generated_toolkit::prelude::*;
 
+use super::utils::get_deepest_downstream_specializations;
+
 #[derive(Clone)]
 pub struct OperativeSlotContext {
     pub max_downstream_slotted_instances: Signal<u32>,
     pub operative: RGSOConcrete<OperativeConcrete, Schema>,
-    pub slot_item: RGSOConcrete<TemplateSlot, Schema>,
+    pub template_slot: RGSOConcrete<TemplateSlot, Schema>,
     pub maybe_childest_type_spec: Memo<Option<OperativeSlotTypeSpecializationTraitObject>>,
     pub maybe_childest_cardinality_spec:
         Memo<Option<OperativeSlotCardinalitySpecializationTraitObject>>,
@@ -89,16 +91,32 @@ pub fn OperativeSlotSection(
     };
     let operative_clone = operative.clone();
     let slot_clone = slot_item.clone();
+    let maybe_childest_specialization = Memo::new(move |_| {
+        let operative_clone = operative_clone.clone();
+        let slot_clone = slot_clone.clone();
+        operative_clone
+            .get_slotspecializations_slot()
+            .into_iter()
+            .find(|slot_spec| slot_spec.get_roottemplateslot_slot().get_id() == slot_clone.get_id())
+    });
+    let operative_clone = operative.clone();
+    let slot_clone = slot_item.clone();
     let maybe_childest_cardinality_spec = Memo::new(move |_| {
         let operative_clone = operative_clone.clone();
         let slot_clone = slot_clone.clone();
         // For some reason you have to call this in the closure to get the correct reactive tracking.
-        operative_clone.get_slottypespecializations_slot();
-        get_childest_cardinality_specialization_for_op_and_slot(operative_clone, slot_clone)
+        operative_clone.get_slotspecializations_slot();
+        maybe_childest_specialization
+            .get()
+            .map(|spec| spec.get_cardinalityspecialization_slot().into_iter().next())
+            .flatten()
+        // // For some reason you have to call this in the closure to get the correct reactive tracking.
+        // operative_clone.get_slottypespecializations_slot();
+        // get_childest_cardinality_specialization_for_op_and_slot(operative_clone, slot_clone)
     });
 
     let slot_clone = slot_item.clone();
-    let cardinality_info = Memo::new(move |_| {
+    let local_cardinality_info = Memo::new(move |_| {
         if let Some(spec) = maybe_childest_cardinality_spec.get() {
             CardinalityInfo::from_card_spec(spec)
         } else {
@@ -125,13 +143,17 @@ pub fn OperativeSlotSection(
     let operative_clone = operative.clone();
     let slot_clone = slot_item.clone();
     let slotted_instances_for_slot = Memo::new(move |_| {
-        operative_clone
-            .get_slottedinstances_slot()
-            .into_iter()
-            .filter(|slotted_inst| {
-                slotted_inst.get_slottedslot_slot().get_id() == slot_clone.get_id()
-            })
-            .collect::<Vec<_>>()
+        maybe_childest_specialization
+            .get()
+            .map(|spec| spec.get_slottedinstances_slot())
+            .unwrap_or(vec![])
+        // operative_clone
+        //     .get_slottedinstances_slot()
+        //     .into_iter()
+        //     .filter(|slotted_inst| {
+        //         slotted_inst.get_slottedslot_slot().get_id() == slot_clone.get_id()
+        //     })
+        //     .collect::<Vec<_>>()
     });
     let operative_clone = operative.clone();
     let upstream_and_local_slotted_number = move || slotted_instances_for_slot.get().len() as u32;
@@ -139,29 +161,33 @@ pub fn OperativeSlotSection(
     let operative_clone = operative.clone();
     let slot_clone = slot_item.clone();
     let max_downstream_slotted_number = Signal::derive(move || {
-        // track reactively
-        operative_clone.get_childrenoperatives_slot();
-        gather_all_downstream_slotted_instances(
-            operative_clone.get_childrenoperatives_slot(),
-            slot_clone.clone(),
-            0,
-        )
+        let mut max_slotted = 0;
+        let deepest_specs = get_deepest_downstream_specializations(
+            operative_clone.clone(),
+            slot_clone.get_id(),
+            false,
+        );
+        deepest_specs.into_iter().for_each(|spec| {
+            max_slotted = max_slotted.max(spec.get_slottedinstances_slot().len());
+        });
+        max_slotted as u32
     });
     let downstream_slotted_number_clone = max_downstream_slotted_number.clone();
     let slot_clone = slot_item.clone();
     let is_fulfilled = Memo::new(move |_| {
-        upstream_and_local_slotted_number_clone() > cardinality_info.get().min
+        upstream_and_local_slotted_number_clone() > local_cardinality_info.get().min
             || (upstream_and_local_slotted_number_clone() == 0
-                && cardinality_info.get().zero_allowed == true)
+                && local_cardinality_info.get().zero_allowed == true)
     });
     let is_maxed_independently = Memo::new(move |_| {
-        cardinality_info
+        local_cardinality_info
             .get()
             .max
             .is_some_and(|max| max == upstream_and_local_slotted_number())
     });
+    let operative_clone = operative.clone();
     let is_maxed_considering_children = Memo::new(move |_| {
-        cardinality_info
+        local_cardinality_info
             .get()
             .max
             .is_some_and(|max| max == max_downstream_slotted_number.get())
@@ -172,14 +198,23 @@ pub fn OperativeSlotSection(
         if is_maxed_considering_children.get() {
             return false;
         }
-        let maybe_childest_card_info =
-            get_childest_cardinality_info_downstream(operative_clone.clone(), slot_clone.clone());
-        if let Some(childest_card_info) = maybe_childest_card_info {
-            return !childest_card_info
+        let deepest_specs = get_deepest_downstream_specializations(
+            operative_clone.clone(),
+            slot_clone.get_id(),
+            false,
+        );
+        let deepest_card_spec = deepest_specs.into_iter().filter_map(|spec| {
+            if let Some(card_spec) = spec.get_cardinalityspecialization_slot().into_iter().next() {
+                Some(CardinalityInfo::from_card_spec(card_spec))
+            } else {
+                None
+            }
+        });
+        !deepest_card_spec.into_iter().any(|deep_card_spec| {
+            deep_card_spec
                 .max
-                .is_some_and(|max| max_downstream_slotted_number.get() == max);
-        }
-        true
+                .is_some_and(|max| max_downstream_slotted_number.get() == max)
+        })
     });
 
     let operative_clone = operative.clone();
@@ -255,9 +290,13 @@ pub fn OperativeSlotSection(
     let maybe_childest_type_spec = Memo::new(move |_| {
         let operative_clone = operative_clone.clone();
         let slot_clone = slot_clone.clone();
+
         // For some reason you have to call this in the closure to get the correct reactive tracking.
-        operative_clone.get_slottypespecializations_slot();
-        get_childest_type_specialization_for_op_and_slot(operative_clone, slot_clone)
+        operative_clone.get_slotspecializations_slot();
+        maybe_childest_specialization
+            .get()
+            .map(|spec| spec.get_typespecialization_slot().into_iter().next())
+            .flatten()
     });
     let is_adding_slotted_instance = RwSignal::new(false);
     let operative_clone = operative.clone();
@@ -309,29 +348,228 @@ pub fn OperativeSlotSection(
                 leptos::logging::warn!("The slot is already maxed locally or downstream");
                 return;
             }
+            let mut editor = operative_clone.edit(ctx_clone.clone());
+            let slotted_instance_builder = SlottedInstance::new(ctx_clone.clone())
+                .set_temp_id("new_slotted_instance")
+                .add_existing_fulfiller(operative_clone.get_id(), |na| na)
+                .add_existing_instance(selected_value.get().unwrap().get_id(), |na| na);
+
             let slot_clone = slot_clone.clone();
-            let mut editor = operative_clone
-                .edit(ctx_clone.clone())
-                .add_new_slottedinstances(|new_slotted_instance| {
-                    new_slotted_instance
-                        .set_temp_id("the_new_slotted_instance")
-                        .add_existing_fulfiller(operative_clone.get_id(), |na| na)
-                        .add_existing_instance(selected_value.get().unwrap().get_id(), |na| na)
-                        .add_existing_slottedslot(slot_clone.get_id(), |na| na)
-                });
-            let mut this_item_and_descendents = BTreeSet::new();
-            get_all_descendent_operators(operative_clone.clone(), &mut this_item_and_descendents);
-            this_item_and_descendents.insert(operative_clone.clone());
-            this_item_and_descendents
-                .into_iter()
-                .for_each(|descendent| {
+            if let Some(specialization) = maybe_childest_specialization.get() {
+                // Specialization exists and this operative owns it
+                if specialization.get_specializer_slot().get_id() == operative_clone.get_id() {
                     editor.incorporate(
-                        descendent
-                            .edit(ctx_clone.clone())
-                            .add_temp_slottedinstances("the_new_slotted_instance"),
+                        &slotted_instance_builder
+                            .clone()
+                            .add_existing_slottedslot(specialization.get_id(), |na| na),
                     );
+                    editor.incorporate(
+                        specialization
+                            .edit(ctx_clone.clone())
+                            .add_temp_slottedinstances("new_slotted_instance"),
+                    );
+                    let mut descendents = BTreeSet::new();
+                    get_all_descendent_operators(operative_clone.clone(), &mut descendents);
+                    descendents.into_iter().for_each(|descendent| {
+                        let maybe_existing_spec_slot = descendent
+                            .get_slotspecializations_slot()
+                            .into_iter()
+                            .filter(|slot_spec| {
+                                slot_spec.get_roottemplateslot_slot().get_id()
+                                    == slot_clone.get_id()
+                            })
+                            .next();
+                        if let Some(existing_slot) = maybe_existing_spec_slot {
+                            editor.incorporate(
+                                existing_slot
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_slottedinstances("new_slotted_instance"),
+                            )
+                        } else {
+                            editor.incorporate(
+                                descendent
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_slotspecializations("new_slot_spec"),
+                            );
+                        }
+                    });
+                    editor.execute().unwrap();
+                }
+                // Specialization exists but another operative owns it. Remove the edge to that specialization, clone it,
+                // and add the new instance to the new local specialization
+                else {
+                    editor.incorporate(
+                        &slotted_instance_builder
+                            .clone()
+                            .add_temp_slottedslot("new_slot_spec"),
+                    );
+                    let mut edit = operative_clone.edit(ctx_clone.clone());
+                    let new_slot_spec = OperativeSlotSpecialized::new(ctx_clone.clone());
+                    let new_slot_spec = new_slot_spec
+                        .set_temp_id("new_slot_spec")
+                        .add_existing_specializer(operative_clone.get_id(), |na| na)
+                        .add_existing_upstreamslotdescription::<OperativeSlotSpecialized>(
+                            specialization.get_id(),
+                            |na| na,
+                        )
+                        .add_existing_roottemplateslot(slot_clone.get_id(), |na| na)
+                        .add_temp_slottedinstances("new_slotted_instance");
+                    edit.remove_from_slotspecializations(specialization.get_id())
+                        .add_temp_slotspecializations("new_slot_spec");
+                    specialization
+                        .get_slottedinstances_slot()
+                        .iter()
+                        .for_each(|slotted_inst| {
+                            editor.incorporate(
+                                &new_slot_spec
+                                    .clone()
+                                    .add_existing_slottedinstances(slotted_inst.get_id(), |na| na),
+                            );
+                        });
+                    specialization
+                        .get_typespecialization_slot()
+                        .iter()
+                        .for_each(|type_spec| {
+                            match type_spec {
+                                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(_) => {
+                                    editor.incorporate(
+                                        &new_slot_spec
+                                            .clone()
+                                            .add_existing_typespecialization::<OperativeSlotTypeSingleSpecialization>(type_spec.get_id(), |na| na),
+                                    );
+                                },
+                                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(_) => {
+                                    editor.incorporate(
+                                        &new_slot_spec
+                                            .clone()
+                                            .add_existing_typespecialization::<OperativeSlotTypeMultiSpecialization>(type_spec.get_id(), |na| na),
+                                    );
+                                },
+                                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(_) => {
+                                    editor.incorporate(
+                                        &new_slot_spec
+                                            .clone()
+                                            .add_existing_typespecialization::<OperativeSlotTypeTraitObjectSpecialization>(type_spec.get_id(), |na| na),
+                                    );
+                                },
+                            };
+                        });
+                    specialization
+                        .get_cardinalityspecialization_slot()
+                        .iter()
+                        .for_each(|card_spec| {
+                            match card_spec {
+                                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(_) => {
+                                    editor.incorporate(&new_slot_spec.clone().add_existing_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(card_spec.get_id(), |na|na))
+                                },
+                                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalitySingleSpecialization(_) => {
+                                    editor.incorporate(&new_slot_spec.clone().add_existing_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>(card_spec.get_id(), |na|na))
+                                },
+                                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeSpecialization(_) => {
+                                    editor.incorporate(&new_slot_spec.clone().add_existing_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>(card_spec.get_id(), |na|na))
+                                },
+                                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(_) => {
+                                    editor.incorporate(&new_slot_spec.clone().add_existing_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>(card_spec.get_id(), |na|na))
+                                },
+                                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(_) => {
+                                    editor.incorporate(&new_slot_spec.clone().add_existing_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>(card_spec.get_id(), |na|na))
+                                },
+                                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(_) => {
+                                    editor.incorporate(&new_slot_spec.clone().add_existing_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>(card_spec.get_id(), |na|na))
+                                },
+                            };
+                        });
+                    editor.incorporate(&edit);
+                    editor.incorporate(&new_slot_spec);
+                    let mut descendents = BTreeSet::new();
+                    get_all_descendent_operators(operative_clone.clone(), &mut descendents);
+                    descendents.into_iter().for_each(|descendent| {
+                        let maybe_existing_spec_slot = descendent
+                            .get_slotspecializations_slot()
+                            .into_iter()
+                            .filter(|slot_spec| {
+                                slot_spec.get_roottemplateslot_slot().get_id()
+                                    == slot_clone.get_id()
+                            })
+                            .next();
+                        if let Some(existing_slot) = maybe_existing_spec_slot {
+                            if existing_slot.get_upstreamslotdescription_slot().get_id()
+                                == specialization.get_id()
+                            {
+                                editor.incorporate(
+                                    existing_slot
+                                        .edit(ctx_clone.clone())
+                                        .remove_from_upstreamslotdescription(
+                                            specialization.get_id(),
+                                        )
+                                        .add_temp_upstreamslotdescription::<OperativeSlotSpecialized>("new_slot_spec"),
+                                );
+                            }
+                            editor.incorporate(
+                                existing_slot
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_slottedinstances("new_slotted_instance"),
+                            );
+                        } else {
+                            editor.incorporate(
+                                descendent
+                                    .edit(ctx_clone.clone())
+                                    .remove_from_slotspecializations(specialization.get_id())
+                                    .add_temp_slotspecializations("new_slot_spec"),
+                            );
+                        }
+                    });
+                    editor.execute().unwrap();
+                }
+            }
+            // No specialization exists, create a new one
+            else {
+                editor.incorporate(
+                    &slotted_instance_builder
+                        .clone()
+                        .add_temp_slottedslot("new_slot_spec"),
+                );
+                editor.incorporate(
+                    operative_clone
+                        .edit(ctx_clone.clone())
+                        .add_new_slotspecializations(|new_slot_spec| {
+                            new_slot_spec
+                                .set_temp_id("new_slot_spec")
+                                .add_existing_specializer(operative_clone.get_id(), |na| na)
+                                .add_existing_upstreamslotdescription::<TemplateSlot>(
+                                    slot_clone.get_id(),
+                                    |na| na,
+                                )
+                                .add_existing_roottemplateslot(slot_clone.get_id(), |na| na)
+                                .add_temp_slottedinstances("new_slotted_instance")
+                        }),
+                );
+                let mut descendents = BTreeSet::new();
+                get_all_descendent_operators(operative_clone.clone(), &mut descendents);
+                descendents.into_iter().for_each(|descendent| {
+                    let maybe_existing_spec_slot = descendent
+                        .get_slotspecializations_slot()
+                        .into_iter()
+                        .filter(|slot_spec| {
+                            slot_spec.get_roottemplateslot_slot().get_id() == slot_clone.get_id()
+                        })
+                        .next();
+                    if let Some(existing_slot) = maybe_existing_spec_slot {
+                        editor.incorporate(
+                            existing_slot
+                                .edit(ctx_clone.clone())
+                                .add_temp_slottedinstances("new_slotted_instance"),
+                        )
+                    } else {
+                        editor.incorporate(
+                            descendent
+                                .edit(ctx_clone.clone())
+                                .add_temp_slotspecializations("new_slot_spec"),
+                        );
+                    }
                 });
-            editor.execute().unwrap();
+                editor.execute().unwrap();
+            }
             is_adding_slotted_instance.set(false);
         };
         view! {
@@ -359,7 +597,7 @@ pub fn OperativeSlotSection(
     let slot_context = OperativeSlotContext {
         max_downstream_slotted_instances: max_downstream_slotted_number,
         operative: operative_clone.clone(),
-        slot_item: slot_clone.clone(),
+        template_slot: slot_clone.clone(),
         maybe_childest_type_spec: maybe_childest_type_spec.clone(),
         maybe_childest_cardinality_spec: maybe_childest_cardinality_spec.clone(),
     };
@@ -403,11 +641,9 @@ pub fn OperativeSlotSection(
             <SubSectionHeader>
             Currently Slotted Instances
             </SubSectionHeader>
-            // <Show when=move|| !is_maxed_considering_children.get() && !is_maxed_independently.get() && !is_adding_slotted_instance.get()>
             <LeafSection>
                 <Button on:click=move |_| is_adding_slotted_instance.set(true) attr:disabled =move||!is_allowed_to_add_another_instance.get()>Slot an instance</Button>
             </LeafSection>
-            // </Show>
             <Show when=move|| is_adding_slotted_instance.get()>
             {add_slotted_instance_view.clone()}
             </Show>
@@ -425,28 +661,4 @@ pub fn OperativeSlotSection(
         </Section>
         </Provider>
     }
-}
-
-// Should take into account all children-trees and return the branch with the largest number of children
-fn gather_all_downstream_slotted_instances(
-    children: Vec<RGSOConcrete<OperativeConcrete, Schema>>,
-    slot: RGSOConcrete<TemplateSlot, Schema>,
-    current_largest: u32,
-) -> u32 {
-    children.into_iter().fold(current_largest, |agg, child| {
-        let node_num = child
-            .get_slottedinstances_slot()
-            .into_iter()
-            .filter(|slotted_instance| {
-                slotted_instance.get_slottedslot_slot().get_id() == slot.get_id()
-            })
-            .collect::<Vec<_>>()
-            .len();
-        let branch_num = gather_all_downstream_slotted_instances(
-            child.get_childrenoperatives_slot(),
-            slot.clone(),
-            node_num as u32,
-        );
-        agg.max(branch_num)
-    })
 }

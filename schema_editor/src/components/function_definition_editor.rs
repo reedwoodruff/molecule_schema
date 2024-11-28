@@ -15,7 +15,7 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
 
     let fn_def_clone = fn_def.clone();
     let update_name = move |new_val: String| {
-        let editor = fn_def_clone.edit(ctx_clone.clone());
+        let mut editor = fn_def_clone.edit(ctx_clone.clone());
         editor.set_name(new_val).execute().unwrap();
     };
 

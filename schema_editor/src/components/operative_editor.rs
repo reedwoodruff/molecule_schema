@@ -1,5 +1,3 @@
-use std::{collections::BTreeSet, str::FromStr};
-
 use crate::components::{
     common::*,
     operative_function_implementations::OperativeFunctionImplementations,
@@ -11,6 +9,7 @@ use leptos::either::EitherOf3;
 use schema_editor_generated_toolkit::{
     prelude::*, slot_markers::OperativeConcreteLockedFieldsAcceptableTargetMarker,
 };
+use std::str::FromStr;
 use strum::{Display, EnumIter, EnumString};
 #[derive(EnumIter, Display, EnumString, PartialEq, Clone)]
 enum BoolOptions {
@@ -37,17 +36,16 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
     let create_derivative_operative = move |_| {
         // Really not liking being forced to do two graph actions -- need to figure out how to fix the api.
         let derivative_operative_name = derivative_operative_name.clone().get();
-        let mut editor = schema_clone
-            .edit(ctx_clone.clone())
-            .add_new_operatives(|op| {
-                op.set_name(derivative_operative_name.clone())
-                    .add_existing_roottemplate(
-                        operative_clone.get_roottemplate_slot().get_id(),
-                        |item| item,
-                    )
-                    .add_existing_parentoperative(operative_clone.get_id(), |na| na)
-                    .set_temp_id("new_op")
-            });
+        let mut editor = schema_clone.edit(ctx_clone.clone());
+        editor.add_new_operatives(|op| {
+            op.set_name(derivative_operative_name.clone())
+                .add_existing_roottemplate(
+                    operative_clone.get_roottemplate_slot().get_id(),
+                    |item| item,
+                )
+                .add_existing_parentoperative(operative_clone.get_id(), |na| na)
+                .set_temp_id("new_op")
+        });
         editor.incorporate(
             operative_clone
                 .edit(ctx_clone.clone())
@@ -98,21 +96,20 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
     let schema_clone = schema.clone();
     let create_derivative_instance = move |_| {
         let derivative_instance_name = derivative_instance_name.clone().get();
-        let mut editor = schema_clone
-            .edit(ctx_clone.clone())
-            .add_new_instances(|new_inst| {
-                new_inst
-                    .set_name(derivative_instance_name.clone())
-                    .add_existing_parentoperative(operative_clone.get_id(), |na| na)
-                    .set_temp_id("new_inst")
-            });
+        let mut editor = schema_clone.edit(ctx_clone.clone());
+        editor.add_new_instances(|new_inst| {
+            new_inst
+                .set_name(derivative_instance_name.clone())
+                .add_existing_parentoperative(operative_clone.get_id(), |na| na)
+                .set_temp_id("new_inst")
+        });
         editor.execute().unwrap();
     };
 
     let operative_clone = operative.clone();
     let ctx_clone = ctx.clone();
     let update_name = move |new_val: String| {
-        let editor = operative_clone.edit(ctx_clone.clone());
+        let mut editor = operative_clone.edit(ctx_clone.clone());
         editor.set_name(new_val).execute().unwrap();
     };
 
@@ -170,15 +167,14 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
         let on_click_lock = move |_| {
             match field_clone {
                 GetNameFieldVariantTraitObject::StringTemplateField(_) => {
-                    let mut editor = operative_clone
-                        .edit(ctx_clone.clone())
-                        .add_new_lockedfields::<StringFulfilledField, _>(|locked_field| {
-                            locked_field
-                                .set_temp_id("the_field")
-                                .set_value("".to_string())
-                                .add_existing_fulfiller(operative_clone.get_id(), |na| na)
-                                .add_existing_constraintreference(field_clone.get_id(), |na| na)
-                        });
+                    let mut editor = operative_clone.edit(ctx_clone.clone());
+                    editor.add_new_lockedfields::<StringFulfilledField, _>(|locked_field| {
+                        locked_field
+                            .set_temp_id("the_field")
+                            .set_value("".to_string())
+                            .add_existing_fulfiller(operative_clone.get_id(), |na| na)
+                            .add_existing_constraintreference(field_clone.get_id(), |na| na)
+                    });
                     recurse_add_locked_field::<StringFulfilledField>(
                         operative_clone.get_childrenoperatives_slot(),
                         &mut editor,
@@ -187,15 +183,14 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                     editor.execute().unwrap();
                 }
                 GetNameFieldVariantTraitObject::BoolTemplateField(_) => {
-                    let mut editor = operative_clone
-                        .edit(ctx_clone.clone())
-                        .add_new_lockedfields::<BoolFulfilledField, _>(|locked_field| {
-                            locked_field
-                                .set_temp_id("the_field")
-                                .set_value(true)
-                                .add_existing_fulfiller(operative_clone.get_id(), |na| na)
-                                .add_existing_constraintreference(field_clone.get_id(), |na| na)
-                        });
+                    let mut editor = operative_clone.edit(ctx_clone.clone());
+                    editor.add_new_lockedfields::<BoolFulfilledField, _>(|locked_field| {
+                        locked_field
+                            .set_temp_id("the_field")
+                            .set_value(true)
+                            .add_existing_fulfiller(operative_clone.get_id(), |na| na)
+                            .add_existing_constraintreference(field_clone.get_id(), |na| na)
+                    });
                     recurse_add_locked_field::<BoolFulfilledField>(
                         operative_clone.get_childrenoperatives_slot(),
                         &mut editor,
@@ -204,15 +199,14 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                     editor.execute().unwrap();
                 }
                 GetNameFieldVariantTraitObject::IntTemplateField(_) => {
-                    let mut editor = operative_clone
-                        .edit(ctx_clone.clone())
-                        .add_new_lockedfields::<IntFulfilledField, _>(|locked_field| {
-                            locked_field
-                                .set_temp_id("the_field")
-                                .set_value(0)
-                                .add_existing_fulfiller(operative_clone.get_id(), |na| na)
-                                .add_existing_constraintreference(field_clone.get_id(), |na| na)
-                        });
+                    let mut editor = operative_clone.edit(ctx_clone.clone());
+                    editor.add_new_lockedfields::<IntFulfilledField, _>(|locked_field| {
+                        locked_field
+                            .set_temp_id("the_field")
+                            .set_value(0)
+                            .add_existing_fulfiller(operative_clone.get_id(), |na| na)
+                            .add_existing_constraintreference(field_clone.get_id(), |na| na)
+                    });
                     recurse_add_locked_field::<IntFulfilledField>(
                         operative_clone.get_childrenoperatives_slot(),
                         &mut editor,

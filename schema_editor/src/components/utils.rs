@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 
 use schema_editor_generated_toolkit::prelude::*;
 
@@ -106,33 +106,6 @@ pub fn get_all_instances_which_impl_trait_set(
     instances_which_impl
 }
 
-pub fn get_all_traits_in_specialization(
-    specialization: RGSOConcrete<OperativeSlotTypeTraitObjectSpecialization, Schema>,
-) -> BTreeSet<RGSOConcrete<TraitConcrete, Schema>> {
-    let mut found_terminal = false;
-    let mut rolling_trait_set = BTreeSet::new();
-    let mut cur_spec =
-        OperativeSlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(
-            specialization,
-        );
-    while !found_terminal {
-        match cur_spec {
-            OperativeSlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTypeTraitOperative(terminal) => {
-                rolling_trait_set.extend(terminal.get_allowedtraits_slot());
-                found_terminal = true;
-                break;
-            }
-            OperativeSlotTypeSpecializableTraitOperativeTraitObject::OperativeSlotTypeTraitObjectSpecialization(
-                spec,
-            ) => {
-                rolling_trait_set.extend(spec.get_allowedtraits_slot());
-                cur_spec = spec.get_specializationtarget_slot();
-            }
-        }
-    }
-    rolling_trait_set
-}
-
 pub fn get_all_operatives_which_satisfy_specializable(
     schema_concrete: &RGSOConcrete<SchemaConcrete, Schema>,
     specializable: OperativeSlotTypeSpecializableTraitObject,
@@ -156,14 +129,10 @@ pub fn get_all_operatives_which_satisfy_specializable(
             .collect::<BTreeSet<_>>(),
         OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(
             trait_spec,
-        ) => {
-            let trait_set = get_all_traits_in_specialization(trait_spec);
-
-            get_all_operatives_which_impl_trait_set(
-                trait_set.into_iter().collect::<Vec<_>>(),
-                schema_concrete,
-            )
-        }
+        ) => get_all_operatives_which_impl_trait_set(
+            trait_spec.get_allowedtraits_slot(),
+            schema_concrete,
+        ),
     }
 }
 
@@ -183,14 +152,10 @@ pub fn get_all_operatives_which_satisfy_specialization(
         ) => BTreeSet::from([single.get_allowedoperative_slot()]),
         OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
             trait_spec,
-        ) => {
-            let trait_set = get_all_traits_in_specialization(trait_spec);
-
-            get_all_operatives_which_impl_trait_set(
-                trait_set.into_iter().collect::<Vec<_>>(),
-                schema_concrete,
-            )
-        }
+        ) => get_all_operatives_which_impl_trait_set(
+            trait_spec.get_allowedtraits_slot(),
+            schema_concrete,
+        ),
     }
 }
 pub fn get_all_instances_which_satisfy_specialization(
@@ -214,88 +179,24 @@ pub fn get_childest_type_specialization_for_op_and_slot(
     op: RGSOConcrete<OperativeConcrete, Schema>,
     slot: RGSOConcrete<TemplateSlot, Schema>,
 ) -> Option<OperativeSlotTypeSpecializationTraitObject> {
-    let specs = op
-        .clone()
-        .get_slottypespecializations_slot()
+    op.get_slotspecializations_slot()
         .into_iter()
-        .filter(|specialization| match specialization {
-            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(single) => {
-                single.get_roottemplateslot_slot().get_id() == slot.get_id()
-            }
-            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
-                multi.get_roottemplateslot_slot().get_id() == slot.get_id()
-            }
-            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
-                traits,
-            ) => traits.get_roottemplateslot_slot().get_id() == slot.get_id(),
-        })
-        .collect::<Vec<_>>();
-
-    if specs.len() == 0 {
-        None
-    } else if specs.len() == 1 {
-        Some(specs.into_iter().next().unwrap())
-    } else {
-        let all_parent_ids = specs
-            .iter()
-            .map(|spec| match spec {
-                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => {
-                    *item.get_specializationtarget_slot().get_id()
-                }
-                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => {
-                    *item.get_specializationtarget_slot().get_id()
-                }
-                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
-                    item,
-                ) => *item.get_specializationtarget_slot().get_id(),
-            })
-            .collect::<Vec<_>>();
-        let childest_spec = specs
-            .into_iter()
-            .find(|spec| !all_parent_ids.contains(spec.get_id()));
-        childest_spec
-    }
+        .filter(|spec| spec.get_roottemplateslot_slot().get_id() == slot.get_id())
+        .next()
+        .map(|spec| spec.get_typespecialization_slot().first().cloned())
+        .flatten()
 }
 
 pub fn get_childest_cardinality_specialization_for_op_and_slot(
     op: RGSOConcrete<OperativeConcrete, Schema>,
     slot: RGSOConcrete<TemplateSlot, Schema>,
 ) -> Option<OperativeSlotCardinalitySpecializationTraitObject> {
-    let specs = op
-        .clone()
-        .get_slotcardinalityspecializations_slot()
+    op.get_slotspecializations_slot()
         .into_iter()
-        .filter(|specialization| match specialization {
-            OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => item.get_roottemplateslot_slot().get_id() == slot.get_id(),
-            OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalitySingleSpecialization(item) => item.get_roottemplateslot_slot().get_id() == slot.get_id(),
-            OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => item.get_roottemplateslot_slot().get_id() == slot.get_id(),
-            OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(item) => item.get_roottemplateslot_slot().get_id() == slot.get_id(),
-            OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => item.get_roottemplateslot_slot().get_id() == slot.get_id(),
-            OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => item.get_roottemplateslot_slot().get_id() == slot.get_id(),
-        })
-        .collect::<Vec<_>>();
-
-    if specs.len() == 0 {
-        None
-    } else if specs.len() == 1 {
-        Some(specs.into_iter().next().unwrap())
-    } else {
-        let all_parent_ids = specs
-            .iter()
-            .map(|spec| match spec {
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => *item.get_specializationtarget_slot().get_id(),
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalitySingleSpecialization(item) => *item.get_specializationtarget_slot().get_id(),
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => *item.get_specializationtarget_slot().get_id(),
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(item) => *item.get_specializationtarget_slot().get_id(),
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => *item.get_specializationtarget_slot().get_id(),
-                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => *item.get_specializationtarget_slot().get_id(),
-            })
-            .collect::<Vec<_>>();
-        let childest_spec = specs
-            .into_iter()
-            .find(|spec| !all_parent_ids.contains(spec.get_id()));
-        childest_spec
-    }
+        .filter(|spec| spec.get_roottemplateslot_slot().get_id() == slot.get_id())
+        .next()
+        .map(|spec| spec.get_cardinalityspecialization_slot().first().cloned())
+        .flatten()
 }
 
 // Returns the most restrictive min, max, and zero_allowed
@@ -341,4 +242,38 @@ pub fn get_childest_cardinality_info_downstream(
     });
 
     Some(most_restrictive)
+}
+
+pub fn get_deepest_downstream_specializations(
+    op: RGSOConcrete<OperativeConcrete, Schema>,
+    template_slot_id: &Uid,
+    include_self: bool,
+) -> BTreeSet<RGSOConcrete<OperativeSlotSpecialized, Schema>> {
+    fn recurse(
+        op: RGSOConcrete<OperativeConcrete, Schema>,
+        template_slot_id: &Uid,
+    ) -> BTreeSet<RGSOConcrete<OperativeSlotSpecialized, Schema>> {
+        let children = op.get_childrenoperatives_slot();
+        if children.is_empty() {
+            op.get_slotspecializations_slot()
+                .into_iter()
+                .filter(|spec| spec.get_roottemplateslot_slot().get_id() == template_slot_id)
+                .collect::<BTreeSet<_>>()
+        } else {
+            children
+                .into_iter()
+                .fold(BTreeSet::new(), |mut agg, child| {
+                    agg.extend(recurse(child, template_slot_id));
+                    agg
+                })
+        }
+    }
+    if include_self && op.get_childrenoperatives_slot().is_empty() {
+        return op
+            .get_slotspecializations_slot()
+            .into_iter()
+            .filter(|spec| spec.get_roottemplateslot_slot().get_id() == template_slot_id)
+            .collect();
+    }
+    recurse(op, template_slot_id)
 }

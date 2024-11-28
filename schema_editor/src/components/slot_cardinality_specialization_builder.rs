@@ -8,8 +8,8 @@ use super::{
     common::*,
     operative_slot_section::OperativeSlotContext,
     utils::{
-        get_all_descendent_operators, get_all_operatives_which_impl_trait_set,
-        get_all_operatives_which_satisfy_specializable, get_all_traits_in_specialization,
+        get_all_descendent_operators, get_all_descendent_operators_including_own,
+        get_all_operatives_which_impl_trait_set, get_all_operatives_which_satisfy_specializable,
     },
     workspace::WorkspaceState,
 };
@@ -61,7 +61,7 @@ pub fn SlotCardinalitySpecializationBuilder(
     let OperativeSlotContext {
         max_downstream_slotted_instances,
         operative,
-        slot_item,
+        template_slot,
         maybe_childest_type_spec,
         maybe_childest_cardinality_spec,
     } = use_context::<OperativeSlotContext>().unwrap();
@@ -184,28 +184,7 @@ pub fn SlotCardinalitySpecializationBuilder(
     }
     };
 
-    let choose_bounds_view = move || match current_input_variant() {
-        CardinalityInputTypeOptions::LowerBoundOnly => EitherOf3::A(view! {
-            <div>
-            <SignalTextInput prop:type="number" value=selected_lower_bound attr:min=move || prev_bounds.get().min />
-            </div>
-        }),
-        CardinalityInputTypeOptions::Both => EitherOf3::B(view! {
-            <div>
-            <SignalTextInput prop:type="number" value=selected_lower_bound attr:min = move || prev_bounds.get().min />
-            </div>
-            <div>
-            <SignalTextInput prop:type="number" value=selected_upper_bound attr:min = move || selected_lower_bound.get() attr:max=move || prev_bounds.get().max />
-            </div>
-        }),
-        CardinalityInputTypeOptions::None => EitherOf3::C(view! {
-            <div>
-            Fixed
-            </div>
-        }),
-    };
-
-    let is_downstream_slot_outside_of_attempted_bounds = move || {
+    let is_downstream_slot_outside_of_attempted_bounds = Signal::derive(move || {
         let max_ds = max_downstream_slotted_instances.get();
         match selected_spec.get().unwrap() {
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityLowerBoundOrZeroSpecialization => {
@@ -215,45 +194,43 @@ pub fn SlotCardinalitySpecializationBuilder(
                 max_ds > 1
             },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityRangeSpecialization => {
-                max_ds > selected_upper_bound.get()
+                max_ds > selected_upper_bound.get() || max_ds < selected_lower_bound.get()
             },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityZeroSpecialization => {
                 max_ds > 0
             },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityRangeOrZeroSpecialization => {
-                max_ds > selected_upper_bound.get()
+                max_ds > selected_upper_bound.get() || max_ds < selected_lower_bound.get()
             },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityLowerBoundSpecialization => {
                 false
             },
         }
-    };
-    let is_downstream_slot_outside_of_attempted_bounds_clone =
-        is_downstream_slot_outside_of_attempted_bounds.clone();
+    });
 
-    let are_selected_values_outside_of_previous_bounds = move || {
+    let are_selected_values_outside_of_previous_bounds = Signal::derive(move || {
         let prev = prev_bounds.get();
         match selected_spec.get().unwrap() {
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityLowerBoundOrZeroSpecialization => {
-                false
+                prev.min > selected_lower_bound.get()
             },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalitySingleSpecialization => {
                 prev.min > 1
             },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityRangeSpecialization => {
-                prev.max.is_some_and(|prev_max| prev_max < selected_upper_bound.get()) || prev.min > selected_lower_bound.get()
+                prev.max.is_some_and(|prev_max| prev_max < selected_upper_bound.get())
             },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityZeroSpecialization => {
                 prev.zero_allowed == false && prev.min > 0
             },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityRangeOrZeroSpecialization => {
-                prev.max.is_some_and(|prev_max| prev_max < selected_upper_bound.get()) || prev.min > selected_lower_bound.get()
+                prev.max.is_some_and(|prev_max| prev_max < selected_upper_bound.get())
             },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityLowerBoundSpecialization => {
-                prev.min < selected_lower_bound.get()
+                prev.min > selected_lower_bound.get()
             },
         }
-    };
+    });
     let are_selected_values_outside_of_previous_bounds_clone =
         are_selected_values_outside_of_previous_bounds.clone();
 
@@ -266,34 +243,128 @@ pub fn SlotCardinalitySpecializationBuilder(
         let operative = operative_clone.clone();
         let operative_clone = operative.clone();
         let mut all_descendent_ops_and_this_op = BTreeSet::new();
-        all_descendent_ops_and_this_op.insert(operative_clone.clone());
-        get_all_descendent_operators(operative_clone, &mut all_descendent_ops_and_this_op);
+        // all_descendent_ops_and_this_op.insert(operative_clone.clone());
+        get_all_descendent_operators_including_own(
+            operative_clone,
+            &mut all_descendent_ops_and_this_op,
+        );
 
-        if is_downstream_slot_outside_of_attempted_bounds() {
+        if is_downstream_slot_outside_of_attempted_bounds.get() {
             leptos::logging::warn!(
                 "Some downstream operative has an incompatible number of instances slotted"
             );
             return ();
         }
-        if are_selected_values_outside_of_previous_bounds() {
+        if are_selected_values_outside_of_previous_bounds.get() {
             leptos::logging::warn!(
                 "Selected values are incompatible with previous cardinality constraints"
             );
         }
         let operative_clone = operative.clone();
+        let mut editor = operative_clone.edit(ctx_clone.clone());
+        let mut maybe_new_unencumbered_self_spec = None;
+        let mut maybe_new_dependent_self_spec = None;
+        let mut maybe_existing_self_spec = None;
+        let maybe_self_slot_spec = operative_clone
+            .get_slotspecializations_slot()
+            .into_iter()
+            .filter(|spec| spec.get_roottemplateslot_slot().get_id() == template_slot.get_id())
+            .next();
+        let mut previous_slot_spec_id = None;
+        if let Some(self_spec) = maybe_self_slot_spec {
+            if self_spec.get_specializer_slot().get_id() == operative_clone.get_id() {
+                let edit = self_spec.edit(ctx_clone.clone());
+                maybe_existing_self_spec = Some(edit);
+            } else {
+                previous_slot_spec_id = Some(self_spec.get_id().clone());
+                editor.remove_from_slotspecializations(self_spec.get_id());
+                let new_slot_spec = OperativeSlotSpecialized::new(ctx_clone.clone());
+                let new_slot_spec = new_slot_spec
+                    .set_temp_id("new_slot_spec")
+                    .add_existing_specializer(operative_clone.get_id(), |na| na)
+                    .add_existing_roottemplateslot(template_slot.get_id(), |na| na)
+                    // set upstream to the previous spec
+                    .add_existing_upstreamslotdescription::<OperativeSlotSpecialized>(
+                        self_spec.get_id(),
+                        |na| na,
+                    );
+                self_spec
+                    .get_slottedinstances_slot()
+                    .iter()
+                    .for_each(|slotted_inst| {
+                        editor.incorporate(
+                            &new_slot_spec
+                                .clone()
+                                .add_existing_slottedinstances(slotted_inst.get_id(), |na| na),
+                        );
+                    });
+                self_spec
+                    .get_typespecialization_slot()
+                    .iter()
+                    .for_each(|type_spec| {
+                        match type_spec {
+                            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(_) => {
+                                editor.incorporate(
+                                    &new_slot_spec
+                                        .clone()
+                                        .add_existing_typespecialization::<OperativeSlotTypeSingleSpecialization>(type_spec.get_id(), |na| na),
+                                );
+                            },
+                            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(_) => {
+                                editor.incorporate(
+                                    &new_slot_spec
+                                        .clone()
+                                        .add_existing_typespecialization::<OperativeSlotTypeMultiSpecialization>(type_spec.get_id(), |na| na),
+                                );
+                            },
+                            OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(_) => {
+                                editor.incorporate(
+                                    &new_slot_spec
+                                        .clone()
+                                        .add_existing_typespecialization::<OperativeSlotTypeTraitObjectSpecialization>(type_spec.get_id(), |na| na),
+                                );
+                            },
+                        };
+                    });
+
+                editor.add_temp_slotspecializations("new_slot_spec");
+                maybe_new_dependent_self_spec = Some(new_slot_spec);
+            }
+        } else {
+            maybe_new_unencumbered_self_spec = Some(
+                OperativeSlotSpecialized::new(ctx_clone.clone())
+                    .set_temp_id("new_slot_spec")
+                    .add_existing_specializer(operative_clone.get_id(), |na| na)
+                    .add_existing_roottemplateslot(template_slot.get_id(), |na| na)
+                    .add_existing_upstreamslotdescription::<TemplateSlot>(
+                        template_slot.get_id(),
+                        |na| na,
+                    ),
+            );
+            editor.add_temp_slotspecializations("new_slot_spec");
+        }
+
         match selected_spec.get().unwrap() {
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityLowerBoundOrZeroSpecialization => {
-                let mut editor = operative_clone.edit(ctx_clone.clone());
                 match spec_target {
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityLowerBoundOrZeroSpecialization::new(ctx_clone.clone())
-                                .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityLowerBoundOrZeroSpecialization::new(ctx_clone.clone())
+                                .set_temp_id("new_cardinality_spec")
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRangeOrZero(_) => {
                         leptos::logging::warn!("Somehow an ill-formed specialization was attempted (e.g. trying to make a lower_bound specialization for a range");
  },
@@ -301,14 +372,23 @@ pub fn SlotCardinalitySpecializationBuilder(
                         leptos::logging::warn!("Somehow an ill-formed specialization was attempted (e.g. trying to make a lower_bound specialization for a range");
  },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBoundOrZero(_) => {
-                        editor.incorporate(OperativeSlotCardinalityLowerBoundOrZeroSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityLowerBoundOrZeroSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityLowerBoundOrZero>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<TemplateSlotCardinalityLowerBoundOrZero>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRange(_) => {
                         leptos::logging::warn!("Somehow an ill-formed specialization was attempted (e.g. trying to make a lower_bound specialization for a range");
  },
@@ -322,306 +402,693 @@ pub fn SlotCardinalitySpecializationBuilder(
                         leptos::logging::warn!("Somehow an ill-formed specialization was attempted (e.g. trying to make a lower_bound specialization for a range");
  },
                 }
-                all_descendent_ops_and_this_op.into_iter().for_each(|desc_op| {
-                    editor.incorporate(
-                        desc_op
-                            .edit(ctx_clone.clone())
-                            .add_temp_slotcardinalityspecializations::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(
-                                "new_slot_spec",
-                            ),
-                    );
-                });
+                if let Some(unencumbered_new) = maybe_new_unencumbered_self_spec {
+                    all_descendent_ops_and_this_op.iter().for_each(|desc_op| {
+                        let maybe_existing_spec_slot = desc_op
+                            .get_slotspecializations_slot()
+                            .into_iter()
+                            .filter(|slot_spec| {
+                                slot_spec.get_roottemplateslot_slot().get_id()
+                                    == template_slot.get_id()
+                            })
+                            .next();
+                        if let Some(existing_slot) = maybe_existing_spec_slot {
+                            editor.incorporate(
+                                existing_slot
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>("new_cardinality_spec"),
+                            )
+                        } else {
+                            editor.incorporate(
+                                desc_op
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_slotspecializations("new_slot_spec"),
+                            );
+                        }
+                    });
+                }
+                if let Some(dependent_new) = maybe_new_dependent_self_spec {
+                    all_descendent_ops_and_this_op.iter().for_each(|desc_op| {
+                        let slot_spec_in_question =
+                        desc_op.get_slotspecializations_slot().into_iter().filter(|spec| {
+                            spec.get_roottemplateslot_slot().get_id() == template_slot.get_id()
+                        }).next();
+                        if let Some(slot_spec_in_question) = slot_spec_in_question {
+                        if slot_spec_in_question.get_id() == &previous_slot_spec_id.unwrap() {
+                            editor.incorporate(desc_op.edit(ctx_clone.clone()).remove_from_slotspecializations(slot_spec_in_question.get_id())
+                                .add_temp_slotspecializations("new_slot_spec"));
+                        } else {
+                            editor.incorporate(slot_spec_in_question.edit(ctx_clone.clone())
+                                .remove_from_upstreamslotdescription(&previous_slot_spec_id.unwrap())
+                                .add_temp_upstreamslotdescription::<OperativeSlotSpecialized>("new_slot_spec")
+                                .add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        } else {
+                            editor.incorporate(desc_op.edit(ctx_clone.clone()).add_temp_slotspecializations("new_slot_spec"))
+                        }
+                    });
+                }
                 editor.execute().unwrap();
             },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalitySingleSpecialization => {
-                let mut editor = operative_clone.edit(ctx_clone.clone());
                 match spec_target {
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRangeOrZero(_) => {
-                        editor.incorporate(OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityRangeOrZero>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<TemplateSlotCardinalityRangeOrZero>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityRangeSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<OperativeSlotCardinalityRangeSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBoundOrZero(_) => {
-                        editor.incorporate(OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityLowerBoundOrZero>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<TemplateSlotCardinalityLowerBoundOrZero>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRange(_) => {
-                        editor.incorporate(OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityRange>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<TemplateSlotCardinalityRange>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBound(_) => {
-                        editor.incorporate(OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityLowerBound>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<TemplateSlotCardinalityLowerBound>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityRangeOrZeroSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<OperativeSlotCardinalityRangeOrZeroSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityLowerBoundSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalitySingleSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<OperativeSlotCardinalityLowerBoundSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                 }
-                all_descendent_ops_and_this_op.into_iter().for_each(|desc_op| {
-                    editor.incorporate(
-                        desc_op
-                            .edit(ctx_clone.clone())
-                            .add_temp_slotcardinalityspecializations::<OperativeSlotCardinalitySingleSpecialization>(
-                                "new_slot_spec",
-                            ),
-                    );
-                });
+                if let Some(unencumbered_new) = maybe_new_unencumbered_self_spec {
+                    all_descendent_ops_and_this_op.iter().for_each(|desc_op| {
+                        let maybe_existing_spec_slot = desc_op
+                            .get_slotspecializations_slot()
+                            .into_iter()
+                            .filter(|slot_spec| {
+                                slot_spec.get_roottemplateslot_slot().get_id()
+                                    == template_slot.get_id()
+                            })
+                            .next();
+                        if let Some(existing_slot) = maybe_existing_spec_slot {
+                            editor.incorporate(
+                                existing_slot
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"),
+                            )
+                        } else {
+                            editor.incorporate(
+                                desc_op
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_slotspecializations("new_slot_spec"),
+                            );
+                        }
+                    });
+                }
+                if let Some(dependent_new) = maybe_new_dependent_self_spec {
+                    all_descendent_ops_and_this_op.iter().for_each(|desc_op| {
+                        let slot_spec_in_question =
+                        desc_op.get_slotspecializations_slot().into_iter().filter(|spec| {
+                            spec.get_roottemplateslot_slot().get_id() == template_slot.get_id()
+                        }).next();
+                        if let Some(slot_spec_in_question) = slot_spec_in_question {
+                        if slot_spec_in_question.get_id() == &previous_slot_spec_id.unwrap() {
+                            editor.incorporate(desc_op.edit(ctx_clone.clone()).remove_from_slotspecializations(slot_spec_in_question.get_id())
+                                .add_temp_slotspecializations("new_slot_spec"));
+                        } else {
+                            editor.incorporate(slot_spec_in_question.edit(ctx_clone.clone())
+                                .remove_from_upstreamslotdescription(&previous_slot_spec_id.unwrap())
+                                .add_temp_upstreamslotdescription::<OperativeSlotSpecialized>("new_slot_spec")
+                                .add_temp_cardinalityspecialization::<OperativeSlotCardinalitySingleSpecialization>("new_cardinality_spec"));
+                        }
+                        } else {
+                            editor.incorporate(desc_op.edit(ctx_clone.clone()).add_temp_slotspecializations("new_slot_spec"))
+                        }
+                    });
+                }
                 editor.execute().unwrap();
  },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityRangeSpecialization => {
-                let mut editor = operative_clone.edit(ctx_clone.clone());
                 match spec_target {
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_upper_bound(selected_upper_bound.get())
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRangeOrZero(_) => {
-                        editor.incorporate(OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_upper_bound(selected_upper_bound.get())
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityRangeOrZero>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<TemplateSlotCardinalityRangeOrZero>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
-                        .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
+                        .set_temp_id("new_cardinality_spec")
                                 .set_upper_bound(selected_upper_bound.get())
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityRangeSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<OperativeSlotCardinalityRangeSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBoundOrZero(_) => {
-                        editor.incorporate(OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_upper_bound(selected_upper_bound.get())
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityLowerBoundOrZero>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<TemplateSlotCardinalityLowerBoundOrZero>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRange(_) => {
-                        editor.incorporate(OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_upper_bound(selected_upper_bound.get())
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityRange>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<TemplateSlotCardinalityRange>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBound(_) => {
-                        editor.incorporate(OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_upper_bound(selected_upper_bound.get())
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityLowerBound>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<TemplateSlotCardinalityLowerBound>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_upper_bound(selected_upper_bound.get())
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityRangeOrZeroSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<OperativeSlotCardinalityRangeOrZeroSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityRangeSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_upper_bound(selected_upper_bound.get())
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityLowerBoundSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<OperativeSlotCardinalityLowerBoundSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                 }
-                all_descendent_ops_and_this_op.into_iter().for_each(|desc_op| {
-                    editor.incorporate(
-                        desc_op
-                            .edit(ctx_clone.clone())
-                            .add_temp_slotcardinalityspecializations::<OperativeSlotCardinalityRangeSpecialization>(
-                                "new_slot_spec",
-                            ),
-                    );
-                });
+                if let Some(unencumbered_new) = maybe_new_unencumbered_self_spec {
+                    all_descendent_ops_and_this_op.iter().for_each(|desc_op| {
+                        let maybe_existing_spec_slot = desc_op
+                            .get_slotspecializations_slot()
+                            .into_iter()
+                            .filter(|slot_spec| {
+                                slot_spec.get_roottemplateslot_slot().get_id()
+                                    == template_slot.get_id()
+                            })
+                            .next();
+                        if let Some(existing_slot) = maybe_existing_spec_slot {
+                            editor.incorporate(
+                                existing_slot
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"),
+                            )
+                        } else {
+                            editor.incorporate(
+                                desc_op
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_slotspecializations("new_slot_spec"),
+                            );
+                        }
+                    });
+                }
+                if let Some(dependent_new) = maybe_new_dependent_self_spec {
+                    all_descendent_ops_and_this_op.iter().for_each(|desc_op| {
+                        let slot_spec_in_question =
+                        desc_op.get_slotspecializations_slot().into_iter().filter(|spec| {
+                            spec.get_roottemplateslot_slot().get_id() == template_slot.get_id()
+                        }).next();
+                        if let Some(slot_spec_in_question) = slot_spec_in_question {
+                        if slot_spec_in_question.get_id() == &previous_slot_spec_id.unwrap() {
+                            editor.incorporate(desc_op.edit(ctx_clone.clone()).remove_from_slotspecializations(slot_spec_in_question.get_id())
+                                .add_temp_slotspecializations("new_slot_spec"));
+                        } else {
+                            editor.incorporate(slot_spec_in_question.edit(ctx_clone.clone())
+                                .remove_from_upstreamslotdescription(&previous_slot_spec_id.unwrap())
+                                .add_temp_upstreamslotdescription::<OperativeSlotSpecialized>("new_slot_spec")
+                                .add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeSpecialization>("new_cardinality_spec"));
+                        }
+                        } else {
+                            editor.incorporate(desc_op.edit(ctx_clone.clone()).add_temp_slotspecializations("new_slot_spec"))
+                        }
+                    });
+                }
                 editor.execute().unwrap();
  },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityZeroSpecialization => {
-                let mut editor = operative_clone.edit(ctx_clone.clone());
                 match spec_target {
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRangeOrZero(_) => {
-                        editor.incorporate(OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityRangeOrZero>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<TemplateSlotCardinalityRangeOrZero>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
-                        .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityRangeSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
+                        .set_temp_id("new_cardinality_spec")
+                                .add_existing_upstreamcardinality::<OperativeSlotCardinalityRangeSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBoundOrZero(_) => {
-                        editor.incorporate(OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityLowerBoundOrZero>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<TemplateSlotCardinalityLowerBoundOrZero>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRange(_) => {
-                        editor.incorporate(OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityRange>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<TemplateSlotCardinalityRange>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBound(_) => {
-                        editor.incorporate(OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityLowerBound>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<TemplateSlotCardinalityLowerBound>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityRangeOrZeroSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<OperativeSlotCardinalityRangeOrZeroSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityLowerBoundSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                        let mut edit = OperativeSlotCardinalityZeroSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
+                            .add_existing_upstreamcardinality::<OperativeSlotCardinalityLowerBoundSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                 }
-                all_descendent_ops_and_this_op.into_iter().for_each(|desc_op| {
-                    editor.incorporate(
-                        desc_op
-                            .edit(ctx_clone.clone())
-                            .add_temp_slotcardinalityspecializations::<OperativeSlotCardinalityZeroSpecialization>(
-                                "new_slot_spec",
-                            ),
-                    );
-                });
+                if let Some(unencumbered_new) = maybe_new_unencumbered_self_spec {
+                    all_descendent_ops_and_this_op.iter().for_each(|desc_op| {
+                        let maybe_existing_spec_slot = desc_op
+                            .get_slotspecializations_slot()
+                            .into_iter()
+                            .filter(|slot_spec| {
+                                slot_spec.get_roottemplateslot_slot().get_id()
+                                    == template_slot.get_id()
+                            })
+                            .next();
+                        if let Some(existing_slot) = maybe_existing_spec_slot {
+                            editor.incorporate(
+                                existing_slot
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"),
+                            )
+                        } else {
+                            editor.incorporate(
+                                desc_op
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_slotspecializations("new_slot_spec"),
+                            );
+                        }
+                    });
+                }
+                if let Some(dependent_new) = maybe_new_dependent_self_spec {
+                    all_descendent_ops_and_this_op.iter().for_each(|desc_op| {
+                        let slot_spec_in_question =
+                        desc_op.get_slotspecializations_slot().into_iter().filter(|spec| {
+                            spec.get_roottemplateslot_slot().get_id() == template_slot.get_id()
+                        }).next();
+                        if let Some(slot_spec_in_question) = slot_spec_in_question {
+                        if slot_spec_in_question.get_id() == &previous_slot_spec_id.unwrap() {
+                            editor.incorporate(desc_op.edit(ctx_clone.clone()).remove_from_slotspecializations(slot_spec_in_question.get_id())
+                                .add_temp_slotspecializations("new_slot_spec"));
+                        } else {
+                            editor.incorporate(slot_spec_in_question.edit(ctx_clone.clone())
+                                .remove_from_upstreamslotdescription(&previous_slot_spec_id.unwrap())
+                                .add_temp_upstreamslotdescription::<OperativeSlotSpecialized>("new_slot_spec")
+                                .add_temp_cardinalityspecialization::<OperativeSlotCardinalityZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        } else {
+                            editor.incorporate(desc_op.edit(ctx_clone.clone()).add_temp_slotspecializations("new_slot_spec"))
+                        }
+                    });
+                }
                 editor.execute().unwrap();
  },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityRangeOrZeroSpecialization => {
-                let mut editor = operative_clone.edit(ctx_clone.clone());
                 match spec_target {
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityRangeOrZeroSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityRangeOrZeroSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_upper_bound(selected_upper_bound.get())
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRangeOrZero(_) => {
-                        editor.incorporate(OperativeSlotCardinalityRangeOrZeroSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityRangeOrZeroSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_upper_bound(selected_upper_bound.get())
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityRangeOrZero>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<TemplateSlotCardinalityRangeOrZero>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeSpecialization(_) => {
                         leptos::logging::warn!("Somehow an ill-formed specialization was attempted (e.g. trying to make a lower_bound specialization for a range");
  },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBoundOrZero(_) => {
-                        editor.incorporate(OperativeSlotCardinalityRangeOrZeroSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityRangeOrZeroSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_upper_bound(selected_upper_bound.get())
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityLowerBoundOrZero>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<TemplateSlotCardinalityLowerBoundOrZero>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRange(_) => {
                         leptos::logging::warn!("Somehow an ill-formed specialization was attempted (e.g. trying to make a lower_bound specialization for a range");
  },
@@ -629,42 +1096,96 @@ pub fn SlotCardinalitySpecializationBuilder(
                         leptos::logging::warn!("Somehow an ill-formed specialization was attempted (e.g. trying to make a lower_bound specialization for a range");
  },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityRangeOrZeroSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityRangeOrZeroSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_upper_bound(selected_upper_bound.get())
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityRangeOrZeroSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<OperativeSlotCardinalityRangeOrZeroSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(_) => {
                         leptos::logging::warn!("Somehow an ill-formed specialization was attempted (e.g. trying to make a lower_bound specialization for a range");
  },
                 }
-                all_descendent_ops_and_this_op.into_iter().for_each(|desc_op| {
-                    editor.incorporate(
-                        desc_op
-                            .edit(ctx_clone.clone())
-                            .add_temp_slotcardinalityspecializations::<OperativeSlotCardinalityRangeOrZeroSpecialization>(
-                                "new_slot_spec",
-                            ),
-                    );
-                });
+                if let Some(unencumbered_new) = maybe_new_unencumbered_self_spec {
+                    all_descendent_ops_and_this_op.iter().for_each(|desc_op| {
+                        let maybe_existing_spec_slot = desc_op
+                            .get_slotspecializations_slot()
+                            .into_iter()
+                            .filter(|slot_spec| {
+                                slot_spec.get_roottemplateslot_slot().get_id()
+                                    == template_slot.get_id()
+                            })
+                            .next();
+                        if let Some(existing_slot) = maybe_existing_spec_slot {
+                            editor.incorporate(
+                                existing_slot
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"),
+                            )
+                        } else {
+                            editor.incorporate(
+                                desc_op
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_slotspecializations("new_slot_spec"),
+                            );
+                        }
+                    });
+                }
+                if let Some(dependent_new) = maybe_new_dependent_self_spec {
+                    all_descendent_ops_and_this_op.iter().for_each(|desc_op| {
+                        let slot_spec_in_question =
+                        desc_op.get_slotspecializations_slot().into_iter().filter(|spec| {
+                            spec.get_roottemplateslot_slot().get_id() == template_slot.get_id()
+                        }).next();
+                        if let Some(slot_spec_in_question) = slot_spec_in_question {
+                        if slot_spec_in_question.get_id() == &previous_slot_spec_id.unwrap() {
+                            editor.incorporate(desc_op.edit(ctx_clone.clone()).remove_from_slotspecializations(slot_spec_in_question.get_id())
+                                .add_temp_slotspecializations("new_slot_spec"));
+                        } else {
+                            editor.incorporate(slot_spec_in_question.edit(ctx_clone.clone())
+                                .remove_from_upstreamslotdescription(&previous_slot_spec_id.unwrap())
+                                .add_temp_upstreamslotdescription::<OperativeSlotSpecialized>("new_slot_spec")
+                                .add_temp_cardinalityspecialization::<OperativeSlotCardinalityRangeOrZeroSpecialization>("new_cardinality_spec"));
+                        }
+                        } else {
+                            editor.incorporate(desc_op.edit(ctx_clone.clone()).add_temp_slotspecializations("new_slot_spec"))
+                        }
+                    });
+                }
                 editor.execute().unwrap();
  },
             OperativeSlotCardinalitySpecializationTraitObjectDiscriminants::OperativeSlotCardinalityLowerBoundSpecialization => {
-                let mut editor = operative_clone.edit(ctx_clone.clone());
                 match spec_target {
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityLowerBoundSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityLowerBoundSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<OperativeSlotCardinalityLowerBoundOrZeroSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRangeOrZero(_) => {
                         leptos::logging::warn!("Somehow an ill-formed specialization was attempted (e.g. trying to make a lower_bound specialization for a range");
  },
@@ -672,50 +1193,114 @@ pub fn SlotCardinalitySpecializationBuilder(
                         leptos::logging::warn!("Somehow an ill-formed specialization was attempted (e.g. trying to make a lower_bound specialization for a range");
  },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBoundOrZero(_) => {
-                        editor.incorporate(OperativeSlotCardinalityLowerBoundSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityLowerBoundSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityLowerBoundOrZero>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<TemplateSlotCardinalityLowerBoundOrZero>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRange(_) => {
                         leptos::logging::warn!("Somehow an ill-formed specialization was attempted (e.g. trying to make a lower_bound specialization for a range");
  },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBound(_) => {
-                        editor.incorporate(OperativeSlotCardinalityLowerBoundSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityLowerBoundSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<TemplateSlotCardinalityLowerBound>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<TemplateSlotCardinalityLowerBound>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(_) => {
                         leptos::logging::warn!("Somehow an ill-formed specialization was attempted (e.g. trying to make a lower_bound specialization for a range");
  },
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(_) => {
-                        editor.incorporate(OperativeSlotCardinalityLowerBoundSpecialization::new(ctx_clone.clone())
-                            .set_temp_id("new_slot_spec")
+                        let mut edit = OperativeSlotCardinalityLowerBoundSpecialization::new(ctx_clone.clone())
+                            .set_temp_id("new_cardinality_spec")
                                 .set_lower_bound(selected_lower_bound.get())
-                                .add_existing_specializer(operative_clone.get_id(), |na|na)
-                                .add_existing_roottemplateslot(slot_item.get_id(), |na|na)
-                                .add_existing_specializationtarget::<OperativeSlotCardinalityLowerBoundSpecialization>(spec_target.get_id(), |na|na)
-                        );
- },
+                                .add_existing_upstreamcardinality::<OperativeSlotCardinalityLowerBoundSpecialization>(spec_target.get_id(), |na|na)
+                        ;
+                        if let Some(mut existing_self_spec) = maybe_existing_self_spec {
+                            editor.incorporate(&edit.clone().add_existing_specializedslot(existing_self_spec.get_id(), |na|na));
+                            editor.incorporate(existing_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));                        }
+                        if let Some(mut new_self_spec) = maybe_new_unencumbered_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));
+                        }
+                        if let Some(mut new_self_spec) = maybe_new_dependent_self_spec.clone() {
+                            editor.incorporate(&edit.clone().add_temp_specializedslot("new_slot_spec"));
+                            editor.incorporate(&new_self_spec.add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));
+                        }
+                    },
                 }
-                all_descendent_ops_and_this_op.into_iter().for_each(|desc_op| {
-                    editor.incorporate(
-                        desc_op
-                            .edit(ctx_clone.clone())
-                            .add_temp_slotcardinalityspecializations::<OperativeSlotCardinalityLowerBoundSpecialization>(
-                                "new_slot_spec",
-                            ),
-                    );
-                });
+                if let Some(unencumbered_new) = maybe_new_unencumbered_self_spec {
+                    all_descendent_ops_and_this_op.iter().for_each(|desc_op| {
+                        let maybe_existing_spec_slot = desc_op
+                            .get_slotspecializations_slot()
+                            .into_iter()
+                            .filter(|slot_spec| {
+                                slot_spec.get_roottemplateslot_slot().get_id()
+                                    == template_slot.get_id()
+                            })
+                            .next();
+                        if let Some(existing_slot) = maybe_existing_spec_slot {
+                            editor.incorporate(
+                                existing_slot
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"),
+                            )
+                        } else {
+                            editor.incorporate(
+                                desc_op
+                                    .edit(ctx_clone.clone())
+                                    .add_temp_slotspecializations("new_slot_spec"),
+                            );
+                        }
+                    });
+                }
+                if let Some(dependent_new) = maybe_new_dependent_self_spec {
+                    all_descendent_ops_and_this_op.iter().for_each(|desc_op| {
+                        let slot_spec_in_question =
+                        desc_op.get_slotspecializations_slot().into_iter().filter(|spec| {
+                            spec.get_roottemplateslot_slot().get_id() == template_slot.get_id()
+                        }).next();
+                        if let Some(slot_spec_in_question) = slot_spec_in_question {
+                        if slot_spec_in_question.get_id() == &previous_slot_spec_id.unwrap() {
+                            editor.incorporate(desc_op.edit(ctx_clone.clone()).remove_from_slotspecializations(slot_spec_in_question.get_id())
+                                    .add_temp_slotspecializations("new_slot_spec"));
+                        } else {
+                            editor.incorporate(slot_spec_in_question.edit(ctx_clone.clone())
+                                .remove_from_upstreamslotdescription(&previous_slot_spec_id.unwrap())
+                                .add_temp_upstreamslotdescription::<OperativeSlotSpecialized>("new_slot_spec")
+                                .add_temp_cardinalityspecialization::<OperativeSlotCardinalityLowerBoundSpecialization>("new_cardinality_spec"));
+                        }
+                        } else {
+                            editor.incorporate(desc_op.edit(ctx_clone.clone()).add_temp_slotspecializations("new_slot_spec"))
+                        }
+                    });
+                }
                 editor.execute().unwrap();
- },
+            },
         };
     };
 
@@ -724,22 +1309,42 @@ pub fn SlotCardinalitySpecializationBuilder(
             <Show when=move || !is_adding.get()>
                 <Button on:click=move|_|is_adding.set(true)>Add Specialization</Button>
             </Show>
-            <Show when=move || is_adding.get()>
+            // <Show when=move || is_adding.get()>
+            <div class=move || if is_adding.get() {""} else {"hidden"}>
                 <div>
                 <SignalSelectWithOptions value=selected_spec  options=options/>
                 </div>
 
-                {choose_bounds_view}
+                {move || match current_input_variant() {
+                        CardinalityInputTypeOptions::LowerBoundOnly => EitherOf3::A(view! {
+                            <div>
+                            <SignalTextInput prop:type="number" value=selected_lower_bound attr:min=move || prev_bounds.get().min />
+                            </div>
+                        }),
+                        CardinalityInputTypeOptions::Both => EitherOf3::B(view! {
+                            <div>
+                            <SignalTextInput prop:type="number" value=selected_lower_bound attr:min = move || prev_bounds.get().min />
+                            </div>
+                            <div>
+                            <SignalTextInput prop:type="number" value=selected_upper_bound attr:min = move || selected_lower_bound.get() attr:max=move || prev_bounds.get().max />
+                            </div>
+                        }),
+                        CardinalityInputTypeOptions::None => EitherOf3::C(view! {
+                            <div>
+                            Fixed
+                            </div>
+                        }),
+                    }}
 
                 <div>
                 <Button on:click=on_save.clone() attr:disabled=move||{
-                    is_downstream_slot_outside_of_attempted_bounds_clone() || are_selected_values_outside_of_previous_bounds_clone()
+                    is_downstream_slot_outside_of_attempted_bounds.get() || are_selected_values_outside_of_previous_bounds.get()
 
                 }>Save</Button>
                 <Button on:click=move|_|is_adding.set(false)>Cancel</Button>
                 </div>
-            </Show>
+            </div>
+            // </Show>
         </LeafSection>
     }
-    .into_any()
 }
