@@ -18,7 +18,7 @@ pub fn OperativeFunctionImplementations(
 
     let is_adding_impl = RwSignal::new(false);
     let selected_fn_def = RwSignal::new(None);
-    let fn_def_options = Memo::new(move |_| schema_clone.get_functions_slot());
+    let fn_def_options = Memo::new(move |_| schema_clone.get().get_functions_slot());
 
     let operative_clone = operative.clone();
     let on_save_new_fn_impl = Callback::new(

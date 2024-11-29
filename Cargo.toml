@@ -9,6 +9,7 @@ members = [
     "to_composite_id_macro",
     "molecule_core",
     "schema_editor",
+    "neo4j_pipeline",
 ]
 
 [workspace.dependencies]

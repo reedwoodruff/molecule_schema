@@ -190,7 +190,7 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
                             </LeafSection>
                         </LeafSection>
 
-                        <DetailSelectionView selected_variant=input_select_value schema=schema_clone.clone() selected_op=input_selected_operative/>
+                        <DetailSelectionView selected_variant=input_select_value schema=schema_clone.get().clone() selected_op=input_selected_operative/>
 
                         <LeafSection>
                             <Button on:click=on_click_add_input>Add Input</Button>
@@ -262,7 +262,7 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
                             </LeafSection>
                         </LeafSection>
 
-                        <DetailSelectionView selected_variant=output_select_value schema=schema_clone.clone() selected_op=output_selected_operative/>
+                        <DetailSelectionView selected_variant=output_select_value schema=schema_clone.get().clone() selected_op=output_selected_operative/>
 
                         <LeafSection>
                             <Button on:click=on_click_add_output>Add Output</Button>

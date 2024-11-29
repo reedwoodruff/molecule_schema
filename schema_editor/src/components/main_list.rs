@@ -47,16 +47,19 @@ pub fn MainList() -> impl IntoView {
                 SchemaConcreteAllSlots::Operatives => unreachable!(),
                 SchemaConcreteAllSlots::Instances => todo!(),
                 SchemaConcreteAllSlots::Templates => schema_clone
+                    .get()
                     .edit(ctx.clone())
                     .add_new_templates(|new_template| new_template.set_name("new".to_string()))
                     .execute()
                     .unwrap(),
                 SchemaConcreteAllSlots::Traits => schema_clone
+                    .get()
                     .edit(ctx.clone())
                     .add_new_traits(|new_trait| new_trait.set_name("new".to_string()))
                     .execute()
                     .unwrap(),
                 SchemaConcreteAllSlots::Functions => schema_clone
+                    .get()
                     .edit(ctx.clone())
                     .add_new_functions(|new_fn_def| new_fn_def.set_name("new".to_string()))
                     .execute()
@@ -75,7 +78,7 @@ pub fn MainList() -> impl IntoView {
             WorkspaceTab::Template(tab_state) => view! {
                 {move || create_new_button_view.clone()(SchemaConcreteAllSlots::Templates)}
                 <For
-                each=move || schema.get_templates_slot()
+                each=move || schema.get().get_templates_slot()
                 key=|item| item.get_id().clone()
                 children=move |item| list_item_view(item, tab_state.clone())
                 >
@@ -83,7 +86,7 @@ pub fn MainList() -> impl IntoView {
             },
             WorkspaceTab::Operative(tab_state) => view! {
                 <For
-                each=move || schema.get_operatives_slot()
+                each=move || schema.get().get_operatives_slot()
                 key=|item| item.get_id().clone()
                 children=move |item| list_item_view(item, tab_state.clone())
                 >
@@ -91,7 +94,7 @@ pub fn MainList() -> impl IntoView {
             },
             WorkspaceTab::Instance(tab_state) => view! {
                 <For
-                each=move || schema.get_instances_slot()
+                each=move || schema.get().get_instances_slot()
                 key=|item| item.get_id().clone()
                 children=move |item| list_item_view(item, tab_state.clone())
                 >
@@ -100,7 +103,7 @@ pub fn MainList() -> impl IntoView {
             WorkspaceTab::Trait(tab_state) => view! {
                 {move || create_new_button_view.clone()(SchemaConcreteAllSlots::Traits)}
                 <For
-                each=move || schema.get_traits_slot()
+                each=move || schema.get().get_traits_slot()
                 key=|item| item.get_id().clone()
                 children=move |item| list_item_view(item, tab_state.clone())
                 >
@@ -109,7 +112,7 @@ pub fn MainList() -> impl IntoView {
             WorkspaceTab::Function(tab_state) => view! {
                 {move || create_new_button_view.clone()(SchemaConcreteAllSlots::Functions)}
                 <For
-                each=move || schema.get_functions_slot()
+                each=move || schema.get().get_functions_slot()
                 key=|item| item.get_id().clone()
                 children=move |item| list_item_view(item, tab_state.clone())
                 >

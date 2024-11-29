@@ -31,6 +31,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     let create_derivative_operative = move |_| {
         let derivative_operative_name = derivative_operative_name.clone().get();
         schema
+            .get()
             .edit(ctx_clone.clone())
             .add_new_operatives(|op| {
                 op.set_name(derivative_operative_name.clone())

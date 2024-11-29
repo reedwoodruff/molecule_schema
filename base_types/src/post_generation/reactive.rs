@@ -1258,7 +1258,7 @@ where
                                             self.graph.get(&update.0).unwrap().operative().tag.name,
                                             slot.1.slot.tag.name,
                                             slot.1.slot.bounds,
-                                            slot.1.slotted_instances.get().len()
+                                            final_count
                                         )))
                                     } else {
                                         None
@@ -1298,19 +1298,17 @@ where
             return Err(ElementCreationError::Stack(all_errors));
         }
 
-        Ok((
-            Blueprint::<TSchema> {
-                added_instances: instantiated_elements,
-                add_outgoing_updates: self.add_outgoing_updates.get(),
-                add_incoming_updates: self.add_incoming_updates.get(),
-                remove_outgoing_updates: self.remove_outgoing_updates.get(),
-                remove_incoming_updates: self.remove_incoming_updates.get(),
-                deleted_instances: cloned_delete_instances,
-                field_updates: self.field_updates.get(),
-                action_tag: None,
-            },
-            ExecutionResult { temp_id_map },
-        ))
+        let blueprint = Blueprint::<TSchema> {
+            added_instances: instantiated_elements,
+            add_outgoing_updates: self.add_outgoing_updates.get(),
+            add_incoming_updates: self.add_incoming_updates.get(),
+            remove_outgoing_updates: self.remove_outgoing_updates.get(),
+            remove_incoming_updates: self.remove_incoming_updates.get(),
+            deleted_instances: cloned_delete_instances,
+            field_updates: self.field_updates.get(),
+            action_tag: None,
+        };
+        Ok((blueprint, ExecutionResult { temp_id_map }))
     }
     pub fn get_graph(&self) -> &std::sync::Arc<RBaseGraphEnvironment<TSchema>> {
         &self.graph

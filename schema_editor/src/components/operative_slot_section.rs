@@ -313,27 +313,27 @@ pub fn OperativeSlotSection(
             let schema_clone = schema_clone.clone();
 
             if let Some(childest_spec) = maybe_childest_type_spec.get() {
-                get_all_instances_which_satisfy_specialization(&schema_clone, childest_spec)
+                get_all_instances_which_satisfy_specialization(&schema_clone.get(), childest_spec)
             } else {
                 match slot_clone.get_templateslotvariant_slot() {
                     TemplateSlotTypeVariantTraitObject::TemplateSlotTypeTraitOperative(
                         trait_op,
                     ) => get_all_instances_which_impl_trait_set(
                         trait_op.get_allowedtraits_slot(),
-                        &schema_clone,
+                        &schema_clone.get(),
                     ),
                     TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(
                         single_op,
                     ) => get_all_descendent_instances_including_own(
                         single_op.get_allowedoperative_slot(),
-                        &schema_clone,
+                        &schema_clone.get(),
                     ),
                     TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(
                         multi_op,
                     ) => multi_op.get_allowedoperatives_slot().into_iter().fold(
                         BTreeSet::new(),
                         |mut agg, op| {
-                            agg.extend(get_all_descendent_instances(op, &schema_clone));
+                            agg.extend(get_all_descendent_instances(op, &schema_clone.get()));
                             agg
                         },
                     ),
@@ -644,9 +644,11 @@ pub fn OperativeSlotSection(
             <LeafSection>
                 <Button on:click=move |_| is_adding_slotted_instance.set(true) attr:disabled =move||!is_allowed_to_add_another_instance.get()>Slot an instance</Button>
             </LeafSection>
-            <Show when=move|| is_adding_slotted_instance.get()>
+            // <Show when=move|| is_adding_slotted_instance.get()>
+            <div class=move||{match is_adding_slotted_instance.get() { true => "", false => "hidden", }}>
             {add_slotted_instance_view.clone()}
-            </Show>
+            </div>
+            // </Show>
             <For each=move || slotted_instances_for_slot.get() key=|item| item.get_id().clone() children=currently_slotted_view />
         </SubSection>
 

@@ -36,7 +36,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
     let create_derivative_operative = move |_| {
         // Really not liking being forced to do two graph actions -- need to figure out how to fix the api.
         let derivative_operative_name = derivative_operative_name.clone().get();
-        let mut editor = schema_clone.edit(ctx_clone.clone());
+        let mut editor = schema_clone.get().edit(ctx_clone.clone());
         editor.add_new_operatives(|op| {
             op.set_name(derivative_operative_name.clone())
                 .add_existing_roottemplate(
@@ -96,7 +96,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
     let schema_clone = schema.clone();
     let create_derivative_instance = move |_| {
         let derivative_instance_name = derivative_instance_name.clone().get();
-        let mut editor = schema_clone.edit(ctx_clone.clone());
+        let mut editor = schema_clone.get().edit(ctx_clone.clone());
         editor.add_new_instances(|new_inst| {
             new_inst
                 .set_name(derivative_instance_name.clone())
@@ -442,35 +442,43 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
         <Section>
             <SectionHeader slot>Fields</SectionHeader>
             <SubSection>
-            <Show when=move|| {locked_fields.get().1.len() > 0}>
+            <div class=move||{match locked_fields.get().1.len() > 0 { true => "", false => "hidden", }}>
+            // <Show when=move|| {locked_fields.get().1.len() > 0}>
             {let unowned_locked_field_view = unowned_locked_field_view.clone();
                 view!{
                 <SubSectionHeader>Locked By Parent</SubSectionHeader>
                 <For each=move||locked_fields.get().1 key=|item| item.get_id().clone() children=unowned_locked_field_view />
                 }}
-            </Show>
-            <Show when=move|| {locked_fields.get().0.len() > 0}>
+            // </Show>
+            </div>
+            <div class=move||{match locked_fields.get().0.len() > 0 { true => "", false => "hidden", }}>
+            // <Show when=move|| {locked_fields.get().0.len() > 0}>
                 {let owned_locked_field_view = owned_locked_field_view.clone();
                     view!{
                     <SubSectionHeader>Locked Here</SubSectionHeader>
                     <For each=move||locked_fields.get().0 key=|item| item.get_id().clone() children=owned_locked_field_view />
                     }
                 }
-            </Show>
-            <Show when=move|| {non_locked_fields.get().1.len() > 0}>
+            // </Show>
+            </div>
+            <div class=move||{match locked_fields.get().1.len() > 0 { true => "", false => "hidden", }}>
+            // <Show when=move|| {non_locked_fields.get().1.len() > 0}>
             {let non_locked_field_view = non_locked_field_view.clone();
                 view!{
                 <SubSectionHeader>Unlocked and Independent</SubSectionHeader>
                 <For each=move || non_locked_fields.get().1 key=|item| item.get_id().clone() children=non_locked_field_view />
                 }}
-            </Show>
-            <Show when=move|| {non_locked_fields.get().0.len() > 0}>
+            // </Show>
+            </div>
+            <div class=move||{match locked_fields.get().0.len() > 0 { true => "", false => "hidden", }}>
+            // <Show when=move|| {non_locked_fields.get().0.len() > 0}>
             {let non_locked_but_dependent_field_view = non_locked_but_dependent_field_view.clone();
                 view!{
                 <SubSectionHeader>Unlocked but locked downstream and therefore dependent</SubSectionHeader>
                 <For each=move || non_locked_fields.get().0 key=|item| item.get_id().clone() children=non_locked_but_dependent_field_view />
                 }}
-            </Show>
+            // </Show>
+            </div>
             </SubSection>
         </Section>
         <Section>

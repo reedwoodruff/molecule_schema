@@ -38,7 +38,7 @@ pub fn SlotBuilder(
         selected_trait_list
             .get()
             .into_iter()
-            .filter(|item| schema_clone.get_traits_slot().contains(item))
+            .filter(|item| schema_clone.get().get_traits_slot().contains(item))
             .collect::<Vec<_>>()
     });
     // let selected_operative_for_slot = RwSignal::new(None); //OperativeConcrete
@@ -211,6 +211,7 @@ pub fn SlotBuilder(
         };
         let trait_options = Signal::derive(move || {
             schema_clone
+                .get()
                 .get_traits_slot()
                 .into_iter()
                 .filter(|item| {
@@ -393,14 +394,13 @@ pub fn SlotBuilder(
                     .add_new_templateslots(|new_template_slot| {
                         new_template_slot
                             .set_name(name.get())
+                            .set_temp_id("new_templateslot")
                             .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
                                 |new_op_var| {
                                     new_op_var
                                         .add_existing_allowedoperative(op_id, |na| na)
-                                        .add_existing_roottemplateslot(
-                                            template_clone.get_id(),
-                                            |na| na,
-                                        )
+                                        .add_temp_roottemplateslot(
+                                            "new_templateslot"                                        )
                                 },
                             )
                             .add_new_slotbound::<TemplateSlotCardinalityRangeOrZero, _>(
@@ -417,12 +417,13 @@ pub fn SlotBuilder(
                 .edit(ctx_clone.clone())
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
+                        .set_temp_id("new_templateslot")
                         .set_name(name.get())
                         .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
                             |new_op_var| {
                                 new_op_var
                                     .add_existing_allowedoperative(op_id, |na| na)
-                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
+                                    .add_temp_roottemplateslot("new_templateslot")
                             },
                         )
                         .add_new_slotbound::<TemplateSlotCardinalityLowerBoundOrZero, _>(|slot_bound| {
@@ -434,12 +435,13 @@ pub fn SlotBuilder(
                 .edit(ctx_clone.clone())
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
+                        .set_temp_id("new_templateslot")
                         .set_name(name.get())
                         .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
                             |new_op_var| {
                                 new_op_var
                                     .add_existing_allowedoperative(op_id, |na| na)
-                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
+                                    .add_temp_roottemplateslot("new_templateslot")
                             },
                         )
                         .add_new_slotbound::<TemplateSlotCardinalityRange, _>(|slot_bound| {
@@ -453,12 +455,13 @@ pub fn SlotBuilder(
                 .edit(ctx_clone.clone())
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
+                        .set_temp_id("new_templateslot")
                         .set_name(name.get())
                         .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
                             |new_op_var| {
                                 new_op_var
                                     .add_existing_allowedoperative(op_id, |na| na)
-                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
+                                    .add_temp_roottemplateslot("new_templateslot")
                             },
                         )
                         .add_new_slotbound::<TemplateSlotCardinalityLowerBound, _>(|slot_bound| {
@@ -470,12 +473,13 @@ pub fn SlotBuilder(
                 .edit(ctx_clone.clone())
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
+                        .set_temp_id("new_templateslot")
                         .set_name(name.get())
                         .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
                             |new_op_var| {
                                 new_op_var
                                     .add_existing_allowedoperative(op_id, |na| na)
-                                    .add_existing_roottemplateslot(template_clone.get_id(), |na| na)
+                                    .add_temp_roottemplateslot("new_templateslot")
                             },
                         )
                         .add_new_slotbound::<TemplateSlotCardinalitySingle, _>(|slot_bound| slot_bound)
@@ -486,7 +490,7 @@ pub fn SlotBuilder(
     };
     let schema_clone = schema.clone();
     let single_op_slot_details_view = move || {
-        let operative_options = schema_clone.get_operatives_slot();
+        let operative_options = schema_clone.get().get_operatives_slot();
         view! {
             <LeafSectionHeader>
                 Operative Chosen for Slot
@@ -499,6 +503,7 @@ pub fn SlotBuilder(
     let schema_clone = schema.clone();
     let multi_op_slot_details_view = move || {
         let operative_options = schema_clone
+            .get()
             .get_operatives_slot()
             .into_iter()
             .filter(|op| !multi_operative_list.get().contains(op))
