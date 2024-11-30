@@ -72,7 +72,7 @@ pub fn SlotBuilder(
                                                     )
                                             },
                                         )
-                                        .add_new_slotbound::<TemplateSlotCardinalityRangeOrZero, _>(
+                                        .add_new_slotcardinality::<TemplateSlotCardinalityRangeOrZero, _>(
                                             |slot_bound| {
                                                 slot_bound
                                                     .set_upper_bound(slot_bound_max.get())
@@ -100,7 +100,7 @@ pub fn SlotBuilder(
                                                     )
                                             },
                                         )
-                                        .add_new_slotbound::<TemplateSlotCardinalityLowerBoundOrZero, _>(
+                                        .add_new_slotcardinality::<TemplateSlotCardinalityLowerBoundOrZero, _>(
                                             |slot_bound| {
                                                 slot_bound.set_lower_bound(slot_bound_min.get())
                                             },
@@ -125,7 +125,7 @@ pub fn SlotBuilder(
                                                 )
                                         },
                                     )
-                                    .add_new_slotbound::<TemplateSlotCardinalityRange, _>(|slot_bound| {
+                                    .add_new_slotcardinality::<TemplateSlotCardinalityRange, _>(|slot_bound| {
                                         slot_bound
                                             .set_upper_bound(slot_bound_max.get())
                                             .set_lower_bound(slot_bound_min.get())
@@ -150,7 +150,7 @@ pub fn SlotBuilder(
                                                     )
                                             },
                                         )
-                                        .add_new_slotbound::<TemplateSlotCardinalityLowerBound, _>(|slot_bound| {
+                                        .add_new_slotcardinality::<TemplateSlotCardinalityLowerBound, _>(|slot_bound| {
                                             slot_bound.set_lower_bound(slot_bound_min.get())
                                         })
                                 })
@@ -173,7 +173,7 @@ pub fn SlotBuilder(
                                                 )
                                         },
                                     )
-                                    .add_new_slotbound::<TemplateSlotCardinalitySingle, _>(|slot_bound| {
+                                    .add_new_slotcardinality::<TemplateSlotCardinalitySingle, _>(|slot_bound| {
                                         slot_bound
                                     })
                             })
@@ -312,7 +312,7 @@ pub fn SlotBuilder(
             TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRangeOrZero => editor
                 .incorporate(
                     &TemplateSlot::new(ctx_clone.clone())
-                        .add_new_slotbound::<TemplateSlotCardinalityRangeOrZero, _>(
+                        .add_new_slotcardinality::<TemplateSlotCardinalityRangeOrZero, _>(
                             |new_slot_bound| {
                                 new_slot_bound
                                     .set_temp_id("slot_bound")
@@ -329,7 +329,7 @@ pub fn SlotBuilder(
             TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBoundOrZero => editor
                 .incorporate(
                     &TemplateSlot::new(ctx_clone.clone())
-                        .add_new_slotbound::<TemplateSlotCardinalityLowerBoundOrZero, _>(|new_slot_bound| {
+                        .add_new_slotcardinality::<TemplateSlotCardinalityLowerBoundOrZero, _>(|new_slot_bound| {
                             new_slot_bound
                                 .set_temp_id("slot_bound")
                                 .set_lower_bound(slot_bound_min.get())
@@ -342,7 +342,7 @@ pub fn SlotBuilder(
                 ),
             TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRange => editor.incorporate(
                 &TemplateSlot::new(ctx_clone.clone())
-                    .add_new_slotbound::<TemplateSlotCardinalityRange, _>(|new_slot_bound| {
+                    .add_new_slotcardinality::<TemplateSlotCardinalityRange, _>(|new_slot_bound| {
                         new_slot_bound
                             .set_temp_id("slot_bound")
                             .set_upper_bound(slot_bound_max.get())
@@ -354,7 +354,7 @@ pub fn SlotBuilder(
             ),
             TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBound => editor.incorporate(
                 &TemplateSlot::new(ctx_clone.clone())
-                    .add_new_slotbound::<TemplateSlotCardinalityLowerBound, _>(|new_slot_bound| {
+                    .add_new_slotcardinality::<TemplateSlotCardinalityLowerBound, _>(|new_slot_bound| {
                         new_slot_bound
                             .set_temp_id("slot_bound")
                             .set_lower_bound(slot_bound_min.get())
@@ -365,7 +365,7 @@ pub fn SlotBuilder(
             ),
             TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalitySingle => editor.incorporate(
                 &TemplateSlot::new(ctx_clone.clone())
-                    .add_new_slotbound::<TemplateSlotCardinalitySingle, _>(|new_slot_bound| {
+                    .add_new_slotcardinality::<TemplateSlotCardinalitySingle, _>(|new_slot_bound| {
                         new_slot_bound.set_temp_id("slot_bound")
                     })
                     .set_name(name.get())
@@ -403,7 +403,7 @@ pub fn SlotBuilder(
                                             "new_templateslot"                                        )
                                 },
                             )
-                            .add_new_slotbound::<TemplateSlotCardinalityRangeOrZero, _>(
+                            .add_new_slotcardinality::<TemplateSlotCardinalityRangeOrZero, _>(
                                 |slot_bound| {
                                     slot_bound
                                         .set_upper_bound(slot_bound_max.get())
@@ -426,7 +426,7 @@ pub fn SlotBuilder(
                                     .add_temp_roottemplateslot("new_templateslot")
                             },
                         )
-                        .add_new_slotbound::<TemplateSlotCardinalityLowerBoundOrZero, _>(|slot_bound| {
+                        .add_new_slotcardinality::<TemplateSlotCardinalityLowerBoundOrZero, _>(|slot_bound| {
                             slot_bound.set_lower_bound(slot_bound_min.get())
                         })
                 })
@@ -444,7 +444,7 @@ pub fn SlotBuilder(
                                     .add_temp_roottemplateslot("new_templateslot")
                             },
                         )
-                        .add_new_slotbound::<TemplateSlotCardinalityRange, _>(|slot_bound| {
+                        .add_new_slotcardinality::<TemplateSlotCardinalityRange, _>(|slot_bound| {
                             slot_bound
                                 .set_upper_bound(slot_bound_max.get())
                                 .set_lower_bound(slot_bound_min.get())
@@ -464,7 +464,7 @@ pub fn SlotBuilder(
                                     .add_temp_roottemplateslot("new_templateslot")
                             },
                         )
-                        .add_new_slotbound::<TemplateSlotCardinalityLowerBound, _>(|slot_bound| {
+                        .add_new_slotcardinality::<TemplateSlotCardinalityLowerBound, _>(|slot_bound| {
                             slot_bound.set_lower_bound(slot_bound_min.get())
                         })
                 })
@@ -482,7 +482,7 @@ pub fn SlotBuilder(
                                     .add_temp_roottemplateslot("new_templateslot")
                             },
                         )
-                        .add_new_slotbound::<TemplateSlotCardinalitySingle, _>(|slot_bound| slot_bound)
+                        .add_new_slotcardinality::<TemplateSlotCardinalitySingle, _>(|slot_bound| slot_bound)
                 })
                 .execute(),
         }

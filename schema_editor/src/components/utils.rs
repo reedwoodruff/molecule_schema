@@ -118,15 +118,45 @@ pub fn get_all_operatives_which_satisfy_specializable(
             )
         }
         OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
-            multi
+            let mut return_list = BTreeSet::new();
+            let allowed = multi
                 .get_allowedoperatives_slot()
                 .into_iter()
-                .collect::<BTreeSet<_>>()
+                .collect::<BTreeSet<_>>();
+            allowed.into_iter().map(|allowed_op| {
+                get_all_descendent_operators_including_own(allowed_op, &mut return_list);
+            });
+            return_list
         }
-        OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(multi) => multi
-            .get_allowedoperatives_slot()
-            .into_iter()
-            .collect::<BTreeSet<_>>(),
+        OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(multi) => {
+            let mut return_list = BTreeSet::new();
+            let allowed = multi
+                .get_allowedoperatives_slot()
+                .into_iter()
+                .collect::<BTreeSet<_>>();
+            allowed.into_iter().map(|allowed_op| {
+                get_all_descendent_operators_including_own(allowed_op, &mut return_list);
+            });
+            return_list
+        }
+        OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeSingleSpecialization(
+            single,
+        ) => {
+            let mut return_list = BTreeSet::new();
+            get_all_descendent_operators_including_own(
+                single.get_allowedoperative_slot(),
+                &mut return_list,
+            );
+            return_list
+        }
+        OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeSingleOperative(single) => {
+            let mut return_list = BTreeSet::new();
+            get_all_descendent_operators_including_own(
+                single.get_allowedoperative_slot(),
+                &mut return_list,
+            );
+            return_list
+        }
         OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(
             trait_spec,
         ) => get_all_operatives_which_impl_trait_set(

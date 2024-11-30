@@ -68,13 +68,12 @@ pub fn GeneralSpecializationTargetView(
                          <br/>
                          "↓"
                          <br/>
-
             }
             .into_any()
         }
         OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
             let text = format!(
-                "Narrowed to this operative list: [{}]",
+                "Narrowed to this operative list (and their descendents): [{}]",
                 multi
                     .get_allowedoperatives_slot()
                     .into_iter()
@@ -88,13 +87,12 @@ pub fn GeneralSpecializationTargetView(
                          <br/>
                          "↓"
                          <br/>
-
             }
             .into_any()
         }
         OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(multi) => {
             let text = format!(
-                "Root Operative List: [{}]",
+                "Root Operative List (and their descendents): [{}]",
                 multi
                     .get_allowedoperatives_slot()
                     .into_iter()
@@ -107,7 +105,35 @@ pub fn GeneralSpecializationTargetView(
                          <br/>
                          "↓"
                          <br/>
-
+            }
+            .into_any()
+        }
+        OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeSingleSpecialization(
+            single,
+        ) => {
+            let text = format!(
+                "Narrowed to this operative (and its descendents): {}",
+                single.get_allowedoperative_slot().get_name()
+            );
+            view! {
+                <GeneralSpecializationTargetView target=single.get_upstreamtype_slot() />
+                         {text}
+                         <br/>
+                         "↓"
+                         <br/>
+            }
+            .into_any()
+        }
+        OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeSingleOperative(single) => {
+            let text = format!(
+                "Root Operative (and its descendents): {}",
+                single.get_allowedoperative_slot().get_name()
+            );
+            view! {
+                         {text}
+                         <br/>
+                         "↓"
+                         <br/>
             }
             .into_any()
         }
@@ -129,7 +155,6 @@ pub fn GeneralSpecializationTargetView(
                          <br/>
                          "↓"
                          <br/>
-
             }
             .into_any()
         }

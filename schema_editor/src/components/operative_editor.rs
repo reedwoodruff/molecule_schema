@@ -461,7 +461,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 }
             // </Show>
             </div>
-            <div class=move||{match locked_fields.get().1.len() > 0 { true => "", false => "hidden", }}>
+            <div class=move||{match non_locked_fields.get().1.len() > 0 { true => "", false => "hidden", }}>
             // <Show when=move|| {non_locked_fields.get().1.len() > 0}>
             {let non_locked_field_view = non_locked_field_view.clone();
                 view!{
@@ -470,7 +470,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 }}
             // </Show>
             </div>
-            <div class=move||{match locked_fields.get().0.len() > 0 { true => "", false => "hidden", }}>
+            <div class=move||{match non_locked_fields.get().0.len() > 0 { true => "", false => "hidden", }}>
             // <Show when=move|| {non_locked_fields.get().0.len() > 0}>
             {let non_locked_but_dependent_field_view = non_locked_but_dependent_field_view.clone();
                 view!{

@@ -120,7 +120,7 @@ pub fn OperativeSlotSection(
         if let Some(spec) = maybe_childest_cardinality_spec.get() {
             CardinalityInfo::from_card_spec(spec)
         } else {
-            match slot_clone.get_slotbound_slot() {
+            match slot_clone.get_slotcardinality_slot() {
                 TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRangeOrZero(item) => {
                     CardinalityInfo {min: item.get_lower_bound_field(), max: Some(item.get_upper_bound_field()), zero_allowed: true}
                 },
@@ -222,7 +222,7 @@ pub fn OperativeSlotSection(
     let slot_bound_view = move || {
         let cur_slot_num = upstream_and_local_slotted_number_clone.clone()();
         let cur_downstream_slot_num = max_downstream_slotted_number.clone().get();
-        match slot_clone.get_slotbound_slot() {
+        match slot_clone.get_slotcardinality_slot() {
             TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRangeOrZero(
                 inner,
             ) => EitherOf5::B(move || {

@@ -125,7 +125,7 @@ pub fn OperativeSlotCardinalitySpecializationSection() -> impl IntoView {
                 },
             }
         } else {
-            match slot_clone.get_slotbound_slot() {
+            match slot_clone.get_slotcardinality_slot() {
                 TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRangeOrZero(item) =>  {
                     view!{<SlotCardinalitySpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRangeOrZero(item) />}.into_any()
                 }

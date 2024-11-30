@@ -122,6 +122,8 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
                                     OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeTraitOperative(_) => OperativeSlotTypeSpecializableTraitObjectDiscriminants::TemplateSlotTypeTraitOperative ,
                                     OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(_) => OperativeSlotTypeSpecializableTraitObjectDiscriminants::OperativeSlotTypeMultiSpecialization ,
                                     OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(_) => OperativeSlotTypeSpecializableTraitObjectDiscriminants::TemplateSlotTypeMultiOperative ,
+                                    OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeSingleSpecialization(_) => OperativeSlotTypeSpecializableTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization ,
+                                    OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeSingleOperative(_) => OperativeSlotTypeSpecializableTraitObjectDiscriminants::TemplateSlotTypeSingleOperative ,
                                     OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(_) => OperativeSlotTypeSpecializableTraitObjectDiscriminants::OperativeSlotTypeTraitObjectSpecialization ,
                             }
                             ,
@@ -135,6 +137,8 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
                                     OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeTraitOperative(_) => OperativeSlotTypeSpecializableTraitObjectDiscriminants::TemplateSlotTypeTraitOperative ,
                                     OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(_) => OperativeSlotTypeSpecializableTraitObjectDiscriminants::OperativeSlotTypeMultiSpecialization ,
                                     OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(_) => OperativeSlotTypeSpecializableTraitObjectDiscriminants::TemplateSlotTypeMultiOperative ,
+                                    OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeSingleSpecialization(_) => OperativeSlotTypeSpecializableTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization ,
+                                    OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeSingleOperative(_) => OperativeSlotTypeSpecializableTraitObjectDiscriminants::TemplateSlotTypeSingleOperative ,
                                     OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(_) => OperativeSlotTypeSpecializableTraitObjectDiscriminants::OperativeSlotTypeTraitObjectSpecialization ,
                             }
                             ,
@@ -193,6 +197,16 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
                             );
                         },
                         OperativeSlotTypeSpecializableTraitObjectDiscriminants::TemplateSlotTypeMultiOperative => { },
+                        OperativeSlotTypeSpecializableTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization => {
+                            editor.incorporate(
+                                &spec.edit(ctx_clone.clone())
+                                    .add_existing_typespecialization::<OperativeSlotTypeSingleSpecialization>(
+                                        &upstream_item.1,
+                                        |na| na
+                                    ),
+                            );
+                        },
+                        OperativeSlotTypeSpecializableTraitObjectDiscriminants::TemplateSlotTypeSingleOperative => { },
                         OperativeSlotTypeSpecializableTraitObjectDiscriminants::OperativeSlotTypeTraitObjectSpecialization => {
                             editor.incorporate(
                                 &spec.edit(ctx_clone.clone())
@@ -234,7 +248,9 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
         if let Some(specialization) = maybe_childest_type_spec.get() {
             let spec_clone = specialization.clone();
             EitherOf3::B(match spec_clone.clone() {
-                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(_) => view! {<LeafSection><InfoNote>Cannot be specialized further</InfoNote></LeafSection>}.into_any(),
+                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(single) => view! {
+                    <SlotTypeSpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeSingleSpecialization(single) />
+                }.into_any(),
                 OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
                     view!{<SlotTypeSpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(multi) />}.into_any()
                 },
@@ -248,8 +264,10 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
                         <SlotTypeSpecializationBuilder operative=operative_clone.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeTraitOperative(trait_op) />
                     }.into_any()
                 }
-                TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(_single) => {
-                    view! {<LeafSection><InfoNote>Cannot be specialized further</InfoNote></LeafSection>}.into_any()
+                TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(single) => {
+                    view!{
+                        <SlotTypeSpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeSingleOperative(single) />
+                    }.into_any()
                 }
                 TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(multi) => {
                     view! {
