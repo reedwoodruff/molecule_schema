@@ -307,3 +307,81 @@ pub fn get_deepest_downstream_specializations(
     }
     recurse(op, template_slot_id)
 }
+
+pub fn restructure_slot_specialization_to_delete_input(
+    editor: &mut ExistingBuilder<SchemaConcrete, Schema>,
+    ctx: SharedGraph<Schema>,
+    specialized_slot_to_delete: RGSOConcrete<OperativeSlotSpecialized, Schema>,
+) {
+    leptos::logging::log!("Running delete slot_spec");
+    editor.incorporate(specialized_slot_to_delete.edit(ctx.clone()).delete());
+    let operative = specialized_slot_to_delete.get_specializer_slot();
+    let mut descendents = BTreeSet::new();
+    get_all_descendent_operators_including_own(operative, &mut descendents);
+
+    let upstream_node = specialized_slot_to_delete.get_upstreamslotdescription_slot();
+
+    descendents.into_iter().for_each(|descendent| {
+        if let Some(desc_spec_node) = descendent
+            .get_slotspecializations_slot()
+            .into_iter()
+            .filter(|desc_spec_node| {
+                desc_spec_node.get_roottemplateslot_slot().get_id()
+                    == specialized_slot_to_delete
+                        .get_roottemplateslot_slot()
+                        .get_id()
+            })
+            .next()
+        {
+            // If the descendent's specialized slot is the one being deleted, handle updating it to an upstream
+            if desc_spec_node.get_id() == specialized_slot_to_delete.get_id() {
+                leptos::logging::log!("removing from an operative");
+                editor.incorporate(
+                    descendent
+                        .edit(ctx.clone())
+                        .remove_from_slotspecializations(specialized_slot_to_delete.get_id()),
+                );
+                match &upstream_node {
+                    // If upstream is the template, then there is no need for any specialization
+                    SlotDescriptionTraitObject::TemplateSlot(_) => {}
+                    SlotDescriptionTraitObject::OperativeSlotSpecialized(item) => editor
+                        .incorporate(
+                            &descendent
+                                .edit(ctx.clone())
+                                .add_existing_slotspecializations(item.get_id(), |na| na),
+                        ),
+                }
+            }
+            // Otherwise, if the descendent's specialized slot pointed to the slot-to-delete as its upstream,
+            // then it needs to change its upstream to the new upstream
+            else if desc_spec_node.get_upstreamslotdescription_slot().get_id()
+                == specialized_slot_to_delete.get_id()
+            {
+                editor.incorporate(
+                    desc_spec_node
+                        .edit(ctx.clone())
+                        .remove_from_upstreamslotdescription(specialized_slot_to_delete.get_id()),
+                );
+                match &upstream_node {
+                    SlotDescriptionTraitObject::TemplateSlot(item) => editor.incorporate(
+                        &desc_spec_node
+                            .edit(ctx.clone())
+                            .add_existing_upstreamslotdescription::<TemplateSlot>(
+                                item.get_id(),
+                                |na| na,
+                            ),
+                    ),
+                    SlotDescriptionTraitObject::OperativeSlotSpecialized(item) => editor
+                        .incorporate(
+                            &desc_spec_node
+                                .edit(ctx.clone())
+                                .add_existing_upstreamslotdescription::<OperativeSlotSpecialized>(
+                                    item.get_id(),
+                                    |na| na,
+                                ),
+                        ),
+                }
+            }
+        }
+    });
+}

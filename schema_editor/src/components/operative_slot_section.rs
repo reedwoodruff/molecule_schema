@@ -11,6 +11,7 @@ use crate::components::{
         get_all_instances_which_satisfy_specialization, get_childest_cardinality_info_downstream,
         get_childest_cardinality_specialization_for_op_and_slot,
         get_childest_type_specialization_for_op_and_slot,
+        restructure_slot_specialization_to_delete_input,
     },
     workspace::WorkspaceState,
 };
@@ -255,10 +256,13 @@ pub fn OperativeSlotSection(
 
     let operative_clone = operative.clone();
     let ctx_clone = ctx.clone();
+    let slot_clone = slot_item.clone();
     let currently_slotted_view = move |instance: RGSOConcrete<SlottedInstance, Schema>| {
         let ctx_clone = ctx_clone.clone();
         let instance_clone = instance.clone();
+        let slot_clone = slot_clone.clone();
         let operative_clone = operative_clone.clone();
+        let operative_clone_2 = operative_clone.clone();
         let is_owned_by_this_op = move || {
             instance_clone
                 .get_slottedslot_slot()
@@ -269,15 +273,89 @@ pub fn OperativeSlotSection(
         let instance_clone = instance.clone();
         move || {
             let ctx_clone = ctx_clone.clone();
+            let mut editor = schema_clone.get().edit(ctx_clone.clone());
+            let slot_clone = slot_clone.clone();
+            let operative_clone = operative_clone_2.clone();
             let instance_clone = instance_clone.clone();
+            let instance_clone_2 = instance_clone.clone();
             if is_owned_by_this_op() {
                 let instance_clone_2 = instance_clone.clone();
                 let on_click_remove = move |_| {
-                    instance_clone_2
-                        .edit(ctx_clone.clone())
-                        .delete()
-                        .execute()
-                        .unwrap();
+                    // Delete specialization node if obselete
+                    if let Some(spec_node) = operative_clone
+                        .get_slotspecializations_slot()
+                        .into_iter()
+                        .filter(|slot_spec| {
+                            slot_spec.get_roottemplateslot_slot().get_id()
+                                == slot_clone.clone().get_id()
+                        })
+                        .next()
+                    {
+                        let has_owned_slotted_instances = spec_node
+                            .get_slottedinstances_slot()
+                            .into_iter()
+                            .any(|slotted_instance| {
+                                slotted_instance.get_slottedslot_slot().get_id()
+                                    == spec_node.get_id()
+                                    && slotted_instance.get_id() != instance_clone_2.get_id()
+                            });
+                        let has_owned_type_specs = spec_node
+                            .get_typespecialization_slot()
+                            .into_iter()
+                            .any(|type_spec| {
+                                let spec_node_matches = match type_spec {
+                                    OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => {
+                                        item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                    },
+                                    OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => {
+                                        item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                    },
+                                    OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => {
+                                        item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                    },
+                                };
+                                spec_node_matches
+                            });
+                        let has_owned_cardinality_specs = spec_node
+                            .get_cardinalityspecialization_slot()
+                            .into_iter()
+                            .any(|card_spec| {
+                                let spec_node_matches = match card_spec.clone() {
+                                    OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {
+                                        item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                    },
+                                    OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalitySingleSpecialization(item) => {
+                                        item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                    },
+                                    OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => {
+                                        item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                    },
+                                    OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(item) => {
+                                        item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                    },
+                                    OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => {
+                                        item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                    },
+                                    OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => {
+                                        item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                    },
+                                };
+                                spec_node_matches
+                            });
+                        let is_slot_specialization_node_obselete = !has_owned_slotted_instances
+                            && !has_owned_type_specs
+                            && !has_owned_cardinality_specs;
+                        if is_slot_specialization_node_obselete {
+                            restructure_slot_specialization_to_delete_input(
+                                &mut editor,
+                                ctx_clone.clone(),
+                                spec_node,
+                            );
+                        }
+                    };
+
+                    editor.incorporate(instance_clone_2.edit(ctx_clone.clone()).delete());
+                    editor.execute().unwrap();
                 };
                 let instance_clone_3 = instance_clone.clone();
                 Either::Left(

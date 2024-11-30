@@ -1,9 +1,13 @@
 use std::collections::{BTreeSet, HashSet};
 
 use crate::components::{
-    common::*, slot_type_specialization_builder::SlotTypeSpecializationBuilder,
+    common::*,
+    slot_type_specialization_builder::SlotTypeSpecializationBuilder,
     slot_type_specialization_lineage::SlotTypeSpecializationLineage,
-    utils::get_deepest_downstream_specializations, workspace::WorkspaceState,
+    utils::{
+        get_deepest_downstream_specializations, restructure_slot_specialization_to_delete_input,
+    },
+    workspace::WorkspaceState,
 };
 
 use leptos::either::{Either, EitherOf3, EitherOf5, EitherOf7};
@@ -109,6 +113,77 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
 
             let on_delete_handler = move || {
                 let mut editor = schema.get().edit(ctx_clone.clone());
+
+                // Delete specialization node if obselete
+                if let Some(spec_node) = operative_clone
+                    .get_slotspecializations_slot()
+                    .into_iter()
+                    .filter(|slot_spec| {
+                        slot_spec.get_roottemplateslot_slot().get_id() == slot_clone.get_id()
+                    })
+                    .next()
+                {
+                    let has_owned_slotted_instances = spec_node
+                        .get_slottedinstances_slot()
+                        .into_iter()
+                        .any(|slotted_instance| {
+                            slotted_instance.get_slottedslot_slot().get_id() == spec_node.get_id()
+                        });
+                    let has_owned_type_specs = spec_node
+                        .get_typespecialization_slot()
+                        .into_iter()
+                        .any(|type_spec| {
+                            let spec_node_matches = match &type_spec {
+                                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => {
+                                    item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                },
+                                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => {
+                                    item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                },
+                                OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(item) => {
+                                    item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                },
+                            };
+                            spec_node_matches && type_spec.get_id() != type_spec_clone_3.get_id()
+                        });
+                    let has_owned_cardinality_specs = spec_node
+                        .get_cardinalityspecialization_slot()
+                        .into_iter()
+                        .any(|card_spec| {
+                            let spec_node_matches = match card_spec.clone() {
+                                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {
+                                    item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                },
+                                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalitySingleSpecialization(item) => {
+                                    item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                },
+                                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => {
+                                    item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                },
+                                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(item) => {
+                                    item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                },
+                                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => {
+                                    item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                },
+                                OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => {
+                                    item.get_specializedslot_slot().get_id() == spec_node.get_id()
+                                },
+                            };
+                            spec_node_matches
+                        });
+                    let is_slot_specialization_node_obselete = !has_owned_slotted_instances
+                        && !has_owned_type_specs
+                        && !has_owned_cardinality_specs;
+                    if is_slot_specialization_node_obselete {
+                        restructure_slot_specialization_to_delete_input(
+                            &mut editor,
+                            ctx_clone.clone(),
+                            spec_node,
+                        );
+                    }
+                };
+
                 match type_spec_clone_2.clone() {
                     OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => editor.incorporate(item.edit(ctx_clone.clone()).delete()),
                     OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => editor.incorporate(item.edit(ctx_clone.clone()).delete()),
