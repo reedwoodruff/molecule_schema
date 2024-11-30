@@ -259,8 +259,13 @@ pub fn OperativeSlotSection(
         let ctx_clone = ctx_clone.clone();
         let instance_clone = instance.clone();
         let operative_clone = operative_clone.clone();
-        let is_owned_by_this_op =
-            move || instance_clone.get_fulfiller_slot().get_id() == operative_clone.get_id();
+        let is_owned_by_this_op = move || {
+            instance_clone
+                .get_slottedslot_slot()
+                .get_specializer_slot()
+                .get_id()
+                == operative_clone.get_id()
+        };
         let instance_clone = instance.clone();
         move || {
             let ctx_clone = ctx_clone.clone();
@@ -351,7 +356,6 @@ pub fn OperativeSlotSection(
             let mut editor = operative_clone.edit(ctx_clone.clone());
             let slotted_instance_builder = SlottedInstance::new(ctx_clone.clone())
                 .set_temp_id("new_slotted_instance")
-                .add_existing_fulfiller(operative_clone.get_id(), |na| na)
                 .add_existing_instance(selected_value.get().unwrap().get_id(), |na| na);
 
             let slot_clone = slot_clone.clone();

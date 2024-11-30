@@ -95,16 +95,6 @@
             "LibraryOperative": 60265249704941002263294853316985166680
           },
           "bounds": "Single"
-        },
-        "259271661679803614151245587925715111571": {
-          "tag": {
-            "name": "Fulfiller",
-            "id": 259271661679803614151245587925715111571
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 282754878768449679153758877317862393927
-          },
-          "bounds": "Single"
         }
       },
       "trait_impls": {},
