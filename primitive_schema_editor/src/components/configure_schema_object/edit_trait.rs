@@ -18,6 +18,26 @@ pub fn EditTrait(id: RwSignal<Uid>) -> impl IntoView {
             .traits
             .with(|traits| traits.get(&id.get()).unwrap().clone())
     });
+    let templates_which_impl = create_memo(move |_| {
+        ctx.schema.template_library.with(|templates| {
+            templates
+                .values()
+                .filter(|template| template.trait_impls.get().contains_key(&id.get()))
+                .cloned()
+                // .map(|template| template.tag.name.get())
+                .collect::<Vec<_>>()
+        })
+    });
+    let operatives_which_impl = create_memo(move |_| {
+        ctx.schema.operative_library.with(|operatives| {
+            operatives
+                .values()
+                .filter(|operative| operative.trait_impls.get().contains_key(&id.get()))
+                .cloned()
+                // .map(|operative| operative.tag.name.get())
+                .collect::<Vec<_>>()
+        })
+    });
     // let name = RwSignal::new();
     view! {
         <div class="large-margin med-pad border-gray flex">
@@ -36,23 +56,41 @@ pub fn EditTrait(id: RwSignal<Uid>) -> impl IntoView {
 
             </div>
 
-                <div class="flex-grow margin-right border-right">
-                    <h4>Methods</h4>
-                    <For each=move ||trait_info.get().methods.get() key=|(method_id, _method)| *method_id let:method>
-                       <div><TextInput value=method.1.tag.name /> " -> " <SelectInputEnum  value=method.1.return_type />
-                        <button on:click=move |_|{trait_info.get().methods.update(|prev_methods| {prev_methods.remove(&method.0);});}>Delete Method</button>
+            <div class="flex-grow margin-right border-right">
+                <h4>Methods</h4>
+                <For each=move ||trait_info.get().methods.get() key=|(method_id, _method)| *method_id let:method>
+                    <div><TextInput value=method.1.tag.name /> " -> " <SelectInputEnum  value=method.1.return_type />
+                    <button on:click=move |_|{trait_info.get().methods.update(|prev_methods| {prev_methods.remove(&method.0);});}>Delete Method</button>
                     </div>
-                    </For>
+                </For>
 
                 <div>
-            <button on:click=move|_| trait_info.get().methods.update(|methods| {
-                    let new_method = RTraitMethodDef::<PrimitiveTypes>::new();
-                    methods.insert(new_method.tag.id.get(), new_method);
-                })
-            >Add method</button>
-            </div>
-
+                <button on:click=move|_| trait_info.get().methods.update(|methods| {
+                        let new_method = RTraitMethodDef::<PrimitiveTypes>::new();
+                        methods.insert(new_method.tag.id.get(), new_method);
+                    })
+                >Add method</button>
                 </div>
+
+            </div>
+            <div class="flex-grow margin-right border-right">
+                <h4>"Templates which impl this trait"</h4>
+                <div>
+                    <ul>
+                    <For each=move||templates_which_impl.get() key=|item|item.tag.id.clone() let:template>
+                        <li>{move ||template.tag.name}</li>
+                    </For>
+                    </ul>
+                </div>
+                <h4>"Operatives which impl this trait"</h4>
+                <div>
+                    <ul>
+                    <For each=move||operatives_which_impl.get() key=|item|item.tag.id.clone() let:operative>
+                        <li>{move ||operative.tag.name}</li>
+                    </For>
+                    </ul>
+                </div>
+            </div>
         </div>
     }
 }

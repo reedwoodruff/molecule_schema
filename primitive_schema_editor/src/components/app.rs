@@ -2,7 +2,8 @@ use std::fmt::Display;
 
 use crate::components::{
     configure_schema_object::{
-        edit_operative::EditOperative, edit_template::EditTemplate, edit_trait::EditTrait,
+        edit_instance::EditInstance, edit_operative::EditOperative, edit_template::EditTemplate,
+        edit_trait::EditTrait,
     },
     tree_view::TreeRef,
 };
@@ -144,7 +145,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
         <button on:click=move |_| print_schema_reactive(&reactive_schema)>Export Schema</button>
         <button on:click=serialize_graph>Export Content of Graph</button>
         <div class="flex">
-            <div class="flex-grow ">
+            <div class="flex-grow">
                 <div class="large-margin med-pad border-gray">
                     <h2>Templates <button on:click=click_new_constraint_object>+</button></h2>
                     <For
@@ -171,7 +172,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
 
             </div>
 
-            <div class="flex-grow ">
+            <div class="flex-grow">
                 <div class="large-margin med-pad border-gray">
                     <h2>Operatives</h2>
                     <For
@@ -194,7 +195,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                 </div>
             </div>
 
-            <div class="flex-grow ">
+            <div class="flex-grow">
                 <div class="large-margin med-pad border-gray">
                     <h2>Instances</h2>
                     <For
@@ -217,7 +218,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
                 </div>
             </div>
 
-            <div class="flex-grow ">
+            <div class="flex-grow">
                 <div class="large-margin med-pad border-gray">
                     <h2>
                         Traits
@@ -254,7 +255,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
             <EditTemplate element=TreeRef(
                 TreeTypes::Template,
                 selected_element.get().unwrap().get_id().get(),
-            )/>
+            ) />
         </Show>
         <Show when=move || {
             matches!(selected_element.get(), Some(ListItemTypes::Operative(_operative)))
@@ -262,12 +263,18 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
             <EditOperative element=TreeRef(
                 TreeTypes::LibraryOperative,
                 selected_element.get().unwrap().get_id().get(),
-            )/>
+            ) />
+        </Show>
+        <Show when=move || { matches!(selected_element.get(), Some(ListItemTypes::Trait(_trait))) }>
+            <EditTrait id=selected_element.get().unwrap().get_id() />
         </Show>
         <Show when=move || {
-            matches!(selected_element.get(), Some(ListItemTypes::Trait(_trait)))
+            matches!(selected_element.get(), Some(ListItemTypes::Instance(_instance)))
         }>
-            <EditTrait id=selected_element.get().unwrap().get_id()/>
+            <EditInstance element=TreeRef(
+                TreeTypes::Instance,
+                selected_element.get().unwrap().get_id().get(),
+            ) />
         </Show>
     }
 }
