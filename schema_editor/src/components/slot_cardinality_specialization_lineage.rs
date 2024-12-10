@@ -17,19 +17,19 @@ pub fn SlotCardinalitySpecializationLineage(
         match specialization_clone.clone() {
             OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {
                 let target = OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item);
-                view! {<GeneralSpecializationTargetView is_entry_point=true target=target />}.into_any()
+                view! { <GeneralSpecializationTargetView is_entry_point=true target=target /> }.into_any()
             },
             OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => {
                 let target = OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeSpecialization(item);
-                view! {<GeneralSpecializationTargetView is_entry_point=true target=target />}.into_any()
+                view! { <GeneralSpecializationTargetView is_entry_point=true target=target /> }.into_any()
             },
             OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => {
                 let target = OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item);
-                view! {<GeneralSpecializationTargetView is_entry_point=true target=target />}.into_any()
+                view! { <GeneralSpecializationTargetView is_entry_point=true target=target /> }.into_any()
             },
             OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => {
                 let target = OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item);
-                view! {<GeneralSpecializationTargetView is_entry_point=true target=target />}.into_any()
+                view! { <GeneralSpecializationTargetView is_entry_point=true target=target /> }.into_any()
             },
             OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(item) => {
                 let parent = match item.get_upstreamcardinality_slot() {
@@ -127,10 +127,15 @@ pub fn GeneralSpecializationTargetView(
                 OperativeSlotCardinalitySpecializableByLowerBoundOrZeroTraitObject::TemplateSlotCardinalityLowerBoundOrZero(item) =>
                 OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBoundOrZero(item),
             };
-            view!{<GeneralSpecializationTargetView is_entry_point=false  target=target />}.into_any()
+            view! { <GeneralSpecializationTargetView is_entry_point=false target=target /> }.into_any()
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => {
-            view!{<GeneralSpecializationTargetView is_entry_point=false  target=item.get_upstreamcardinality_slot() />}.into_any()
+            view! {
+                <GeneralSpecializationTargetView
+                    is_entry_point=false
+                    target=item.get_upstreamcardinality_slot()
+                />
+            }.into_any()
 
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => {
@@ -148,7 +153,7 @@ pub fn GeneralSpecializationTargetView(
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item)
                 },
             };
-            view!{<GeneralSpecializationTargetView is_entry_point=false  target=target />}.into_any()
+            view! { <GeneralSpecializationTargetView is_entry_point=false target=target /> }.into_any()
 
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => {
@@ -166,7 +171,7 @@ pub fn GeneralSpecializationTargetView(
                     OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item)
                 },
             };
-            view!{<GeneralSpecializationTargetView is_entry_point=false  target=target />}.into_any()
+            view! { <GeneralSpecializationTargetView is_entry_point=false target=target /> }.into_any()
 
         },
     }
@@ -175,109 +180,161 @@ pub fn GeneralSpecializationTargetView(
         match target.clone() {
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {
             EitherOf8::A(
-            view!{
+            view! {
                 {parent_view.clone()}
                 <LeafSectionHeader>"Specialized: Lower Bound Or Zero"</LeafSectionHeader>
                 <LeafSection attr:class="leafsection dependent">
-                "Lower Bound: "{move || item.get_lower_bound_field()}
+                    "Lower Bound: "{move || item.get_lower_bound_field()}
                 </LeafSection>
                 <div>
-                {move ||if is_entry_point{Either::Left(())} else {Either::Right(view!{<div>"↓"</div>})}}
+                    {move || {
+                        if is_entry_point {
+                            Either::Left(())
+                        } else {
+                            Either::Right(view! { <div>"↓"</div> })
+                        }
+                    }}
                 </div>
             })
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRangeOrZero(item) => {
             let item_clone = item.clone();
             EitherOf8::H(
-            view!{
+            view! {
                 {parent_view.clone()}
                 <LeafSectionHeader>"Root Cardinality: Range Or Zero"</LeafSectionHeader>
                 <LeafSection attr:class="leafsection dependent">
-                "Lower Bound: "{move || item.get_lower_bound_field()}", Upper Bound: "{move || item_clone.get_upper_bound_field()}
+                    "Lower Bound: "{move || item.get_lower_bound_field()}", Upper Bound: "
+                    {move || item_clone.get_upper_bound_field()}
                 </LeafSection>
                 <div>
-                {move ||if is_entry_point{Either::Left(())} else {Either::Right(view!{<div>"↓"</div>})}}
+                    {move || {
+                        if is_entry_point {
+                            Either::Left(())
+                        } else {
+                            Either::Right(view! { <div>"↓"</div> })
+                        }
+                    }}
                 </div>
             })
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => {
             let item_clone = item.clone();
             EitherOf8::B(
-            view!{
+            view! {
                 {parent_view.clone()}
                 <LeafSectionHeader>"Specialized: Range"</LeafSectionHeader>
                 <LeafSection attr:class="leafsection dependent">
-                "Lower Bound: "{move || item.get_lower_bound_field()}", Upper Bound: "{move || item_clone.get_upper_bound_field()}
+                    "Lower Bound: "{move || item.get_lower_bound_field()}", Upper Bound: "
+                    {move || item_clone.get_upper_bound_field()}
                 </LeafSection>
                 <div>
-                {move ||if is_entry_point{Either::Left(())} else {Either::Right(view!{<div>"↓"</div>})}}
+                    {move || {
+                        if is_entry_point {
+                            Either::Left(())
+                        } else {
+                            Either::Right(view! { <div>"↓"</div> })
+                        }
+                    }}
                 </div>
             })
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBoundOrZero(item) => {
             EitherOf8::C(
-            view!{
+            view! {
                 {parent_view.clone()}
                 <LeafSectionHeader>"Root Cardinality: Lower Bound Or Zero"</LeafSectionHeader>
                 <LeafSection attr:class="leafsection dependent">
-                "Lower Bound: "{move || item.get_lower_bound_field()}
+                    "Lower Bound: "{move || item.get_lower_bound_field()}
                 </LeafSection>
                 <div>
-                {move ||if is_entry_point{Either::Left(())} else {Either::Right(view!{<div>"↓"</div>})}}
+                    {move || {
+                        if is_entry_point {
+                            Either::Left(())
+                        } else {
+                            Either::Right(view! { <div>"↓"</div> })
+                        }
+                    }}
                 </div>
             })
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRange(item) => {
             let item_clone = item.clone();
             EitherOf8::D(
-            view!{
+            view! {
                 {parent_view.clone()}
                 <LeafSectionHeader>"Root Cardinality: Range"</LeafSectionHeader>
                 <LeafSection attr:class="leafsection dependent">
-                "Lower Bound: "{move || item.get_lower_bound_field()}", Upper Bound: "{move || item_clone.get_upper_bound_field()}
+                    "Lower Bound: "{move || item.get_lower_bound_field()}", Upper Bound: "
+                    {move || item_clone.get_upper_bound_field()}
                 </LeafSection>
                 <div>
-                {move ||if is_entry_point{Either::Left(())} else {Either::Right(view!{<div>"↓"</div>})}}
+                    {move || {
+                        if is_entry_point {
+                            Either::Left(())
+                        } else {
+                            Either::Right(view! { <div>"↓"</div> })
+                        }
+                    }}
                 </div>
             })
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBound(item) => {
             EitherOf8::E(
-            view!{
+            view! {
                 {parent_view.clone()}
                 <LeafSectionHeader>"Root Cardinality: Lower Bound"</LeafSectionHeader>
                 <LeafSection attr:class="leafsection dependent">
-                "Lower Bound: "{move || item.get_lower_bound_field()}
+                    "Lower Bound: "{move || item.get_lower_bound_field()}
                 </LeafSection>
                 <div>
-                {move ||if is_entry_point{Either::Left(())} else {Either::Right(view!{<div>"↓"</div>})}}
+                    {move || {
+                        if is_entry_point {
+                            Either::Left(())
+                        } else {
+                            Either::Right(view! { <div>"↓"</div> })
+                        }
+                    }}
                 </div>
             })
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => {
             let item_clone = item.clone();
             EitherOf8::F(
-            view!{
+            view! {
                 {parent_view.clone()}
                 <LeafSectionHeader>"Specialized: Range Or Zero"</LeafSectionHeader>
                 <LeafSection attr:class="leafsection dependent">
-                "Lower Bound: "{move || item.get_lower_bound_field()}", Upper Bound: "{move || item_clone.get_upper_bound_field()}
+                    "Lower Bound: "{move || item.get_lower_bound_field()}", Upper Bound: "
+                    {move || item_clone.get_upper_bound_field()}
                 </LeafSection>
                 <div>
-                {move ||if is_entry_point{Either::Left(())} else {Either::Right(view!{<div>"↓"</div>})}}
+                    {move || {
+                        if is_entry_point {
+                            Either::Left(())
+                        } else {
+                            Either::Right(view! { <div>"↓"</div> })
+                        }
+                    }}
                 </div>
             })
         },
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => {
             EitherOf8::G(
-            view!{
+            view! {
                 {parent_view.clone()}
                 <LeafSectionHeader>"Specialized: Lower Bound"</LeafSectionHeader>
                 <LeafSection attr:class="leafsection dependent">
-                "Lower Bound: "{move || item.get_lower_bound_field()}
+                    "Lower Bound: "{move || item.get_lower_bound_field()}
                 </LeafSection>
                 <div>
-                {move ||if is_entry_point{Either::Left(())} else {Either::Right(view!{<div>"↓"</div>})}}
+                    {move || {
+                        if is_entry_point {
+                            Either::Left(())
+                        } else {
+                            Either::Right(view! { <div>"↓"</div> })
+                        }
+                    }}
                 </div>
             })
         },

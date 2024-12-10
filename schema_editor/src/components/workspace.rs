@@ -42,36 +42,52 @@ pub fn Workspace(schema_final_id: RwSignal<Option<Uid>>) -> impl IntoView {
             let schema_clone = schema_existent.clone();
             view! {
                 <Provider value=WorkspaceState {
-                                    schema: Signal::derive(move || schema_clone.clone()),
-                                    selected_tab: selected_tab.clone(),
-                                }>
-                <div class="workspace-container">
-                    <div class="tabs-container">
-                        <For each=move || schema_existent.clone().outgoing_slots_with_enum().clone().into_values()
-                            key=move |item| item.base.slot.tag.id.clone()
-                            let:slot
-                            children= move |slot| {
-                                let slot_enum_clone = slot.slot_enum.clone();
-                                let is_active = move || if <WorkspaceTab as Into<SchemaConcreteAllSlots>>::into(selected_tab.get()) == slot_enum_clone {
-                                    "active"
-                                    } else {
-                                        ""
-                                };
-                                let class=move || format!("tab-link {}", is_active());
-                                let slot_enum_clone = slot.slot_enum.clone();
-                                view!{
-                                    <a class=class on:click=move |_| selected_tab.set(slot_enum_clone.clone().into()) >
-                                        {slot.slot.tag.name.clone()}
-                                    </a>
+                    schema: Signal::derive(move || schema_clone.clone()),
+                    selected_tab: selected_tab.clone(),
+                }>
+                    <div class="workspace-container">
+                        <div class="tabs-container">
+                            <For
+                                each=move || {
+                                    schema_existent
+                                        .clone()
+                                        .outgoing_slots_with_enum()
+                                        .clone()
+                                        .into_values()
                                 }
-                            }
-                        >
-                        </For>
+                                key=move |item| item.base.slot.tag.id.clone()
+                                let:slot
+                                children=move |slot| {
+                                    let slot_enum_clone = slot.slot_enum.clone();
+                                    let is_active = move || {
+                                        if <WorkspaceTab as Into<
+                                            SchemaConcreteAllSlots,
+                                        >>::into(selected_tab.get()) == slot_enum_clone
+                                        {
+                                            "active"
+                                        } else {
+                                            ""
+                                        }
+                                    };
+                                    let class = move || format!("tab-link {}", is_active());
+                                    let slot_enum_clone = slot.slot_enum.clone();
+                                    view! {
+                                        <a
+                                            class=class
+                                            on:click=move |_| {
+                                                selected_tab.set(slot_enum_clone.clone().into())
+                                            }
+                                        >
+                                            {slot.slot.tag.name.clone()}
+                                        </a>
+                                    }
+                                }
+                            ></For>
 
+                        </div>
+                        <MainList />
+                        <EditingSpace />
                     </div>
-                    <MainList />
-                    <EditingSpace />
-                </div>
                 </Provider>
             }
         }),

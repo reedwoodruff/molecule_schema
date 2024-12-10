@@ -359,11 +359,21 @@ pub fn OperativeSlotSection(
                 };
                 let instance_clone_3 = instance_clone.clone();
                 Either::Left(
-                    view! {<LeafSection>{move || instance_clone_3.get_instance_slot().get_name()} <Button on:click=on_click_remove>Remove</Button></LeafSection>},
+                    view! {
+                        <LeafSection>
+                            {move || instance_clone_3.get_instance_slot().get_name()}
+                            <Button on:click=on_click_remove>Remove</Button>
+                        </LeafSection>
+                    },
                 )
             } else {
                 Either::Right(
-                    view! {<LeafSection>{move || instance_clone.get_instance_slot().get_name()} (Slotted Upstream)</LeafSection>},
+                    view! {
+                        <LeafSection>
+                            {move || instance_clone.get_instance_slot().get_name()}
+                            (Slotted Upstream)
+                        </LeafSection>
+                    },
                 )
             }
         }
@@ -656,14 +666,23 @@ pub fn OperativeSlotSection(
         };
         view! {
             <LeafSection>
-            <LeafSectionHeader>Adding A Slotted Instance</LeafSectionHeader>
-            <LeafSection>
-            <SignalSelectRGSOWithOptions value=selected_value options=Signal::derive(move || allowed_instances.get()) empty_allowed=true/>
-            </LeafSection>
-            <LeafSection>
-            <Button on:click=on_click_save_slotted_instance attr:disabled=move || !is_allowed_to_add_another_instance.get() >Save</Button>
-            <Button on:click=move |_| is_adding_slotted_instance.set(false)>Cancel</Button>
-            </LeafSection>
+                <LeafSectionHeader>Adding A Slotted Instance</LeafSectionHeader>
+                <LeafSection>
+                    <SignalSelectRGSOWithOptions
+                        value=selected_value
+                        options=Signal::derive(move || allowed_instances.get())
+                        empty_allowed=true
+                    />
+                </LeafSection>
+                <LeafSection>
+                    <Button
+                        on:click=on_click_save_slotted_instance
+                        attr:disabled=move || !is_allowed_to_add_another_instance.get()
+                    >
+                        Save
+                    </Button>
+                    <Button on:click=move |_| is_adding_slotted_instance.set(false)>Cancel</Button>
+                </LeafSection>
             </LeafSection>
         }
     };
@@ -686,63 +705,66 @@ pub fn OperativeSlotSection(
 
     view! {
         <Provider value=slot_context>
-        <Section master_collapser=master_collapser>
-        <SectionHeader slot>
-        {move || slot_item.get_name()}
-        </SectionHeader>
+            <Section master_collapser=master_collapser>
+                <SectionHeader slot>{move || slot_item.get_name()}</SectionHeader>
 
-        <SubSection>
-        <SubSectionHeader>
-            Slot Details
-            </SubSectionHeader>
-            <SubSection attr:class="leafsection dependent">
-                {slot_variant}
-                <br/>
-                "Required:" {slot_bound_view}
-                <br/>
-                "Upstream (including this node) slotted instances:" {upstream_and_local_slotted_number}
-                <br/>
-                "Downstream slotted instances:"
-                {move ||
-                    if downstream_slotted_number_clone.get() >= upstream_and_local_slotted_number() {
-                    Either::Left(downstream_slotted_number_clone.get() - upstream_and_local_slotted_number())
-                    } else {
-                    Either::Right("Something is funky")
-                    }
-                }
-                <br/>
-                "Is Fulfilled:" {is_fulfilled}
-                <br/>
-                "Is Maxed Independently:" {is_maxed_independently}
-                <br/>
-                "Is Maxed Considering Children:" {is_maxed_considering_children}
-            </SubSection>
+                <SubSection>
+                    <SubSectionHeader>Slot Details</SubSectionHeader>
+                    <SubSection attr:class="leafsection dependent">
+                        {slot_variant} <br /> "Required:" {slot_bound_view} <br />
+                        "Upstream (including this node) slotted instances:"
+                        {upstream_and_local_slotted_number} <br /> "Downstream slotted instances:"
+                        {move || {
+                            if downstream_slotted_number_clone.get()
+                                >= upstream_and_local_slotted_number()
+                            {
+                                Either::Left(
+                                    downstream_slotted_number_clone.get()
+                                        - upstream_and_local_slotted_number(),
+                                )
+                            } else {
+                                Either::Right("Something is funky")
+                            }
+                        }} <br /> "Is Fulfilled:" {is_fulfilled} <br /> "Is Maxed Independently:"
+                        {is_maxed_independently} <br /> "Is Maxed Considering Children:"
+                        {is_maxed_considering_children}
+                    </SubSection>
 
-            </SubSection>
-        <SubSection>
-            <SubSectionHeader>
-            Currently Slotted Instances
-            </SubSectionHeader>
-            <LeafSection>
-                <Button on:click=move |_| is_adding_slotted_instance.set(true) attr:disabled =move||!is_allowed_to_add_another_instance.get()>Slot an instance</Button>
-            </LeafSection>
-            // <Show when=move|| is_adding_slotted_instance.get()>
-            <div class=move||{match is_adding_slotted_instance.get() { true => "", false => "hidden", }}>
-            {add_slotted_instance_view.clone()}
-            </div>
-            // </Show>
-            <For each=move || slotted_instances_for_slot.get() key=|item| item.get_id().clone() children=currently_slotted_view />
-        </SubSection>
+                </SubSection>
+                <SubSection>
+                    <SubSectionHeader>Currently Slotted Instances</SubSectionHeader>
+                    <LeafSection>
+                        <Button
+                            on:click=move |_| is_adding_slotted_instance.set(true)
+                            attr:disabled=move || !is_allowed_to_add_another_instance.get()
+                        >
+                            Slot an instance
+                        </Button>
+                    </LeafSection>
+                    // <Show when=move|| is_adding_slotted_instance.get()>
+                    <div class=move || {
+                        match is_adding_slotted_instance.get() {
+                            true => "",
+                            false => "hidden",
+                        }
+                    }>{add_slotted_instance_view.clone()}</div>
+                    // </Show>
+                    <For
+                        each=move || slotted_instances_for_slot.get()
+                        key=|item| item.get_id().clone()
+                        children=currently_slotted_view
+                    />
+                </SubSection>
 
-        <SubSection>
-            <SubSectionHeader>Type Specialization</SubSectionHeader>
-            <OperativeSlotTypeSpecializationSection  />
-        </SubSection>
-        <SubSection>
-        <SubSectionHeader>Cardinality Specialization</SubSectionHeader>
-            <OperativeSlotCardinalitySpecializationSection  />
-        </SubSection>
-        </Section>
+                <SubSection>
+                    <SubSectionHeader>Type Specialization</SubSectionHeader>
+                    <OperativeSlotTypeSpecializationSection />
+                </SubSection>
+                <SubSection>
+                    <SubSectionHeader>Cardinality Specialization</SubSectionHeader>
+                    <OperativeSlotCardinalitySpecializationSection />
+                </SubSection>
+            </Section>
         </Provider>
     }
 }

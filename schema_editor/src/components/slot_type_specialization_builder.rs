@@ -137,53 +137,95 @@ pub fn SlotTypeSpecializationBuilder(
     let choose_ops_view = move || {
         match selected_spec.get().unwrap() {
         OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization => EitherOf3::A(
-            view!{
-                <SignalSelectRGSOWithOptions value=selected_single_op options=selectable_options empty_allowed=true />
+            view! {
+                <SignalSelectRGSOWithOptions
+                    value=selected_single_op
+                    options=selectable_options
+                    empty_allowed=true
+                />
             }
         ),
         OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeMultiSpecialization => EitherOf3::B(
-            view!{
-                <LeafSectionHeader>
-                Selected:
-                </LeafSectionHeader>
-                <For each=move || selected_list_of_ops.get() key=|item| item.get_id().clone() children=move |op| {
-                    let op_clone = op.clone();
+            view! {
+                <LeafSectionHeader>Selected:</LeafSectionHeader>
+                <For
+                    each=move || selected_list_of_ops.get()
+                    key=|item| item.get_id().clone()
+                    children=move |op| {
+                        let op_clone = op.clone();
 
-                    view!{
-                    <LeafSection>
-                        {move || op.get_name()} <Button on:click=move |_| selected_list_of_ops.update(|prev| prev.retain(|item| item.get_id() != op_clone.get_id()))>X</Button>
-                    </LeafSection>}
-                }/>
-                <div>
-                <SignalSelectRGSOWithOptions value=selected_single_op options=selectable_options empty_allowed=true />
-                <Button attr:disabled=move || selected_single_op.get().is_none() on:click=move |_| {
-                    if let Some(selected_single_op) = selected_single_op.get() {
-                        selected_list_of_ops.update(|prev| prev.push(selected_single_op));
+                        view! {
+                            <LeafSection>
+                                {move || op.get_name()}
+                                <Button on:click=move |_| {
+                                    selected_list_of_ops
+                                        .update(|prev| {
+                                            prev.retain(|item| item.get_id() != op_clone.get_id())
+                                        })
+                                }>X</Button>
+                            </LeafSection>
+                        }
                     }
-                }>Add</Button>
+                />
+                <div>
+                    <SignalSelectRGSOWithOptions
+                        value=selected_single_op
+                        options=selectable_options
+                        empty_allowed=true
+                    />
+                    <Button
+                        attr:disabled=move || selected_single_op.get().is_none()
+                        on:click=move |_| {
+                            if let Some(selected_single_op) = selected_single_op.get() {
+                                selected_list_of_ops.update(|prev| prev.push(selected_single_op));
+                            }
+                        }
+                    >
+                        Add
+                    </Button>
                 </div>
             }
 
         ),
         OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeTraitObjectSpecialization => EitherOf3::C(
             view! {
-                <LeafSectionHeader>
-                Selected:
-                </LeafSectionHeader>
-                <For each=move || selected_list_of_traits.get() key=|item| item.get_id().clone() children=move |trait_item| {
-                    let trait_item_clone = trait_item.clone();
-                    view!{
-                    <LeafSection>
-                        {move || trait_item.get_name()} <Button on:click=move |_| selected_list_of_traits.update(|prev| prev.retain(|item| item.get_id() != trait_item_clone.get_id()))>X</Button>
-                    </LeafSection>}
-                }/>
-                <div>
-                <SignalSelectRGSOWithOptions value=selected_single_trait options=selectable_trait_options empty_allowed=true />
-                <Button attr:disabled=move || selected_single_trait.get().is_none() on:click=move |_| {
-                    if let Some(selected_single_trait) = selected_single_trait.get() {
-                        selected_list_of_traits.update(|prev| prev.push(selected_single_trait));
+                <LeafSectionHeader>Selected:</LeafSectionHeader>
+                <For
+                    each=move || selected_list_of_traits.get()
+                    key=|item| item.get_id().clone()
+                    children=move |trait_item| {
+                        let trait_item_clone = trait_item.clone();
+                        view! {
+                            <LeafSection>
+                                {move || trait_item.get_name()}
+                                <Button on:click=move |_| {
+                                    selected_list_of_traits
+                                        .update(|prev| {
+                                            prev
+                                                .retain(|item| item.get_id() != trait_item_clone.get_id())
+                                        })
+                                }>X</Button>
+                            </LeafSection>
+                        }
                     }
-                }>Add</Button>
+                />
+                <div>
+                    <SignalSelectRGSOWithOptions
+                        value=selected_single_trait
+                        options=selectable_trait_options
+                        empty_allowed=true
+                    />
+                    <Button
+                        attr:disabled=move || selected_single_trait.get().is_none()
+                        on:click=move |_| {
+                            if let Some(selected_single_trait) = selected_single_trait.get() {
+                                selected_list_of_traits
+                                    .update(|prev| prev.push(selected_single_trait));
+                            }
+                        }
+                    >
+                        Add
+                    </Button>
                 </div>
             }
 
@@ -835,34 +877,49 @@ pub fn SlotTypeSpecializationBuilder(
 
     view! {
         <LeafSection>
-            <div class=move||{match is_adding.get() { true => "hidden", false => "", }}>
-            // <Show when=move || !is_adding.get()>
-                <Button on:click=move|_|is_adding.set(true)>Add Specialization</Button>
+            <div class=move || {
+                match is_adding.get() {
+                    true => "hidden",
+                    false => "",
+                }
+            }>
+                // <Show when=move || !is_adding.get()>
+                <Button on:click=move |_| is_adding.set(true)>Add Specialization</Button>
             // </Show>
             </div>
-            <div class=move||{match is_adding.get() { true => "", false => "hidden", }}>
-            // <Show when=move || is_adding.get()>
+            <div class=move || {
+                match is_adding.get() {
+                    true => "",
+                    false => "hidden",
+                }
+            }>
+                // <Show when=move || is_adding.get()>
                 <div>
-                <SignalSelectWithOptions value=selected_spec  options=spec_options/>
+                    <SignalSelectWithOptions value=selected_spec options=spec_options />
                 </div>
 
                 {choose_ops_view}
 
                 <div>
-                <Button on:click=on_save.clone() attr:disabled=move||{
-                    match selected_spec.get().unwrap() {
-                        OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization => {
-                            selected_single_op.get().is_none()
-                        },
-                        OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeMultiSpecialization => {
-                            selected_list_of_ops.get().len() < 2
-                        },
-                        OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeTraitObjectSpecialization => {
-                            selected_list_of_traits.get().len() < 1
+                    <Button
+                        on:click=on_save.clone()
+                        attr:disabled=move || {
+                            match selected_spec.get().unwrap() {
+                                OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeSingleSpecialization => {
+                                    selected_single_op.get().is_none()
+                                }
+                                OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeMultiSpecialization => {
+                                    selected_list_of_ops.get().len() < 2
+                                }
+                                OperativeSlotTypeSpecializationTraitObjectDiscriminants::OperativeSlotTypeTraitObjectSpecialization => {
+                                    selected_list_of_traits.get().len() < 1
+                                }
+                            }
                         }
-                    }
-                }>Save</Button>
-                <Button on:click=move|_|is_adding.set(false)>Cancel</Button>
+                    >
+                        Save
+                    </Button>
+                    <Button on:click=move |_| is_adding.set(false)>Cancel</Button>
                 </div>
             // </Show>
             </div>

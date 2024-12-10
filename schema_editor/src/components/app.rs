@@ -47,7 +47,9 @@ pub fn App() -> impl IntoView {
         <div>
             <div style="display:flex;">
                 <div>
-                <Button on:click=move |_| {leptos::logging::log!("{:#?}", ctx_clone.created_instances.get().values())}>debug print</Button>
+                    <Button on:click=move |_| {
+                        leptos::logging::log!("{:#?}", ctx_clone.created_instances.get().values())
+                    }>debug print</Button>
                 </div>
                 <div>
                     <Button on:click=serialize_graph>export</Button>
@@ -59,20 +61,22 @@ pub fn App() -> impl IntoView {
                     <Button on:click=redo_graph_action>redo</Button>
                 </div>
                 <div>
-                    <Button on:click=move |_|show_control_panel.update(|prev| *prev = !*prev)>toggle control panel</Button>
+                    <Button on:click=move |_| {
+                        show_control_panel.update(|prev| *prev = !*prev)
+                    }>toggle control panel</Button>
                 </div>
             </div>
             <Show when=move || !show_control_panel.get()>
                 <div style="display:flex">
                     <div style="flex-grow:1">
-                        <Workspace schema_final_id=schema_id/>
+                        <Workspace schema_final_id=schema_id />
                     </div>
                     <div style="flex-grow:1">
-                        <Workspace schema_final_id=schema_id/>
+                        <Workspace schema_final_id=schema_id />
                     </div>
                 </div>
             </Show>
-            <Show when=move||show_control_panel.get()>
+            <Show when=move || show_control_panel.get()>
                 <ControlPanel schema_id=schema_id />
             </Show>
         </div>

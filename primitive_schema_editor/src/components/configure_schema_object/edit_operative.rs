@@ -333,10 +333,10 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                             prev.remove(&stored_element_id);
                         })
                 }>delete element</button>
-                <br/>
-                <br/>
+                <br />
+                <br />
                 Ancestry:
-                <br/>
+                <br />
                 <div class="flex">
                     {ancestry_breadcrumb
                         .into_iter()
@@ -351,19 +351,19 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
 
                 </div>
                 <strong>Name</strong>
-                <br/>
+                <br />
                 <div class="flex">
-                    <TextInput value=active_object.get().tag.name/>
+                    <TextInput value=active_object.get().tag.name />
 
                 </div>
-                <hr/>
+                <hr />
                 <div>
-                    <TextInput value=new_operative_name/>
+                    <TextInput value=new_operative_name />
                     <button on:click=on_click_create_operative>Create Operative</button>
                 </div>
-                <br/>
+                <br />
                 <div>
-                    <TextInput value=new_instance_name/>
+                    <TextInput value=new_instance_name />
                     <button on:click=on_click_create_instance>Create Instance</button>
                 </div>
 
@@ -376,7 +376,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                     key=move |item| item.fulfilled_field.field_constraint_id.get()
                     let:item
                 >
-                    <div>{item.fulfilled_field.field_constraint_name} (locked above)</div>
+                    <div>{item.fulfilled_field.field_constraint_name}(locked above)</div>
                 </For>
                 <For
                     each=local_fulfilled_field_constraints
@@ -384,8 +384,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                     let:item
                 >
                     <div>
-                        {item.field_constraint_name} : {move || item.value.get().to_string()}
-                        (locked)
+                        {item.field_constraint_name}: {move || item.value.get().to_string()}(locked)
                         <button on:click=move |_| {
                             active_object
                                 .get()
@@ -444,7 +443,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                         // PrimitiveValues::Float(value.get().parse().unwrap())
                                         // }
 
-                                        <TextInput value=value/>
+                                        <TextInput value=value />
 
                                         <button on:click=move |e| {
                                             on_click_lock.run(e)
@@ -508,12 +507,12 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                         let schema_clone_15 = schema_clone_15.clone();
                         let schema_clone_16 = schema_clone_15.clone();
                         view! {
-                            <br/>
-                            <hr/>
+                            <br />
+                            <hr />
                             <div>
-                                {operative_slot.1.slot.tag.name} -- fulfilled:
-                                {move || operative_slot_clone.get_fulfillment_status()} <br/>
-                                {operative_describing_string} <br/> Current Instances:
+                                {operative_slot.1.slot.tag.name}-- fulfilled:
+                                {move || operative_slot_clone.get_fulfillment_status()} <br />
+                                {operative_describing_string} <br />Current Instances:
                                 <For
                                     each=move || {
                                         operative_slot_clone_3.get_ancestors_related_instances()
@@ -581,7 +580,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                         }
                                     }
 
-                                </For> <br/> Add Instance:
+                                </For> <br />Add Instance:
                                 {
                                     let TypedSelectInputFulfillingInstanceSelection = SelectInputOptional::<
                                         Uid,
@@ -702,20 +701,20 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                     }
 
                 </For>
-                <br/>
+                <br />
 
             </div>
             <div class="flex-grow margin-right">
                 <h4>Trait Impls</h4>
                 New Impl:
-                <br/>
+                <br />
                 trait:
                 <TypedSelectInputTraitImplSelection
                     options=select_trait_impl_options.into()
                     value=add_trait_impl_id
                     on_select=on_select_trait_impl
                 />
-                <br/>
+                <br />
                 <For
                     each=move || active_trait_impl_method_paths.get()
                     key=move |item| item.0
@@ -736,7 +735,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                         view! {
                             <div class=move || {
                                 if item.1.2.get().is_some() { "bg-light-green" } else { "" }
-                            }>{item.1.0} : {item.1.1.to_string()}</div>
+                            }>{item.1.0}: {item.1.1.to_string()}</div>
                             <button
                                 disabled=move || add_trait_impl_id.get().is_none()
                                 on:click=click_closure
@@ -747,7 +746,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                     }
 
                 </For>
-                <br/>
+                <br />
                 <button
                     on:click=on_click_add_trait_impl
                     disabled=move || !is_trait_impl_complete.get()
@@ -762,7 +761,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                         let trait_id = trait_def.tag.id.get();
                         view! {
                             <div>
-                                trait name: {trait_def.tag.name} <br/> trait methods:
+                                trait name: {trait_def.tag.name} <br />trait methods:
                                 <For
                                     each=move || methods.trait_impl.get()
                                     key=move |(method_id, _path)| *method_id
@@ -797,7 +796,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                                 <strong>{method_def.tag.name}</strong>
 
                                                 ()
-                                                <br/>
+                                                <br />
                                                 Fulfillment path:
                                                 {method_path}
                                             </div>
@@ -825,7 +824,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                         .update(|prev| {
                                             prev.remove(&trait_id.clone());
                                         })
-                                }>delete impl</button> <br/> trait methods:
+                                }>delete impl</button> <br />trait methods:
                                 <For
                                     each=move || methods.get()
                                     key=move |(method_id, _path)| *method_id
@@ -860,7 +859,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                                                 <strong>{method_def.tag.name}</strong>
 
                                                 ()
-                                                <br/>
+                                                <br />
                                                 Fulfillment path:
                                                 {method_path}
                                             </div>
@@ -876,7 +875,7 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             </div>
         </div>
         <Show when=move || ctx.selected_element.get().is_some()>
-            <TreeView on_click_tree_data=on_click_tree_data.clone() element=element.clone()/>
+            <TreeView on_click_tree_data=on_click_tree_data.clone() element=element.clone() />
         </Show>
     }
 }

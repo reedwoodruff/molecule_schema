@@ -6,7 +6,7 @@ pub fn TextInput(
     // #[prop(optional)] show_save_button: Option<bool>,
     // on_save: F,
 ) -> impl IntoView {
-    view! { <input value=value on:input=move |e| value.set(event_target_value(&e))/> }
+    view! { <input value=value on:input=move |e| value.set(event_target_value(&e)) /> }
 }
 
 #[component]

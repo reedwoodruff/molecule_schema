@@ -45,16 +45,16 @@ pub fn ControlPanel(schema_id: RwSignal<Option<Uid>>) -> impl IntoView {
     };
     view! {
         <Section>
-        <SectionHeader slot>Graph Control</SectionHeader>
-        <SubSection>
-         <SubSectionHeader>Reset</SubSectionHeader>
-         <Button on:click=delete_all>Reset</Button>
-        </SubSection>
-        <SubSection>
-         <SubSectionHeader>Import</SubSectionHeader>
-         <SignalTextInput value=import_value></SignalTextInput>
-         <Button on:click=process_import>Import</Button>
-        </SubSection>
+            <SectionHeader slot>Graph Control</SectionHeader>
+            <SubSection>
+                <SubSectionHeader>Reset</SubSectionHeader>
+                <Button on:click=delete_all>Reset</Button>
+            </SubSection>
+            <SubSection>
+                <SubSectionHeader>Import</SubSectionHeader>
+                <SignalTextInput value=import_value></SignalTextInput>
+                <Button on:click=process_import>Import</Button>
+            </SubSection>
 
         </Section>
     }

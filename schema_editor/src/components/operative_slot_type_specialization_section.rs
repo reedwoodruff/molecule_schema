@@ -296,7 +296,9 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
                 editor.execute().unwrap();
             };
             Either::Left(view! {
-                <LeafSection><Button on:click=move|_| {on_delete_handler()}>Delete Specialization</Button></LeafSection>
+                <LeafSection>
+                    <Button on:click=move |_| { on_delete_handler() }>Delete Specialization</Button>
+                </LeafSection>
             })
         } else {
             Either::Right(view! {})
@@ -306,7 +308,9 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
         if exists_downstream_unique_type_spec.get() {
             Either::Left(view! {
                 <LeafSection>
-                <InfoNote>There exists a downstream specialization. Remove it to create a specialization here.</InfoNote>
+                    <InfoNote>
+                        There exists a downstream specialization. Remove it to create a specialization here.
+                    </InfoNote>
                 </LeafSection>
             })
         } else {
@@ -324,29 +328,63 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
             let spec_clone = specialization.clone();
             EitherOf3::B(match spec_clone.clone() {
                 OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(single) => view! {
-                    <SlotTypeSpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeSingleSpecialization(single) />
+                    <SlotTypeSpecializationBuilder
+                        operative=operative_clone3.clone()
+                        spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeSingleSpecialization(
+                            single,
+                        )
+                    />
                 }.into_any(),
                 OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
-                    view!{<SlotTypeSpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(multi) />}.into_any()
+                    view! {
+                        <SlotTypeSpecializationBuilder
+                            operative=operative_clone3.clone()
+                            spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(
+                                multi,
+                            )
+                        />
+                    }.into_any()
                 },
                 OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_obj) =>
-                view!{<SlotTypeSpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_obj) />}.into_any() ,
+                view! {
+                    <SlotTypeSpecializationBuilder
+                        operative=operative_clone3.clone()
+                        spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+                            trait_obj,
+                        )
+                    />
+                }.into_any() ,
             })
         } else {
             EitherOf3::A(match slot_clone.get_templateslotvariant_slot() {
                 TemplateSlotTypeVariantTraitObject::TemplateSlotTypeTraitOperative(trait_op) => {
                     view! {
-                        <SlotTypeSpecializationBuilder operative=operative_clone.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeTraitOperative(trait_op) />
+                        <SlotTypeSpecializationBuilder
+                            operative=operative_clone.clone()
+                            spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeTraitOperative(
+                                trait_op,
+                            )
+                        />
                     }.into_any()
                 }
                 TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(single) => {
-                    view!{
-                        <SlotTypeSpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeSingleOperative(single) />
+                    view! {
+                        <SlotTypeSpecializationBuilder
+                            operative=operative_clone3.clone()
+                            spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeSingleOperative(
+                                single,
+                            )
+                        />
                     }.into_any()
                 }
                 TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(multi) => {
                     view! {
-                        <SlotTypeSpecializationBuilder operative=operative_clone.clone() spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(multi) />
+                        <SlotTypeSpecializationBuilder
+                            operative=operative_clone.clone()
+                            spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(
+                                multi,
+                            )
+                        />
                     }.into_any()
                 }
             })
@@ -355,8 +393,12 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
 
     let lineage_view = move || {
         if let Some(specialization) = maybe_childest_type_spec.get() {
-            Either::Left(view! {<LeafSection attr:class="leafsection dependent">
-                <SlotTypeSpecializationLineage specialization=specialization is_entry_point=true/>
+            Either::Left(view! {
+                <LeafSection attr:class="leafsection dependent">
+                    <SlotTypeSpecializationLineage
+                        specialization=specialization
+                        is_entry_point=true
+                    />
                 </LeafSection>
             })
         } else {

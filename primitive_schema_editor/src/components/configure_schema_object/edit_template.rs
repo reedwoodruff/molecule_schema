@@ -375,23 +375,23 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                             prev.remove(&element.1);
                         })
                 }>delete element</button>
-                <br/>
-                <br/>
+                <br />
+                <br />
 
                 <strong>Name</strong>
                 <div class="flex">
-                    <TextInput value=active_object.get().tag.name/>
+                    <TextInput value=active_object.get().tag.name />
 
                 </div>
-                <hr/>
+                <hr />
 
                 <div>
-                    <TextInput value=new_operative_name/>
+                    <TextInput value=new_operative_name />
                     <button on:click=on_click_create_operative>Create Operative</button>
                 </div>
-                <br/>
+                <br />
                 <div>
-                    <TextInput value=new_instance_name/>
+                    <TextInput value=new_instance_name />
                     <button on:click=on_click_create_instance>Create Instance</button>
                 </div>
 
@@ -415,7 +415,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                         >;
                         view! {
                             <div class="flex">
-                                <TextInput value=item.tag.name/>
+                                <TextInput value=item.tag.name />
 
                                 <TypedSelectInput
                                     options=field_type_options.into()
@@ -453,14 +453,14 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     children=move |item| {
                         view! {
                             <div>
-                                {item.tag.name} <br/>
+                                {item.tag.name} <br />
                                 <button on:click=delete_instance(item.tag.id.get())>Delete</button>
                             </div>
                         }
                     }
                 />
 
-                <br/>
+                <br />
 
                 <h4>Operative Slots</h4>
 
@@ -470,9 +470,9 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     let:op_slot
                 >
                     <div>
-                        Slot name: <TextInput value=op_slot.1.tag.name/>
-                            <button on:click=delete_operative_slot(op_slot.0)>Delete Slot</button> <br/>
-                        Operative name:
+                        Slot name: <TextInput value=op_slot.1.tag.name />
+                        <button on:click=delete_operative_slot(op_slot.0)>Delete Slot</button>
+                        <br />Operative name:
                         {match op_slot.1.operative_descriptor {
                             ROperativeVariants::TraitOperative(trait_op) => trait_op.tag.name.get(),
                             ROperativeVariants::LibraryOperative(op_id) => {
@@ -485,57 +485,61 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                     .name
                                     .get()
                             }
-                        }}
-                        <br/> Slot Range: <br/> <SelectInputEnum value=op_slot.1.bounds/> <br/>
+                        }} <br />Slot Range: <br /> <SelectInputEnum value=op_slot.1.bounds />
+                        <br />
                         {move || match op_slot.1.bounds.get() {
                             RSlotBounds::LowerBound(val) => {
                                 view! {
                                     Lower bound:
-                                    <NumberInput2 value=val/>
-                                }.into_any()
+                                    <NumberInput2 value=val />
+                                }
+                                    .into_any()
                             }
                             RSlotBounds::UpperBound(val) => {
                                 view! {
                                     Upper bound:
-                                    <NumberInput2 value=val/>
-                                }.into_any()
+                                    <NumberInput2 value=val />
+                                }
+                                    .into_any()
                             }
                             RSlotBounds::Range(lower_range, upper_range) => {
                                 view! {
                                     Lower range:
-                                    <NumberInput2 value=lower_range/>
-                                    <br/>
+                                    <NumberInput2 value=lower_range />
+                                    <br />
                                     Upper range:
-                                    <NumberInput2 value=upper_range/>
-                                    <br/>
-                                }.into_any()
+                                    <NumberInput2 value=upper_range />
+                                    <br />
+                                }
+                                    .into_any()
                             }
                             RSlotBounds::LowerBoundOrZero(val) => {
                                 view! {
                                     Lower bound:
-                                    <NumberInput2 value=val/>
-                                }.into_any()
+                                    <NumberInput2 value=val />
+                                }
+                                    .into_any()
                             }
                             RSlotBounds::RangeOrZero(lower_range, upper_range) => {
                                 view! {
                                     Lower range:
-                                    <NumberInput2 value=lower_range/>
-                                    <br/>
+                                    <NumberInput2 value=lower_range />
+                                    <br />
                                     Upper range:
-                                    <NumberInput2 value=upper_range/>
-                                    <br/>
-                                }.into_any()
+                                    <NumberInput2 value=upper_range />
+                                    <br />
+                                }
+                                    .into_any()
                             }
                             _ => view! { <>Single</> }.into_any(),
-                        }}
-                        <br/>
+                        }} <br />
 
                     </div>
-                    <hr/>
+                    <hr />
                 </For>
 
                 <strong>Add Library Operative</strong>
-                <br/>
+                <br />
 
                 {
                     let casted_options = <Memo<
@@ -559,10 +563,10 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     +
                 </button>
 
-                <br/>
+                <br />
 
                 <strong>Add Trait Operative</strong>
-                <br/>
+                <br />
 
                 {
                     let casted_options = <Memo<
@@ -595,7 +599,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
 
                     Add trait to list
                 </button>
-                <br/>
+                <br />
                 Currently selected traits:
                 {move || {
                     add_trait_operative_ids
@@ -610,7 +614,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     add_trait_operative_ids.set(None)
                 }>Clear selected traits</button>
 
-                <TextInput value=new_trait_operative_name/>
+                <TextInput value=new_trait_operative_name />
 
                 <button
                     on:click=on_click_add_trait_operative
@@ -619,20 +623,20 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     +
                 </button>
 
-                <br/>
+                <br />
 
             </div>
             <div class="flex-grow margin-right">
                 <h4>Trait Impls</h4>
                 New Impl:
-                <br/>
+                <br />
                 trait:
                 <TypedSelectInputTraitImplSelection
                     options=select_trait_impl_options.into()
                     value=add_trait_impl_id
                     on_select=on_select_trait_impl
                 />
-                <br/>
+                <br />
                 <For
                     each=move || active_trait_impl_method_paths.get()
                     key=move |item| item.0
@@ -653,7 +657,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                         view! {
                             <div class=move || {
                                 if item.1.2.get().is_some() { "bg-light-green" } else { "" }
-                            }>{item.1.0} : {item.1.1.to_string()}</div>
+                            }>{item.1.0}: {item.1.1.to_string()}</div>
                             <button
                                 disabled=move || add_trait_impl_id.get().is_none()
                                 on:click=click_closure
@@ -664,7 +668,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     }
 
                 </For>
-                <br/>
+                <br />
                 <button
                     on:click=on_click_add_trait_impl
                     disabled=move || !is_trait_impl_complete.get()
@@ -687,7 +691,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                         .update(|prev| {
                                             prev.remove(&trait_id.clone());
                                         })
-                                }>delete impl</button> <br/> trait methods:
+                                }>delete impl</button> <br />trait methods:
                                 <For
                                     each=move || methods.get()
                                     key=move |(method_id, _path)| *method_id
@@ -721,7 +725,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                                 <strong>{method_def.tag.name}</strong>
 
                                                 ()
-                                                <br/>
+                                                <br />
                                                 Fulfillment path:
                                                 {method_path}
                                             </div>
@@ -737,7 +741,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             </div>
         </div>
         <Show when=move || ctx.selected_element.get().is_some()>
-            <TreeView on_click_tree_data=on_click_tree_data.clone() element=element.clone()/>
+            <TreeView on_click_tree_data=on_click_tree_data.clone() element=element.clone() />
         </Show>
     }
 }

@@ -24,7 +24,7 @@ where
     F: Send + Sync + Fn(TreeNodeDataSelectionType, PrimitiveTypes, Arc<Vec<TreeRef>>) + 'static,
 {
     let path = Arc::new(Vec::new());
-    view! { <TreeNode element=element path=path on_click_tree_data/> }
+    view! { <TreeNode element=element path=path on_click_tree_data /> }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -255,7 +255,7 @@ where
                             TreeNodeDataSelectionType::Field(item.tag.id.get()),
                             item_value_type_2.clone(),
                             new_path.clone(),
-                        )>{move || item.tag.name.get()} : {item.value_type.to_string()}</div>
+                        )>{move || item.tag.name.get()}: {item.value_type.to_string()}</div>
                     }
                 }
 
@@ -270,9 +270,9 @@ where
                     let on_click_tree_data_5 = on_click_tree_data_5.clone();
                     let new_path_5 = new_path_5.clone();
                     view! {
-                        <hr/>
+                        <hr />
                         <div>
-                            implements trait: {item.tag.name} <br/>
+                            implements trait: {item.tag.name} <br />
                             <For
                                 each=move || item.methods.get()
                                 key=move |(method_item_id, _method_item)| *method_item_id
@@ -292,7 +292,7 @@ where
                                     );
                                     view! {
                                         <div on:click=on_click_closure>
-                                            {method_item.1.tag.name} :
+                                            {method_item.1.tag.name}:
                                             {move || method_item.1.return_type.get().to_string()}
                                         </div>
                                     }
@@ -355,10 +355,11 @@ where
                     let show_instances = move || { !child.related_instances.is_empty() };
                     view! {
                         <div>
-                            <div class=slot_class>Slot name: {child.slot.tag.name} <br/></div>
+                            <div class=slot_class>Slot name: {child.slot.tag.name} <br /></div>
                             <div class="flex">
                                 <div>
-                                    <Show when=show_instances.clone()>Operative: <br/> <hr/></Show>
+                                    <Show when=show_instances
+                                        .clone()>Operative: <br /> <hr /></Show>
                                     <TreeNode
                                         on_click_tree_data=on_click_tree_data_3
                                         element=match child.slot.operative_descriptor {
@@ -385,7 +386,7 @@ where
                                             .clone();
                                         view! {
                                             <div>
-                                                Slotted instances: <br/>
+                                                Slotted instances: <br />
                                                 <For
                                                     each=move || related_instances_clone.clone()
                                                     key=move |instance| instance.clone()
@@ -421,7 +422,7 @@ where
         // key=move |item| item.tag.id.get()
         // let:child
         // >
-        //
+        // 
         // {
         // let on_click_tree_data_3 = on_click_tree_data_3.clone();
         // view! {
@@ -432,13 +433,13 @@ where
         // TreeTypes::TraitOperative(child.clone()),
         // child.tag.id.get(),
         // )
-        //
+        // 
         // path=new_path_3.clone()
         // />
         // </div>
         // }
         // }
-        //
+        // 
         // </For>
         </div>
     }

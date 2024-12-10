@@ -221,25 +221,39 @@ pub fn SlotBuilder(
         });
 
         view! {
-            <LeafSectionHeader>
-                Required Traits For Slot
-            </LeafSectionHeader>
+            <LeafSectionHeader>Required Traits For Slot</LeafSectionHeader>
             <div>
-                <SignalSelectRGSOWithOptions value=dropdown_selected_trait options=trait_options empty_allowed=true/>
+                <SignalSelectRGSOWithOptions
+                    value=dropdown_selected_trait
+                    options=trait_options
+                    empty_allowed=true
+                />
                 <Button on:click=on_click_add_trait>Add</Button>
             </div>
             <div>
-                <For each=move ||final_selected_trait_list.get() key=|selected_item| selected_item.get_id().clone() let:selected_item>
-                {
-                    let selected_item_clone = selected_item.clone();
-                    let item_name = move || selected_item_clone.get_name();
-                    let on_click = move |_|{
-                        selected_trait_list.update(|prev| prev.retain(|prev_item| prev_item.get_id() != selected_item.get_id()))
-                    };
-                    view!{
-                        <span>{item_name}</span><Button on:click=on_click>X</Button>,
+                <For
+                    each=move || final_selected_trait_list.get()
+                    key=|selected_item| selected_item.get_id().clone()
+                    let:selected_item
+                >
+                    {
+                        let selected_item_clone = selected_item.clone();
+                        let item_name = move || selected_item_clone.get_name();
+                        let on_click = move |_| {
+                            selected_trait_list
+                                .update(|prev| {
+                                    prev
+                                        .retain(|prev_item| {
+                                            prev_item.get_id() != selected_item.get_id()
+                                        })
+                                })
+                        };
+                        view! {
+                            <span>{item_name}</span>
+                            <Button on:click=on_click>X</Button>
+                            ,
+                        }
                     }
-                }
                 </For>
             </div>
         }
@@ -248,41 +262,57 @@ pub fn SlotBuilder(
         match slot_bound.get() {
         TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRangeOrZero => view! {
             <div>
-            Lower Bound: <SignalTextInput prop:min=0 prop:max=move||slot_bound_max.get() prop:type="number" value=slot_bound_min />
+                Lower Bound:
+                <SignalTextInput
+                    prop:min=0
+                    prop:max=move || slot_bound_max.get()
+                    prop:type="number"
+                    value=slot_bound_min
+                />
             </div>
             <div>
-            Upper Bound: <SignalTextInput prop:min=move||slot_bound_min.get().max(0) prop:type="number" value=slot_bound_max />
+                Upper Bound:
+                <SignalTextInput
+                    prop:min=move || slot_bound_min.get().max(0)
+                    prop:type="number"
+                    value=slot_bound_max
+                />
             </div>
-
         }
         .into_any(),
         TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBoundOrZero => view! {
             <div>
-            Lower Bound: <SignalTextInput prop:min=0 prop:type="number" value=slot_bound_min />
+                Lower Bound: <SignalTextInput prop:min=0 prop:type="number" value=slot_bound_min />
             </div>
         }
         .into_any(),
         TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityRange => view! {
             <div>
-            Lower Bound: <SignalTextInput prop:min=0 prop:max=move||slot_bound_max.get() prop:type="number" value=slot_bound_min />
+                Lower Bound:
+                <SignalTextInput
+                    prop:min=0
+                    prop:max=move || slot_bound_max.get()
+                    prop:type="number"
+                    value=slot_bound_min
+                />
             </div>
             <div>
-            Upper Bound: <SignalTextInput prop:min=move||slot_bound_min.get().max(0) prop:type="number" value=slot_bound_max />
+                Upper Bound:
+                <SignalTextInput
+                    prop:min=move || slot_bound_min.get().max(0)
+                    prop:type="number"
+                    value=slot_bound_max
+                />
             </div>
-
         }
         .into_any(),
         TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalityLowerBound => view! {
             <div>
-            Lower Bound: <SignalTextInput prop:min=0 prop:type="number" value=slot_bound_min />
+                Lower Bound: <SignalTextInput prop:min=0 prop:type="number" value=slot_bound_min />
             </div>
         }
         .into_any(),
-        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalitySingle => view! {
-            <div>
-            Exactly: 1
-            </div>
-        }.into_any(),
+        TemplateSlotCardinalityVariantTraitObjectDiscriminants::TemplateSlotCardinalitySingle => view! { <div>Exactly: 1</div> }.into_any(),
     }
     };
 
@@ -492,11 +522,13 @@ pub fn SlotBuilder(
     let single_op_slot_details_view = move || {
         let operative_options = schema_clone.get().get_operatives_slot();
         view! {
-            <LeafSectionHeader>
-                Operative Chosen for Slot
-            </LeafSectionHeader>
+            <LeafSectionHeader>Operative Chosen for Slot</LeafSectionHeader>
             <div>
-               <SignalSelectRGSOWithOptions value=selected_single_operative options=operative_options empty_allowed=true/>
+                <SignalSelectRGSOWithOptions
+                    value=selected_single_operative
+                    options=operative_options
+                    empty_allowed=true
+                />
             </div>
         }
     };
@@ -516,29 +548,39 @@ pub fn SlotBuilder(
             }
         };
         view! {
-            <LeafSectionHeader>
-                Operatives Chosen for Slot
-            </LeafSectionHeader>
+            <LeafSectionHeader>Operatives Chosen for Slot</LeafSectionHeader>
             <LeafSection attr:class="leafsection dependent">
-            <For each=move || multi_operative_list.get() key=|op| op.get_id().clone() children=move |op| {
-                    let op_clone = op.clone();
-                    let on_remove = move |_| {
-                        multi_operative_list.update(|prev| {
-                            prev.retain(|item| item.get_id() != op_clone.get_id());
-                        });
-                    };
-                    view!{
-                        <div>
-                        {move || op.get_name()}
-                        <Button on:click=on_remove>Remove</Button>
-                        </div>
+                <For
+                    each=move || multi_operative_list.get()
+                    key=|op| op.get_id().clone()
+                    children=move |op| {
+                        let op_clone = op.clone();
+                        let on_remove = move |_| {
+                            multi_operative_list
+                                .update(|prev| {
+                                    prev.retain(|item| item.get_id() != op_clone.get_id());
+                                });
+                        };
+                        view! {
+                            <div>
+                                {move || op.get_name()} <Button on:click=on_remove>Remove</Button>
+                            </div>
+                        }
                     }
-
-            } />
+                />
             </LeafSection>
             <div>
-               <SignalSelectRGSOWithOptions value=selected_single_operative options=operative_options empty_allowed=true/>
-               <Button on:click=add_to_multi_select attr:disabled=move || selected_single_operative.get().is_none()>+</Button>
+                <SignalSelectRGSOWithOptions
+                    value=selected_single_operative
+                    options=operative_options
+                    empty_allowed=true
+                />
+                <Button
+                    on:click=add_to_multi_select
+                    attr:disabled=move || selected_single_operative.get().is_none()
+                >
+                    +
+                </Button>
             </div>
         }
     };
@@ -546,39 +588,31 @@ pub fn SlotBuilder(
     let schema_clone = schema.clone();
     let close_callback_clone = close_callback.clone();
     view! {
-    <SubSection>
-        <div class="flex">
-            <div class="flex-grow">
-                <SubSectionHeader>
-                    Adding New Slot
-                </SubSectionHeader>
+        <SubSection>
+            <div class="flex">
+                <div class="flex-grow">
+                    <SubSectionHeader>Adding New Slot</SubSectionHeader>
+                </div>
+                <div class="align-right">
+                    <Button on:click=move |_| close_callback_clone.run(())>Cancel</Button>
+                </div>
             </div>
-            <div class="align-right">
-                <Button on:click=move|_| close_callback_clone.run(())>Cancel</Button>
-            </div>
-        </div>
-        <LeafSection>
-            <LeafSectionHeader>
-                Slot Name
-            </LeafSectionHeader>
-            <SignalTextInput value=name />
-        </LeafSection>
-        <LeafSection>
-            <LeafSectionHeader>
-                Slot Bounds
-            </LeafSectionHeader>
-            <SignalEnumSelect value=slot_bound />
-            <LeafSection attr:class="leafsection dependent">
-                {slot_bound_input_view}
+            <LeafSection>
+                <LeafSectionHeader>Slot Name</LeafSectionHeader>
+                <SignalTextInput value=name />
             </LeafSection>
-        </LeafSection>
-        <LeafSection>
-            <LeafSectionHeader>
-                Slot Type
-            </LeafSectionHeader>
-            <SignalEnumSelect value=slot_type/>
-            <LeafSection attr:class="leafsection dependent">
-                {move || match slot_type.get() {
+            <LeafSection>
+                <LeafSectionHeader>Slot Bounds</LeafSectionHeader>
+                <SignalEnumSelect value=slot_bound />
+                <LeafSection attr:class="leafsection dependent">
+                    {slot_bound_input_view}
+                </LeafSection>
+            </LeafSection>
+            <LeafSection>
+                <LeafSectionHeader>Slot Type</LeafSectionHeader>
+                <SignalEnumSelect value=slot_type />
+                <LeafSection attr:class="leafsection dependent">
+                    {move || match slot_type.get() {
                         TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeTraitOperative => {
                             EitherOf3::A(trait_slot_details_view.clone())
                         }
@@ -588,25 +622,42 @@ pub fn SlotBuilder(
                         TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeMultiOperative => {
                             EitherOf3::C(multi_op_slot_details_view.clone())
                         }
-                }}
+                    }}
+                </LeafSection>
             </LeafSection>
-        </LeafSection>
-        <div>
-            <Button on:click=move |_| {
-                match slot_type.get() {
-                    TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeTraitOperative => on_click_save_trait_slot() ,
-                    TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeSingleOperative => on_click_save_single_op(),
-                    TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeMultiOperative => on_click_save_multi_op(),
-                };
-                close_callback.run(());
-            } attr:disabled=move || {
-                match slot_type.get() {
-                    TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeTraitOperative => final_selected_trait_list.with(|list| list.is_empty()),
-                    TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeSingleOperative => selected_single_operative.with(|item| item.is_none()),
-                    TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeMultiOperative => multi_operative_list.with(|list| list.len() < 2),
-                }
-            }>Save New Slot</Button>
-        </div>
-    </SubSection>
+            <div>
+                <Button
+                    on:click=move |_| {
+                        match slot_type.get() {
+                            TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeTraitOperative => {
+                                on_click_save_trait_slot()
+                            }
+                            TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeSingleOperative => {
+                                on_click_save_single_op()
+                            }
+                            TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeMultiOperative => {
+                                on_click_save_multi_op()
+                            }
+                        };
+                        close_callback.run(());
+                    }
+                    attr:disabled=move || {
+                        match slot_type.get() {
+                            TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeTraitOperative => {
+                                final_selected_trait_list.with(|list| list.is_empty())
+                            }
+                            TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeSingleOperative => {
+                                selected_single_operative.with(|item| item.is_none())
+                            }
+                            TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeMultiOperative => {
+                                multi_operative_list.with(|list| list.len() < 2)
+                            }
+                        }
+                    }
+                >
+                    Save New Slot
+                </Button>
+            </div>
+        </SubSection>
     }
 }

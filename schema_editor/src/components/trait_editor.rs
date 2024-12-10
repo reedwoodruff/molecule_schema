@@ -34,10 +34,12 @@ pub fn TraitEditor(trait_concrete: RGSOConcrete<TraitConcrete, Schema>) -> impl 
         <div>
             <Section>
                 <SectionHeader slot>Overview</SectionHeader>
-                <ToggleManagedTextInput getter=move || trait_concrete.get_name_field() setter=update_name />
+                <ToggleManagedTextInput
+                    getter=move || trait_concrete.get_name_field()
+                    setter=update_name
+                />
                 <Button on:click=delete_trait_concrete>Delete Item</Button>
             </Section>
         </div>
-
     }
 }

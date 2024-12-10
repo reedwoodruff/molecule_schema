@@ -107,40 +107,108 @@ pub fn OperativeSlotCardinalitySpecializationSection() -> impl IntoView {
         if let Some(cardinality_specialization) = maybe_childest_cardinality_spec.get() {
             match cardinality_specialization.clone() {
                 OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {
-                        view!{<SlotCardinalitySpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) />}.into_any()
+                        view! {
+                            <SlotCardinalitySpecializationBuilder
+                                operative=operative_clone3.clone()
+                                spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(
+                                    item,
+                                )
+                            />
+                        }.into_any()
                 },
                 OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalitySingleSpecialization(item) => {
-                        view! {<LeafSection><InfoNote>Cannot be specialized further</InfoNote></LeafSection>}.into_any()
+                        view! {
+                            <LeafSection>
+                                <InfoNote>Cannot be specialized further</InfoNote>
+                            </LeafSection>
+                        }.into_any()
                 },
                 OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeSpecialization(item) => {
-                        view!{<SlotCardinalitySpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeSpecialization(item) />}.into_any()
+                        view! {
+                            <SlotCardinalitySpecializationBuilder
+                                operative=operative_clone3.clone()
+                                spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeSpecialization(
+                                    item,
+                                )
+                            />
+                        }.into_any()
                 },
                 OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityZeroSpecialization(item) => {
-                        view! {<LeafSection><InfoNote>Cannot be specialized further</InfoNote></LeafSection>}.into_any()
+                        view! {
+                            <LeafSection>
+                                <InfoNote>Cannot be specialized further</InfoNote>
+                            </LeafSection>
+                        }.into_any()
                 },
                 OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) => {
-                        view!{<SlotCardinalitySpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(item) />}.into_any()
+                        view! {
+                            <SlotCardinalitySpecializationBuilder
+                                operative=operative_clone3.clone()
+                                spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityRangeOrZeroSpecialization(
+                                    item,
+                                )
+                            />
+                        }.into_any()
                 },
                 OperativeSlotCardinalitySpecializationTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) => {
-                        view!{<SlotCardinalitySpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(item) />}.into_any()
+                        view! {
+                            <SlotCardinalitySpecializationBuilder
+                                operative=operative_clone3.clone()
+                                spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundSpecialization(
+                                    item,
+                                )
+                            />
+                        }.into_any()
                 },
             }
         } else {
             match slot_clone.get_slotcardinality_slot() {
                 TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRangeOrZero(item) =>  {
-                    view!{<SlotCardinalitySpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRangeOrZero(item) />}.into_any()
+                    view! {
+                        <SlotCardinalitySpecializationBuilder
+                            operative=operative_clone3.clone()
+                            spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRangeOrZero(
+                                item,
+                            )
+                        />
+                    }.into_any()
                 }
                 TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBoundOrZero(item) =>  {
-                    view!{<SlotCardinalitySpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBoundOrZero(item) />}.into_any()
+                    view! {
+                        <SlotCardinalitySpecializationBuilder
+                            operative=operative_clone3.clone()
+                            spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBoundOrZero(
+                                item,
+                            )
+                        />
+                    }.into_any()
                 }
                 TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRange(item) =>  {
-                    view!{<SlotCardinalitySpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRange(item) />}.into_any()
+                    view! {
+                        <SlotCardinalitySpecializationBuilder
+                            operative=operative_clone3.clone()
+                            spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRange(
+                                item,
+                            )
+                        />
+                    }.into_any()
                 }
                 TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBound(item) =>  {
-                    view!{<SlotCardinalitySpecializationBuilder operative=operative_clone3.clone() spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBound(item) />}.into_any()
+                    view! {
+                        <SlotCardinalitySpecializationBuilder
+                            operative=operative_clone3.clone()
+                            spec_target=OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBound(
+                                item,
+                            )
+                        />
+                    }.into_any()
                 }
                 TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalitySingle(_) => {
-                    view! {<LeafSection><InfoNote>Cannot be specialized further</InfoNote></LeafSection>}.into_any()
+                    view! {
+                        <LeafSection>
+                            <InfoNote>Cannot be specialized further</InfoNote>
+                        </LeafSection>
+                    }.into_any()
                 } ,
             }
         }
@@ -399,7 +467,9 @@ pub fn OperativeSlotCardinalitySpecializationSection() -> impl IntoView {
                 editor.execute().unwrap();
             };
             Either::Left(view! {
-                <LeafSection><Button on:click=move|_| {on_delete_handler()}>Delete Specialization</Button></LeafSection>
+                <LeafSection>
+                    <Button on:click=move |_| { on_delete_handler() }>Delete Specialization</Button>
+                </LeafSection>
             })
         } else {
             Either::Right(view! {})
@@ -409,7 +479,7 @@ pub fn OperativeSlotCardinalitySpecializationSection() -> impl IntoView {
         if exists_downstream_unique_cardinality_spec.get() {
             Either::Left(view! {
                 <LeafSection>
-                <InfoNote>{DOWNSTREAM_NOTICE}</InfoNote>
+                    <InfoNote>{DOWNSTREAM_NOTICE}</InfoNote>
                 </LeafSection>
             })
         } else {
@@ -418,9 +488,14 @@ pub fn OperativeSlotCardinalitySpecializationSection() -> impl IntoView {
     };
     let lineage_view = move || {
         if let Some(cardinality_specialization) = maybe_childest_cardinality_spec.get() {
-            Either::Left(view! {<LeafSection attr:class="leafsection dependent">
-            <SlotCardinalitySpecializationLineage specialization=cardinality_specialization is_entry_point=true/>
-            </LeafSection>})
+            Either::Left(view! {
+                <LeafSection attr:class="leafsection dependent">
+                    <SlotCardinalitySpecializationLineage
+                        specialization=cardinality_specialization
+                        is_entry_point=true
+                    />
+                </LeafSection>
+            })
         } else {
             Either::Right(view! {})
         }

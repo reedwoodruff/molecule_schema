@@ -19,7 +19,7 @@ where
             Err(_) => (),
         };
     };
-    view! { <input value=move || value.get().to_string() on:input=on_input/> }
+    view! { <input value=move || value.get().to_string() on:input=on_input /> }
 }
 
 #[component]
@@ -44,13 +44,22 @@ where
     if let Some(input_ref) = input_ref {
         // let the_input = input().node_ref(input_ref);
         Either::Left(view! {
-           <input node_ref=input_ref class="inner-text-input" prop:value=getter on:input=move |e| setter(event_target_value(&e))/>
-           {final_postfix()}
+            <input
+                node_ref=input_ref
+                class="inner-text-input"
+                prop:value=getter
+                on:input=move |e| setter(event_target_value(&e))
+            />
+            {final_postfix()}
         })
     } else {
         Either::Right(view! {
-           <input class="inner-text-input" prop:value=getter on:input=move |e| setter(event_target_value(&e))/>
-           {final_postfix()}
+            <input
+                class="inner-text-input"
+                prop:value=getter
+                on:input=move |e| setter(event_target_value(&e))
+            />
+            {final_postfix()}
         })
     }
 }
@@ -89,13 +98,18 @@ where
         };
         match is_editing.get() {
             true => Either::Left(
-                view! {<ManagedTextInput input_ref getter=getter.clone() setter=setter.clone() >{toggle_button}</ManagedTextInput>},
+                view! {
+                    <ManagedTextInput input_ref getter=getter.clone() setter=setter.clone()>
+                        {toggle_button}
+                    </ManagedTextInput>
+                },
             ),
             false => Either::Right(view! {
-            <span>{getter.clone()}
-            <span style="width: 15px; display: inline-block"></span>
-            {toggle_button}
-            </span>}),
+                <span>
+                    {getter.clone()} <span style="width: 15px; display: inline-block"></span>
+                    {toggle_button}
+                </span>
+            }),
         }
     };
     view
@@ -103,36 +117,20 @@ where
 
 #[component]
 pub fn LeafSection(children: Children) -> impl IntoView {
-    view! {
-        <div class="leafsection">
-        {children()}
-        </div>
-    }
+    view! { <div class="leafsection">{children()}</div> }
 }
 #[component]
 pub fn LeafSectionHeader(children: Children) -> impl IntoView {
-    view! {
-        <h4 class="leafsection-header">
-        {children()}
-        </h4>
-    }
+    view! { <h4 class="leafsection-header">{children()}</h4> }
 }
 
 #[component]
 pub fn SubSection(children: Children) -> impl IntoView {
-    view! {
-        <div class="subsection">
-        {children()}
-        </div>
-    }
+    view! { <div class="subsection">{children()}</div> }
 }
 #[component]
 pub fn SubSectionHeader(children: Children) -> impl IntoView {
-    view! {
-        <h3 class="subsection-header">
-        {children()}
-        </h3>
-    }
+    view! { <h3 class="subsection-header">{children()}</h3> }
 }
 
 #[slot]
@@ -159,43 +157,34 @@ pub fn Section(
     let children_div_class = move || format!("{}", collapsed_class());
     view! {
         <section class="section">
-        <div class="flex">
-            <div class="flex-grow">
-            <h2 class="section-header">
-            {(section_header.children)()}
-            </h2>
+            <div class="flex">
+                <div class="flex-grow">
+                    <h2 class="section-header">{(section_header.children)()}</h2>
+                </div>
+                <div>
+                    <Button on:click=move |_| {
+                        is_collapsed.update(|prev| *prev = !*prev)
+                    }>
+                        {move || match is_collapsed.get() {
+                            true => "+".to_string(),
+                            false => "-".to_string(),
+                        }}
+                    </Button>
+                </div>
             </div>
-            <div>
-            <Button on:click=move |_| is_collapsed.update(|prev| *prev = !*prev)>{move || match is_collapsed.get() {
-                true => "+".to_string(),
-                false => "-".to_string(),
-            }}
-            </Button>
-            </div>
-        </div>
-        <div class=children_div_class>
-        {children()}
-        </div>
+            <div class=children_div_class>{children()}</div>
         </section>
     }
 }
 
 #[component]
 pub fn InfoNote(children: Children) -> impl IntoView {
-    view! {
-        <div class="infonote">
-        {children()}
-        </div>
-    }
+    view! { <div class="infonote">{children()}</div> }
 }
 
 #[component]
 pub fn Button(children: Children) -> impl IntoView {
-    view! {
-        <button>
-        {children()}
-        </button>
-    }
+    view! { <button>{children()}</button> }
 }
 
 #[component]
@@ -218,9 +207,11 @@ where
 
     view! {
         <select prop:value=cur_value on:change=on_change_value>
-        <For each=move || T::iter() key=|item| item.to_string() let:discriminant>
-            <option prop:selected = move || discriminant.to_string() == cur_value()>{discriminant.to_string()}</option>
-        </For>
+            <For each=move || T::iter() key=|item| item.to_string() let:discriminant>
+                <option prop:selected=move || {
+                    discriminant.to_string() == cur_value()
+                }>{discriminant.to_string()}</option>
+            </For>
         </select>
     }
 }
@@ -241,12 +232,16 @@ where
     let getter_clone = getter.clone();
     view! {
         <select prop:value=move || getter_clone.clone()().to_string() on:change=on_change_value>
-        <For each=move || T::iter() key=|item| item.to_string() let:discriminant>
-            {
-            let getter_clone = getter.clone();
-            view!{<option prop:selected = move || discriminant == getter_clone()>{discriminant.to_string()}</option>}
-            }
-        </For>
+            <For each=move || T::iter() key=|item| item.to_string() let:discriminant>
+                {
+                    let getter_clone = getter.clone();
+                    view! {
+                        <option prop:selected=move || {
+                            discriminant == getter_clone()
+                        }>{discriminant.to_string()}</option>
+                    }
+                }
+            </For>
         </select>
     }
 }
@@ -311,20 +306,29 @@ where
     let options_clone = options.clone();
     view! {
         <select prop:value=cur_value on:change=on_change_value>
-        <For each=move || options_clone()
-            key=|item| match item  {Some(item) => item.get_id().clone().to_string() + &item.get_name(), None => "0".to_string()}
-            let:discriminant>
-            {
-                let discriminant_string = discriminant.clone().map_or("None".to_string(), |item| item.get_name());
-            view!{<option
-                prop:value=discriminant.map_or(0, |item| item.get_id().clone())
-                prop:selected = move || discriminant_string.clone() == cur_value()>
-                    {discriminant_string.clone()}
-                </option>}
-            }
-        </For>
+            <For
+                each=move || options_clone()
+                key=|item| match item {
+                    Some(item) => item.get_id().clone().to_string() + &item.get_name(),
+                    None => "0".to_string(),
+                }
+                let:discriminant
+            >
+                {
+                    let discriminant_string = discriminant
+                        .clone()
+                        .map_or("None".to_string(), |item| item.get_name());
+                    view! {
+                        <option
+                            prop:value=discriminant.map_or(0, |item| item.get_id().clone())
+                            prop:selected=move || discriminant_string.clone() == cur_value()
+                        >
+                            {discriminant_string.clone()}
+                        </option>
+                    }
+                }
+            </For>
         </select>
-
     }
 }
 
@@ -386,19 +390,29 @@ where
     let options_clone = options.clone();
     view! {
         <select prop:value=cur_value on:change=on_change_value>
-        <For each=move || options_clone()
-            key=|item| match item  {Some(item) => item.to_string(), None => "None".to_string()}
-            let:discriminant>
-            {
-                let discriminant_string = discriminant.clone().map_or("None".to_string(), |item| item.to_string());
-            view!{<option
-                prop:value=discriminant.map_or("None".to_string(), |item| item.to_string())
-                prop:selected = move || discriminant_string.clone() == cur_value()>
-                    {discriminant_string.clone()}
-                </option>}
-            }
-        </For>
+            <For
+                each=move || options_clone()
+                key=|item| match item {
+                    Some(item) => item.to_string(),
+                    None => "None".to_string(),
+                }
+                let:discriminant
+            >
+                {
+                    let discriminant_string = discriminant
+                        .clone()
+                        .map_or("None".to_string(), |item| item.to_string());
+                    view! {
+                        <option
+                            prop:value=discriminant
+                                .map_or("None".to_string(), |item| item.to_string())
+                            prop:selected=move || discriminant_string.clone() == cur_value()
+                        >
+                            {discriminant_string.clone()}
+                        </option>
+                    }
+                }
+            </For>
         </select>
-
     }
 }

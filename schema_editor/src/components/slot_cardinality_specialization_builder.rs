@@ -1529,45 +1529,72 @@ pub fn SlotCardinalitySpecializationBuilder(
 
     view! {
         <LeafSection>
-            <div class=move||{match is_adding.get() { true => "hidden", false => "", }}>
-                <Button on:click=move|_|is_adding.set(true)>Add Specialization</Button>
+            <div class=move || {
+                match is_adding.get() {
+                    true => "hidden",
+                    false => "",
+                }
+            }>
+                <Button on:click=move |_| is_adding.set(true)>Add Specialization</Button>
             </div>
             // <Show when=move || is_adding.get()>
-            <div class=move || if is_adding.get() {""} else {"hidden"}>
+            <div class=move || if is_adding.get() { "" } else { "hidden" }>
                 <div>
-                <SignalSelectWithOptions value=selected_spec  options=options/>
+                    <SignalSelectWithOptions value=selected_spec options=options />
                 </div>
 
                 {move || match current_input_variant() {
-                        CardinalityInputTypeOptions::LowerBoundOnly => EitherOf3::A(view! {
-                            <div>
-                            <SignalTextInput prop:type="number" value=selected_lower_bound attr:min=move || prev_bounds.get().min />
-                            </div>
-                        }),
-                        CardinalityInputTypeOptions::Both => EitherOf3::B(view! {
-                            <div>
-                            <SignalTextInput prop:type="number" value=selected_lower_bound attr:min = move || prev_bounds.get().min />
-                            </div>
-                            <div>
-                            <SignalTextInput prop:type="number" value=selected_upper_bound attr:min = move || selected_lower_bound.get() attr:max=move || prev_bounds.get().max />
-                            </div>
-                        }),
-                        CardinalityInputTypeOptions::None => EitherOf3::C(view! {
-                            <div>
-                            Fixed
-                            </div>
-                        }),
-                    }}
+                    CardinalityInputTypeOptions::LowerBoundOnly => {
+                        EitherOf3::A(
+                            view! {
+                                <div>
+                                    <SignalTextInput
+                                        prop:type="number"
+                                        value=selected_lower_bound
+                                        attr:min=move || prev_bounds.get().min
+                                    />
+                                </div>
+                            },
+                        )
+                    }
+                    CardinalityInputTypeOptions::Both => {
+                        EitherOf3::B(
+                            view! {
+                                <div>
+                                    <SignalTextInput
+                                        prop:type="number"
+                                        value=selected_lower_bound
+                                        attr:min=move || prev_bounds.get().min
+                                    />
+                                </div>
+                                <div>
+                                    <SignalTextInput
+                                        prop:type="number"
+                                        value=selected_upper_bound
+                                        attr:min=move || selected_lower_bound.get()
+                                        attr:max=move || prev_bounds.get().max
+                                    />
+                                </div>
+                            },
+                        )
+                    }
+                    CardinalityInputTypeOptions::None => EitherOf3::C(view! { <div>Fixed</div> }),
+                }}
 
                 <div>
-                <Button on:click=on_save.clone() attr:disabled=move||{
-                    is_downstream_slot_outside_of_attempted_bounds.get() || are_selected_values_outside_of_previous_bounds.get()
-
-                }>Save</Button>
-                <Button on:click=move|_|is_adding.set(false)>Cancel</Button>
+                    <Button
+                        on:click=on_save.clone()
+                        attr:disabled=move || {
+                            is_downstream_slot_outside_of_attempted_bounds.get()
+                                || are_selected_values_outside_of_previous_bounds.get()
+                        }
+                    >
+                        Save
+                    </Button>
+                    <Button on:click=move |_| is_adding.set(false)>Cancel</Button>
                 </div>
             </div>
-            // </Show>
+        // </Show>
         </LeafSection>
     }
 }

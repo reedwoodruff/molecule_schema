@@ -81,22 +81,34 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
         let details_view = move || match template_slot_clone.get_templateslotvariant_slot() {
             TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(conc_ops) => {
                 EitherOf3::A(view! {
-                <div>
-                "Operatives: ["
-                    <For each=move || conc_ops.get_allowedoperatives_slot() key=|op| op.get_id().clone() let:op>
-                        {
-                        let op_clone = op.clone();
-                        view!{
-                        <a class="clickable-list-item"
-                        on:click=move |_| {selected_tab_clone.set(WorkspaceTab::Operative(RwSignal::new(Some(op_clone.clone()))))}>
-                            {move || op.get_name()}
-                        </a>
-                        ", "
-                        }
-                        }
-                    </For>
-                "]"
-                </div>
+                    <div>
+                        "Operatives: ["
+                        <For
+                            each=move || conc_ops.get_allowedoperatives_slot()
+                            key=|op| op.get_id().clone()
+                            let:op
+                        >
+                            {
+                                let op_clone = op.clone();
+                                view! {
+                                    <a
+                                        class="clickable-list-item"
+                                        on:click=move |_| {
+                                            selected_tab_clone
+                                                .set(
+                                                    WorkspaceTab::Operative(
+                                                        RwSignal::new(Some(op_clone.clone())),
+                                                    ),
+                                                )
+                                        }
+                                    >
+                                        {move || op.get_name()}
+                                    </a>
+                                    ", "
+                                }
+                            }
+                        </For> "]"
+                    </div>
                 })
             }
             TemplateSlotTypeVariantTraitObject::TemplateSlotTypeTraitOperative(
@@ -115,9 +127,20 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                 let op_clone = op.clone();
                 EitherOf3::C(view! {
                     <div>
-                    Operative: <a class="clickable-list-item"
-                        on:click=move |_| {selected_tab_clone.set(WorkspaceTab::Operative(RwSignal::new(Some(op_clone.clone()))))}>
-                        {move || op.get_name()}</a>
+                        Operative:
+                        <a
+                            class="clickable-list-item"
+                            on:click=move |_| {
+                                selected_tab_clone
+                                    .set(
+                                        WorkspaceTab::Operative(
+                                            RwSignal::new(Some(op_clone.clone())),
+                                        ),
+                                    )
+                            }
+                        >
+                            {move || op.get_name()}
+                        </a>
                     </div>
                 })
             }
@@ -133,18 +156,12 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
         };
         view! {
             <LeafSection>
-                <LeafSectionHeader>
-                {move || template_slot.get_name()}
-                </LeafSectionHeader>
+                <LeafSectionHeader>{move || template_slot.get_name()}</LeafSectionHeader>
                 <div class="flex">
-                    <LeafSection>
-                    {details_view}
-                    </LeafSection>
+                    <LeafSection>{details_view}</LeafSection>
                 </div>
                 <div class="align-right">
-                <Button on:click=on_click_delete_slot>
-                    Delete Slot
-                </Button>
+                    <Button on:click=on_click_delete_slot>Delete Slot</Button>
                 </div>
             </LeafSection>
         }
@@ -302,17 +319,23 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
         view! {
             <LeafSection>
                 <div class="flex">
-                <div class="flex-grow">
-                    <LeafSectionHeader>
-                    <ToggleManagedTextInput getter=move || field.get_name() setter=name_setter/>
-                    </LeafSectionHeader>
-                    <LeafSection attr:class="leafsection dependent">
-                    <ManagedEnumSelect getter=move || field_clone_inner.clone().into() setter=on_change_field/>
-                    </LeafSection>
-                </div>
-                <div class="align-right">
-                    <Button on:click=delete_field>Delete Field</Button>
-                </div>
+                    <div class="flex-grow">
+                        <LeafSectionHeader>
+                            <ToggleManagedTextInput
+                                getter=move || field.get_name()
+                                setter=name_setter
+                            />
+                        </LeafSectionHeader>
+                        <LeafSection attr:class="leafsection dependent">
+                            <ManagedEnumSelect
+                                getter=move || field_clone_inner.clone().into()
+                                setter=on_change_field
+                            />
+                        </LeafSection>
+                    </div>
+                    <div class="align-right">
+                        <Button on:click=delete_field>Delete Field</Button>
+                    </div>
                 </div>
 
             </LeafSection>
@@ -328,10 +351,11 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
             <Section>
                 <SectionHeader slot>Overview</SectionHeader>
                 <SubSection>
-                    <SubSectionHeader>
-                        Name:
-                    </SubSectionHeader>
-                    <ToggleManagedTextInput getter=move || template.get_name_field() setter=update_name />
+                    <SubSectionHeader>Name:</SubSectionHeader>
+                    <ToggleManagedTextInput
+                        getter=move || template.get_name_field()
+                        setter=update_name
+                    />
                 </SubSection>
                 <SubSection>
                     <Button on:click=delete_template_recursive>Delete Item</Button>
@@ -340,14 +364,19 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
 
             <Section>
                 <SectionHeader slot>Create Derivatives</SectionHeader>
-                <SignalTextInput value=derivative_operative_name/><Button on:click=create_derivative_operative>Create derivative operative</Button>
+                <SignalTextInput value=derivative_operative_name />
+                <Button on:click=create_derivative_operative>Create derivative operative</Button>
             </Section>
 
             <Section>
                 <SectionHeader slot>Fields</SectionHeader>
                 <Button on:click=on_click_add_field>Add Field</Button>
                 <SubSection>
-                    <For each=move||template_clone_3.get_fields_slot() key=|item| item.get_id().clone() children=template_field_view />
+                    <For
+                        each=move || template_clone_3.get_fields_slot()
+                        key=|item| item.get_id().clone()
+                        children=template_field_view
+                    />
                 </SubSection>
             </Section>
 
@@ -357,16 +386,21 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                     <Button on:click=move |_| is_building_slot.set(true)>Add Slot</Button>
                 </Show>
                 <Show when=move || is_building_slot.get()>
-                <SlotBuilder template=template_clone.clone() close_callback=close_building_interface_callback/>
+                    <SlotBuilder
+                        template=template_clone.clone()
+                        close_callback=close_building_interface_callback
+                    />
                 </Show>
                 <SubSection>
-                <SubSectionHeader>
-                    Existing Slots
-                </SubSectionHeader>
-                <For each=move ||template_clone_2.get_templateslots_slot() key=|item| item.get_id().clone() children=template_slot_view />
+                    <SubSectionHeader>Existing Slots</SubSectionHeader>
+                    <For
+                        each=move || template_clone_2.get_templateslots_slot()
+                        key=|item| item.get_id().clone()
+                        children=template_slot_view
+                    />
                 </SubSection>
 
             </Section>
-       </div>
+        </div>
     }
 }

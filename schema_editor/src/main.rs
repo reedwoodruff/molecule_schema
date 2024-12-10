@@ -8,8 +8,6 @@ use schema_editor_generated_toolkit::prelude::*;
 fn main() {
     console_error_panic_hook::set_once();
     leptos::mount::mount_to_body(|| {
-        view! {
-            <App />
-        }
+        view! { <App /> }
     });
 }

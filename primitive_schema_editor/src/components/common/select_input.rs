@@ -118,7 +118,7 @@ where
     };
 
     view! {
-        <select  on:change=on_change prop:value=cur_value>
+        <select on:change=on_change prop:value=cur_value>
             <option value="NoneOption" id="NoneOption"></option>
             <For each=move || options2.get() key=move |item| item.0.clone() let:item>
                 <option value=item.1.clone().into()>{item.1.clone().into()}</option>
@@ -153,10 +153,11 @@ where
                 {move || {
                     let item = item.clone();
                     let item2 = item.clone();
-                    view!{
-                <option selected=value.get().to_string()
-                    == item2.to_string()>{move || item.to_string()}</option>
-                }}}
+                    view! {
+                        <option selected=value.get().to_string()
+                            == item2.to_string()>{move || item.to_string()}</option>
+                    }
+                }}
             </For>
         </select>
     }

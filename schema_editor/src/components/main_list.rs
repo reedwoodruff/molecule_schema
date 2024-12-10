@@ -32,8 +32,13 @@ pub fn MainList() -> impl IntoView {
         let class_string = move || format!("clickable-list-item {}", active_string());
         view! {
             <div>
-                <a class=class_string
-                    on:click=move |_| {let list_item = list_item.clone(); tab_state.set(Some(list_item))}>
+                <a
+                    class=class_string
+                    on:click=move |_| {
+                        let list_item = list_item.clone();
+                        tab_state.set(Some(list_item))
+                    }
+                >
                     {move || list_item2.get_name()}
                 </a>
             </div>
@@ -66,9 +71,7 @@ pub fn MainList() -> impl IntoView {
                     .unwrap(),
             };
         };
-        view! {
-            <Button on:click=on_click_button>Create New</Button>
-        }
+        view! { <Button on:click=on_click_button>Create New</Button> }
     };
 
     let list = move || {
@@ -121,9 +124,5 @@ pub fn MainList() -> impl IntoView {
         )
     };
 
-    view! {
-        <div class="list-container">
-            {list}
-        </div>
-    }
+    view! { <div class="list-container">{list}</div> }
 }
