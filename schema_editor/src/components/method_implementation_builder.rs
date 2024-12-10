@@ -2,14 +2,14 @@ use crate::components::common::*;
 use schema_editor_generated_toolkit::prelude::*;
 
 #[component]
-pub fn FunctionImplementationBuilder(
+pub fn MethodImplementationBuilder(
     fn_def: RGSOConcrete<FunctionDefinition, Schema>,
     operative: RGSOConcrete<OperativeConcrete, Schema>,
 
-    // Will return an executable which contains the new FunctionImplementation with a temp_id of "new_fn_impl"
-    on_save: Callback<Box<dyn Incorporatable<FunctionImplementation, Schema>>>,
+    // Will return an executable which contains the new MethodImplementation with a temp_id of "new_fn_impl"
+    on_save: Callback<Box<dyn Incorporatable<MethodImplementation, Schema>>>,
     on_cancel: Callback<()>,
-    #[prop(optional)] initial_state: Option<RGSOConcrete<FunctionImplementation, Schema>>,
+    #[prop(optional)] initial_state: Option<RGSOConcrete<MethodImplementation, Schema>>,
 ) -> impl IntoView {
     let ctx = use_context::<SharedGraph<Schema>>().unwrap();
     let ctx_clone = ctx.clone();
@@ -19,7 +19,7 @@ pub fn FunctionImplementationBuilder(
     let fn_def_clone = fn_def.clone();
     let operative_clone = operative.clone();
     let inner_on_save = move |_| {
-        let hairy_boy = FunctionImplementation::new(ctx_clone.clone())
+        let hairy_boy = MethodImplementation::new(ctx_clone.clone())
             .set_temp_id("new_fn_impl")
             .add_existing_definition(fn_def_clone.get_id(), |na| na)
             .add_existing_implementor(operative_clone.get_id(), |na| na)
@@ -36,12 +36,14 @@ pub fn FunctionImplementationBuilder(
     view! {
         <LeafSection>
             Implementation name: <SignalTextInput value=func_impl_name />
-                <LeafSection>
+            <LeafSection>
                 "Implementation of " <strong>{move || fn_def_clone.get_name()}</strong>
-                </LeafSection>
+            </LeafSection>
         </LeafSection>
         <div>
-        <Button on:click=inner_on_save>Save</Button>" "<Button on:click=move |_| on_cancel.run(())>Cancel</Button>
+            <Button on:click=inner_on_save>Save</Button>
+            " "
+            <Button on:click=move |_| on_cancel.run(())>Cancel</Button>
         </div>
     }
 }

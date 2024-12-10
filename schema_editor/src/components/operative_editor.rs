@@ -1,6 +1,6 @@
 use crate::components::{
     common::*,
-    operative_function_implementations::OperativeFunctionImplementations,
+    operative_function_implementations::OperativeMethodImplementations,
     operative_lineage::OperativeLineage,
     operative_slot_section::OperativeSlotSection,
     workspace::{WorkspaceState, WorkspaceTab},
@@ -218,10 +218,9 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
         };
         view! {
             <LeafSection>
-            <LeafSectionHeader>
-            {move || field.get_name()}
-            </LeafSectionHeader>
-            {string_of_thing.to_string()} <Button on:click=on_click_lock>Lock</Button>
+                <LeafSectionHeader>{move || field.get_name()}</LeafSectionHeader>
+                {string_of_thing.to_string()}
+                <Button on:click=on_click_lock>Lock</Button>
             </LeafSection>
         }
     };
@@ -229,10 +228,8 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
         let string_of_thing: GetNameFieldVariantTraitObjectDiscriminants = field.clone().into();
         view! {
             <LeafSection>
-            <LeafSectionHeader>
-            {move || field.get_name()}
-            </LeafSectionHeader>
-            {string_of_thing.to_string()}
+                <LeafSectionHeader>{move || field.get_name()}</LeafSectionHeader>
+                {string_of_thing.to_string()}
             </LeafSection>
         }
     };
@@ -263,9 +260,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 let value_clone = value.clone();
                 let value = move || value_clone.get_value_field();
                 EitherOf3::A(view! {
-                    <LeafSectionHeader>
-                    {name}
-                    </LeafSectionHeader>
+                    <LeafSectionHeader>{name}</LeafSectionHeader>
                     {value}
                 })
             }
@@ -275,9 +270,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 let value_clone = value.clone();
                 let value = move || value_clone.get_value_field();
                 EitherOf3::B(view! {
-                    <LeafSectionHeader>
-                    {name}
-                    </LeafSectionHeader>
+                    <LeafSectionHeader>{name}</LeafSectionHeader>
                     {value}
                 })
             }
@@ -287,16 +280,12 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                 let value_clone = value.clone();
                 let value = move || value_clone.get_value_field();
                 EitherOf3::C(view! {
-                    <LeafSectionHeader>
-                    {name}
-                    </LeafSectionHeader>
+                    <LeafSectionHeader>{name}</LeafSectionHeader>
                     {value}
                 })
             }
         };
-        view! {<LeafSection>
-            {field_view}
-        </LeafSection>}
+        view! { <LeafSection>{field_view}</LeafSection> }
     };
     let ctx_clone = ctx.clone();
     let owned_locked_field_view = move |field: FulfilledFieldVariantTraitObject| {
@@ -322,10 +311,8 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                         .unwrap();
                 });
                 EitherOf3::A(view! {
-                    <LeafSectionHeader>
-                    {name}
-                    </LeafSectionHeader>
-                    <ManagedEnumSelect getter=field_value setter=setter/>
+                    <LeafSectionHeader>{name}</LeafSectionHeader>
+                    <ManagedEnumSelect getter=field_value setter=setter />
                 })
             }
             FulfilledFieldVariantTraitObject::IntFulfilledField(value) => {
@@ -344,10 +331,13 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                         .unwrap();
                 };
                 EitherOf3::B(view! {
-                    <LeafSectionHeader>
-                    {name}
-                    </LeafSectionHeader>
-                    <ToggleManagedTextInput prop:type="number" prop:min=0 getter=field_value setter=setter/>
+                    <LeafSectionHeader>{name}</LeafSectionHeader>
+                    <ToggleManagedTextInput
+                        prop:type="number"
+                        prop:min=0
+                        getter=field_value
+                        setter=setter
+                    />
                 })
             }
             FulfilledFieldVariantTraitObject::StringFulfilledField(value) => {
@@ -366,10 +356,8 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                         .unwrap();
                 };
                 EitherOf3::C(view! {
-                    <LeafSectionHeader>
-                    {name}
-                    </LeafSectionHeader>
-                    <ToggleManagedTextInput getter=field_value setter=setter/>
+                    <LeafSectionHeader>{name}</LeafSectionHeader>
+                    <ToggleManagedTextInput getter=field_value setter=setter />
                 })
             }
         };
@@ -395,10 +383,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                     .unwrap(),
             };
         };
-        view! {<LeafSection>
-            {field_view}
-            <Button on:click=on_click_unlock>Unlock</Button>
-        </LeafSection>}
+        view! { <LeafSection>{field_view} <Button on:click=on_click_unlock>Unlock</Button></LeafSection> }
     };
 
     let operative_clone = operative.clone();
@@ -417,89 +402,147 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
         <Section>
             <SectionHeader slot>Overview</SectionHeader>
             <SubSection>
-                <SubSectionHeader>
-                    Name:
-                </SubSectionHeader>
-                <ToggleManagedTextInput getter=move || operative_clone.get_name_field() setter=update_name />
+                <SubSectionHeader>Name:</SubSectionHeader>
+                <ToggleManagedTextInput
+                    getter=move || operative_clone.get_name_field()
+                    setter=update_name
+                />
             </SubSection>
             <SubSection>
                 <Button on:click=delete_operative>Delete Item</Button>
             </SubSection>
             <SubSection>
-                <OperativeLineage operative=operative_clone_3 is_entry_point=true/>
+                <OperativeLineage operative=operative_clone_3 is_entry_point=true />
             </SubSection>
         </Section>
 
         <Section>
             <SectionHeader slot>Create Derivatives</SectionHeader>
             <LeafSection>
-            <SignalTextInput value=derivative_operative_name/><Button on:click=create_derivative_operative>Create derivative operative</Button>
+                <SignalTextInput value=derivative_operative_name />
+                <Button on:click=create_derivative_operative>Create derivative operative</Button>
             </LeafSection>
             <LeafSection>
-            <SignalTextInput value=derivative_instance_name/><Button on:click=create_derivative_instance>Create derivative instance</Button>
+                <SignalTextInput value=derivative_instance_name />
+                <Button on:click=create_derivative_instance>Create derivative instance</Button>
             </LeafSection>
         </Section>
         <Section>
             <SectionHeader slot>Fields</SectionHeader>
             <SubSection>
-            <div class=move||{match locked_fields.get().1.len() > 0 { true => "", false => "hidden", }}>
-            // <Show when=move|| {locked_fields.get().1.len() > 0}>
-            {let unowned_locked_field_view = unowned_locked_field_view.clone();
-                view!{
-                <SubSectionHeader>Locked By Parent</SubSectionHeader>
-                <For each=move||locked_fields.get().1 key=|item| item.get_id().clone() children=unowned_locked_field_view />
-                }}
-            // </Show>
-            </div>
-            <div class=move||{match locked_fields.get().0.len() > 0 { true => "", false => "hidden", }}>
-            // <Show when=move|| {locked_fields.get().0.len() > 0}>
-                {let owned_locked_field_view = owned_locked_field_view.clone();
-                    view!{
-                    <SubSectionHeader>Locked Here</SubSectionHeader>
-                    <For each=move||locked_fields.get().0 key=|item| item.get_id().clone() children=owned_locked_field_view />
+                <div class=move || {
+                    match locked_fields.get().1.len() > 0 {
+                        true => "",
+                        false => "hidden",
                     }
-                }
-            // </Show>
-            </div>
-            <div class=move||{match non_locked_fields.get().1.len() > 0 { true => "", false => "hidden", }}>
-            // <Show when=move|| {non_locked_fields.get().1.len() > 0}>
-            {let non_locked_field_view = non_locked_field_view.clone();
-                view!{
-                <SubSectionHeader>Unlocked and Independent</SubSectionHeader>
-                <For each=move || non_locked_fields.get().1 key=|item| item.get_id().clone() children=non_locked_field_view />
-                }}
-            // </Show>
-            </div>
-            <div class=move||{match non_locked_fields.get().0.len() > 0 { true => "", false => "hidden", }}>
-            // <Show when=move|| {non_locked_fields.get().0.len() > 0}>
-            {let non_locked_but_dependent_field_view = non_locked_but_dependent_field_view.clone();
-                view!{
-                <SubSectionHeader>Unlocked but locked downstream and therefore dependent</SubSectionHeader>
-                <For each=move || non_locked_fields.get().0 key=|item| item.get_id().clone() children=non_locked_but_dependent_field_view />
-                }}
-            // </Show>
-            </div>
+                }>
+                    // <Show when=move|| {locked_fields.get().1.len() > 0}>
+                    {
+                        let unowned_locked_field_view = unowned_locked_field_view.clone();
+                        view! {
+                            <SubSectionHeader>Locked By Parent</SubSectionHeader>
+                            <For
+                                each=move || locked_fields.get().1
+                                key=|item| item.get_id().clone()
+                                children=unowned_locked_field_view
+                            />
+                        }
+                    }
+                // </Show>
+                </div>
+                <div class=move || {
+                    match locked_fields.get().0.len() > 0 {
+                        true => "",
+                        false => "hidden",
+                    }
+                }>
+                    // <Show when=move|| {locked_fields.get().0.len() > 0}>
+                    {
+                        let owned_locked_field_view = owned_locked_field_view.clone();
+                        view! {
+                            <SubSectionHeader>Locked Here</SubSectionHeader>
+                            <For
+                                each=move || locked_fields.get().0
+                                key=|item| item.get_id().clone()
+                                children=owned_locked_field_view
+                            />
+                        }
+                    }
+                // </Show>
+                </div>
+                <div class=move || {
+                    match non_locked_fields.get().1.len() > 0 {
+                        true => "",
+                        false => "hidden",
+                    }
+                }>
+                    // <Show when=move|| {non_locked_fields.get().1.len() > 0}>
+                    {
+                        let non_locked_field_view = non_locked_field_view.clone();
+                        view! {
+                            <SubSectionHeader>Unlocked and Independent</SubSectionHeader>
+                            <For
+                                each=move || non_locked_fields.get().1
+                                key=|item| item.get_id().clone()
+                                children=non_locked_field_view
+                            />
+                        }
+                    }
+                // </Show>
+                </div>
+                <div class=move || {
+                    match non_locked_fields.get().0.len() > 0 {
+                        true => "",
+                        false => "hidden",
+                    }
+                }>
+                    // <Show when=move|| {non_locked_fields.get().0.len() > 0}>
+                    {
+                        let non_locked_but_dependent_field_view = non_locked_but_dependent_field_view
+                            .clone();
+                        view! {
+                            <SubSectionHeader>
+                                Unlocked but locked downstream and therefore dependent
+                            </SubSectionHeader>
+                            <For
+                                each=move || non_locked_fields.get().0
+                                key=|item| item.get_id().clone()
+                                children=non_locked_but_dependent_field_view
+                            />
+                        }
+                    }
+                // </Show>
+                </div>
             </SubSection>
         </Section>
         <Section>
             <SectionHeader slot>Slots</SectionHeader>
-            <Button on:click=move|_| master_collapser.update(|prev| *prev = !*prev)>Toggle Slot Collapse</Button>
-            <For each=move || operative_clone_4.get_roottemplate_slot().get_templateslots_slot() key=|slot| slot.get_id().clone() let:slot children=move|slot|{
-                let master_collapser = master_collapser.clone();
+            <Button on:click=move |_| {
+                master_collapser.update(|prev| *prev = !*prev)
+            }>Toggle Slot Collapse</Button>
+            <For
+                each=move || operative_clone_4.get_roottemplate_slot().get_templateslots_slot()
+                key=|slot| slot.get_id().clone()
+                let:slot
+                children=move |slot| {
+                    let master_collapser = master_collapser.clone();
+                    let operative_clone_6 = operative_clone_6.clone();
 
-                let operative_clone_6 = operative_clone_6.clone();
-                view!{
-                    <OperativeSlotSection operative=operative_clone_6 slot_item=slot master_collapser=master_collapser/>
+                    view! {
+                        <OperativeSlotSection
+                            operative=operative_clone_6
+                            slot_item=slot
+                            master_collapser=master_collapser
+                        />
+                    }
                 }
-            }>
-            </For>
+            ></For>
         </Section>
 
         <Section>
             <SectionHeader slot>Function Implementations</SectionHeader>
-            <OperativeFunctionImplementations operative=operative_clone_5/>
+            <OperativeMethodImplementations operative=operative_clone_5 />
         </Section>
-
     }
 }
 
