@@ -97,13 +97,11 @@ where
             </Button>
         };
         match is_editing.get() {
-            true => Either::Left(
-                view! {
-                    <ManagedTextInput input_ref getter=getter.clone() setter=setter.clone()>
-                        {toggle_button}
-                    </ManagedTextInput>
-                },
-            ),
+            true => Either::Left(view! {
+                <ManagedTextInput input_ref getter=getter.clone() setter=setter.clone()>
+                    {toggle_button}
+                </ManagedTextInput>
+            }),
             false => Either::Right(view! {
                 <span>
                     {getter.clone()} <span style="width: 15px; display: inline-block"></span>
@@ -414,5 +412,73 @@ where
                 }
             </For>
         </select>
+    }
+}
+
+#[component]
+pub fn MultiSelectRGSO<T>(
+    list: RwSignal<Vec<T>>,
+    #[prop(into)] options: Signal<Vec<T>>,
+) -> impl IntoView
+where
+    T: GetName + RGSO + Send + Sync + Clone + 'static,
+{
+    let selected_single_item = RwSignal::<Option<T>>::new(None);
+    view! {
+        <LeafSection>
+            <LeafSection>
+                <LeafSectionHeader>Item To Add To List:</LeafSectionHeader>
+                <SignalSelectRGSOWithOptions
+                    empty_allowed=true
+                    value=selected_single_item
+                    options=Signal::derive(move || {
+                        let local_list = list.get();
+                        options
+                            .get()
+                            .into_iter()
+                            .filter(|op_item| {
+                                local_list
+                                    .iter()
+                                    .find(|list_item| list_item.get_id() == op_item.get_id())
+                                    .is_none()
+                            })
+                            .collect()
+                    })
+                />
+                <Button
+                    prop:disabled=move || { selected_single_item.get().is_none() }
+                    on:click=move |_| {
+                        if let Some(selected_item) = selected_single_item.get() {
+                            list.update(|prev| prev.push(selected_item));
+                        }
+                        selected_single_item.set(None);
+                    }
+                >
+                    Add
+                </Button>
+            </LeafSection>
+            <LeafSection>
+                <LeafSectionHeader>Currently Selected:</LeafSectionHeader>
+                <ul>
+                    <For each=move || list.get() key=|item| item.get_id().clone() let:item>
+                        {
+                            let item_clone = item.clone();
+                            view! {
+                                <li>
+                                    {move || item_clone.get_name()}" "
+                                    <Button on:click=move |_| {
+                                        list.update(|prev| {
+                                            prev.retain(|inner_item| {
+                                                inner_item.get_id() != item.get_id()
+                                            })
+                                        })
+                                    }>X</Button>
+                                </li>
+                            }
+                        }
+                    </For>
+                </ul>
+            </LeafSection>
+        </LeafSection>
     }
 }

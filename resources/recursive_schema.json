@@ -505,7 +505,7 @@
       "operative_slots": {
         "152114242918415824536845641995577962243": {
           "tag": {
-            "name": "Values",
+            "name": "RequiredTraits",
             "id": 152114242918415824536845641995577962243
           },
           "operative_descriptor": {
@@ -608,7 +608,20 @@
           "value_type": "String"
         }
       },
-      "operative_slots": {},
+      "operative_slots": {
+        "25423683559130968809459068280598730289": {
+          "tag": {
+            "name": "AllowedOperatives",
+            "id": 25423683559130968809459068280598730289
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": {
+            "LowerBound": 2
+          }
+        }
+      },
       "trait_impls": {
         "126831637068183444206449483546552649222": {
           "258380955653095608834384786163178087857": [
@@ -766,7 +779,7 @@
       "operative_slots": {
         "28824427789739575650130007855884216433": {
           "tag": {
-            "name": "Values",
+            "name": "AllowedOperatives",
             "id": 28824427789739575650130007855884216433
           },
           "operative_descriptor": {
@@ -1011,7 +1024,7 @@
       "operative_slots": {
         "147578091783365586498354864057324203752": {
           "tag": {
-            "name": "Values",
+            "name": "AllowedOperatives",
             "id": 147578091783365586498354864057324203752
           },
           "operative_descriptor": {
@@ -1043,7 +1056,18 @@
           "value_type": "String"
         }
       },
-      "operative_slots": {},
+      "operative_slots": {
+        "37869694767041116541792054690337213551": {
+          "tag": {
+            "name": "AllowedOperative",
+            "id": 37869694767041116541792054690337213551
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {
         "126831637068183444206449483546552649222": {
           "258380955653095608834384786163178087857": [
@@ -1349,7 +1373,7 @@
       "operative_slots": {
         "318892076759932700240693855696446686475": {
           "tag": {
-            "name": "Values",
+            "name": "RequiredTraits",
             "id": 318892076759932700240693855696446686475
           },
           "operative_descriptor": {
@@ -1538,7 +1562,20 @@
         "id": 192834475315635794981306975613553830409
       },
       "field_constraints": {},
-      "operative_slots": {},
+      "operative_slots": {
+        "49567881416839668996425053128577919569": {
+          "tag": {
+            "name": "RequiredTraits",
+            "id": 49567881416839668996425053128577919569
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 88514864505434199223308527499153129389
+          },
+          "bounds": {
+            "LowerBound": 1
+          }
+        }
+      },
       "trait_impls": {
         "45410986558086501017203371005639950957": {},
         "53276204855758983580984607060825812963": {},
@@ -1996,7 +2033,7 @@
       "operative_slots": {
         "125344963997088967083719400250065958729": {
           "tag": {
-            "name": "Value",
+            "name": "AllowedOperative",
             "id": 125344963997088967083719400250065958729
           },
           "operative_descriptor": {
@@ -2147,7 +2184,20 @@
         "id": 267580326186929454070730986832839118865
       },
       "field_constraints": {},
-      "operative_slots": {},
+      "operative_slots": {
+        "294504590537101592795382935106436735189": {
+          "tag": {
+            "name": "AllowedOperatives",
+            "id": 294504590537101592795382935106436735189
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": {
+            "LowerBound": 2
+          }
+        }
+      },
       "trait_impls": {
         "45410986558086501017203371005639950957": {},
         "53276204855758983580984607060825812963": {},
@@ -2412,7 +2462,20 @@
           "value_type": "String"
         }
       },
-      "operative_slots": {},
+      "operative_slots": {
+        "484915211842633741418887767830789183": {
+          "tag": {
+            "name": "RequiredTraits",
+            "id": 484915211842633741418887767830789183
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 88514864505434199223308527499153129389
+          },
+          "bounds": {
+            "LowerBound": 1
+          }
+        }
+      },
       "trait_impls": {
         "126831637068183444206449483546552649222": {
           "258380955653095608834384786163178087857": [
@@ -2538,7 +2601,7 @@
       "operative_slots": {
         "197025256227002647787942435647385922204": {
           "tag": {
-            "name": "Value",
+            "name": "AllowedOperative",
             "id": 197025256227002647787942435647385922204
           },
           "operative_descriptor": {
@@ -2758,7 +2821,18 @@
         "id": 326044939369851209414892794113750782334
       },
       "field_constraints": {},
-      "operative_slots": {},
+      "operative_slots": {
+        "65143745466403606189777378143229099668": {
+          "tag": {
+            "name": "AllowedOperative",
+            "id": 65143745466403606189777378143229099668
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {
         "45410986558086501017203371005639950957": {},
         "53276204855758983580984607060825812963": {},
