@@ -1,4 +1,4 @@
-use crate::components::{common::*, method_implementation_builder::MethodImplementationBuilder};
+use crate::components::{common::*, method_impl_builder::MethodImplementationBuilder};
 use schema_editor_generated_toolkit::prelude::*;
 
 use super::workspace::WorkspaceState;

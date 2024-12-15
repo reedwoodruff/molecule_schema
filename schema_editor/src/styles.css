@@ -113,3 +113,31 @@
     overflow: none;
     visibility: hidden;
 }
+
+.method-impl {
+    width: fit-content;
+    border-radius: 5px;
+    border: 1px solid green;
+    margin: 5px;
+    padding: 5px;
+}
+.method-impl.outstanding {
+    border-color: greenyellow;
+}
+
+.method-impl.entry {
+    background-color: lightgreen;
+}
+
+.method-impl.exit {
+    border-color: darkgreen;
+}
+
+.exec-val-container {
+    padding: 10px;
+}
+.collection-exec-val {
+    background-color: lightgoldenrodyellow;
+}
+.single-exec-val {
+}

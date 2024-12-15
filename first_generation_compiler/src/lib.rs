@@ -425,7 +425,7 @@ pub fn generate_concrete_schema_reactive(
             });
 
             quote! {
-                #[derive(Debug, Clone, strum_macros::EnumDiscriminants)]
+                #[derive(Debug, Clone, strum_macros::EnumDiscriminants, Eq, Hash)]
                 #[strum_discriminants(derive(strum_macros::EnumIter, strum_macros::Display, strum_macros::EnumString))]
                 pub enum #enum_name {
                     #(#fulfilling_ops_names(#fulfilling_ops_wrapped_names),)*
