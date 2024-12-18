@@ -8,7 +8,9 @@ use strum_macros::{Display, EnumIter, EnumString};
 //     types: Vec<TypeDef>,
 // }
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Clone, Debug, PartialEq, Hash, Eq, EnumString, EnumIter, Default, Display)]
+#[derive(
+    Clone, Debug, PartialEq, Hash, Eq, EnumString, EnumIter, Default, Display, PartialOrd, Ord,
+)]
 pub enum PrimitiveTypes {
     #[default]
     EmptyTuple,

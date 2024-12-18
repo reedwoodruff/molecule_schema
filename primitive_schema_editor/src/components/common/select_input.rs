@@ -1,4 +1,8 @@
-use std::{collections::HashMap, rc::Rc, str::FromStr};
+use std::{
+    collections::{BTreeMap, HashMap},
+    rc::Rc,
+    str::FromStr,
+};
 
 use leptos::prelude::*;
 
@@ -9,7 +13,7 @@ pub fn SelectInput<K: Send + Sync, V: Send + Sync, F, I: Send + Sync>(
     #[prop(into)] value: Signal<K>,
 ) -> impl IntoView
 where
-    K: Eq + std::hash::Hash + Clone + std::fmt::Debug + 'static,
+    K: Eq + std::hash::Hash + Ord + Clone + std::fmt::Debug + 'static,
     // V: Display + Clone + 'static,
     V: Into<String> + Clone + 'static,
     F: Fn(&K) + 'static,
@@ -28,7 +32,12 @@ where
                 .collect::<HashMap<K, String>>()
         })
     });
-    let map2 = map;
+    let map_clone = map.clone();
+    let ordered_options = Memo::new(move |_| {
+        let mut ordered = map_clone.get().into_iter().collect::<Vec<(K, String)>>();
+        ordered.sort_by(|a, b| b.1.cmp(&a.1));
+        ordered
+    });
 
     let cur_value = move || {
         if let Some(val) = map.get().clone().get(&value.get()) {
@@ -38,9 +47,10 @@ where
         }
     };
 
+    let map_clone = map.clone();
     let callback = Rc::new(on_select);
     let on_change = move |e| {
-        let map = map2;
+        let map = map_clone;
         let return_val = event_target_value(&e);
         let key_val_pair = map
             .get()
@@ -53,9 +63,9 @@ where
 
     view! {
         <select node_ref=select_ref prop:value=cur_value on:change=on_change>
-            <For each=move || options2.get() key=move |item| item.0.clone() let:item>
-                <option value=item.1.clone().into() selected=value.get() == item.0>
-                    {item.1.clone().into()}
+            <For each=move || ordered_options.get() key=move |item| item.0.clone() let:item>
+                <option value=item.1.clone() selected=value.get() == item.0>
+                    {item.1.clone()}
                 </option>
             </For>
         // {move || options.get().into_iter().map(|item| {
@@ -72,7 +82,7 @@ pub fn SelectInputOptional<K: Send + Sync, V: Send + Sync, F, I: Send + Sync>(
     #[prop(into)] value: Signal<Option<K>>,
 ) -> impl IntoView
 where
-    K: Eq + std::hash::Hash + Clone + std::fmt::Debug + 'static,
+    K: Eq + std::hash::Hash + Clone + std::fmt::Debug + Ord + 'static,
     // V: Display + Clone + 'static,
     V: Into<String> + Clone + 'static,
     F: Fn(Option<K>) + 'static,
@@ -85,10 +95,15 @@ where
                 .clone()
                 .into_iter()
                 .map(|(k, v)| (k, v.into()))
-                .collect::<HashMap<K, String>>()
+                .collect::<BTreeMap<K, String>>()
         })
     });
-    let map2 = map;
+    let map_clone = map.clone();
+    let ordered_options = Memo::new(move |_| {
+        let mut ordered = map_clone.get().into_iter().collect::<Vec<(K, String)>>();
+        ordered.sort_by(|a, b| a.1.cmp(&b.1));
+        ordered
+    });
 
     let cur_value = move || {
         if let Some(val) = value.get() {
@@ -98,9 +113,10 @@ where
         }
     };
 
+    let map_clone = map.clone();
     let callback = Rc::new(on_select);
     let on_change = move |e| {
-        let map = map2;
+        let map = map_clone;
 
         let return_val = event_target_value(&e);
         if return_val == "NoneOption" {
@@ -120,8 +136,8 @@ where
     view! {
         <select on:change=on_change prop:value=cur_value>
             <option value="NoneOption" id="NoneOption"></option>
-            <For each=move || options2.get() key=move |item| item.0.clone() let:item>
-                <option value=item.1.clone().into()>{item.1.clone().into()}</option>
+            <For each=move || ordered_options.get() key=move |item| item.0.clone() let:item>
+                <option value=item.1.clone()>{item.1.clone()}</option>
             </For>
         // {move || options.get().into_iter().map(|item| {
         // view!{<option value=item.1.clone().into()>{item.1.into()}</option>}
