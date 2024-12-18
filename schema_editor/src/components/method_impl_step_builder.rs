@@ -1,53 +1,57 @@
 use crate::components::{common::*, method_impl_builder::MethodImplBuilderContext};
+use leptos::either::Either;
 use schema_editor_generated_toolkit::prelude::*;
 
 use super::method_impl_utils::{ExecVal, ExecutionSteps};
 
 #[component]
-pub fn MethodImplementationStepBuilder(step: ExecutionSteps) -> impl IntoView {
+pub fn MethodImplementationStepBuilder(step: Signal<ExecutionSteps>) -> impl IntoView {
     let MethodImplBuilderContext { impling_operative } =
         use_context::<MethodImplBuilderContext>().unwrap();
     let arrow_view = view! { <div>"→"</div> };
     let step_clone = step.clone();
-    let show_arrow = move || match step_clone.clone() {
+    let show_arrow = move || match step_clone.clone().get() {
         ExecutionSteps::MapFromInput { input } => false,
-        ExecutionSteps::MapToOutput { output } => true,
-        ExecutionSteps::GetField => true,
-        ExecutionSteps::TraverseSlot => true,
-        ExecutionSteps::MutateSlot => true,
-        ExecutionSteps::MutateField => true,
-        ExecutionSteps::IteratorFilter => true,
-        ExecutionSteps::IteratorMap => true,
-        ExecutionSteps::MultiTypeSplitter => true,
+        _ => true,
     };
     let step_clone = step.clone();
     let impling_operative_clone = impling_operative.clone();
     let step_view = move || {
         let impling_operative_clone = impling_operative_clone.clone();
-        match step_clone.clone() {
+        match step_clone.clone().get() {
             ExecutionSteps::MapFromInput { input } => {
                 let exec_val = ExecVal::from_io_object(input.clone(), impling_operative_clone);
                 view! {
                     <div class="method-impl entry">
-                        <LeafSectionHeader>Map from Input</LeafSectionHeader>
+                        <LeafSectionHeader>MapfromInput</LeafSectionHeader>
                         <div>"Input name: "{move || input.get_name()}</div>
                         <ExecValDisplay exec_val=exec_val />
                     </div>
                 }
             }
             ExecutionSteps::MapToOutput { output } => todo!(),
-            ExecutionSteps::GetField => todo!(),
-            ExecutionSteps::TraverseSlot => todo!(),
-            ExecutionSteps::MutateSlot => todo!(),
-            ExecutionSteps::MutateField => todo!(),
-            ExecutionSteps::IteratorFilter => todo!(),
-            ExecutionSteps::IteratorMap => todo!(),
-            ExecutionSteps::MultiTypeSplitter => todo!(),
+            ExecutionSteps::GetField { field_to_get } => todo!(),
+            ExecutionSteps::TraverseSlot { slot_to_traverse } => todo!(),
+            ExecutionSteps::MutateSlot {
+                reference_slot,
+                add_to_slot,
+                remove_from_slot,
+            } => todo!(),
+            ExecutionSteps::MutateField {
+                template_field,
+                new_value,
+            } => todo!(),
+            ExecutionSteps::IteratorFilter { filter_steps } => todo!(),
+            ExecutionSteps::IteratorMap { map_steps } => todo!(),
+            ExecutionSteps::MultiTypeSplitter { arms } => todo!(),
+            ExecutionSteps::IteratorAggregator { output } => todo!(),
+            ExecutionSteps::MultiTypeAggregator { output } => todo!(),
         }
     };
     view! {
         <Show when=show_arrow>{arrow_view.clone()}</Show>
         {step_view}
+        <NextStep step=step />
     }
 }
 #[component]
@@ -85,7 +89,6 @@ pub fn ExecValDisplay(exec_val: ExecVal) -> impl IntoView {
                         .into_iter()
                         .map(|item| item.get_name())
                         .collect::<Vec<_>>()
-                        .join(", ")
                 }} "]"
             </div>
         }
@@ -135,4 +138,18 @@ pub fn ExecValDisplay(exec_val: ExecVal) -> impl IntoView {
         .into_any(),
     };
     view! { <div class="exec-val-container">{display_view}</div> }
+}
+
+#[component]
+pub fn NextStep(step: Signal<ExecutionSteps>) -> impl IntoView {
+    let selected_next_step = RwSignal::new(None);
+    let next_step_options = Memo::new(move |_| step.get().get_allowed_next_steps());
+
+    move || {
+        if matches!(step.get(), ExecutionSteps::MapToOutput { output: _ }) {
+            Either::Left(view! {})
+        } else {
+            Either::Right(view! {})
+        }
+    }
 }

@@ -1,6 +1,6 @@
 use schema_editor_generated_toolkit::prelude::*;
 
-#[derive(Clone, PartialEq, Eq, Debug, Hash)]
+#[derive(Clone, PartialEq, Eq, Debug, Hash, strum_macros::EnumDiscriminants)]
 pub enum ExecutionSteps {
     MapFromInput {
         input: GetNameFunctionIOTraitObject,
@@ -8,14 +8,68 @@ pub enum ExecutionSteps {
     MapToOutput {
         output: GetNameFunctionIOTraitObject,
     },
-    GetField,
-    TraverseSlot,
-    MutateSlot,
-    MutateField,
-    IteratorFilter,
-    IteratorMap,
-    MultiTypeSplitter,
+    GetField {
+        field_to_get: FieldVariantTraitObject,
+    },
+    TraverseSlot {
+        slot_to_traverse: SlotDescriptionTraitObject,
+    },
+    MutateSlot {
+        reference_slot: SlotDescriptionTraitObject,
+        add_to_slot: Vec<AddToSlotMutationDescriptor>,
+        remove_from_slot: Vec<RemoveFromSlotMutationDescriptor>,
+    },
+    MutateField {
+        template_field: FieldVariantTraitObject,
+        new_value: ExecValPrimitives,
+    },
+    IteratorFilter {
+        filter_steps: Vec<ExecutionSteps>,
+    },
+    IteratorMap {
+        map_steps: Vec<ExecutionSteps>,
+    },
+    IteratorAggregator {
+        output: ExecValCollections,
+    },
+    MultiTypeSplitter {
+        arms: Vec<Vec<ExecutionSteps>>,
+    },
+    MultiTypeAggregator {
+        output: ExecVal,
+    },
 }
+
+impl ExecutionSteps {
+    pub fn get_output_val(&self) {}
+    pub fn get_allowed_next_steps(&self) {
+        match self {
+            ExecutionSteps::MapFromInput { input } => todo!(),
+            ExecutionSteps::MapToOutput { output } => todo!(),
+            ExecutionSteps::GetField { field_to_get } => todo!(),
+            ExecutionSteps::TraverseSlot { slot_to_traverse } => todo!(),
+            ExecutionSteps::MutateSlot {
+                reference_slot,
+                add_to_slot,
+                remove_from_slot,
+            } => todo!(),
+            ExecutionSteps::MutateField {
+                template_field,
+                new_value,
+            } => todo!(),
+            ExecutionSteps::IteratorFilter { filter_steps } => todo!(),
+            ExecutionSteps::IteratorMap { map_steps } => todo!(),
+            ExecutionSteps::IteratorAggregator { output } => todo!(),
+            ExecutionSteps::MultiTypeSplitter { arms } => todo!(),
+            ExecutionSteps::MultiTypeAggregator { output } => todo!(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct AddToSlotMutationDescriptor {}
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub struct RemoveFromSlotMutationDescriptor {}
 
 #[derive(Clone, PartialEq, Eq, Debug, Hash)]
 pub enum ExecVal {
@@ -98,6 +152,22 @@ impl ExecVal {
             }
         }
     }
+    fn get_allowed_next_steps(&self) -> Vec<ExecutionStepsDiscriminants> {
+        match self {
+            ExecVal::Bool => todo!(),
+            ExecVal::String => todo!(),
+            ExecVal::Int => todo!(),
+            ExecVal::SingleOperative { allowed_operative } => todo!(),
+            ExecVal::MultiOperative { allowed_operatives } => todo!(),
+            ExecVal::TraitOperative { required_traits } => todo!(),
+            ExecVal::CollectionBool => todo!(),
+            ExecVal::CollectionString => todo!(),
+            ExecVal::CollectionInt => todo!(),
+            ExecVal::CollectionSingleOperative { allowed_operative } => todo!(),
+            ExecVal::CollectionMultiOperative { allowed_operatives } => todo!(),
+            ExecVal::CollectionTraitOperative { required_traits } => todo!(),
+        }
+    }
 }
 impl From<ImplIOTraitObject> for ExecVal {
     fn from(value: ImplIOTraitObject) -> Self {
@@ -132,6 +202,58 @@ impl From<ImplIOTraitObject> for ExecVal {
                 required_traits: item.get_requiredtraits_slot(),
             },
             ImplIOTraitObject::ImplCollectionPrimitiveBool(_) => ExecVal::CollectionBool,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ExecValPrimitives {
+    Bool,
+    String,
+    Int,
+}
+
+impl From<ExecValPrimitives> for ExecVal {
+    fn from(value: ExecValPrimitives) -> Self {
+        match value {
+            ExecValPrimitives::Bool => ExecVal::Bool,
+            ExecValPrimitives::String => ExecVal::String,
+            ExecValPrimitives::Int => ExecVal::Int,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ExecValCollections {
+    CollectionBool,
+    CollectionString,
+    CollectionInt,
+    CollectionSingleOperative {
+        allowed_operative: RGSOConcrete<OperativeConcrete, Schema>,
+    },
+    CollectionMultiOperative {
+        allowed_operatives: Vec<RGSOConcrete<OperativeConcrete, Schema>>,
+    },
+    CollectionTraitOperative {
+        required_traits: Vec<RGSOConcrete<TraitConcrete, Schema>>,
+    },
+}
+
+impl From<ExecValCollections> for ExecVal {
+    fn from(value: ExecValCollections) -> Self {
+        match value {
+            ExecValCollections::CollectionBool => ExecVal::CollectionBool,
+            ExecValCollections::CollectionString => ExecVal::CollectionString,
+            ExecValCollections::CollectionInt => ExecVal::CollectionInt,
+            ExecValCollections::CollectionSingleOperative { allowed_operative } => {
+                ExecVal::CollectionSingleOperative { allowed_operative }
+            }
+            ExecValCollections::CollectionMultiOperative { allowed_operatives } => {
+                ExecVal::CollectionMultiOperative { allowed_operatives }
+            }
+            ExecValCollections::CollectionTraitOperative { required_traits } => {
+                ExecVal::CollectionTraitOperative { required_traits }
+            }
         }
     }
 }

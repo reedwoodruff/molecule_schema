@@ -79,7 +79,11 @@ pub fn MethodImplementationBuilder(
                                     each=move || input_row.get()
                                     key=|item| item.clone()
                                     children=move |step| {
-                                        view! { <MethodImplementationStepBuilder step=step /> }
+                                        let step_clone = step.clone();
+                                        view! {
+                                            <MethodImplementationStepBuilder step=Signal::derive(move ||
+                                            step_clone.clone()) />
+                                        }
                                     }
                                 />
                             </div>
@@ -107,6 +111,7 @@ pub fn MethodImplementationBuilder(
             // }
             // />
             // </LeafSection>
+
             <div>
                 <Button on:click=inner_on_save>Save</Button>
                 " "
