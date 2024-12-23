@@ -46,12 +46,13 @@ pub fn MethodImplementationBuilder(
     if let Some(initial_state) = initial_state {
         func_impl_name.set(initial_state.get_name());
     } else {
-        let initial_steps = fn_def_clone
-            .get_inputs_slot()
-            .into_iter()
-            .map(|input| RwSignal::new(vec![ExecutionSteps::MapFromInput { input: input }]))
-            .collect::<Vec<_>>();
-        step_lists.set(initial_steps);
+        todo!()
+        // let initial_steps = fn_def_clone
+        //     .get_inputs_slot()
+        //     .into_iter()
+        //     .map(|input| RwSignal::new(vec![ExecutionSteps::MapFromInput { input: input }]))
+        //     .collect::<Vec<_>>();
+        // step_lists.set(initial_steps);
     }
 
     let fn_def_clone = fn_def.clone();

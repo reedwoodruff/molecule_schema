@@ -20,14 +20,15 @@ pub fn MethodImplementationStepBuilder(step: Signal<ExecutionSteps>) -> impl Int
         let impling_operative_clone = impling_operative_clone.clone();
         match step_clone.clone().get() {
             ExecutionSteps::MapFromInput { input } => {
-                let exec_val = ExecVal::from_io_object(input.clone(), impling_operative_clone);
-                view! {
-                    <div class="method-impl entry">
-                        <LeafSectionHeader>MapfromInput</LeafSectionHeader>
-                        <div>"Input name: "{move || input.get_name()}</div>
-                        <ExecValDisplay exec_val=exec_val />
-                    </div>
-                }
+                todo!()
+                // let exec_val = ExecVal::from_io_object(input.clone(), impling_operative_clone);
+                // view! {
+                //     <div class="method-impl entry">
+                //         <LeafSectionHeader>MapfromInput</LeafSectionHeader>
+                //         <div>"Input name: "{move || input.get_name()}</div>
+                //         <ExecValDisplay exec_val=exec_val />
+                //     </div>
+                // }
             }
             ExecutionSteps::MapToOutput { output } => todo!(),
             ExecutionSteps::GetField { field_to_get } => todo!(),
@@ -142,7 +143,7 @@ pub fn ExecValDisplay(exec_val: ExecVal) -> impl IntoView {
 
 #[component]
 pub fn NextStep(step: Signal<ExecutionSteps>) -> impl IntoView {
-    let selected_next_step = RwSignal::new(None);
+    // let selected_next_step = RwSignal::new(None);
     let next_step_options = Memo::new(move |_| step.get().get_allowed_next_steps());
 
     move || {

@@ -3,10 +3,10 @@ use schema_editor_generated_toolkit::prelude::*;
 #[derive(Clone, PartialEq, Eq, Debug, Hash, strum_macros::EnumDiscriminants)]
 pub enum ExecutionSteps {
     MapFromInput {
-        input: GetNameFunctionIOTraitObject,
+        input: (),
     },
     MapToOutput {
-        output: GetNameFunctionIOTraitObject,
+        output: (),
     },
     GetField {
         field_to_get: FieldVariantTraitObject,
@@ -30,7 +30,7 @@ pub enum ExecutionSteps {
         map_steps: Vec<ExecutionSteps>,
     },
     IteratorAggregator {
-        output: ExecValCollections,
+        output: (),
     },
     MultiTypeSplitter {
         arms: Vec<Vec<ExecutionSteps>>,
@@ -99,112 +99,112 @@ pub enum ExecVal {
     },
 }
 
-impl ExecVal {
-    pub fn from_io_object(
-        io_object: GetNameFunctionIOTraitObject,
-        impling_operative: RGSOConcrete<OperativeConcrete, Schema>,
-    ) -> Self {
-        match io_object {
-            GetNameFunctionIOTraitObject::FunctionIOCollectionPrimitiveBool(_) => {
-                ExecVal::CollectionBool
-            }
-            GetNameFunctionIOTraitObject::FunctionIOSingleOperative(item) => {
-                ExecVal::SingleOperative {
-                    allowed_operative: item.get_allowedoperative_slot(),
-                }
-            }
-            GetNameFunctionIOTraitObject::FunctionIOPrimitiveBool(_) => ExecVal::Bool,
-            GetNameFunctionIOTraitObject::FunctionIOCollectionMultiOperative(item) => {
-                ExecVal::CollectionMultiOperative {
-                    allowed_operatives: item.get_allowedoperatives_slot(),
-                }
-            }
-            GetNameFunctionIOTraitObject::FunctionIOCollectionTraitOperative(item) => {
-                ExecVal::CollectionTraitOperative {
-                    required_traits: item.get_requiredtraits_slot(),
-                }
-            }
-            GetNameFunctionIOTraitObject::FunctionIOCollectionPrimitiveString(_) => {
-                ExecVal::CollectionString
-            }
-            GetNameFunctionIOTraitObject::FunctionIOTraitOperative(item) => {
-                ExecVal::TraitOperative {
-                    required_traits: item.get_requiredtraits_slot(),
-                }
-            }
-            GetNameFunctionIOTraitObject::FunctionIOSelf(_) => ExecVal::SingleOperative {
-                allowed_operative: impling_operative,
-            },
-            GetNameFunctionIOTraitObject::FunctionIOCollectionSingleOperative(item) => {
-                ExecVal::CollectionSingleOperative {
-                    allowed_operative: item.get_allowedoperative_slot(),
-                }
-            }
-            GetNameFunctionIOTraitObject::FunctionIOPrimitiveInt(_) => ExecVal::Int,
-            GetNameFunctionIOTraitObject::FunctionIOMultiOperative(item) => {
-                ExecVal::MultiOperative {
-                    allowed_operatives: item.get_allowedoperatives_slot(),
-                }
-            }
-            GetNameFunctionIOTraitObject::FunctionIOPrimitiveString(_) => ExecVal::String,
-            GetNameFunctionIOTraitObject::FunctionIOCollectionPrimitiveInt(_) => {
-                ExecVal::CollectionInt
-            }
-        }
-    }
-    fn get_allowed_next_steps(&self) -> Vec<ExecutionStepsDiscriminants> {
-        match self {
-            ExecVal::Bool => todo!(),
-            ExecVal::String => todo!(),
-            ExecVal::Int => todo!(),
-            ExecVal::SingleOperative { allowed_operative } => todo!(),
-            ExecVal::MultiOperative { allowed_operatives } => todo!(),
-            ExecVal::TraitOperative { required_traits } => todo!(),
-            ExecVal::CollectionBool => todo!(),
-            ExecVal::CollectionString => todo!(),
-            ExecVal::CollectionInt => todo!(),
-            ExecVal::CollectionSingleOperative { allowed_operative } => todo!(),
-            ExecVal::CollectionMultiOperative { allowed_operatives } => todo!(),
-            ExecVal::CollectionTraitOperative { required_traits } => todo!(),
-        }
-    }
-}
-impl From<ImplIOTraitObject> for ExecVal {
-    fn from(value: ImplIOTraitObject) -> Self {
-        match value {
-            ImplIOTraitObject::ImplCollectionPrimitiveInt(_) => ExecVal::CollectionInt,
-            ImplIOTraitObject::ImplIntermediateMultiOperative(item) => ExecVal::MultiOperative {
-                allowed_operatives: item.get_allowedoperatives_slot(),
-            },
-            ImplIOTraitObject::ImplIntermediatePrimitiveBool(_) => ExecVal::Bool,
-            ImplIOTraitObject::ImplIntermediatePrimitiveInt(_) => ExecVal::Int,
-            ImplIOTraitObject::ImplIntermediatePrimitiveString(_) => ExecVal::String,
-            ImplIOTraitObject::ImpCollectionMultiOperative(item) => {
-                ExecVal::CollectionMultiOperative {
-                    allowed_operatives: item.get_allowedoperatives_slot(),
-                }
-            }
-            ImplIOTraitObject::ImplIntermediateSingleOperative(item) => ExecVal::SingleOperative {
-                allowed_operative: item.get_allowedoperative_slot(),
-            },
-            ImplIOTraitObject::ImplCollectionTraitOperative(item) => {
-                ExecVal::CollectionTraitOperative {
-                    required_traits: item.get_requiredtraits_slot(),
-                }
-            }
-            ImplIOTraitObject::ImplCollectionSingleOperative(item) => {
-                ExecVal::CollectionSingleOperative {
-                    allowed_operative: item.get_allowedoperative_slot(),
-                }
-            }
-            ImplIOTraitObject::ImplCollectionPrimitiveString(_) => ExecVal::CollectionString,
-            ImplIOTraitObject::ImplIntermediateTraitOperative(item) => ExecVal::TraitOperative {
-                required_traits: item.get_requiredtraits_slot(),
-            },
-            ImplIOTraitObject::ImplCollectionPrimitiveBool(_) => ExecVal::CollectionBool,
-        }
-    }
-}
+// impl ExecVal {
+//     pub fn from_io_object(
+//         io_object: GetNameFunctionIOTraitObject,
+//         impling_operative: RGSOConcrete<OperativeConcrete, Schema>,
+//     ) -> Self {
+//         match io_object {
+//             GetNameFunctionIOTraitObject::FunctionIOCollectionPrimitiveBool(_) => {
+//                 ExecVal::CollectionBool
+//             }
+//             GetNameFunctionIOTraitObject::FunctionIOSingleOperative(item) => {
+//                 ExecVal::SingleOperative {
+//                     allowed_operative: item.get_allowedoperative_slot(),
+//                 }
+//             }
+//             GetNameFunctionIOTraitObject::FunctionIOPrimitiveBool(_) => ExecVal::Bool,
+//             GetNameFunctionIOTraitObject::FunctionIOCollectionMultiOperative(item) => {
+//                 ExecVal::CollectionMultiOperative {
+//                     allowed_operatives: item.get_allowedoperatives_slot(),
+//                 }
+//             }
+//             GetNameFunctionIOTraitObject::FunctionIOCollectionTraitOperative(item) => {
+//                 ExecVal::CollectionTraitOperative {
+//                     required_traits: item.get_requiredtraits_slot(),
+//                 }
+//             }
+//             GetNameFunctionIOTraitObject::FunctionIOCollectionPrimitiveString(_) => {
+//                 ExecVal::CollectionString
+//             }
+//             GetNameFunctionIOTraitObject::FunctionIOTraitOperative(item) => {
+//                 ExecVal::TraitOperative {
+//                     required_traits: item.get_requiredtraits_slot(),
+//                 }
+//             }
+//             GetNameFunctionIOTraitObject::FunctionIOSelf(_) => ExecVal::SingleOperative {
+//                 allowed_operative: impling_operative,
+//             },
+//             GetNameFunctionIOTraitObject::FunctionIOCollectionSingleOperative(item) => {
+//                 ExecVal::CollectionSingleOperative {
+//                     allowed_operative: item.get_allowedoperative_slot(),
+//                 }
+//             }
+//             GetNameFunctionIOTraitObject::FunctionIOPrimitiveInt(_) => ExecVal::Int,
+//             GetNameFunctionIOTraitObject::FunctionIOMultiOperative(item) => {
+//                 ExecVal::MultiOperative {
+//                     allowed_operatives: item.get_allowedoperatives_slot(),
+//                 }
+//             }
+//             GetNameFunctionIOTraitObject::FunctionIOPrimitiveString(_) => ExecVal::String,
+//             GetNameFunctionIOTraitObject::FunctionIOCollectionPrimitiveInt(_) => {
+//                 ExecVal::CollectionInt
+//             }
+//         }
+//     }
+//     fn get_allowed_next_steps(&self) -> Vec<ExecutionStepsDiscriminants> {
+//         match self {
+//             ExecVal::Bool => todo!(),
+//             ExecVal::String => todo!(),
+//             ExecVal::Int => todo!(),
+//             ExecVal::SingleOperative { allowed_operative } => todo!(),
+//             ExecVal::MultiOperative { allowed_operatives } => todo!(),
+//             ExecVal::TraitOperative { required_traits } => todo!(),
+//             ExecVal::CollectionBool => todo!(),
+//             ExecVal::CollectionString => todo!(),
+//             ExecVal::CollectionInt => todo!(),
+//             ExecVal::CollectionSingleOperative { allowed_operative } => todo!(),
+//             ExecVal::CollectionMultiOperative { allowed_operatives } => todo!(),
+//             ExecVal::CollectionTraitOperative { required_traits } => todo!(),
+//         }
+//     }
+// }
+// impl From<ImplIOTraitObject> for ExecVal {
+//     fn from(value: ImplIOTraitObject) -> Self {
+//         match value {
+//             ImplIOTraitObject::ImplCollectionPrimitiveInt(_) => ExecVal::CollectionInt,
+//             ImplIOTraitObject::ImplIntermediateMultiOperative(item) => ExecVal::MultiOperative {
+//                 allowed_operatives: item.get_allowedoperatives_slot(),
+//             },
+//             ImplIOTraitObject::ImplIntermediatePrimitiveBool(_) => ExecVal::Bool,
+//             ImplIOTraitObject::ImplIntermediatePrimitiveInt(_) => ExecVal::Int,
+//             ImplIOTraitObject::ImplIntermediatePrimitiveString(_) => ExecVal::String,
+//             ImplIOTraitObject::ImpCollectionMultiOperative(item) => {
+//                 ExecVal::CollectionMultiOperative {
+//                     allowed_operatives: item.get_allowedoperatives_slot(),
+//                 }
+//             }
+//             ImplIOTraitObject::ImplIntermediateSingleOperative(item) => ExecVal::SingleOperative {
+//                 allowed_operative: item.get_allowedoperative_slot(),
+//             },
+//             ImplIOTraitObject::ImplCollectionTraitOperative(item) => {
+//                 ExecVal::CollectionTraitOperative {
+//                     required_traits: item.get_requiredtraits_slot(),
+//                 }
+//             }
+//             ImplIOTraitObject::ImplCollectionSingleOperative(item) => {
+//                 ExecVal::CollectionSingleOperative {
+//                     allowed_operative: item.get_allowedoperative_slot(),
+//                 }
+//             }
+//             ImplIOTraitObject::ImplCollectionPrimitiveString(_) => ExecVal::CollectionString,
+//             ImplIOTraitObject::ImplIntermediateTraitOperative(item) => ExecVal::TraitOperative {
+//                 required_traits: item.get_requiredtraits_slot(),
+//             },
+//             ImplIOTraitObject::ImplCollectionPrimitiveBool(_) => ExecVal::CollectionBool,
+//         }
+//     }
+// }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum ExecValPrimitives {
@@ -213,47 +213,47 @@ pub enum ExecValPrimitives {
     Int,
 }
 
-impl From<ExecValPrimitives> for ExecVal {
-    fn from(value: ExecValPrimitives) -> Self {
-        match value {
-            ExecValPrimitives::Bool => ExecVal::Bool,
-            ExecValPrimitives::String => ExecVal::String,
-            ExecValPrimitives::Int => ExecVal::Int,
-        }
-    }
-}
+// impl From<ExecValPrimitives> for ExecVal {
+//     fn from(value: ExecValPrimitives) -> Self {
+//         match value {
+//             ExecValPrimitives::Bool => ExecVal::Bool,
+//             ExecValPrimitives::String => ExecVal::String,
+//             ExecValPrimitives::Int => ExecVal::Int,
+//         }
+//     }
+// }
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
-pub enum ExecValCollections {
-    CollectionBool,
-    CollectionString,
-    CollectionInt,
-    CollectionSingleOperative {
-        allowed_operative: RGSOConcrete<OperativeConcrete, Schema>,
-    },
-    CollectionMultiOperative {
-        allowed_operatives: Vec<RGSOConcrete<OperativeConcrete, Schema>>,
-    },
-    CollectionTraitOperative {
-        required_traits: Vec<RGSOConcrete<TraitConcrete, Schema>>,
-    },
-}
+// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+// pub enum ExecValCollections {
+//     CollectionBool,
+//     CollectionString,
+//     CollectionInt,
+//     CollectionSingleOperative {
+//         allowed_operative: RGSOConcrete<OperativeConcrete, Schema>,
+//     },
+//     CollectionMultiOperative {
+//         allowed_operatives: Vec<RGSOConcrete<OperativeConcrete, Schema>>,
+//     },
+//     CollectionTraitOperative {
+//         required_traits: Vec<RGSOConcrete<TraitConcrete, Schema>>,
+//     },
+// }
 
-impl From<ExecValCollections> for ExecVal {
-    fn from(value: ExecValCollections) -> Self {
-        match value {
-            ExecValCollections::CollectionBool => ExecVal::CollectionBool,
-            ExecValCollections::CollectionString => ExecVal::CollectionString,
-            ExecValCollections::CollectionInt => ExecVal::CollectionInt,
-            ExecValCollections::CollectionSingleOperative { allowed_operative } => {
-                ExecVal::CollectionSingleOperative { allowed_operative }
-            }
-            ExecValCollections::CollectionMultiOperative { allowed_operatives } => {
-                ExecVal::CollectionMultiOperative { allowed_operatives }
-            }
-            ExecValCollections::CollectionTraitOperative { required_traits } => {
-                ExecVal::CollectionTraitOperative { required_traits }
-            }
-        }
-    }
-}
+// impl From<ExecValCollections> for ExecVal {
+//     fn from(value: ExecValCollections) -> Self {
+//         match value {
+//             ExecValCollections::CollectionBool => ExecVal::CollectionBool,
+//             ExecValCollections::CollectionString => ExecVal::CollectionString,
+//             ExecValCollections::CollectionInt => ExecVal::CollectionInt,
+//             ExecValCollections::CollectionSingleOperative { allowed_operative } => {
+//                 ExecVal::CollectionSingleOperative { allowed_operative }
+//             }
+//             ExecValCollections::CollectionMultiOperative { allowed_operatives } => {
+//                 ExecVal::CollectionMultiOperative { allowed_operatives }
+//             }
+//             ExecValCollections::CollectionTraitOperative { required_traits } => {
+//                 ExecVal::CollectionTraitOperative { required_traits }
+//             }
+//         }
+//     }
+// }
