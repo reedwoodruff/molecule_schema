@@ -2,25 +2,15 @@
   "template_library": {
     "181184856386734963911046756969790888": {
       "tag": {
-        "name": "ImplStepBitNor",
+        "name": "ImplStepBitNot",
         "id": 181184856386734963911046756969790888
       },
       "field_constraints": {},
       "operative_slots": {
         "31469137660867948571284375204013444747": {
           "tag": {
-            "name": "ArgumentOne",
+            "name": "InputBool",
             "id": 31469137660867948571284375204013444747
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 125161999025549239112329875205728146845
-          },
-          "bounds": "Single"
-        },
-        "134215009598557521043838492837551220392": {
-          "tag": {
-            "name": "ArgumentTwo",
-            "id": 134215009598557521043838492837551220392
           },
           "operative_descriptor": {
             "LibraryOperative": 125161999025549239112329875205728146845
@@ -29,7 +19,7 @@
         },
         "271104475245279333070631516785357022427": {
           "tag": {
-            "name": "Output",
+            "name": "OutputBool",
             "id": 271104475245279333070631516785357022427
           },
           "operative_descriptor": {
@@ -169,7 +159,7 @@
       "operative_slots": {
         "69633714290648641558326033269527715752": {
           "tag": {
-            "name": "Input",
+            "name": "InputOperative",
             "id": 69633714290648641558326033269527715752
           },
           "operative_descriptor": {
@@ -177,26 +167,20 @@
           },
           "bounds": "Single"
         },
-        "107657271438465267393891783625400060944": {
+        "153858774048231859235146591965756793798": {
           "tag": {
-            "name": "Field",
-            "id": 107657271438465267393891783625400060944
+            "name": "OutputField",
+            "id": 153858774048231859235146591965756793798
           },
           "operative_descriptor": {
-            "TraitOperative": {
-              "trait_ids": [248363541964975793281693277478390330819],
-              "tag": {
-                "name": "Field",
-                "id": 92747683674159016704325752897603850831
-              }
-            }
+            "LibraryOperative": 125161999025549239112329875205728146845
           },
           "bounds": "Single"
         },
-        "153858774048231859235146591965756793798": {
+        "278429597786384056022714635218367388771": {
           "tag": {
-            "name": "Output",
-            "id": 153858774048231859235146591965756793798
+            "name": "FieldName",
+            "id": 278429597786384056022714635218367388771
           },
           "operative_descriptor": {
             "LibraryOperative": 125161999025549239112329875205728146845
@@ -266,6 +250,49 @@
             }
           ]
         }
+      },
+      "instances": []
+    },
+    "37072954780812645749708176125508313536": {
+      "tag": {
+        "name": "ImplStepMathModulus",
+        "id": 37072954780812645749708176125508313536
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "1703033093950763229287466129670897209": {
+          "tag": {
+            "name": "ArgumentTwo",
+            "id": 1703033093950763229287466129670897209
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "53659804157748939436877711509583500186": {
+          "tag": {
+            "name": "OutputInt",
+            "id": 53659804157748939436877711509583500186
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "231555758859508337091409095325659487006": {
+          "tag": {
+            "name": "ArgumentOne",
+            "id": 231555758859508337091409095325659487006
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        }
+      },
+      "trait_impls": {
+        "6112419245734111135111571810901799735": {}
       },
       "instances": []
     },
@@ -452,7 +479,7 @@
         },
         "289872606262634116374251603163666136073": {
           "tag": {
-            "name": "Output",
+            "name": "OutputBool",
             "id": 289872606262634116374251603163666136073
           },
           "operative_descriptor": {
@@ -731,7 +758,48 @@
         "id": 97962630397794209389407101653543307591
       },
       "field_constraints": {},
-      "operative_slots": {},
+      "operative_slots": {
+        "73909192485534796775615548420096941073": {
+          "tag": {
+            "name": "Convergence",
+            "id": 73909192485534796775615548420096941073
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "111217901638128192632769685813403322403": {
+          "tag": {
+            "name": "Output",
+            "id": 111217901638128192632769685813403322403
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "112741482242129858348296842116088907540": {
+          "tag": {
+            "name": "DiscriminantStarts",
+            "id": 112741482242129858348296842116088907540
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "313378869819286898709711260553823734874": {
+          "tag": {
+            "name": "InputMultiOperative",
+            "id": 313378869819286898709711260553823734874
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {
         "6112419245734111135111571810901799735": {}
       },
@@ -918,7 +986,7 @@
       "operative_slots": {
         "33068798732347850805460789453573090069": {
           "tag": {
-            "name": "Output",
+            "name": "OutputBool",
             "id": 33068798732347850805460789453573090069
           },
           "operative_descriptor": {
@@ -1164,7 +1232,7 @@
         },
         "261733971010104071529803751484240029675": {
           "tag": {
-            "name": "Output",
+            "name": "OutputBool",
             "id": 261733971010104071529803751484240029675
           },
           "operative_descriptor": {
@@ -1203,7 +1271,9 @@
           "operative_descriptor": {
             "LibraryOperative": 125161999025549239112329875205728146845
           },
-          "bounds": "Single"
+          "bounds": {
+            "Range": [0, 1]
+          }
         },
         "47794203845945242643972480267014499817": {
           "tag": {
@@ -1229,6 +1299,18 @@
             "LowerBound": 1
           }
         },
+        "96282666364956188108840871848914442756": {
+          "tag": {
+            "name": "TrueCaptures",
+            "id": 96282666364956188108840871848914442756
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": {
+            "LowerBound": 1
+          }
+        },
         "113198523818501171747437477279195188596": {
           "tag": {
             "name": "Convergence",
@@ -1237,7 +1319,9 @@
           "operative_descriptor": {
             "LibraryOperative": 125161999025549239112329875205728146845
           },
-          "bounds": "Single"
+          "bounds": {
+            "Range": [0, 1]
+          }
         },
         "177415257463088044739457416648161124081": {
           "tag": {
@@ -1248,6 +1332,18 @@
             "LibraryOperative": 125161999025549239112329875205728146845
           },
           "bounds": "Single"
+        },
+        "252389086625840960038552547990074557595": {
+          "tag": {
+            "name": "FalseCaptures",
+            "id": 252389086625840960038552547990074557595
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": {
+            "LowerBound": 1
+          }
         }
       },
       "trait_impls": {},
@@ -1331,7 +1427,48 @@
         "id": 187436281156605308935612441127987823428
       },
       "field_constraints": {},
-      "operative_slots": {},
+      "operative_slots": {
+        "34799863336859721820797710165555585608": {
+          "tag": {
+            "name": "IterationStartItem",
+            "id": 34799863336859721820797710165555585608
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "128803569853870516590215324103878726236": {
+          "tag": {
+            "name": "IterationEndBool",
+            "id": 128803569853870516590215324103878726236
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "185944580831600518115641523532649463330": {
+          "tag": {
+            "name": "InputCollection",
+            "id": 185944580831600518115641523532649463330
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "289796939528256897689299780661295957308": {
+          "tag": {
+            "name": "OutputCollection",
+            "id": 289796939528256897689299780661295957308
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {},
       "instances": []
     },
@@ -1437,7 +1574,38 @@
         "id": 195554021726093739035851762277297506894
       },
       "field_constraints": {},
-      "operative_slots": {},
+      "operative_slots": {
+        "104347585905326021478882804446611068414": {
+          "tag": {
+            "name": "NewValue",
+            "id": 104347585905326021478882804446611068414
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "187056988090865227081803137322546637827": {
+          "tag": {
+            "name": "MutatedOperative",
+            "id": 187056988090865227081803137322546637827
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "286683178176885914474954995064348050956": {
+          "tag": {
+            "name": "FieldName",
+            "id": 286683178176885914474954995064348050956
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {
         "6112419245734111135111571810901799735": {}
       },
@@ -1712,7 +1880,38 @@
         "id": 219628565591836669961789603868904591460
       },
       "field_constraints": {},
-      "operative_slots": {},
+      "operative_slots": {
+        "65428332880956814971575510846027812487": {
+          "tag": {
+            "name": "MutatedOperative",
+            "id": 65428332880956814971575510846027812487
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "122765648203130850696526884352924119241": {
+          "tag": {
+            "name": "SlotName",
+            "id": 122765648203130850696526884352924119241
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "294931785269323788325302324991484373940": {
+          "tag": {
+            "name": "NewValue",
+            "id": 294931785269323788325302324991484373940
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {
         "6112419245734111135111571810901799735": {}
       },
@@ -1767,6 +1966,49 @@
       },
       "instances": []
     },
+    "234435922614165130163802788359056409974": {
+      "tag": {
+        "name": "ImplStepMathAdd",
+        "id": 234435922614165130163802788359056409974
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "9613906664548994684878498489787405356": {
+          "tag": {
+            "name": "OutputInt",
+            "id": 9613906664548994684878498489787405356
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "112835118556582361323406388283158656439": {
+          "tag": {
+            "name": "ArgumentTwo",
+            "id": 112835118556582361323406388283158656439
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "259559008928495044952681832219180473981": {
+          "tag": {
+            "name": "ArgumentOne",
+            "id": 259559008928495044952681832219180473981
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        }
+      },
+      "trait_impls": {
+        "6112419245734111135111571810901799735": {}
+      },
+      "instances": []
+    },
     "238176773160516170453658573371784528217": {
       "tag": {
         "name": "ImplStepCompareLessThan",
@@ -1796,7 +2038,7 @@
         },
         "321796298773887422623323471730634164297": {
           "tag": {
-            "name": "Output",
+            "name": "OutputBool",
             "id": 321796298773887422623323471730634164297
           },
           "operative_descriptor": {
@@ -1834,6 +2076,92 @@
           ]
         },
         "167367351170251468661985326772610265460": {}
+      },
+      "instances": []
+    },
+    "252805649128109325588682733917924421529": {
+      "tag": {
+        "name": "ImplStepMathSubtract",
+        "id": 252805649128109325588682733917924421529
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "50860040583289542439503457942691690550": {
+          "tag": {
+            "name": "ArgumentOne",
+            "id": 50860040583289542439503457942691690550
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "218625779445685529822378734368063149077": {
+          "tag": {
+            "name": "ArgumentTwo",
+            "id": 218625779445685529822378734368063149077
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "339146155221546804848691868572593969914": {
+          "tag": {
+            "name": "OutputInt",
+            "id": 339146155221546804848691868572593969914
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        }
+      },
+      "trait_impls": {
+        "6112419245734111135111571810901799735": {}
+      },
+      "instances": []
+    },
+    "258515458800350916604654480594146284414": {
+      "tag": {
+        "name": "ImplStepMathMultiply",
+        "id": 258515458800350916604654480594146284414
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "16265512998181855100986596715011893157": {
+          "tag": {
+            "name": "OutputInt",
+            "id": 16265512998181855100986596715011893157
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "70499629096397428237492922891759378313": {
+          "tag": {
+            "name": "ArgumentOne",
+            "id": 70499629096397428237492922891759378313
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "279295696073809857161630082448246558677": {
+          "tag": {
+            "name": "ArgumentTwo",
+            "id": 279295696073809857161630082448246558677
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        }
+      },
+      "trait_impls": {
+        "6112419245734111135111571810901799735": {}
       },
       "instances": []
     },
@@ -1875,6 +2203,49 @@
       },
       "trait_impls": {
         "176242272120702728271037506779036200862": {}
+      },
+      "instances": []
+    },
+    "268008568914994250938037473162126313974": {
+      "tag": {
+        "name": "ImplStepMathDivide",
+        "id": 268008568914994250938037473162126313974
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "162539097478132961114630004621415196364": {
+          "tag": {
+            "name": "ArgumentTwo",
+            "id": 162539097478132961114630004621415196364
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "180855362468240798967189854281584926152": {
+          "tag": {
+            "name": "OutputInt",
+            "id": 180855362468240798967189854281584926152
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "237226143072322947925271793132018747498": {
+          "tag": {
+            "name": "ArgumentOne",
+            "id": 237226143072322947925271793132018747498
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        }
+      },
+      "trait_impls": {
+        "6112419245734111135111571810901799735": {}
       },
       "instances": []
     },
@@ -1981,7 +2352,48 @@
         "id": 285139448794073396280341893107920894530
       },
       "field_constraints": {},
-      "operative_slots": {},
+      "operative_slots": {
+        "157633107413561851651349532304360165389": {
+          "tag": {
+            "name": "OutputCollection",
+            "id": 157633107413561851651349532304360165389
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "169363104263931625360870841700839574805": {
+          "tag": {
+            "name": "IterationStartItem",
+            "id": 169363104263931625360870841700839574805
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "178456029073578105175683682069193801548": {
+          "tag": {
+            "name": "IterationEndItem",
+            "id": 178456029073578105175683682069193801548
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "312966283061301047874467807721778056650": {
+          "tag": {
+            "name": "InputCollection",
+            "id": 312966283061301047874467807721778056650
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {},
       "instances": []
     },
@@ -1994,7 +2406,7 @@
       "operative_slots": {
         "67136573375839599953133261966706855972": {
           "tag": {
-            "name": "Output",
+            "name": "OutputBool",
             "id": 67136573375839599953133261966706855972
           },
           "operative_descriptor": {
@@ -2209,25 +2621,19 @@
       },
       "field_constraints": {},
       "operative_slots": {
-        "138111894918553260489960405826888238228": {
+        "136987457806591331256104681490830411064": {
           "tag": {
-            "name": "Slot",
-            "id": 138111894918553260489960405826888238228
+            "name": "SlotName",
+            "id": 136987457806591331256104681490830411064
           },
           "operative_descriptor": {
-            "TraitOperative": {
-              "trait_ids": [50371681687015139319465558632877885485],
-              "tag": {
-                "name": "Slot",
-                "id": 223203271410664644968694409895186951529
-              }
-            }
+            "LibraryOperative": 125161999025549239112329875205728146845
           },
           "bounds": "Single"
         },
         "175400449013983838125240768470399402660": {
           "tag": {
-            "name": "Output",
+            "name": "OutputOperatives",
             "id": 175400449013983838125240768470399402660
           },
           "operative_descriptor": {
@@ -2237,7 +2643,7 @@
         },
         "182084822478216311334291907347402804789": {
           "tag": {
-            "name": "Input",
+            "name": "InputOperative",
             "id": 182084822478216311334291907347402804789
           },
           "operative_descriptor": {
@@ -2376,9 +2782,21 @@
       "trait_impls": {},
       "_phantom": null
     },
+    "36496164846155595190036662962162592536": {
+      "tag": {
+        "name": "ImplStepMathDivide",
+        "id": 36496164846155595190036662962162592536
+      },
+      "template_id": 268008568914994250938037473162126313974,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
     "41274282572056306721329244479438654722": {
       "tag": {
-        "name": "ImplStepBitNor",
+        "name": "ImplStepBitNot",
         "id": 41274282572056306721329244479438654722
       },
       "template_id": 181184856386734963911046756969790888,
@@ -2460,6 +2878,18 @@
       "trait_impls": {},
       "_phantom": null
     },
+    "61836450755446411565968123523893021798": {
+      "tag": {
+        "name": "ImplStepMathAdd",
+        "id": 61836450755446411565968123523893021798
+      },
+      "template_id": 234435922614165130163802788359056409974,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
     "63261412784180420665318253438834019987": {
       "tag": {
         "name": "InstanceConcrete",
@@ -2484,6 +2914,18 @@
       "trait_impls": {},
       "_phantom": null
     },
+    "68947963553600749557421005779895899707": {
+      "tag": {
+        "name": "ImplStepMathModulus",
+        "id": 68947963553600749557421005779895899707
+      },
+      "template_id": 37072954780812645749708176125508313536,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
     "72681563745065620641973982595340691579": {
       "tag": {
         "name": "FunctionOutput",
@@ -2502,6 +2944,18 @@
         "id": 76011421100694112235016504385237272241
       },
       "template_id": 171379872473052449400124525703024014911,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "85104065960026845727961404940901355152": {
+      "tag": {
+        "name": "ImplStepMathSubtract",
+        "id": 85104065960026845727961404940901355152
+      },
+      "template_id": 252805649128109325588682733917924421529,
       "parent_operative_id": null,
       "slotted_instances": {},
       "locked_fields": {},
@@ -3036,6 +3490,18 @@
       "trait_impls": {},
       "_phantom": null
     },
+    "307357520444772050271459876819389931050": {
+      "tag": {
+        "name": "ImplStepMathMultiply",
+        "id": 307357520444772050271459876819389931050
+      },
+      "template_id": 258515458800350916604654480594146284414,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
     "329191953495774182891995497083245011025": {
       "tag": {
         "name": "TemplateSlotCardinalitySingle",
@@ -3168,7 +3634,7 @@
     },
     "248363541964975793281693277478390330819": {
       "tag": {
-        "name": "FieldVariant",
+        "name": "TemplateFieldVariant",
         "id": 248363541964975793281693277478390330819
       },
       "methods": {}

@@ -471,3 +471,47 @@ As nice as it would be to have the current idea of Templates, Operatives, Instan
 Hypothesis: Schemas ought to be able to be based on one another or reference one another.
 Perhaps the priority at the moment is figuring out how to interpret the *output* of a managed graph environment as a schema for another environment.
 In other words, if I have a graph environment which exposes the primitives for schema-building (i.e. templates, operatives, traits), and I create a new schema in that environment (e.g. for rich text editing), how do I use the artifact from the original environment as the basis/schema for building the second environment?
+
+## January 23, 2025
+In the process of trying to build out a basic execution-graph model for the purpose of :
+1. allowing operatives to have "methods" which traverse their inner graph structure and return some value.
+2. allowing those methods to accumulate mutations to the graph to be performed in one atomic mutation after the execution graph has completed.
+
+This is proving somewhat complex for me, as expected, and I'm learning much as I go. In order to have adequate expressiveness to express some target functionalities, it ends up looking a lot like a very basic programming language in which you write directly to a sort of Abstract Syntax Tree (AST) graph.
+This has some interesting implications, and it will be both challenging and hopefully enlightening to flesh it out more.
+For example, a target functionality that is being used as a guide: a method like `GetLastWordInSentence` on a Sentence operative, where a Sentence has potentially unlimited elements which are either words or punctuations, and each element has a `Next` slot which has zero or one elements.
+
+There have been some choices made for convenience which hopefully can ultimately be remedied or improved upon in future iterations of the system.
+As it is, the primitives being used to describe the AST (and other new features) are not very expressive. The next iteration should have things such as slot specialization and (hopefully) the basic ability to reference and find constituent parts within its structure.
+For now, I've opted to settle for an untyped interface to the execution graph, where type-erased "ImplData" nodes represent the data flowing through the execution, and the execution-creator is responsible for ensuring that the correct types of data are being used.
+
+Starting with just a pretty bare set of "steps" (which act as data-transformers):
+- Bool operations (and, or, not)
+- Int comparison operations (equals, less than, greater than)
+- If
+- MultiTypeSplitter (like a match statement for MultiOperatives)
+- Traverse Slot (step into an operative's slot which could yield some range (0, 1, or more) of one of the following: SingleOperative, MultiOperative, TraitOperative)
+- IteratorMap (take a collection of things and return a collection of a different type based on a user-provided closure)
+- IteratorFilter (take a collection of things and filter out ones which return false in a user-provided closure)
+- While Loop
+- Mutate Field
+- Mutate Slot
+
+For the sake of documentation, it might be a good idea to write down the idea behind the current structure of the `If` step (even if it might be embarrassingly complex at some future date). It is the most complex Step right now.
+The `If` construct has the following slots:
+- Condition: connects normally to the execution-graph-at-large, must be a bool.
+- TrueCaptures and FalseCaptures: Specifies data from the wider graph which will be needed inside of the True and False branches. Can be thought of as capturing data from the graph at large like a closure and marking them to be placed at the start of their respective branch inside the `If`'s TrueBranches and FalseBranches.
+- TrueBranches and FalseBranches: The starting points of the true and false branch. There will be one branch per capture. All TrueBranches and FalseBranches must eventually converge (see Convergence slot).
+- Convergence: Some data type which both the true and false branch must eventually converge to, thus specifying the return value from each branch. The idea is to hide the "magic" required to choose the branch and let the output node behave more standardly.
+- Output: How the rest of the graph interacts with the final output of the `If` construct -- operates the same as outputs from any other Step.
+
+Soundness Invariant: The user is required to ensure that scoping is adhered to; multiple `If`s cannot mingle their branches or use each others' convergence nodes.
+On a related note: Been exploring ideas regarding the "conditionality" at conditional split points (`if` and `MultiTypeSplitter`). Common convention is to force convergence of all branches into single type and node, which is what this version will do. Interested in future versions in exploring the possibility of maintaining the conditionality state and allowing branches to interact outside of their conditionality scope.
+It could open some interesting possibilities with regards to explicitly handling possibility-spaces as first-class concepts rather than using things like mutable external variables to keep track of information regarding which execution paths ended up running.
+
+Conceptually, the aim is to facilitate a kind of lazy evaluation or "polling" mechanism, where, starting from the output of a function, the data nodes are followed upstream, computing things as necessary.
+This is still in the schema-design phase, though, and the implementation of the code generation is as-of-now not started, and that is where these polling ideas will come in. Trying not to block the possibility of this in the schema phase, though.
+
+One concern right now is the interface for *building* these execution graphs (or in other words, for defining a method). The graph-like nature of the control-flows seems to call for some kind of more free-form graph visualization for constructing them.
+And even if such an interface is developed, still it's going to be cumbersome and verbose to define methods with much complexity, though hopefully there will be a class of useful and straightforward methods which are enabled.
+The hope is that this first version will facilitate more ergonomic and helpful versions in the future.

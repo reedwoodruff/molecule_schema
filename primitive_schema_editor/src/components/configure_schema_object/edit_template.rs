@@ -364,7 +364,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
     };
 
     view! {
-        <div class="large-margin med-pad border-gray flex">
+        <div class="flex large-margin med-pad border-gray">
             <div class="flex-grow margin-right border-right">
                 <button on:click=move |_| ctx.selected_element.set(None)>X</button>
                 <button on:click=move |_| {
@@ -473,8 +473,10 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                         Slot name: <TextInput value=op_slot.1.tag.name />
                         <button on:click=delete_operative_slot(op_slot.0)>Delete Slot</button>
                         <br />Operative name:
-                        {match op_slot.1.operative_descriptor {
-                            ROperativeVariants::TraitOperative(trait_op) => trait_op.tag.name.get(),
+                        {match &op_slot.1.operative_descriptor {
+                            ROperativeVariants::TraitOperative(trait_op) => {
+                                format!("{} (Trait-Operative)", trait_op.tag.name.get())
+                            }
                             ROperativeVariants::LibraryOperative(op_id) => {
                                 ctx.schema
                                     .operative_library
@@ -485,6 +487,33 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                     .name
                                     .get()
                             }
+                        }}
+                        {match &op_slot.1.operative_descriptor {
+                            ROperativeVariants::TraitOperative(trait_op) => {
+                                let trait_names = trait_op
+                                    .trait_ids
+                                    .get()
+                                    .iter()
+                                    .map(|trait_id| {
+                                        ctx.schema
+                                            .traits
+                                            .get()
+                                            .get(trait_id)
+                                            .unwrap()
+                                            .tag
+                                            .name
+                                            .get()
+                                    })
+                                    .collect::<Vec<_>>()
+                                    .join(", ");
+                                view! {
+                                    <br />
+                                    "Required Traits: "
+                                    {trait_names}
+                                }
+                                    .into_any()
+                            }
+                            ROperativeVariants::LibraryOperative(op_id) => view! {}.into_any(),
                         }} <br />Slot Range: <br /> <SelectInputEnum value=op_slot.1.bounds />
                         <br />
                         {move || match op_slot.1.bounds.get() {
