@@ -257,3 +257,32 @@ pub enum ExecValPrimitives {
 //         }
 //     }
 // }
+
+fn map_fninput_to_impldata(
+    input: FunctionInputVariantTraitObjectDiscriminants,
+) -> Option<ImplDataVariantTraitObjectDiscriminants> {
+    match input {
+        FunctionInputVariantTraitObjectDiscriminants::ImplDataMultiOperative => {
+            Some(ImplDataVariantTraitObjectDiscriminants::ImplDataMultiOperative)
+        }
+        FunctionInputVariantTraitObjectDiscriminants::FunctionIOSelf => None,
+        FunctionInputVariantTraitObjectDiscriminants::ImplDataBool => {
+            Some(ImplDataVariantTraitObjectDiscriminants::ImplDataBool)
+        }
+        FunctionInputVariantTraitObjectDiscriminants::ImplDataInt => {
+            Some(ImplDataVariantTraitObjectDiscriminants::ImplDataInt)
+        }
+        FunctionInputVariantTraitObjectDiscriminants::ImplDataString => {
+            Some(ImplDataVariantTraitObjectDiscriminants::ImplDataString)
+        }
+        FunctionInputVariantTraitObjectDiscriminants::ImplDataCollection => {
+            Some(ImplDataVariantTraitObjectDiscriminants::ImplDataCollection)
+        }
+        FunctionInputVariantTraitObjectDiscriminants::ImplDataSingleOperative => {
+            Some(ImplDataVariantTraitObjectDiscriminants::ImplDataSingleOperative)
+        }
+        FunctionInputVariantTraitObjectDiscriminants::ImplDataTraitOperative => {
+            Some(ImplDataVariantTraitObjectDiscriminants::ImplDataTraitOperative)
+        }
+    }
+}
