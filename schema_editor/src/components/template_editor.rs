@@ -170,24 +170,24 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     let ctx_clone = ctx.clone();
     let template_clone = template.clone();
     // let template_field_view = move |field: RGSOConcrete<TemplateField, Schema>| {
-    let template_field_view = move |field: GetNameFieldVariantTraitObject| {
+    let template_field_view = move |field: GetNameTemplateFieldVariantTraitObject| {
         let ctx_clone = ctx_clone.clone();
         let ctx_clone_2 = ctx_clone.clone();
         let field_clone = field.clone();
         let field_clone_inner = field_clone.clone();
         let name_setter = move |new_val: String| {
             match field_clone_inner.clone() {
-                GetNameFieldVariantTraitObject::StringTemplateField(field) => field
+                GetNameTemplateFieldVariantTraitObject::StringTemplateField(field) => field
                     .edit(ctx_clone_2.clone())
                     .set_name(new_val)
                     .execute()
                     .unwrap(),
-                GetNameFieldVariantTraitObject::BoolTemplateField(field) => field
+                GetNameTemplateFieldVariantTraitObject::BoolTemplateField(field) => field
                     .edit(ctx_clone_2.clone())
                     .set_name(new_val)
                     .execute()
                     .unwrap(),
-                GetNameFieldVariantTraitObject::IntTemplateField(field) => field
+                GetNameTemplateFieldVariantTraitObject::IntTemplateField(field) => field
                     .edit(ctx_clone_2.clone())
                     .set_name(new_val)
                     .execute()
@@ -195,19 +195,20 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
             };
         };
         let field_clone_inner = field_clone.clone();
-        let extraneous_value_type_signal =
-            RwSignal::<GetNameFieldVariantTraitObjectDiscriminants>::new(field.clone().into());
+        let extraneous_value_type_signal = RwSignal::<
+            GetNameTemplateFieldVariantTraitObjectDiscriminants,
+        >::new(field.clone().into());
         let ctx_clone_2 = ctx_clone.clone();
         let template_clone = template_clone.clone();
         let on_change_field = Callback::new(
-            move |new_value: GetNameFieldVariantTraitObjectDiscriminants| {
+            move |new_value: GetNameTemplateFieldVariantTraitObjectDiscriminants| {
                 let field_clone_inner = field_clone_inner.clone();
                 match field_clone_inner {
-                    GetNameFieldVariantTraitObject::StringTemplateField(item) => {
+                    GetNameTemplateFieldVariantTraitObject::StringTemplateField(item) => {
                         let mut edit = item.edit(ctx_clone_2.clone());
                         edit.delete();
                         match new_value {
-                            GetNameFieldVariantTraitObjectDiscriminants::StringTemplateField => {
+                            GetNameTemplateFieldVariantTraitObjectDiscriminants::StringTemplateField => {
                                 edit.incorporate(
                                     template_clone
                                         .edit(ctx_clone_2.clone())
@@ -216,7 +217,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                                         }),
                                 )
                             }
-                            GetNameFieldVariantTraitObjectDiscriminants::BoolTemplateField => edit
+                            GetNameTemplateFieldVariantTraitObjectDiscriminants::BoolTemplateField => edit
                                 .incorporate(
                                     template_clone
                                         .edit(ctx_clone_2.clone())
@@ -224,7 +225,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                                             new_field.set_name(item.get_name())
                                         }),
                                 ),
-                            GetNameFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
+                            GetNameTemplateFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
                                 .incorporate(
                                     template_clone
                                         .edit(ctx_clone_2.clone())
@@ -235,11 +236,11 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                         };
                         edit.execute().unwrap();
                     }
-                    GetNameFieldVariantTraitObject::BoolTemplateField(item) => {
+                    GetNameTemplateFieldVariantTraitObject::BoolTemplateField(item) => {
                         let mut edit = item.edit(ctx_clone_2.clone());
                         edit.delete();
                         match new_value {
-                            GetNameFieldVariantTraitObjectDiscriminants::StringTemplateField => {
+                            GetNameTemplateFieldVariantTraitObjectDiscriminants::StringTemplateField => {
                                 edit.incorporate(
                                     template_clone
                                         .edit(ctx_clone_2.clone())
@@ -248,7 +249,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                                         }),
                                 )
                             }
-                            GetNameFieldVariantTraitObjectDiscriminants::BoolTemplateField => edit
+                            GetNameTemplateFieldVariantTraitObjectDiscriminants::BoolTemplateField => edit
                                 .incorporate(
                                     template_clone
                                         .edit(ctx_clone_2.clone())
@@ -256,7 +257,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                                             new_field.set_name(item.get_name())
                                         }),
                                 ),
-                            GetNameFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
+                            GetNameTemplateFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
                                 .incorporate(
                                     template_clone
                                         .edit(ctx_clone_2.clone())
@@ -267,11 +268,11 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                         };
                         edit.execute().unwrap();
                     }
-                    GetNameFieldVariantTraitObject::IntTemplateField(item) => {
+                    GetNameTemplateFieldVariantTraitObject::IntTemplateField(item) => {
                         let mut edit = item.edit(ctx_clone_2.clone());
                         edit.delete();
                         match new_value {
-                            GetNameFieldVariantTraitObjectDiscriminants::StringTemplateField => {
+                            GetNameTemplateFieldVariantTraitObjectDiscriminants::StringTemplateField => {
                                 edit.incorporate(
                                     template_clone
                                         .edit(ctx_clone_2.clone())
@@ -280,7 +281,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                                         }),
                                 )
                             }
-                            GetNameFieldVariantTraitObjectDiscriminants::BoolTemplateField => edit
+                            GetNameTemplateFieldVariantTraitObjectDiscriminants::BoolTemplateField => edit
                                 .incorporate(
                                     template_clone
                                         .edit(ctx_clone_2.clone())
@@ -288,7 +289,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                                             new_field.set_name(item.get_name())
                                         }),
                                 ),
-                            GetNameFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
+                            GetNameTemplateFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
                                 .incorporate(
                                     template_clone
                                         .edit(ctx_clone_2.clone())
@@ -305,13 +306,13 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
 
         let field_clone_inner = field.clone();
         let delete_field = move |_| match field_clone_inner.clone() {
-            GetNameFieldVariantTraitObject::StringTemplateField(inner) => {
+            GetNameTemplateFieldVariantTraitObject::StringTemplateField(inner) => {
                 inner.edit(ctx_clone.clone()).delete().execute().unwrap();
             }
-            GetNameFieldVariantTraitObject::BoolTemplateField(inner) => {
+            GetNameTemplateFieldVariantTraitObject::BoolTemplateField(inner) => {
                 inner.edit(ctx_clone.clone()).delete().execute().unwrap();
             }
-            GetNameFieldVariantTraitObject::IntTemplateField(inner) => {
+            GetNameTemplateFieldVariantTraitObject::IntTemplateField(inner) => {
                 inner.edit(ctx_clone.clone()).delete().execute().unwrap();
             }
         };

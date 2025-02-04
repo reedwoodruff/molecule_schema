@@ -9,7 +9,7 @@ pub enum ExecutionSteps {
         output: (),
     },
     GetField {
-        field_to_get: FieldVariantTraitObject,
+        field_to_get: GetNameTemplateFieldVariantTraitObject,
     },
     TraverseSlot {
         slot_to_traverse: SlotDescriptionTraitObject,
@@ -20,7 +20,7 @@ pub enum ExecutionSteps {
         remove_from_slot: Vec<RemoveFromSlotMutationDescriptor>,
     },
     MutateField {
-        template_field: FieldVariantTraitObject,
+        template_field: GetNameTemplateFieldVariantTraitObject,
         new_value: ExecValPrimitives,
     },
     IteratorFilter {

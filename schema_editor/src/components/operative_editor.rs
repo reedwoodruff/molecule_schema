@@ -159,14 +159,15 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
 
     let operative_clone = operative.clone();
     let ctx_clone = ctx.clone();
-    let non_locked_field_view = move |field: GetNameFieldVariantTraitObject| {
+    let non_locked_field_view = move |field: GetNameTemplateFieldVariantTraitObject| {
         let field_clone = field.clone();
-        let string_of_thing: GetNameFieldVariantTraitObjectDiscriminants = field.clone().into();
+        let string_of_thing: GetNameTemplateFieldVariantTraitObjectDiscriminants =
+            field.clone().into();
         let operative_clone = operative_clone.clone();
         let ctx_clone = ctx_clone.clone();
         let on_click_lock = move |_| {
             match field_clone {
-                GetNameFieldVariantTraitObject::StringTemplateField(_) => {
+                GetNameTemplateFieldVariantTraitObject::StringTemplateField(_) => {
                     let mut editor = operative_clone.edit(ctx_clone.clone());
                     editor.add_new_lockedfields::<StringFulfilledField, _>(|locked_field| {
                         locked_field
@@ -182,7 +183,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                     );
                     editor.execute().unwrap();
                 }
-                GetNameFieldVariantTraitObject::BoolTemplateField(_) => {
+                GetNameTemplateFieldVariantTraitObject::BoolTemplateField(_) => {
                     let mut editor = operative_clone.edit(ctx_clone.clone());
                     editor.add_new_lockedfields::<BoolFulfilledField, _>(|locked_field| {
                         locked_field
@@ -198,7 +199,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
                     );
                     editor.execute().unwrap();
                 }
-                GetNameFieldVariantTraitObject::IntTemplateField(_) => {
+                GetNameTemplateFieldVariantTraitObject::IntTemplateField(_) => {
                     let mut editor = operative_clone.edit(ctx_clone.clone());
                     editor.add_new_lockedfields::<IntFulfilledField, _>(|locked_field| {
                         locked_field
@@ -224,15 +225,17 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
             </LeafSection>
         }
     };
-    let non_locked_but_dependent_field_view = move |field: GetNameFieldVariantTraitObject| {
-        let string_of_thing: GetNameFieldVariantTraitObjectDiscriminants = field.clone().into();
-        view! {
-            <LeafSection>
-                <LeafSectionHeader>{move || field.get_name()}</LeafSectionHeader>
-                {string_of_thing.to_string()}
-            </LeafSection>
-        }
-    };
+    let non_locked_but_dependent_field_view =
+        move |field: GetNameTemplateFieldVariantTraitObject| {
+            let string_of_thing: GetNameTemplateFieldVariantTraitObjectDiscriminants =
+                field.clone().into();
+            view! {
+                <LeafSection>
+                    <LeafSectionHeader>{move || field.get_name()}</LeafSectionHeader>
+                    {string_of_thing.to_string()}
+                </LeafSection>
+            }
+        };
 
     let operative_clone = operative.clone();
     let locked_fields: Memo<(Vec<_>, Vec<_>)> = Memo::new(move |_| {
