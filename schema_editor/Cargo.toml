@@ -31,6 +31,8 @@ strum_macros = "0.26.1"
 # base_types = { path = "../base_types", features = ["serde"] }
 # serde = { version = "1", features = ["derive"] }
 # serde_json = "1"
+# graph_canvas = { git = "https://github.com/reedwoodruff/graph_canvas" }
+graph_canvas = {path = "../../graph_canvas"}
 
 
 [build-dependencies]

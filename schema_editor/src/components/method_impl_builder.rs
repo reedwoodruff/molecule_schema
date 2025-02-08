@@ -46,7 +46,8 @@ pub fn MethodImplementationBuilder(
     if let Some(initial_state) = initial_state {
         func_impl_name.set(initial_state.get_name());
     } else {
-        todo!()
+        func_impl_name.set("testing here".to_string());
+        // todo!()
         // let initial_steps = fn_def_clone
         //     .get_inputs_slot()
         //     .into_iter()

@@ -141,3 +141,14 @@
 }
 .single-exec-val {
 }
+
+.graph_canvas_holder {
+    border: 1px solid black;
+}
+.graph_canvas_holder.popout {
+    position: absolute;
+    height: 96%;
+    width: 96%;
+    top: 2%;
+    left: 2%;
+}

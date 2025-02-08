@@ -3,6 +3,7 @@ pub mod common;
 pub mod control_panel;
 pub mod editing_space;
 pub mod function_definition_editor;
+pub mod graph_editor;
 pub mod instance_editor;
 pub mod main_list;
 pub mod method_impl_builder;

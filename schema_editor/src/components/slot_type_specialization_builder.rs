@@ -76,6 +76,8 @@ pub fn SlotTypeSpecializationBuilder(
     });
 
     let selected_single_op = RwSignal::<Option<RGSOConcrete<OperativeConcrete, Schema>>>::new(None);
+    let selected_single_out_of_list_of_ops =
+        RwSignal::<Option<RGSOConcrete<OperativeConcrete, Schema>>>::new(None);
     let selected_list_of_ops = RwSignal::new(vec![]);
     let selected_single_trait = RwSignal::<Option<RGSOConcrete<TraitConcrete, Schema>>>::new(None);
     let selected_list_of_traits = RwSignal::new(vec![]);
@@ -169,14 +171,16 @@ pub fn SlotTypeSpecializationBuilder(
                 />
                 <div>
                     <SignalSelectRGSOWithOptions
-                        value=selected_single_op
+                        value=selected_single_out_of_list_of_ops
                         options=selectable_options
                         empty_allowed=true
                     />
                     <Button
-                        attr:disabled=move || selected_single_op.get().is_none()
+                        attr:disabled=move || selected_single_out_of_list_of_ops.get().is_none()
                         on:click=move |_| {
-                            if let Some(selected_single_op) = selected_single_op.get() {
+                            if let Some(selected_single_op) = selected_single_out_of_list_of_ops
+                                .get()
+                            {
                                 selected_list_of_ops.update(|prev| prev.push(selected_single_op));
                             }
                         }
@@ -201,8 +205,9 @@ pub fn SlotTypeSpecializationBuilder(
                                 <Button on:click=move |_| {
                                     selected_list_of_traits
                                         .update(|prev| {
-                                            prev
-                                                .retain(|item| item.get_id() != trait_item_clone.get_id())
+                                            prev.retain(|item| {
+                                                item.get_id() != trait_item_clone.get_id()
+                                            })
                                         })
                                 }>X</Button>
                             </LeafSection>

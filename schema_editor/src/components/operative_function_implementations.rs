@@ -1,4 +1,7 @@
-use crate::components::{common::*, method_impl_builder::MethodImplementationBuilder};
+use crate::components::{
+    common::*, graph_editor::GraphEditor, method_impl_builder::MethodImplementationBuilder,
+};
+use graph_canvas::{GraphCanvasConfig, NodeTemplate};
 use schema_editor_generated_toolkit::prelude::*;
 
 use super::workspace::WorkspaceState;
@@ -33,6 +36,13 @@ pub fn OperativeMethodImplementations(
     let operative_clone = operative.clone();
     let operative_clone_2 = operative.clone();
     let ctx_clone = ctx.clone();
+
+    let canvas_config = GraphCanvasConfig {
+        node_templates: vec![NodeTemplate {
+            ..NodeTemplate::new("test")
+        }],
+        ..GraphCanvasConfig::new()
+    };
     view! {
         <SubSection>
             <SubSectionHeader>Add New Implementation</SubSectionHeader>
@@ -55,19 +65,28 @@ pub fn OperativeMethodImplementations(
                     empty_allowed=true
                 />
             </Show>
-            <Show when=move || is_adding_impl.get()>
-                <MethodImplementationBuilder
-                    fn_def=selected_fn_def.get().unwrap()
-                    operative=operative_clone_2.clone()
-                    on_save=on_save_new_fn_impl
-                    on_cancel=Callback::new(move |na: ()| { is_adding_impl.set(false) })
-                />
+            <Show when=move || {
+                is_adding_impl.get()
+            }>
+                {
+                    let canvas_config = canvas_config.clone();
+                    view! {
+                        <MethodImplementationBuilder
+                            fn_def=selected_fn_def.get().unwrap()
+                            operative=operative_clone_2.clone()
+                            on_save=on_save_new_fn_impl
+                            on_cancel=Callback::new(move |na: ()| { is_adding_impl.set(false) })
+                        />
+                        <GraphEditor config=canvas_config />
+                    }
+                }
             </Show>
         </SubSection>
 
         <SubSection>
             <SubSectionHeader>Current Implementations</SubSectionHeader>
             <For
+
                 each=move || operative_clone.get_functionimpls_slot()
                 key=|item| item.get_id().clone()
                 children=move |func_impl| {
