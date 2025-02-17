@@ -1,8 +1,13 @@
+use std::str::FromStr;
+
 use crate::components::{
     common::*, graph_editor::GraphEditor, method_impl_builder::MethodImplementationBuilder,
+    utils::constraint_to_canvas_template,
 };
 use graph_canvas::{GraphCanvasConfig, NodeTemplate};
 use schema_editor_generated_toolkit::prelude::*;
+use strum::EnumProperty;
+use strum::IntoEnumIterator;
 
 use super::workspace::WorkspaceState;
 #[component]
@@ -37,11 +42,23 @@ pub fn OperativeMethodImplementations(
     let operative_clone_2 = operative.clone();
     let ctx_clone = ctx.clone();
 
-    let canvas_config = GraphCanvasConfig {
-        node_templates: vec![NodeTemplate {
-            ..NodeTemplate::new("test")
-        }],
-        ..GraphCanvasConfig::new()
+    let canvas_config = {
+        // CONSTRAINT_SCHEMA.;
+
+        let step_templates = ImplStepVariantTraitObjectDiscriminants::iter()
+            .map(|step| {
+                // let int_uid: u128 = uuid::Uuid::from_str(step.get_str("template_id").unwrap())
+                //     .unwrap()
+                //     .as_u128();
+                let int_uid: u128 = u128::from_str(step.get_str("template_id").unwrap()).unwrap();
+                let template = CONSTRAINT_SCHEMA.template_library.get(&int_uid).unwrap();
+                constraint_to_canvas_template(template)
+            })
+            .collect();
+        GraphCanvasConfig {
+            node_templates: step_templates,
+            ..GraphCanvasConfig::new()
+        }
     };
     view! {
         <SubSection>

@@ -125,3 +125,29 @@ pub enum TraitMethodImplPath {
     TraitMethod { trait_id: Uid, trait_method_id: Uid },
     Constituent(Uid),
 }
+
+impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchema<TTypes, TValues> {
+    pub fn get_all_operatives_which_impl_trait(
+        &self,
+        trait_in_question: &Uid,
+    ) -> Vec<LibraryOperative<TTypes, TValues>> {
+        self.operative_library
+            .values()
+            .filter_map(|op| {
+                if op.trait_impls.contains_key(trait_in_question)
+                    || self
+                        .template_library
+                        .get(&op.template_id)
+                        .unwrap()
+                        .trait_impls
+                        .contains_key(trait_in_question)
+                {
+                    Some(op)
+                } else {
+                    None
+                }
+            })
+            .cloned()
+            .collect()
+    }
+}

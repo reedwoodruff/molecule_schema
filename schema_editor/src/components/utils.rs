@@ -1,5 +1,6 @@
 use std::collections::{BTreeSet, HashSet};
 
+use graph_canvas::prelude::*;
 use schema_editor_generated_toolkit::prelude::*;
 
 use super::slot_cardinality_specialization_builder::CardinalityInfo;
@@ -385,3 +386,77 @@ pub fn restructure_slot_specialization_to_delete_input(
         }
     });
 }
+
+pub(crate) fn constraint_to_canvas_template(
+    template: &base_types::constraint_schema::LibraryTemplate<
+        base_types::primitives::PrimitiveTypes,
+        base_types::primitives::PrimitiveValues,
+    >,
+) -> NodeTemplate {
+    let template_string_id = uuid::Uuid::from_u128(template.tag.id).to_string();
+    let slot_templates = template
+        .operative_slots
+        .values()
+        .map(|slot| {
+            let slot_string_id = uuid::Uuid::from_u128(slot.tag.id).to_string();
+            let allowed_connections = match &slot.operative_descriptor {
+                base_types::constraint_schema::OperativeVariants::LibraryOperative(op) => {
+                    vec![CONSTRAINT_SCHEMA
+                        .operative_library
+                        .get(&op)
+                        .unwrap()
+                        .tag
+                        .name
+                        .clone()]
+                }
+                base_types::constraint_schema::OperativeVariants::TraitOperative(
+                    trait_operative,
+                ) => CONSTRAINT_SCHEMA
+                    .get_all_operatives_which_impl_trait(&trait_operative.tag.id)
+                    .iter()
+                    .map(|op| op.tag.name.clone())
+                    .collect::<Vec<_>>(),
+            };
+            SlotTemplate {
+                id: slot_string_id,
+                name: slot.tag.name.clone(),
+                position: SlotPosition::Right,
+                slot_type: SlotType::Outgoing,
+                allowed_connections,
+                min_connections: match slot.bounds {
+                    base_types::constraint_schema::SlotBounds::Single => 1,
+                    base_types::constraint_schema::SlotBounds::LowerBound(min) => min,
+                    base_types::constraint_schema::SlotBounds::UpperBound(_) => 0,
+                    base_types::constraint_schema::SlotBounds::Range(min, _) => min,
+                    base_types::constraint_schema::SlotBounds::LowerBoundOrZero(_) => 0,
+                    base_types::constraint_schema::SlotBounds::RangeOrZero(_, _) => 0,
+                },
+                max_connections: match slot.bounds {
+                    base_types::constraint_schema::SlotBounds::Single => Some(1),
+                    base_types::constraint_schema::SlotBounds::LowerBound(_) => None,
+                    base_types::constraint_schema::SlotBounds::UpperBound(max) => Some(max),
+                    base_types::constraint_schema::SlotBounds::Range(_, max) => Some(max),
+                    base_types::constraint_schema::SlotBounds::LowerBoundOrZero(_) => None,
+                    base_types::constraint_schema::SlotBounds::RangeOrZero(_, max) => Some(max),
+                },
+            }
+        })
+        .collect();
+    NodeTemplate {
+        template_id: template_string_id,
+        name: template.tag.name.clone(),
+        slot_templates,
+        ..NodeTemplate::new(&template.tag.name) // max_instances: None,
+                                                // min_instances: None,
+                                                // can_delete: true,
+                                                // can_create: true,
+                                                // default_width: true,
+                                                // default_height: todo!(),
+    }
+}
+
+// fn get_allowed_step_connections(step: ImplStepVariantTraitObject) => Vec<ImplDataVariantTraitObject> {
+//     match step {
+
+//     }
+// }

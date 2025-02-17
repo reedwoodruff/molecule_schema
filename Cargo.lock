@@ -1784,6 +1784,7 @@ dependencies = [
 name = "schema_editor"
 version = "0.1.0"
 dependencies = [
+ "base_types",
  "console_error_panic_hook",
  "first_generation_compiler",
  "graph_canvas",
@@ -1793,6 +1794,7 @@ dependencies = [
  "serde_json",
  "strum",
  "strum_macros",
+ "uuid",
  "wasm-bindgen",
  "web-sys",
 ]

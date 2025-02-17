@@ -397,6 +397,9 @@ pub fn generate_concrete_schema_reactive(
             let fulfilling_ops_wrapped_names = fulfilling_ops
                 .iter()
                 .map(|op| get_operative_wrapped_name(&op.tag.name));
+            let fulfilling_ops_template_ids = fulfilling_ops
+                            .iter()
+                            .map(|op| op.template_id.to_string());
             let rgso_impl = impl_RGSO_for_enum(
                 enum_name.clone().into_token_stream(),
                 fulfilling_ops_names.clone(),
@@ -426,9 +429,12 @@ pub fn generate_concrete_schema_reactive(
 
             quote! {
                 #[derive(Debug, Clone, strum_macros::EnumDiscriminants, Eq, Hash)]
-                #[strum_discriminants(derive(strum_macros::EnumIter, strum_macros::Display, strum_macros::EnumString))]
+                #[strum_discriminants(derive(strum_macros::EnumIter, strum_macros::Display, strum_macros::EnumString, strum_macros::EnumProperty))]
                 pub enum #enum_name {
-                    #(#fulfilling_ops_names(#fulfilling_ops_wrapped_names),)*
+                    #(
+                        #[strum_discriminants(strum(props(template_id = #fulfilling_ops_template_ids)))]
+                        #fulfilling_ops_names(#fulfilling_ops_wrapped_names),
+                    )*
                 }
                 impl PartialEq for #enum_name {
                     fn eq(&self, other: &Self) -> bool {
