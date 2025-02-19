@@ -148,6 +148,30 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchema<TType
             .cloned()
             .collect()
     }
+    pub fn get_all_operatives_which_impl_trait_set(
+        &self,
+        traits_in_question: &Vec<Uid>,
+    ) -> Vec<LibraryOperative<TTypes, TValues>> {
+        self.operative_library
+            .values()
+            .filter_map(|op| {
+                if traits_in_question.iter().all(|trait_in_question| {
+                    op.trait_impls.contains_key(trait_in_question)
+                        || self
+                            .template_library
+                            .get(&op.template_id)
+                            .unwrap()
+                            .trait_impls
+                            .contains_key(trait_in_question)
+                }) {
+                    Some(op)
+                } else {
+                    None
+                }
+            })
+            .cloned()
+            .collect()
+    }
 
     pub fn get_operative_by_id(&self, id: &Uid) -> Option<LibraryOperative<TTypes, TValues>> {
         self.operative_library.get(id).cloned()

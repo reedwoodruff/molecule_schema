@@ -42,18 +42,45 @@ pub fn OperativeMethodImplementations(
     let canvas_config = {
         // CONSTRAINT_SCHEMA.;
 
+        let mut all_templates = vec![];
         let step_templates = ImplStepVariantTraitObjectDiscriminants::iter()
             .map(|step| {
-                // let int_uid: u128 = uuid::Uuid::from_str(step.get_str("template_id").unwrap())
-                //     .unwrap()
-                //     .as_u128();
                 let int_uid: u128 = u128::from_str(step.get_str("template_id").unwrap()).unwrap();
                 let template = CONSTRAINT_SCHEMA.template_library.get(&int_uid).unwrap();
                 constraint_to_canvas_template(template)
             })
-            .collect();
+            .collect::<Vec<_>>();
+        all_templates.extend(step_templates);
+        let impl_data_templates = ImplDataVariantTraitObjectDiscriminants::iter()
+            .map(|impl_data| {
+                let int_uid: u128 =
+                    u128::from_str(impl_data.get_str("template_id").unwrap()).unwrap();
+                let template = CONSTRAINT_SCHEMA.template_library.get(&int_uid).unwrap();
+                constraint_to_canvas_template(template)
+            })
+            .collect::<Vec<_>>();
+        all_templates.extend(impl_data_templates);
+
+        let function_io_constraint = CONSTRAINT_SCHEMA
+            .get_template_by_operative_id(&FunctionIOSelf::get_operative_id())
+            .unwrap();
+        all_templates.push(constraint_to_canvas_template(&function_io_constraint));
+        let function_input_constraint = CONSTRAINT_SCHEMA
+            .get_template_by_operative_id(&FunctionInput::get_operative_id())
+            .unwrap();
+        all_templates.push(constraint_to_canvas_template(&function_input_constraint));
+        let function_output_constraint = CONSTRAINT_SCHEMA
+            .get_template_by_operative_id(&FunctionOutput::get_operative_id())
+            .unwrap();
+        all_templates.push(constraint_to_canvas_template(&function_output_constraint));
+        let impl_data_constraint = CONSTRAINT_SCHEMA
+            .get_template_by_operative_id(&ImplData::get_operative_id())
+            .unwrap();
+        all_templates.push(constraint_to_canvas_template(&impl_data_constraint));
+        leptos::logging::log!("{:#?}", all_templates);
+
         GraphCanvasConfig {
-            node_templates: step_templates,
+            node_templates: all_templates,
             ..GraphCanvasConfig::new()
         }
     };

@@ -410,7 +410,7 @@ pub(crate) fn constraint_to_canvas_template(
                 base_types::constraint_schema::OperativeVariants::TraitOperative(
                     trait_operative,
                 ) => CONSTRAINT_SCHEMA
-                    .get_all_operatives_which_impl_trait(&trait_operative.tag.id)
+                    .get_all_operatives_which_impl_trait_set(&trait_operative.trait_ids)
                     .iter()
                     .map(|op| op.tag.name.clone())
                     .collect::<Vec<_>>(),
