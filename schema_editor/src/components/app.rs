@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::components::{common::Button, control_panel::ControlPanel, workspace::Workspace};
 use schema_editor_generated_toolkit::prelude::*;
 #[component]

@@ -1,3 +1,4 @@
+#![allow(warnings)]
 use std::fmt;
 
 use std::{any::Any, cell::RefCell, collections::HashMap, marker::PhantomData, rc::Rc};

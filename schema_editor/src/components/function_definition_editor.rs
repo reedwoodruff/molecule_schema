@@ -1,7 +1,6 @@
 use super::common::*;
-use leptos::either::{either, EitherOf13, EitherOf3, EitherOf6};
+use leptos::either::EitherOf6;
 use schema_editor_generated_toolkit::prelude::*;
-use web_sys::MouseEvent;
 
 use crate::components::workspace::{WorkspaceState, WorkspaceTab};
 
@@ -79,7 +78,6 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
         schema,
         selected_tab,
     } = use_context::<WorkspaceState>().unwrap();
-    let ctx_clone = ctx.clone();
 
     let is_adding_input = RwSignal::new(false);
     let is_self_input = RwSignal::new(false);
@@ -93,7 +91,6 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
         RwSignal::<Vec<RGSOConcrete<TraitConcrete, Schema>>>::new(vec![]);
     let input_collection_layers = RwSignal::<u32>::new(0);
     let ctx_clone = ctx.clone();
-    let fn_def_clone = fn_def.clone();
 
     let is_adding_output = RwSignal::new(false);
     let output_select_value = RwSignal::new(InputOutputOptions::ImplDataSingleOperative);
@@ -503,8 +500,6 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
         output_collection_layers.set(0);
         is_adding_output.set(false);
     };
-    let ctx_clone = ctx.clone();
-    let fn_def_clone = fn_def.clone();
     let fn_def_clone = fn_def.clone();
     let fn_def_clone_2 = fn_def.clone();
     let fn_def_clone_3 = fn_def.clone();
@@ -767,16 +762,16 @@ pub fn InputOutputDisplay(value: FunctionInputVariantTraitObject) -> impl IntoVi
                 .join(", ");
             view! { <div>{display_type.to_string()}": ["{operative_names}"]"</div> }.into_any()
         }
-        FunctionInputVariantTraitObject::FunctionIOSelf(rgsoconcrete) => {
+        FunctionInputVariantTraitObject::FunctionIOSelf(_) => {
             view! { <div>{display_type.to_string()}</div> }.into_any()
         }
-        FunctionInputVariantTraitObject::ImplDataBool(rgsoconcrete) => {
+        FunctionInputVariantTraitObject::ImplDataBool(_) => {
             view! { <div>{display_type.to_string()}</div> }.into_any()
         }
-        FunctionInputVariantTraitObject::ImplDataInt(rgsoconcrete) => {
+        FunctionInputVariantTraitObject::ImplDataInt(_) => {
             view! { <div>{display_type.to_string()}</div> }.into_any()
         }
-        FunctionInputVariantTraitObject::ImplDataString(rgsoconcrete) => {
+        FunctionInputVariantTraitObject::ImplDataString(_) => {
             view! { <div>{display_type.to_string()}</div> }.into_any()
         }
         FunctionInputVariantTraitObject::ImplDataCollection(rgsoconcrete) => {

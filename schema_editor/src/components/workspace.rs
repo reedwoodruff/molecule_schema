@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::components::{editing_space::EditingSpace, main_list::MainList};
 use leptos::{context::Provider, either::Either};
 use schema_editor_generated_toolkit::prelude::*;

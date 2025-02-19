@@ -7,10 +7,7 @@ use schema_editor_generated_toolkit::prelude::*;
 #[component]
 pub fn TraitEditor(trait_concrete: RGSOConcrete<TraitConcrete, Schema>) -> impl IntoView {
     let ctx = use_context::<SharedGraph<Schema>>().unwrap();
-    let WorkspaceState {
-        schema,
-        selected_tab,
-    } = use_context::<WorkspaceState>().unwrap();
+    let WorkspaceState { selected_tab, .. } = use_context::<WorkspaceState>().unwrap();
 
     let ctx_clone = ctx.clone();
     let trait_concrete_clone = trait_concrete.clone();

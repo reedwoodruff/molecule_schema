@@ -1,4 +1,4 @@
-use leptos::either::{either, EitherOf4, EitherOf6};
+use leptos::either::either;
 use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::common::Button;

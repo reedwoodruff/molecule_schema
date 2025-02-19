@@ -1,4 +1,4 @@
-use leptos::either::{Either, EitherOf3, EitherOf4};
+use leptos::either::{Either, EitherOf3};
 use schema_editor_generated_toolkit::prelude::*;
 
 #[component]
@@ -165,7 +165,7 @@ pub fn SlotTypeSpecializationLineage(
 ) -> impl IntoView {
     // let operative_clone = operative.clone();
     let specialization_clone = specialization.clone();
-    let trait_specialization_target_view =
+    let _trait_specialization_target_view =
         move |target: OperativeSlotTypeSpecializableTraitOperativeTraitObject| {
             match target {
             OperativeSlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTypeTraitOperative(_) => todo!(),
@@ -177,16 +177,16 @@ pub fn SlotTypeSpecializationLineage(
     let parent_view = move || match specialization_clone.clone() {
         OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(item) => {
             view! { <GeneralSpecializationTargetView target=item.get_upstreamtype_slot() /> }
-            .into_any()
+                .into_any()
         }
         OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(item) => {
             view! { <GeneralSpecializationTargetView target=item.get_upstreamtype_slot() /> }
-            .into_any()
+                .into_any()
         }
         OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(
             item,
         ) => view! { <TraitSpecializationTargetView target=item.get_upstreamtype_slot() /> }
-        .into_any(),
+            .into_any(),
     };
     let specialization_clone = specialization.clone();
     let origin_view = move || {

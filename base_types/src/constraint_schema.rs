@@ -1,5 +1,3 @@
-use strum::EnumDiscriminants;
-
 use crate::common::*;
 use std::{collections::BTreeMap, marker::PhantomData};
 
@@ -149,5 +147,19 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> ConstraintSchema<TType
             })
             .cloned()
             .collect()
+    }
+
+    pub fn get_operative_by_id(&self, id: &Uid) -> Option<LibraryOperative<TTypes, TValues>> {
+        self.operative_library.get(id).cloned()
+    }
+    pub fn get_template_by_id(&self, id: &Uid) -> Option<LibraryTemplate<TTypes, TValues>> {
+        self.template_library.get(id).cloned()
+    }
+    pub fn get_template_by_operative_id(
+        &self,
+        id: &Uid,
+    ) -> Option<LibraryTemplate<TTypes, TValues>> {
+        let template_id = self.get_operative_by_id(id)?.template_id;
+        self.template_library.get(&template_id).cloned()
     }
 }

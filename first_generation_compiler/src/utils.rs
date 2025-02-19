@@ -123,6 +123,7 @@ pub(crate) fn get_all_subclasses(
         .cloned()
         .collect()
 }
+#[allow(dead_code)]
 pub(crate) fn get_all_superclasses(
     constraint_schema: &ConstraintSchema<PrimitiveTypes, PrimitiveValues>,
     operative_id: &Uid,

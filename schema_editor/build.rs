@@ -1,5 +1,3 @@
-use std::{env, fs, path::Path, process::Command};
-
 use first_generation_compiler::generate_crate;
 // use generate_schema_reactive::inner_generate_crate;
 fn main() {

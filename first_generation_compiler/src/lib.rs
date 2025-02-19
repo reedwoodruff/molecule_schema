@@ -2,7 +2,6 @@
 Code generation crate which ingests a schema and outputs static types to be included in a project.
 */
 
-use base_types::post_generation::StandaloneRGSOConcrete;
 pub use to_composite_id_macro;
 
 use base_types::common::Uid;
@@ -13,7 +12,6 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
 use std::collections::HashMap;
-use std::path::Path;
 use utils::get_all_slots_enum_name;
 use utils::get_all_subclasses;
 use utils::get_operative_subclass_enum_name;
@@ -35,12 +33,14 @@ mod generate_operative_streams;
 mod generate_trait_impl_streams;
 mod utils;
 
+#[allow(dead_code)]
 struct FieldFnDetails {
     fn_name: TokenStream,
     fn_signature: TokenStream,
     field_return_type: TokenStream,
     field_return_type_enum_name: TokenStream,
 }
+#[allow(dead_code)]
 struct SlotFnDetails {
     fn_name: TokenStream,
     fn_signature: TokenStream,
@@ -63,7 +63,7 @@ struct MetaData {
     template_slots_trait_info: HashMap<Uid, IntermediateSlotTraitInfo>,
 }
 
-fn impl_RGSO_for_enum(enum_name: TokenStream, members: Vec<syn::Ident>) -> TokenStream {
+fn impl_rgso_for_enum(enum_name: TokenStream, members: Vec<syn::Ident>) -> TokenStream {
     quote! {
         impl RGSO for #enum_name {
             type Schema = Schema;
@@ -234,7 +234,6 @@ pub fn generate_concrete_schema_reactive(
                     .iter()
                     .map(|op| get_operative_variant_name(&op.tag.name))
                     .collect::<Vec<_>>();
-                let subclass_op_names2 = subclass_op_names.clone();
                 let enum_name =
                     get_operative_subclass_enum_name(&constraint_schema, &operative.tag.id);
                 let op_wrapped_name = get_all_subclasses(&constraint_schema, &operative.tag.id)
@@ -249,7 +248,7 @@ pub fn generate_concrete_schema_reactive(
                     Vec::new(),
                     |mut agg,
                      (
-                        id,
+                        _id,
                         FieldFnDetails {
                             fn_signature,
                             fn_name,
@@ -285,15 +284,13 @@ pub fn generate_concrete_schema_reactive(
                     Vec::new(),
                     |mut agg,
                      (
-                        id,
+                        _id,
                         SlotFnDetails {
                             fn_name,
                             fn_signature,
-                            return_enum_type,
-                            is_trait_slot,
                             id_only_signature,
                             id_only_name,
-                            is_single_slot_bound,
+                            ..
                         },
                     )| {
                         let intermediate = &subclass_op_names.iter().fold(
@@ -327,7 +324,7 @@ pub fn generate_concrete_schema_reactive(
                     },
                 );
 
-                let rgso_impl = impl_RGSO_for_enum(enum_name.clone(), subclass_op_names.clone());
+                let rgso_impl = impl_rgso_for_enum(enum_name.clone(), subclass_op_names.clone());
                 if subclass_op_names.len() <= 1 {
                     None
                 } else {
@@ -400,7 +397,7 @@ pub fn generate_concrete_schema_reactive(
             let fulfilling_ops_template_ids = fulfilling_ops
                             .iter()
                             .map(|op| op.template_id.to_string());
-            let rgso_impl = impl_RGSO_for_enum(
+            let rgso_impl = impl_rgso_for_enum(
                 enum_name.clone().into_token_stream(),
                 fulfilling_ops_names.clone(),
             );
@@ -544,7 +541,7 @@ pub fn generate_concrete_schema_reactive(
     let schema_name = syn::Ident::new("Schema", proc_macro2::Span::call_site());
 
     let schema_rgso_impl =
-        impl_RGSO_for_enum(schema_name.into_token_stream(), all_lib_op_names.clone());
+        impl_rgso_for_enum(schema_name.into_token_stream(), all_lib_op_names.clone());
 
     let repatriate_num_match_stream = constraint_schema.operative_library.iter().map(
         |(id, op)| {
@@ -576,6 +573,7 @@ pub fn generate_concrete_schema_reactive(
     };
 
     let final_output = quote! {
+        #![allow(warnings)]
         pub mod slot_markers {
             use crate::prelude::*;
            #(#slot_marker_trait_streams)*
@@ -847,7 +845,7 @@ pub fn generate_crate(
     initial_population_location: Option<&str>,
     generated_crate_name: Option<&str>,
 ) {
-    use std::{env, fs, path::Path, process::Command};
+    use std::{fs, path::Path, process::Command};
     let generated_crate_name = generated_crate_name.unwrap_or("generated_toolkit");
 
     // let out_dir = std::env::var("OUT_DIR").unwrap();
@@ -877,8 +875,8 @@ pub fn generate_crate(
     fs::create_dir_all(&generated_src_dir).unwrap();
 
     // Delete stale files
-    fs::remove_file(&generated_code_dir);
-    fs::remove_file(&generated_cargo_toml_dir);
+    let _ = fs::remove_file(&generated_code_dir);
+    let _ = fs::remove_file(&generated_cargo_toml_dir);
 
     // Write out the crate's Cargo.toml and lib.rs
     fs::write(

@@ -1,4 +1,4 @@
-use leptos::either::{Either, EitherOf3};
+use leptos::either::EitherOf3;
 use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::{
@@ -16,10 +16,7 @@ pub fn SlotBuilder(
 ) -> impl IntoView {
     let ctx = use_context::<SharedGraph<Schema>>().unwrap();
     let ctx_clone = ctx.clone();
-    let WorkspaceState {
-        schema,
-        selected_tab,
-    } = use_context::<WorkspaceState>().unwrap();
+    let WorkspaceState { schema, .. } = use_context::<WorkspaceState>().unwrap();
     let schema_clone = schema.clone();
 
     let name = RwSignal::new("new_slot".to_string());
@@ -198,9 +195,7 @@ pub fn SlotBuilder(
             });
     };
 
-    let ctx_clone = ctx.clone();
     let trait_slot_details_view = move || {
-        let ctx_clone = ctx_clone.clone();
         let schema_clone = schema_clone.clone();
         let on_click_add_trait = move |_| match dropdown_selected_trait.get() {
             Some(new_trait_item) => {
@@ -242,10 +237,9 @@ pub fn SlotBuilder(
                         let on_click = move |_| {
                             selected_trait_list
                                 .update(|prev| {
-                                    prev
-                                        .retain(|prev_item| {
-                                            prev_item.get_id() != selected_item.get_id()
-                                        })
+                                    prev.retain(|prev_item| {
+                                        prev_item.get_id() != selected_item.get_id()
+                                    })
                                 })
                         };
                         view! {
@@ -317,7 +311,6 @@ pub fn SlotBuilder(
     };
 
     let template_clone = template.clone();
-    let schema_clone = schema.clone();
     let selected_single_operative =
         RwSignal::<Option<RGSOConcrete<OperativeConcrete, Schema>>>::new(None);
     let multi_operative_list =
@@ -325,7 +318,7 @@ pub fn SlotBuilder(
     let ctx_clone = ctx.clone();
     let on_click_save_multi_op = move || {
         let mut editor = template_clone.edit(ctx_clone.clone());
-        let mut tempslotvariant = TemplateSlotTypeMultiOperative::new(ctx_clone.clone())
+        let tempslotvariant = TemplateSlotTypeMultiOperative::new(ctx_clone.clone())
             .set_temp_id("tempslotvariant")
             .add_temp_roottemplateslot("new_template_slot");
         // This is a bad hack and is subject to suddenly failing to work as intended.
@@ -585,7 +578,6 @@ pub fn SlotBuilder(
         }
     };
 
-    let schema_clone = schema.clone();
     let close_callback_clone = close_callback.clone();
     view! {
         <SubSection>

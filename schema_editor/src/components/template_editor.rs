@@ -1,10 +1,10 @@
-use leptos::either::{Either, EitherOf3};
+use leptos::either::EitherOf3;
 use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::{
     common::{
         Button, LeafSection, LeafSectionHeader, ManagedEnumSelect, Section, SectionHeader,
-        SignalEnumSelect, SignalTextInput, SubSection, SubSectionHeader, ToggleManagedTextInput,
+        SignalTextInput, SubSection, SubSectionHeader, ToggleManagedTextInput,
     },
     slot_builder::SlotBuilder,
     workspace::{WorkspaceState, WorkspaceTab},
@@ -41,8 +41,6 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
             .unwrap();
     };
 
-    let template_clone = template.clone();
-    let ctx_clone = ctx.clone();
     let ctx_clone = ctx.clone();
     let template_clone = template.clone();
     let selected_tab_clone = selected_tab.clone();
@@ -71,9 +69,6 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     let is_building_slot = RwSignal::new(false);
     let close_building_interface_callback = Callback::new(move |_| is_building_slot.set(false));
 
-    let template_clone = template.clone();
-
-    let selected_tab_clone = selected_tab.clone();
     let ctx_clone = ctx.clone();
     let template_slot_view = move |template_slot: RGSOConcrete<TemplateSlot, Schema>| {
         let template_slot_clone = template_slot.clone();
@@ -195,7 +190,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
             };
         };
         let field_clone_inner = field_clone.clone();
-        let extraneous_value_type_signal = RwSignal::<
+        let _extraneous_value_type_signal = RwSignal::<
             GetNameTemplateFieldVariantTraitObjectDiscriminants,
         >::new(field.clone().into());
         let ctx_clone_2 = ctx_clone.clone();
@@ -346,7 +341,6 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     let template_clone = template.clone();
     let template_clone_2 = template.clone();
     let template_clone_3 = template.clone();
-    let ctx_clone = ctx.clone();
     view! {
         <div>
             <Section>

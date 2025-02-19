@@ -1,6 +1,5 @@
 use graph_canvas::prelude::*;
 use leptos::prelude::*;
-use web_sys::HtmlDivElement;
 
 #[component]
 pub fn GraphEditor(config: GraphCanvasConfig) -> impl IntoView {

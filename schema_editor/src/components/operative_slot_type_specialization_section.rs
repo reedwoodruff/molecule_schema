@@ -10,7 +10,7 @@ use crate::components::{
     workspace::WorkspaceState,
 };
 
-use leptos::either::{Either, EitherOf3, EitherOf5, EitherOf7};
+use leptos::either::{Either, EitherOf3};
 use schema_editor_generated_toolkit::prelude::*;
 
 use super::{operative_slot_section::OperativeSlotContext, utils::get_all_descendent_operators};
@@ -18,26 +18,20 @@ use super::{operative_slot_section::OperativeSlotContext, utils::get_all_descend
 #[component]
 pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
     let ctx = use_context::<SharedGraph<Schema>>().unwrap();
-    let WorkspaceState {
-        schema,
-        selected_tab,
-    }: WorkspaceState = use_context::<WorkspaceState>().unwrap();
+    let WorkspaceState { schema, .. }: WorkspaceState = use_context::<WorkspaceState>().unwrap();
 
     let OperativeSlotContext {
-        max_downstream_slotted_instances,
         operative,
         template_slot,
         maybe_childest_type_spec,
-        maybe_childest_cardinality_spec,
+        ..
     } = use_context::<OperativeSlotContext>().unwrap();
 
     let ctx_clone = ctx.clone();
-    let schema_clone = schema.clone();
 
     let operative_clone = operative.clone();
     let slot_clone = template_slot.clone();
     let operative_clone2 = operative_clone.clone();
-    let operative_clone3 = operative_clone.clone();
     let operative_clone4 = operative_clone.clone();
     let slot = slot_clone.clone();
     let slot_clone = slot.clone();
@@ -319,7 +313,6 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
     };
 
     let slot_clone = template_slot.clone();
-    let operative_clone = operative.clone();
     let builder_view = move || {
         if is_locally_owned_spec.get() || exists_downstream_unique_type_spec.get() {
             return EitherOf3::C(view! {});
@@ -328,63 +321,51 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
             let spec_clone = specialization.clone();
             EitherOf3::B(match spec_clone.clone() {
                 OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeSingleSpecialization(single) => view! {
-                    <SlotTypeSpecializationBuilder
-                        operative=operative_clone3.clone()
-                        spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeSingleSpecialization(
-                            single,
-                        )
-                    />
+                    // operative=operative_clone3.clone()
+                    <SlotTypeSpecializationBuilder spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeSingleSpecialization(
+                        single,
+                    ) />
                 }.into_any(),
                 OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeMultiSpecialization(multi) => {
                     view! {
-                        <SlotTypeSpecializationBuilder
-                            operative=operative_clone3.clone()
-                            spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(
-                                multi,
-                            )
-                        />
+                        // operative=operative_clone3.clone()
+                        <SlotTypeSpecializationBuilder spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeMultiSpecialization(
+                            multi,
+                        ) />
                     }.into_any()
                 },
                 OperativeSlotTypeSpecializationTraitObject::OperativeSlotTypeTraitObjectSpecialization(trait_obj) =>
                 view! {
-                    <SlotTypeSpecializationBuilder
-                        operative=operative_clone3.clone()
-                        spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(
-                            trait_obj,
-                        )
-                    />
+                    // operative=operative_clone3.clone()
+                    <SlotTypeSpecializationBuilder spec_target=OperativeSlotTypeSpecializableTraitObject::OperativeSlotTypeTraitObjectSpecialization(
+                        trait_obj,
+                    ) />
                 }.into_any() ,
             })
         } else {
             EitherOf3::A(match slot_clone.get_templateslotvariant_slot() {
                 TemplateSlotTypeVariantTraitObject::TemplateSlotTypeTraitOperative(trait_op) => {
                     view! {
-                        <SlotTypeSpecializationBuilder
-                            operative=operative_clone.clone()
-                            spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeTraitOperative(
-                                trait_op,
-                            )
-                        />
+                        // operative=operative_clone.clone()
+                        <SlotTypeSpecializationBuilder spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeTraitOperative(
+                            trait_op,
+                        ) />
                     }.into_any()
                 }
                 TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(single) => {
                     view! {
-                        <SlotTypeSpecializationBuilder
-                            operative=operative_clone3.clone()
-                            spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeSingleOperative(
-                                single,
-                            )
-                        />
+                        // operative=operative_clone3.clone()
+                        <SlotTypeSpecializationBuilder spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeSingleOperative(
+                            single,
+                        ) />
                     }.into_any()
                 }
                 TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(multi) => {
                     view! {
-                        <SlotTypeSpecializationBuilder
-                            operative=operative_clone.clone()
-                            spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(
-                                multi,
-                            )
-                        />
+                        // operative=operative_clone.clone()
+                        <SlotTypeSpecializationBuilder spec_target=OperativeSlotTypeSpecializableTraitObject::TemplateSlotTypeMultiOperative(
+                            multi,
+                        ) />
                     }.into_any()
                 }
             })
@@ -405,8 +386,6 @@ pub fn OperativeSlotTypeSpecializationSection() -> impl IntoView {
             Either::Right(view! {})
         }
     };
-    let operative_clone = operative_clone4.clone();
-    let slot_clone = slot.clone();
 
     view! {
         {lineage_view}

@@ -1,6 +1,4 @@
-use std::sync::Arc;
-
-use leptos::either::{EitherOf5, EitherOf6, EitherOf7};
+use leptos::either::EitherOf6;
 use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::{
@@ -14,10 +12,7 @@ use super::{
 };
 #[component]
 pub fn EditingSpace() -> impl IntoView {
-    let WorkspaceState {
-        schema,
-        selected_tab,
-    } = use_context::<WorkspaceState>().unwrap();
+    let WorkspaceState { selected_tab, .. } = use_context::<WorkspaceState>().unwrap();
 
     let editor = move || {
         let selected_tab = selected_tab.clone();

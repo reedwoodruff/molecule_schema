@@ -4,7 +4,7 @@ use crate::components::{
     common::*, graph_editor::GraphEditor, method_impl_builder::MethodImplementationBuilder,
     utils::constraint_to_canvas_template,
 };
-use graph_canvas::{GraphCanvasConfig, NodeTemplate};
+use graph_canvas::GraphCanvasConfig;
 use schema_editor_generated_toolkit::prelude::*;
 use strum::EnumProperty;
 use strum::IntoEnumIterator;
@@ -16,10 +16,7 @@ pub fn OperativeMethodImplementations(
 ) -> impl IntoView {
     let ctx = use_context::<SharedGraph<Schema>>().unwrap();
     let ctx_clone = ctx.clone();
-    let WorkspaceState {
-        schema,
-        selected_tab,
-    } = use_context::<WorkspaceState>().unwrap();
+    let WorkspaceState { schema, .. } = use_context::<WorkspaceState>().unwrap();
     let schema_clone = schema.clone();
 
     let is_adding_impl = RwSignal::new(false);
@@ -92,7 +89,7 @@ pub fn OperativeMethodImplementations(
                             fn_def=selected_fn_def.get().unwrap()
                             operative=operative_clone_2.clone()
                             on_save=on_save_new_fn_impl
-                            on_cancel=Callback::new(move |na: ()| { is_adding_impl.set(false) })
+                            on_cancel=Callback::new(move |_na: ()| { is_adding_impl.set(false) })
                         />
                         <GraphEditor config=canvas_config />
                     }

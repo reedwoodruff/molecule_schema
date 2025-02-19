@@ -1,9 +1,7 @@
-use std::collections::{BTreeSet, HashSet};
+use std::collections::BTreeSet;
 
 use graph_canvas::prelude::*;
 use schema_editor_generated_toolkit::prelude::*;
-
-use super::slot_cardinality_specialization_builder::CardinalityInfo;
 
 pub fn get_all_descendent_operators(
     op: RGSOConcrete<OperativeConcrete, Schema>,
@@ -124,7 +122,7 @@ pub fn get_all_operatives_which_satisfy_specializable(
                 .get_allowedoperatives_slot()
                 .into_iter()
                 .collect::<BTreeSet<_>>();
-            allowed.into_iter().map(|allowed_op| {
+            allowed.into_iter().for_each(|allowed_op| {
                 get_all_descendent_operators_including_own(allowed_op, &mut return_list);
             });
             return_list
@@ -135,7 +133,7 @@ pub fn get_all_operatives_which_satisfy_specializable(
                 .get_allowedoperatives_slot()
                 .into_iter()
                 .collect::<BTreeSet<_>>();
-            allowed.into_iter().map(|allowed_op| {
+            allowed.into_iter().for_each(|allowed_op| {
                 get_all_descendent_operators_including_own(allowed_op, &mut return_list);
             });
             return_list
@@ -206,74 +204,74 @@ pub fn get_all_instances_which_satisfy_specialization(
         })
 }
 
-pub fn get_childest_type_specialization_for_op_and_slot(
-    op: RGSOConcrete<OperativeConcrete, Schema>,
-    slot: RGSOConcrete<TemplateSlot, Schema>,
-) -> Option<OperativeSlotTypeSpecializationTraitObject> {
-    op.get_slotspecializations_slot()
-        .into_iter()
-        .filter(|spec| spec.get_roottemplateslot_slot().get_id() == slot.get_id())
-        .next()
-        .map(|spec| spec.get_typespecialization_slot().first().cloned())
-        .flatten()
-}
+// pub fn get_childest_type_specialization_for_op_and_slot(
+//     op: RGSOConcrete<OperativeConcrete, Schema>,
+//     slot: RGSOConcrete<TemplateSlot, Schema>,
+// ) -> Option<OperativeSlotTypeSpecializationTraitObject> {
+//     op.get_slotspecializations_slot()
+//         .into_iter()
+//         .filter(|spec| spec.get_roottemplateslot_slot().get_id() == slot.get_id())
+//         .next()
+//         .map(|spec| spec.get_typespecialization_slot().first().cloned())
+//         .flatten()
+// }
 
-pub fn get_childest_cardinality_specialization_for_op_and_slot(
-    op: RGSOConcrete<OperativeConcrete, Schema>,
-    slot: RGSOConcrete<TemplateSlot, Schema>,
-) -> Option<OperativeSlotCardinalitySpecializationTraitObject> {
-    op.get_slotspecializations_slot()
-        .into_iter()
-        .filter(|spec| spec.get_roottemplateslot_slot().get_id() == slot.get_id())
-        .next()
-        .map(|spec| spec.get_cardinalityspecialization_slot().first().cloned())
-        .flatten()
-}
+// pub fn get_childest_cardinality_specialization_for_op_and_slot(
+//     op: RGSOConcrete<OperativeConcrete, Schema>,
+//     slot: RGSOConcrete<TemplateSlot, Schema>,
+// ) -> Option<OperativeSlotCardinalitySpecializationTraitObject> {
+//     op.get_slotspecializations_slot()
+//         .into_iter()
+//         .filter(|spec| spec.get_roottemplateslot_slot().get_id() == slot.get_id())
+//         .next()
+//         .map(|spec| spec.get_cardinalityspecialization_slot().first().cloned())
+//         .flatten()
+// }
 
-// Returns the most restrictive min, max, and zero_allowed
-// They might not all be from the same specialization
-pub fn get_childest_cardinality_info_downstream(
-    op: RGSOConcrete<OperativeConcrete, Schema>,
-    slot: RGSOConcrete<TemplateSlot, Schema>,
-) -> Option<CardinalityInfo> {
-    let mut desc_ops_and_self = BTreeSet::new();
-    desc_ops_and_self.insert(op.clone());
-    get_all_descendent_operators(op.clone(), &mut desc_ops_and_self);
+// // Returns the most restrictive min, max, and zero_allowed
+// // They might not all be from the same specialization
+// pub fn get_childest_cardinality_info_downstream(
+//     op: RGSOConcrete<OperativeConcrete, Schema>,
+//     slot: RGSOConcrete<TemplateSlot, Schema>,
+// ) -> Option<CardinalityInfo> {
+//     let mut desc_ops_and_self = BTreeSet::new();
+//     desc_ops_and_self.insert(op.clone());
+//     get_all_descendent_operators(op.clone(), &mut desc_ops_and_self);
 
-    let card_specs = desc_ops_and_self
-        .into_iter()
-        .filter_map(|desc_op| {
-            if let Some(spec) =
-                get_childest_cardinality_specialization_for_op_and_slot(desc_op, slot.clone())
-            {
-                Some(CardinalityInfo::from_card_spec(spec))
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>();
+//     let card_specs = desc_ops_and_self
+//         .into_iter()
+//         .filter_map(|desc_op| {
+//             if let Some(spec) =
+//                 get_childest_cardinality_specialization_for_op_and_slot(desc_op, slot.clone())
+//             {
+//                 Some(CardinalityInfo::from_card_spec(spec))
+//             } else {
+//                 None
+//             }
+//         })
+//         .collect::<Vec<_>>();
 
-    if card_specs.len() == 0 {
-        return None;
-    }
-    let mut iter = card_specs.into_iter();
-    let mut most_restrictive = iter.next().unwrap();
-    iter.for_each(|spec| {
-        most_restrictive.min = most_restrictive.min.max(spec.min);
-        if let Some(new_max) = spec.max {
-            if let Some(old_max) = most_restrictive.max {
-                most_restrictive.max = Some(old_max.min(new_max));
-            } else {
-                most_restrictive.max = Some(new_max);
-            }
-        }
-        if spec.zero_allowed == false {
-            most_restrictive.zero_allowed = false;
-        }
-    });
+//     if card_specs.len() == 0 {
+//         return None;
+//     }
+//     let mut iter = card_specs.into_iter();
+//     let mut most_restrictive = iter.next().unwrap();
+//     iter.for_each(|spec| {
+//         most_restrictive.min = most_restrictive.min.max(spec.min);
+//         if let Some(new_max) = spec.max {
+//             if let Some(old_max) = most_restrictive.max {
+//                 most_restrictive.max = Some(old_max.min(new_max));
+//             } else {
+//                 most_restrictive.max = Some(new_max);
+//             }
+//         }
+//         if spec.zero_allowed == false {
+//             most_restrictive.zero_allowed = false;
+//         }
+//     });
 
-    Some(most_restrictive)
-}
+//     Some(most_restrictive)
+// }
 
 pub fn get_deepest_downstream_specializations(
     op: RGSOConcrete<OperativeConcrete, Schema>,
@@ -422,6 +420,7 @@ pub(crate) fn constraint_to_canvas_template(
                 name: slot.tag.name.clone(),
                 position: SlotPosition::Right,
                 slot_type: SlotType::Outgoing,
+                can_modify_connections: true,
                 allowed_connections,
                 min_connections: match slot.bounds {
                     base_types::constraint_schema::SlotBounds::Single => 1,

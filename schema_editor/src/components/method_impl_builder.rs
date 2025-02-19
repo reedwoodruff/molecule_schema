@@ -1,13 +1,10 @@
-use crate::components::{
-    common::*, method_impl_step_builder::MethodImplementationStepBuilder,
-    method_impl_utils::ExecutionSteps,
-};
+use crate::components::common::*;
 use leptos::context::Provider;
 use schema_editor_generated_toolkit::prelude::*;
 
 #[derive(Clone, Debug)]
 pub struct MethodImplBuilderContext {
-    pub impling_operative: RGSOConcrete<OperativeConcrete, Schema>,
+    pub _impling_operative: RGSOConcrete<OperativeConcrete, Schema>,
 }
 
 #[component]
@@ -38,9 +35,8 @@ pub fn MethodImplementationBuilder(
         on_save.run(Box::new(hairy_boy));
     };
 
-    let fn_def_clone = fn_def.clone();
-    let step_lists =
-        RwSignal::<Vec<RwSignal<Vec<ExecutionSteps>>>>::new(vec![RwSignal::new(vec![])]);
+    // let step_lists =
+    //     RwSignal::<Vec<RwSignal<Vec<ExecutionSteps>>>>::new(vec![RwSignal::new(vec![])]);
 
     // If this is editing an existing impl, set the local signals to match the existing signal at the start
     if let Some(initial_state) = initial_state {
@@ -57,11 +53,10 @@ pub fn MethodImplementationBuilder(
     }
 
     let fn_def_clone = fn_def.clone();
-    let fn_def_clone_2 = fn_def.clone();
     let operative_clone = operative.clone();
     view! {
         <Provider value=MethodImplBuilderContext {
-            impling_operative: operative_clone,
+            _impling_operative: operative_clone,
         }>
             <LeafSection>
                 Implementation name: <SignalTextInput value=func_impl_name />
@@ -71,27 +66,6 @@ pub fn MethodImplementationBuilder(
             </LeafSection>
             <LeafSection>
                 <LeafSectionHeader>Function Inputs</LeafSectionHeader>
-                <For
-                    each=move || step_lists.get()
-                    key=|item| item.clone()
-                    children=move |input_row| {
-                        view! {
-                            <div class="flex">
-                                <For
-                                    each=move || input_row.get()
-                                    key=|item| item.clone()
-                                    children=move |step| {
-                                        let step_clone = step.clone();
-                                        view! {
-                                            <MethodImplementationStepBuilder step=Signal::derive(move ||
-                                            step_clone.clone()) />
-                                        }
-                                    }
-                                />
-                            </div>
-                        }
-                    }
-                />
             </LeafSection>
             // <LeafSection>
             // <LeafSectionHeader>Function Outputs</LeafSectionHeader>

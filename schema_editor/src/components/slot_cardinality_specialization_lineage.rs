@@ -1,15 +1,11 @@
-use leptos::either::{Either, EitherOf3, EitherOf4, EitherOf8};
+use leptos::either::{Either, EitherOf8};
 use schema_editor_generated_toolkit::prelude::*;
 
-use crate::components::{
-    common::{LeafSection, LeafSectionHeader},
-    slot_cardinality_specialization_builder::CardinalityInfo,
-};
+use crate::components::common::{LeafSection, LeafSectionHeader};
 
 #[component]
 pub fn SlotCardinalitySpecializationLineage(
     specialization: OperativeSlotCardinalitySpecializationTraitObject,
-    is_entry_point: bool,
 ) -> impl IntoView {
     // let operative_clone = operative.clone();
     let specialization_clone = specialization.clone();
@@ -108,16 +104,16 @@ pub fn GeneralSpecializationTargetView(
     let parent_view = move || {
         match target_clone.clone() {
 
-        OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBoundOrZero(item) => {
+        OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBoundOrZero(_item) => {
             view!{}.into_any()
         }
-        OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBound(item) => {
+        OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityLowerBound(_item) => {
             view!{}.into_any()
         }
-        OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRangeOrZero(item) => {
+        OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRangeOrZero(_item) => {
             view!{}.into_any()
         }
-        OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRange(item) => {
+        OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::TemplateSlotCardinalityRange(_item) => {
             view!{}.into_any()
         }
         OperativeSlotCardinalitySpecializableBySingleOrRangeTraitObject::OperativeSlotCardinalityLowerBoundOrZeroSpecialization(item) => {

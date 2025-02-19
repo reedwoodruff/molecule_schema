@@ -646,6 +646,7 @@ impl<Id, T, NextMatch> TSInnerRemove<Id, B0, NextMatch> for (T,) {
 // Compound ID
 // ------------------------------------------
 
+#[allow(dead_code)]
 trait AddOneId<IsMax> {
     type Output; // : AddOneId;
 }
@@ -730,12 +731,11 @@ where
     ) as IfThenElse<Eq<D, U255>>>::Output;
 }
 
+#[allow(dead_code)]
 type AddUno<Lhs> = <Lhs as AddOneId<B0>>::Output;
 
 #[cfg(test)]
 mod tests {
-
-    use std::mem::transmute_copy;
 
     use molecule_core::IdToU32;
     use to_composite_id_macro::to_comp_id;

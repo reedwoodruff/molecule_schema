@@ -1,3 +1,4 @@
+#![allow(warnings)]
 use std::{
     borrow::Cow,
     collections::{BTreeMap, HashMap},

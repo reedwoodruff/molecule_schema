@@ -56,7 +56,6 @@ pub(crate) fn generate_operative_streams(
         .get(reference_template_id)
         .cloned()
         .expect("instantiable must be based on a constraint object");
-    let template_tag = reference_template.get_tag();
 
     let slot_enum_variant_names = reference_template
         .operative_slots
@@ -178,10 +177,6 @@ pub(crate) fn generate_operative_streams(
             .map(|item| item.fn_signature.clone())
             .collect::<Vec<_>>();
         let field_ids = field_trait_fns.keys().collect::<Vec<_>>();
-        let field_value_types = field_trait_fns
-            .values()
-            .map(|item| item.field_return_type.clone())
-            .collect::<Vec<_>>();
         let field_value_enum_variant_names = field_trait_fns
             .values()
             .map(|item| item.field_return_type_enum_name.clone())
@@ -195,7 +190,7 @@ pub(crate) fn generate_operative_streams(
             .get(reference_template_id)
             .unwrap();
         let wrapped_name = get_operative_wrapped_name(&instantiable.get_tag().name);
-        let slot_stream = slot_trait_fns.iter().map(|(id, SlotFnDetails { fn_name, fn_signature, return_enum_type, is_trait_slot, id_only_signature, id_only_name, is_single_slot_bound })|
+        let slot_stream = slot_trait_fns.iter().map(|(id, SlotFnDetails {  fn_signature, return_enum_type,  id_only_signature,  is_single_slot_bound, .. })|
             {
                 let id_only_body = match is_single_slot_bound {
                     true => quote!{self.outgoing_slots().get(&#id).unwrap().slotted_instances.get().first().unwrap().clone()},
@@ -368,36 +363,36 @@ pub(crate) fn generate_operative_streams(
                     Ident::new(&string1, Span::call_site()).to_token_stream()
                 });
         let main_builder_slot_generics_stream = quote! { #(#main_builder_slot_generics_stream,)*};
-        let generic_slot_generics_stream_with_some_trait_bounds =
-            all_slot_digests
-                .iter()
-                .enumerate()
-                .map(|(i, slot_digest)| {
-                    if slot_digest.slot.tag.id == slot_id {
-                        return quote!{#local_count_generic:
-                            typenum::Integer
-                            + std::ops::Add<typenum::P1>
-                            + std::ops::Sub<typenum::P1>
-                        }
-                    }
-                    let string1 = format!("T{}Slot{}", slot.slot.tag.name, &i.to_string());
-                    let ident = Ident::new(&string1, Span::call_site());
-                    quote! {#ident: base_types::post_generation::type_level::SlotTSMarker}
-                });
-        let generic_slot_generics_stream_with_some_trait_bounds = quote!{#(#generic_slot_generics_stream_with_some_trait_bounds,)* };
-        let generic_slot_generics_stream_without_trait_bound =
-            all_slot_digests
-                .iter()
-                .enumerate()
-                .map(|(i, slot_digest)| {
-                    if slot_digest.slot.tag.id == slot_id {
-                        return quote!{#local_count_generic}
-                    }
-                    let string1 = format!("T{}Slot{}", slot.slot.tag.name, &i.to_string());
-                    let ident = Ident::new(&string1, Span::call_site());
-                    quote! {#ident}
-                });
-        let generic_slot_generics_stream_without_trait_bound = quote!{#(#generic_slot_generics_stream_without_trait_bound,)* };
+        // let generic_slot_generics_stream_with_some_trait_bounds =
+        //     all_slot_digests
+        //         .iter()
+        //         .enumerate()
+        //         .map(|(i, slot_digest)| {
+        //             if slot_digest.slot.tag.id == slot_id {
+        //                 return quote!{#local_count_generic:
+        //                     typenum::Integer
+        //                     + std::ops::Add<typenum::P1>
+        //                     + std::ops::Sub<typenum::P1>
+        //                 }
+        //             }
+        //             let string1 = format!("T{}Slot{}", slot.slot.tag.name, &i.to_string());
+        //             let ident = Ident::new(&string1, Span::call_site());
+        //             quote! {#ident: base_types::post_generation::type_level::SlotTSMarker}
+        //         });
+        // // let generic_slot_generics_stream_with_some_trait_bounds = quote!{#(#generic_slot_generics_stream_with_some_trait_bounds,)* };
+        // let generic_slot_generics_stream_without_trait_bound =
+        //     all_slot_digests
+        //         .iter()
+        //         .enumerate()
+        //         .map(|(i, slot_digest)| {
+        //             if slot_digest.slot.tag.id == slot_id {
+        //                 return quote!{#local_count_generic}
+        //             }
+        //             let string1 = format!("T{}Slot{}", slot.slot.tag.name, &i.to_string());
+        //             let ident = Ident::new(&string1, Span::call_site());
+        //             quote! {#ident}
+        //         });
+        // let generic_slot_generics_stream_without_trait_bound = quote!{#(#generic_slot_generics_stream_without_trait_bound,)* };
         let generic_slot_generics_stream_with_trait_bound =
             all_slot_digests
                 .iter()
@@ -463,7 +458,7 @@ pub(crate) fn generate_operative_streams(
             } else {
                 None
             };
-            let manipulate_slot_trait_name = Ident::new(&format!("ManipulateSlot{}{}", slot_name, struct_name), Span::call_site());
+            // let manipulate_slot_trait_name = Ident::new(&format!("ManipulateSlot{}{}", slot_name, struct_name), Span::call_site());
             let marker_trait_name = Ident::new(&format!("{}{}AcceptableTargetMarker", struct_name, slot_name), Span::call_site());
             let marker_impls = items.iter().map(|item| {
                 let item_name = get_operative_variant_name(&item.get_tag().name);
@@ -664,7 +659,7 @@ pub(crate) fn generate_operative_streams(
                 existing_multi_item_generate_add_fn_signature(add_new_fn_name)
             };
 
-            let fresh_add_existing_fn_signature = if let Some(item) = single_item_id {
+            let fresh_add_existing_fn_signature = if let Some(_item) = single_item_id {
                 quote!{
                     fn #add_existing_fn_name
                     (self,
@@ -685,7 +680,7 @@ pub(crate) fn generate_operative_streams(
                     where <T as HasSlotEnum>::SlotEnum: Send + Sync + Clone + std::fmt::Debug,
                 }
             };
-            let existing_add_existing_fn_signature = if let Some(item) = single_item_id {
+            let existing_add_existing_fn_signature = if let Some(_item) = single_item_id {
                 quote!{
                     fn #add_existing_fn_name
                     (mut self,
@@ -986,7 +981,7 @@ pub(crate) fn generate_operative_streams(
             &format!("remove_from_{}", slot.slot.tag.name.to_lowercase()),
             Span::call_site(),
         );
-        let remove_slot_trait_name = Ident::new(&format!("RemoveFromSlot{}{}", slot_name, struct_name), Span::call_site());
+        // let remove_slot_trait_name = Ident::new(&format!("RemoveFromSlot{}{}", slot_name, struct_name), Span::call_site());
         quote! {
             impl<FieldsTS, #generic_slot_generics_stream_with_trait_bound> FreshBuilder<#struct_name, Schema, FieldsTS, (#main_builder_slot_generics_stream)>
             where <#local_count_generic as std::ops::Sub<PInt<UInt<UTerm, typenum::B1>>>>::Output:
@@ -1188,10 +1183,6 @@ pub(crate) fn generate_operative_streams(
     }
 }
 
-enum Operation {
-    Add,
-    Subtract,
-}
 fn get_static_slotdigest_typestate_signature_stream(
     slot_digest: &OperativeSlotDigest,
 ) -> (

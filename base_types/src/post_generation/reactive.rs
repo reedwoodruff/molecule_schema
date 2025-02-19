@@ -13,17 +13,10 @@ use crate::{
 };
 
 use crate::post_generation::{
-    ElementCreationError, FieldEdit, HistoryFieldEdit, SlotRef, TaggedAction, Verifiable,
+    ElementCreationError, HistoryFieldEdit, SlotRef, TaggedAction, Verifiable,
 };
-use crate::utils::IntoPrimitiveValue;
 use leptos::prelude::*;
-use std::{
-    collections::{BTreeMap, HashMap},
-    hash::Hash,
-    io::Seek,
-    marker::PhantomData,
-    str::FromStr,
-};
+use std::{collections::HashMap, hash::Hash, marker::PhantomData, str::FromStr};
 
 pub mod hidden {
     use super::*;
@@ -173,7 +166,7 @@ pub mod hidden {
 
 use hidden::EditRGSO;
 
-use super::{ActiveSlot, StandaloneRGSOConcrete};
+use super::StandaloneRGSOConcrete;
 pub trait FromNonReactive<NTSchema>
 where
     Self: EditRGSO<Schema = Self>,
@@ -275,11 +268,11 @@ impl From<&str> for BlueprintId {
 //     }
 // }
 
-impl BlueprintId {
-    fn new_temporary(name: &str) -> Self {
-        BlueprintId::Temporary(name.to_string())
-    }
-}
+// impl BlueprintId {
+//     fn new_temporary(name: &str) -> Self {
+//         BlueprintId::Temporary(name.to_string())
+//     }
+// }
 
 pub trait RProducable<T> {
     type Schema;
@@ -498,11 +491,11 @@ pub trait RGSO: std::fmt::Debug + Clone {
     }
     fn fields(&self) -> &std::collections::HashMap<Uid, RwSignal<PrimitiveValues>>;
 }
-impl From<RActiveSlot> for Uid {
-    fn from(value: RActiveSlot) -> Self {
-        todo!()
-    }
-}
+// impl From<RActiveSlot> for Uid {
+//     fn from(value: RActiveSlot) -> Self {
+//         todo!()
+//     }
+// }
 
 pub trait Slotted {}
 
@@ -850,7 +843,7 @@ where
     fn get_operative_id() -> Uid;
 }
 
-trait RInstantiable: Send + Sync {
+pub trait RInstantiable: Send + Sync {
     type Schema;
 
     fn instantiate(&self) -> Result<Self::Schema, crate::post_generation::ElementCreationError>;
@@ -860,7 +853,7 @@ trait RInstantiable: Send + Sync {
     fn add_incoming(&mut self, host_id: &Uid, slot_id: &Uid);
     fn add_outgoing(&mut self, target_id: &Uid, slot_id: &Uid);
 }
-type RInstantiableElements<TSchema> = Vec<std::sync::Arc<dyn RInstantiable<Schema = TSchema>>>;
+// type RInstantiableElements<TSchema> = Vec<std::sync::Arc<dyn RInstantiable<Schema = TSchema>>>;
 
 #[derive(Clone, Debug)]
 pub struct Blueprint<TSchema> {
@@ -1038,7 +1031,7 @@ where
         leptos::logging::log!("{}: \nIncoming Slots: {}\nPending incoming additions: {}\nPending incoming removals: {}", item.template().tag.name, item.incoming_slots().get().len(), pending_incoming_additions, pending_incoming_removals);
         leptos::logging::log!("{:#?}", item.outgoing_slots().values());
         let total_incoming = item.incoming_slots().get().len() + pending_incoming_additions;
-        if ((total_incoming == pending_incoming_removals) || is_root_deletion) {
+        if (total_incoming == pending_incoming_removals) || is_root_deletion {
             self.delete(id);
             let slotted_instances = item
                 .outgoing_slots()
@@ -1655,9 +1648,7 @@ where
 
 pub mod from_reactive {
     use std::{
-        cell::RefCell,
         collections::HashMap,
-        io::Seek,
         sync::{Arc, Mutex},
     };
 
@@ -1666,8 +1657,7 @@ pub mod from_reactive {
     use leptos::prelude::*;
 
     use super::{
-        EditRGSO, FromNonReactive, RActiveSlot, RBaseGraphEnvironment, RGSOConcrete,
-        RHistoryContainer, RGSO,
+        FromNonReactive, RActiveSlot, RBaseGraphEnvironment, RGSOConcrete, RHistoryContainer,
     };
     impl<RTSchema: Send + Sync, TSchema: Send + Sync> From<SharedGraph<RTSchema>>
         for BaseGraphEnvironment<TSchema>

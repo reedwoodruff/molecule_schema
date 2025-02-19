@@ -391,10 +391,6 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
 
     let operative_clone = operative.clone();
 
-    let schema_clone = schema.clone();
-
-    let operative_clone = operative.clone();
-
     let master_collapser = RwSignal::new(false);
 
     let operative_clone_3 = operative.clone();
