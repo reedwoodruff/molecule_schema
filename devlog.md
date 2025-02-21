@@ -515,3 +515,13 @@ This is still in the schema-design phase, though, and the implementation of the 
 One concern right now is the interface for *building* these execution graphs (or in other words, for defining a method). The graph-like nature of the control-flows seems to call for some kind of more free-form graph visualization for constructing them.
 And even if such an interface is developed, still it's going to be cumbersome and verbose to define methods with much complexity, though hopefully there will be a class of useful and straightforward methods which are enabled.
 The hope is that this first version will facilitate more ergonomic and helpful versions in the future.
+
+
+## February 21, 2025
+Alright, pretty sure the correct direction for now is to use a simplified `If` construct which always assumes convergence. The previous construct with its potential facilitation of non-converging conditionality still interests me very much and would be good to explore more in future generations, potentially.
+But as for this phase, it will make things a lot more ergonomic to just use the following slots:
+- Condition
+- TrueBranch
+- FalseBranch
+- Output
+All of them will connect normally to the wider graph. TrueBranch/FalseBranch slots just require a single node each of the same type as the Output, and it will poll normally through the data dependencies of the graph.
