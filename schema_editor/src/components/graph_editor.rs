@@ -16,6 +16,7 @@ pub fn GraphEditor(config: GraphCanvasConfig) -> impl IntoView {
             // Initialize GraphCanvas
             let _graph_canvas =
                 GraphCanvas::new_rust(&container, config).expect("Failed to create GraphCanvas");
+            leptos::logging::log!("{:#?}", _graph_canvas)
         }
     });
 

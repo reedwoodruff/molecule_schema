@@ -1,13 +1,5 @@
-use std::str::FromStr;
-
-use crate::components::{
-    common::*, graph_editor::GraphEditor, method_impl_builder::MethodImplementationBuilder,
-    utils::constraint_to_canvas_template,
-};
-use graph_canvas::GraphCanvasConfig;
+use crate::components::{common::*, method_impl_builder::MethodImplementationBuilder};
 use schema_editor_generated_toolkit::prelude::*;
-use strum::EnumProperty;
-use strum::IntoEnumIterator;
 
 use super::workspace::WorkspaceState;
 #[component]
@@ -39,51 +31,6 @@ pub fn OperativeMethodImplementations(
     let operative_clone_2 = operative.clone();
     let ctx_clone = ctx.clone();
 
-    let canvas_config = {
-        // CONSTRAINT_SCHEMA.;
-
-        let mut all_templates = vec![];
-        let step_templates = ImplStepVariantTraitObjectDiscriminants::iter()
-            .map(|step| {
-                let int_uid: u128 = u128::from_str(step.get_str("template_id").unwrap()).unwrap();
-                let template = CONSTRAINT_SCHEMA.template_library.get(&int_uid).unwrap();
-                constraint_to_canvas_template(template)
-            })
-            .collect::<Vec<_>>();
-        all_templates.extend(step_templates);
-        let impl_data_templates = ImplDataVariantTraitObjectDiscriminants::iter()
-            .map(|impl_data| {
-                let int_uid: u128 =
-                    u128::from_str(impl_data.get_str("template_id").unwrap()).unwrap();
-                let template = CONSTRAINT_SCHEMA.template_library.get(&int_uid).unwrap();
-                constraint_to_canvas_template(template)
-            })
-            .collect::<Vec<_>>();
-        all_templates.extend(impl_data_templates);
-
-        let function_io_constraint = CONSTRAINT_SCHEMA
-            .get_template_by_operative_id(&FunctionIOSelf::get_operative_id())
-            .unwrap();
-        all_templates.push(constraint_to_canvas_template(&function_io_constraint));
-        let function_input_constraint = CONSTRAINT_SCHEMA
-            .get_template_by_operative_id(&FunctionInput::get_operative_id())
-            .unwrap();
-        all_templates.push(constraint_to_canvas_template(&function_input_constraint));
-        let function_output_constraint = CONSTRAINT_SCHEMA
-            .get_template_by_operative_id(&FunctionOutput::get_operative_id())
-            .unwrap();
-        all_templates.push(constraint_to_canvas_template(&function_output_constraint));
-        let impl_data_constraint = CONSTRAINT_SCHEMA
-            .get_template_by_operative_id(&ImplData::get_operative_id())
-            .unwrap();
-        all_templates.push(constraint_to_canvas_template(&impl_data_constraint));
-        leptos::logging::log!("{:#?}", all_templates);
-
-        GraphCanvasConfig {
-            node_templates: all_templates,
-            ..GraphCanvasConfig::new()
-        }
-    };
     view! {
         <SubSection>
             <SubSectionHeader>Add New Implementation</SubSectionHeader>
@@ -106,21 +53,13 @@ pub fn OperativeMethodImplementations(
                     empty_allowed=true
                 />
             </Show>
-            <Show when=move || {
-                is_adding_impl.get()
-            }>
-                {
-                    let canvas_config = canvas_config.clone();
-                    view! {
-                        <MethodImplementationBuilder
-                            fn_def=selected_fn_def.get().unwrap()
-                            operative=operative_clone_2.clone()
-                            on_save=on_save_new_fn_impl
-                            on_cancel=Callback::new(move |_na: ()| { is_adding_impl.set(false) })
-                        />
-                        <GraphEditor config=canvas_config />
-                    }
-                }
+            <Show when=move || { is_adding_impl.get() }>
+                <MethodImplementationBuilder
+                    fn_def=selected_fn_def.get().unwrap()
+                    operative=operative_clone_2.clone()
+                    on_save=on_save_new_fn_impl
+                    on_cancel=Callback::new(move |_na: ()| { is_adding_impl.set(false) })
+                />
             </Show>
         </SubSection>
 
