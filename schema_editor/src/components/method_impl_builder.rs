@@ -1,8 +1,9 @@
-use crate::components::utils::rgso_to_canvas_template;
-use crate::components::workspace::WorkspaceState;
-use crate::components::{
-    common::*, graph_editor::GraphEditor, utils::constraint_to_canvas_template,
+use crate::components::method_impl_utils::{
+    constraint_template_to_canvas_template, rgso_operative_to_canvas_template,
+    rgso_trait_to_canvas_template,
 };
+use crate::components::workspace::WorkspaceState;
+use crate::components::{common::*, graph_editor::GraphEditor};
 use graph_canvas::TemplateGroup;
 use graph_canvas::{GraphCanvasConfig, InitialConnection, InitialNode};
 use leptos::context::Provider;
@@ -65,60 +66,6 @@ pub fn MethodImplementationBuilder(
 
     let canvas_config = {
         let mut all_templates = vec![];
-        let step_templates = ImplStepVariantTraitObjectDiscriminants::iter()
-            .map(|step| {
-                let int_uid: u128 = u128::from_str(step.get_str("template_id").unwrap()).unwrap();
-                let template = CONSTRAINT_SCHEMA.template_library.get(&int_uid).unwrap();
-                constraint_to_canvas_template(template)
-            })
-            .collect::<Vec<_>>();
-        let step_template_names = step_templates
-            .iter()
-            .map(|step| step.name.clone())
-            .collect::<Vec<_>>();
-        all_templates.extend(step_templates);
-
-        let impl_data_templates = ImplDataVariantTraitObjectDiscriminants::iter()
-            .map(|impl_data| {
-                let int_uid: u128 =
-                    u128::from_str(impl_data.get_str("template_id").unwrap()).unwrap();
-                let template = CONSTRAINT_SCHEMA.template_library.get(&int_uid).unwrap();
-                constraint_to_canvas_template(template)
-            })
-            .collect::<Vec<_>>();
-        let mut impl_data_template_names = impl_data_templates
-            .iter()
-            .map(|template| template.name.clone())
-            .collect::<Vec<_>>();
-        all_templates.extend(impl_data_templates);
-        let impl_data_constraint = CONSTRAINT_SCHEMA
-            .get_template_by_operative_id(&ImplData::get_operative_id())
-            .unwrap();
-        all_templates.push(constraint_to_canvas_template(&impl_data_constraint));
-        impl_data_template_names.insert(0, impl_data_constraint.tag.name.clone());
-
-        let function_io_constraint = CONSTRAINT_SCHEMA
-            .get_template_by_operative_id(&FunctionIOSelf::get_operative_id())
-            .unwrap();
-        all_templates.push(constraint_to_canvas_template(&function_io_constraint));
-
-        let function_input_constraint = CONSTRAINT_SCHEMA
-            .get_template_by_operative_id(&FunctionInput::get_operative_id())
-            .unwrap();
-        let mut function_input = constraint_to_canvas_template(&function_input_constraint);
-        function_input.can_create = false;
-        function_input.can_modify_slots = false;
-        function_input.can_delete = false;
-        all_templates.push(function_input);
-
-        let function_output_constraint = CONSTRAINT_SCHEMA
-            .get_template_by_operative_id(&FunctionOutput::get_operative_id())
-            .unwrap();
-        let mut function_output = constraint_to_canvas_template(&function_output_constraint);
-        function_output.can_create = false;
-        function_output.can_delete = false;
-        function_output.can_modify_slots = false;
-        all_templates.push(function_output);
 
         let created_operatives = ctx
             .created_instances
@@ -130,13 +77,122 @@ pub fn MethodImplementationBuilder(
             })
             .collect::<Vec<_>>();
         created_operatives.iter().for_each(|instance| {
-            log!("{:?}", instance);
-            all_templates.push(rgso_to_canvas_template(instance, &schema.get()));
+            all_templates.push(rgso_operative_to_canvas_template(instance));
         });
         let created_instance_names = created_operatives
             .iter()
             .map(|instance| instance.get_name().clone())
             .collect::<Vec<String>>();
+
+        let created_traits = ctx
+            .created_instances
+            .get()
+            .values()
+            .filter_map(|item| match item {
+                Schema::TraitConcrete(inner) => Some(inner.clone()),
+                _ => None,
+            })
+            .collect::<Vec<_>>();
+        created_traits.iter().for_each(|instance| {
+            log!("{:?}", instance);
+            all_templates.push(rgso_trait_to_canvas_template(instance));
+        });
+        let created_trait_names = created_traits
+            .iter()
+            .map(|instance| instance.get_name().clone())
+            .collect::<Vec<String>>();
+
+        let step_templates = ImplStepVariantTraitObjectDiscriminants::iter()
+            .map(|step| {
+                let int_uid: u128 = u128::from_str(step.get_str("template_id").unwrap()).unwrap();
+                let template = CONSTRAINT_SCHEMA.template_library.get(&int_uid).unwrap();
+                constraint_template_to_canvas_template(template)
+            })
+            .collect::<Vec<_>>();
+        let step_template_names = step_templates
+            .iter()
+            .map(|step| step.name.clone())
+            .collect::<Vec<_>>();
+        all_templates.extend(step_templates);
+
+        // Allow DataVariants to connect to currently created instances and traits as requisite
+        let impl_data_templates = ImplDataVariantTraitObjectDiscriminants::iter()
+            .map(|impl_data| {
+                let int_uid: u128 =
+                    u128::from_str(impl_data.get_str("template_id").unwrap()).unwrap();
+                let template = CONSTRAINT_SCHEMA.template_library.get(&int_uid).unwrap();
+                let mut canvas_template = constraint_template_to_canvas_template(template);
+                match impl_data {
+                    ImplDataVariantTraitObjectDiscriminants::ImplDataMultiOperative => {
+                        canvas_template
+                            .slot_templates
+                            .iter_mut()
+                            .for_each(|slot_template| {
+                                slot_template.allowed_connections = created_instance_names.clone();
+                            });
+                    }
+                    ImplDataVariantTraitObjectDiscriminants::ImplDataSingleOperative => {
+                        canvas_template
+                            .slot_templates
+                            .iter_mut()
+                            .for_each(|slot_template| {
+                                slot_template.allowed_connections = created_instance_names.clone();
+                            });
+                    }
+                    ImplDataVariantTraitObjectDiscriminants::ImplDataTraitOperative => {
+                        canvas_template
+                            .slot_templates
+                            .iter_mut()
+                            .for_each(|slot_template| {
+                                slot_template.allowed_connections = created_trait_names.clone();
+                            });
+                    }
+                    _ => {}
+                };
+                canvas_template
+            })
+            .collect::<Vec<_>>();
+        let mut impl_data_template_names = impl_data_templates
+            .iter()
+            .map(|template| template.name.clone())
+            .collect::<Vec<_>>();
+        all_templates.extend(impl_data_templates);
+        let impl_data_constraint = CONSTRAINT_SCHEMA
+            .get_template_by_operative_id(&ImplData::get_operative_id())
+            .unwrap();
+        let mut impl_data_template = constraint_template_to_canvas_template(&impl_data_constraint);
+        // Manually remove downstream and upstream slots so as to simplify interface
+        impl_data_template
+            .slot_templates
+            .retain(|slot| slot.name != "DownstreamSteps" && slot.name != "UpstreamStep");
+        all_templates.push(impl_data_template);
+        impl_data_template_names.insert(0, impl_data_constraint.tag.name.clone());
+
+        let function_io_constraint = CONSTRAINT_SCHEMA
+            .get_template_by_operative_id(&FunctionIOSelf::get_operative_id())
+            .unwrap();
+        all_templates.push(constraint_template_to_canvas_template(
+            &function_io_constraint,
+        ));
+
+        let function_input_constraint = CONSTRAINT_SCHEMA
+            .get_template_by_operative_id(&FunctionInput::get_operative_id())
+            .unwrap();
+        let mut function_input = constraint_template_to_canvas_template(&function_input_constraint);
+        function_input.can_create = false;
+        function_input.can_modify_slots = false;
+        function_input.can_delete = false;
+        all_templates.push(function_input);
+
+        let function_output_constraint = CONSTRAINT_SCHEMA
+            .get_template_by_operative_id(&FunctionOutput::get_operative_id())
+            .unwrap();
+        let mut function_output =
+            constraint_template_to_canvas_template(&function_output_constraint);
+        function_output.can_create = false;
+        function_output.can_delete = false;
+        function_output.can_modify_slots = false;
+        all_templates.push(function_output);
 
         let template_groups = vec![
             TemplateGroup {
@@ -157,6 +213,12 @@ pub fn MethodImplementationBuilder(
                 name: "Created Instances".to_string(),
                 templates: created_instance_names,
             },
+            TemplateGroup {
+                description: None,
+                id: "created_traits".to_string(),
+                name: "Created Traits".to_string(),
+                templates: created_trait_names,
+            },
         ];
 
         let mut initial_nodes = vec![];
@@ -169,8 +231,8 @@ pub fn MethodImplementationBuilder(
                     FunctionInputVariantTraitObject::ImplDataMultiOperative(rgsoconcrete) => {
                         rgsoconcrete.operative().tag.name.clone()
                     }
-                    FunctionInputVariantTraitObject::FunctionIOSelf(rgsoconcrete) => {
-                        operative.operative().tag.name.clone()
+                    FunctionInputVariantTraitObject::FunctionIOSelf(_rgsoconcrete) => {
+                        operative.get_name().clone()
                     }
                     FunctionInputVariantTraitObject::ImplDataBool(rgsoconcrete) => {
                         rgsoconcrete.operative().tag.name.clone()

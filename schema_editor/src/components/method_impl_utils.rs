@@ -1,288 +1,169 @@
-// use schema_editor_generated_toolkit::prelude::*;
+use graph_canvas::{prelude::*, FieldTemplate, FieldType};
+use graph_canvas::{NodeTemplate, SlotPosition, SlotType};
+use schema_editor_generated_toolkit::prelude::*;
 
-// #[derive(Clone, PartialEq, Eq, Debug, Hash, strum_macros::EnumDiscriminants)]
-// pub enum ExecutionSteps {
-//     MapFromInput {
-//         input: (),
-//     },
-//     MapToOutput {
-//         output: (),
-//     },
-//     GetField {
-//         field_to_get: GetNameTemplateFieldVariantTraitObject,
-//     },
-//     TraverseSlot {
-//         slot_to_traverse: SlotDescriptionTraitObject,
-//     },
-//     MutateSlot {
-//         reference_slot: SlotDescriptionTraitObject,
-//         add_to_slot: Vec<AddToSlotMutationDescriptor>,
-//         remove_from_slot: Vec<RemoveFromSlotMutationDescriptor>,
-//     },
-//     MutateField {
-//         template_field: GetNameTemplateFieldVariantTraitObject,
-//         new_value: ExecValPrimitives,
-//     },
-//     IteratorFilter {
-//         filter_steps: Vec<ExecutionSteps>,
-//     },
-//     IteratorMap {
-//         map_steps: Vec<ExecutionSteps>,
-//     },
-//     IteratorAggregator {
-//         output: (),
-//     },
-//     MultiTypeSplitter {
-//         arms: Vec<Vec<ExecutionSteps>>,
-//     },
-//     MultiTypeAggregator {
-//         output: ExecVal,
-//     },
-// }
+use super::utils::get_all_operatives_which_impl_trait_set;
 
-// impl ExecutionSteps {
-//     pub fn get_output_val(&self) {}
-//     pub fn get_allowed_next_steps(&self) {
-//         match self {
-//             ExecutionSteps::MapFromInput { input } => todo!(),
-//             ExecutionSteps::MapToOutput { output } => todo!(),
-//             ExecutionSteps::GetField { field_to_get } => todo!(),
-//             ExecutionSteps::TraverseSlot { slot_to_traverse } => todo!(),
-//             ExecutionSteps::MutateSlot {
-//                 reference_slot,
-//                 add_to_slot,
-//                 remove_from_slot,
-//             } => todo!(),
-//             ExecutionSteps::MutateField {
-//                 template_field,
-//                 new_value,
-//             } => todo!(),
-//             ExecutionSteps::IteratorFilter { filter_steps } => todo!(),
-//             ExecutionSteps::IteratorMap { map_steps } => todo!(),
-//             ExecutionSteps::IteratorAggregator { output } => todo!(),
-//             ExecutionSteps::MultiTypeSplitter { arms } => todo!(),
-//             ExecutionSteps::MultiTypeAggregator { output } => todo!(),
-//         }
-//     }
-// }
+pub(crate) fn constraint_template_to_canvas_template(
+    template: &base_types::constraint_schema::LibraryTemplate<
+        base_types::primitives::PrimitiveTypes,
+        base_types::primitives::PrimitiveValues,
+    >,
+) -> NodeTemplate {
+    let template_string_id = uuid::Uuid::from_u128(template.tag.id).to_string();
+    let slot_templates = template
+        .operative_slots
+        .values()
+        .map(|slot| {
+            let slot_string_id = uuid::Uuid::from_u128(slot.tag.id).to_string();
+            let allowed_connections = match &slot.operative_descriptor {
+                base_types::constraint_schema::OperativeVariants::LibraryOperative(op) => {
+                    vec![CONSTRAINT_SCHEMA
+                        .operative_library
+                        .get(&op)
+                        .unwrap()
+                        .tag
+                        .name
+                        .clone()]
+                }
+                base_types::constraint_schema::OperativeVariants::TraitOperative(
+                    trait_operative,
+                ) => CONSTRAINT_SCHEMA
+                    .get_all_operatives_which_impl_trait_set(&trait_operative.trait_ids)
+                    .iter()
+                    .map(|op| op.tag.name.clone())
+                    .collect::<Vec<_>>(),
+            };
+            SlotTemplate {
+                id: slot_string_id,
+                name: slot.tag.name.clone(),
+                position: SlotPosition::Right,
+                slot_type: SlotType::Outgoing,
+                can_modify_connections: true,
+                allowed_connections,
+                min_connections: match slot.bounds {
+                    base_types::constraint_schema::SlotBounds::Single => 1,
+                    base_types::constraint_schema::SlotBounds::LowerBound(min) => min,
+                    base_types::constraint_schema::SlotBounds::UpperBound(_) => 0,
+                    base_types::constraint_schema::SlotBounds::Range(min, _) => min,
+                    base_types::constraint_schema::SlotBounds::LowerBoundOrZero(_) => 0,
+                    base_types::constraint_schema::SlotBounds::RangeOrZero(_, _) => 0,
+                },
+                max_connections: match slot.bounds {
+                    base_types::constraint_schema::SlotBounds::Single => Some(1),
+                    base_types::constraint_schema::SlotBounds::LowerBound(_) => None,
+                    base_types::constraint_schema::SlotBounds::UpperBound(max) => Some(max),
+                    base_types::constraint_schema::SlotBounds::Range(_, max) => Some(max),
+                    base_types::constraint_schema::SlotBounds::LowerBoundOrZero(_) => None,
+                    base_types::constraint_schema::SlotBounds::RangeOrZero(_, max) => Some(max),
+                },
+            }
+        })
+        .collect();
+    let field_templates = template.field_constraints.values().map(|field| {
+        let field_string_id = uuid::Uuid::from_u128(field.tag.id).to_string();
+        FieldTemplate {
+            id: field_string_id,
+            name: field.tag.name.clone(),
+            field_type: match field.value_type {
+                base_types::primitives::PrimitiveTypes::Bool => FieldType::Boolean,
+                base_types::primitives::PrimitiveTypes::Int => FieldType::Integer,
+                base_types::primitives::PrimitiveTypes::String => FieldType::String,
+                // base_types::primitives::PrimitiveTypes::EmptyTuple => todo!(),
+                // base_types::primitives::PrimitiveTypes::Option(primitive_types) => todo!(),
+                // base_types::primitives::PrimitiveTypes::List(primitive_types) => todo!(),
+                _ => todo!(),
+            },
+            default_value: match field.value_type {
+                base_types::primitives::PrimitiveTypes::Bool => "false".to_string(),
+                base_types::primitives::PrimitiveTypes::Int => "0".to_string(),
+                base_types::primitives::PrimitiveTypes::String => "".to_string(),
+                // base_types::primitives::PrimitiveTypes::EmptyTuple => todo!(),
+                // base_types::primitives::PrimitiveTypes::Option(primitive_types) => todo!(),
+                // base_types::primitives::PrimitiveTypes::List(primitive_types) => todo!(),
+                _ => todo!(),
+            },
+        }
+    }).collect::<Vec<_>>();
+    NodeTemplate {
+        template_id: template_string_id,
+        name: template.tag.name.clone(),
+        field_templates,
+        slot_templates,
+        ..NodeTemplate::new(&template.tag.name)
+    }
+}
 
-// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-// pub struct AddToSlotMutationDescriptor {}
-// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-// pub struct RemoveFromSlotMutationDescriptor {}
+pub(crate) fn rgso_to_canvas_template_with_slots(
+    item: &RGSOConcrete<OperativeConcrete, Schema>,
+    schema: &RGSOConcrete<SchemaConcrete, Schema>,
+) -> NodeTemplate {
+    let template_string_id = uuid::Uuid::from_u128(item.get_id().clone()).to_string();
+    let slot_templates = item
+        .get_roottemplate_slot()
+        .get_templateslots_slot()
+        .into_iter()
+        .map(|slot| {
+            let slot_string_id = uuid::Uuid::from_u128(slot.get_id().clone()).to_string();
+            let allowed_connections = match &slot.get_templateslotvariant_slot() {
+                TemplateSlotTypeVariantTraitObject::TemplateSlotTypeTraitOperative(rgsoconcrete) => {
+                    // let traits = rgsoconcrete.get_allowedtraits_slot().iter().map(|trait_item| trait_item.get_id()).collect::<Vec<_>>();
+                    get_all_operatives_which_impl_trait_set(rgsoconcrete.get_allowedtraits_slot(), schema).into_iter().map(|item| item.get_name()).collect::<Vec<_>>()
+                },
+                TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(rgsoconcrete) => vec![rgsoconcrete.get_allowedoperative_slot().get_name()],
+                TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(rgsoconcrete) => rgsoconcrete.get_allowedoperatives_slot().iter().map(|item| item.get_name()).collect::<Vec<_>>(),
+            };
+            SlotTemplate {
+                id: slot_string_id,
+                name: slot.get_name(),
+                position: SlotPosition::Right,
+                slot_type: SlotType::Outgoing,
+                can_modify_connections: true,
+                allowed_connections,
+                min_connections: match slot.get_slotcardinality_slot() {
+                    TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRangeOrZero(_rgsoconcrete) => 0,
+                    TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBoundOrZero(_rgsoconcrete) => 0,
+                    TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRange(rgsoconcrete) => rgsoconcrete.get_lower_bound_field() as usize,
+                    TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBound(rgsoconcrete) => rgsoconcrete.get_lower_bound_field() as usize,
+                    TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalitySingle(_rgsoconcrete) => 1,
+                },
+                max_connections: match slot.get_slotcardinality_slot() {
+                    TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRangeOrZero(rgsoconcrete) => Some(rgsoconcrete.get_upper_bound_field() as usize),
+                    TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBoundOrZero(_rgsoconcrete) => None,
+                    TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRange(rgsoconcrete) => Some(rgsoconcrete.get_upper_bound_field() as usize),
+                    TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBound(_rgsoconcrete) => None,
+                    TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalitySingle(_rgsoconcrete) => Some(1),
+                },
+            }
+        })
+        .collect();
+    NodeTemplate {
+        template_id: template_string_id,
+        name: item.get_name_field().clone(),
+        slot_templates,
+        ..NodeTemplate::new(&item.get_name_field())
+    }
+}
 
-// #[derive(Clone, PartialEq, Eq, Debug, Hash)]
-// pub enum ExecVal {
-//     Bool,
-//     String,
-//     Int,
-//     SingleOperative {
-//         allowed_operative: RGSOConcrete<OperativeConcrete, Schema>,
-//     },
-//     MultiOperative {
-//         allowed_operatives: Vec<RGSOConcrete<OperativeConcrete, Schema>>,
-//     },
-//     TraitOperative {
-//         required_traits: Vec<RGSOConcrete<TraitConcrete, Schema>>,
-//     },
-//     CollectionBool,
-//     CollectionString,
-//     CollectionInt,
-//     CollectionSingleOperative {
-//         allowed_operative: RGSOConcrete<OperativeConcrete, Schema>,
-//     },
-//     CollectionMultiOperative {
-//         allowed_operatives: Vec<RGSOConcrete<OperativeConcrete, Schema>>,
-//     },
-//     CollectionTraitOperative {
-//         required_traits: Vec<RGSOConcrete<TraitConcrete, Schema>>,
-//     },
-// }
-
-// // impl ExecVal {
-// //     pub fn from_io_object(
-// //         io_object: GetNameFunctionIOTraitObject,
-// //         impling_operative: RGSOConcrete<OperativeConcrete, Schema>,
-// //     ) -> Self {
-// //         match io_object {
-// //             GetNameFunctionIOTraitObject::FunctionIOCollectionPrimitiveBool(_) => {
-// //                 ExecVal::CollectionBool
-// //             }
-// //             GetNameFunctionIOTraitObject::FunctionIOSingleOperative(item) => {
-// //                 ExecVal::SingleOperative {
-// //                     allowed_operative: item.get_allowedoperative_slot(),
-// //                 }
-// //             }
-// //             GetNameFunctionIOTraitObject::FunctionIOPrimitiveBool(_) => ExecVal::Bool,
-// //             GetNameFunctionIOTraitObject::FunctionIOCollectionMultiOperative(item) => {
-// //                 ExecVal::CollectionMultiOperative {
-// //                     allowed_operatives: item.get_allowedoperatives_slot(),
-// //                 }
-// //             }
-// //             GetNameFunctionIOTraitObject::FunctionIOCollectionTraitOperative(item) => {
-// //                 ExecVal::CollectionTraitOperative {
-// //                     required_traits: item.get_requiredtraits_slot(),
-// //                 }
-// //             }
-// //             GetNameFunctionIOTraitObject::FunctionIOCollectionPrimitiveString(_) => {
-// //                 ExecVal::CollectionString
-// //             }
-// //             GetNameFunctionIOTraitObject::FunctionIOTraitOperative(item) => {
-// //                 ExecVal::TraitOperative {
-// //                     required_traits: item.get_requiredtraits_slot(),
-// //                 }
-// //             }
-// //             GetNameFunctionIOTraitObject::FunctionIOSelf(_) => ExecVal::SingleOperative {
-// //                 allowed_operative: impling_operative,
-// //             },
-// //             GetNameFunctionIOTraitObject::FunctionIOCollectionSingleOperative(item) => {
-// //                 ExecVal::CollectionSingleOperative {
-// //                     allowed_operative: item.get_allowedoperative_slot(),
-// //                 }
-// //             }
-// //             GetNameFunctionIOTraitObject::FunctionIOPrimitiveInt(_) => ExecVal::Int,
-// //             GetNameFunctionIOTraitObject::FunctionIOMultiOperative(item) => {
-// //                 ExecVal::MultiOperative {
-// //                     allowed_operatives: item.get_allowedoperatives_slot(),
-// //                 }
-// //             }
-// //             GetNameFunctionIOTraitObject::FunctionIOPrimitiveString(_) => ExecVal::String,
-// //             GetNameFunctionIOTraitObject::FunctionIOCollectionPrimitiveInt(_) => {
-// //                 ExecVal::CollectionInt
-// //             }
-// //         }
-// //     }
-// //     fn get_allowed_next_steps(&self) -> Vec<ExecutionStepsDiscriminants> {
-// //         match self {
-// //             ExecVal::Bool => todo!(),
-// //             ExecVal::String => todo!(),
-// //             ExecVal::Int => todo!(),
-// //             ExecVal::SingleOperative { allowed_operative } => todo!(),
-// //             ExecVal::MultiOperative { allowed_operatives } => todo!(),
-// //             ExecVal::TraitOperative { required_traits } => todo!(),
-// //             ExecVal::CollectionBool => todo!(),
-// //             ExecVal::CollectionString => todo!(),
-// //             ExecVal::CollectionInt => todo!(),
-// //             ExecVal::CollectionSingleOperative { allowed_operative } => todo!(),
-// //             ExecVal::CollectionMultiOperative { allowed_operatives } => todo!(),
-// //             ExecVal::CollectionTraitOperative { required_traits } => todo!(),
-// //         }
-// //     }
-// // }
-// // impl From<ImplIOTraitObject> for ExecVal {
-// //     fn from(value: ImplIOTraitObject) -> Self {
-// //         match value {
-// //             ImplIOTraitObject::ImplCollectionPrimitiveInt(_) => ExecVal::CollectionInt,
-// //             ImplIOTraitObject::ImplIntermediateMultiOperative(item) => ExecVal::MultiOperative {
-// //                 allowed_operatives: item.get_allowedoperatives_slot(),
-// //             },
-// //             ImplIOTraitObject::ImplIntermediatePrimitiveBool(_) => ExecVal::Bool,
-// //             ImplIOTraitObject::ImplIntermediatePrimitiveInt(_) => ExecVal::Int,
-// //             ImplIOTraitObject::ImplIntermediatePrimitiveString(_) => ExecVal::String,
-// //             ImplIOTraitObject::ImpCollectionMultiOperative(item) => {
-// //                 ExecVal::CollectionMultiOperative {
-// //                     allowed_operatives: item.get_allowedoperatives_slot(),
-// //                 }
-// //             }
-// //             ImplIOTraitObject::ImplIntermediateSingleOperative(item) => ExecVal::SingleOperative {
-// //                 allowed_operative: item.get_allowedoperative_slot(),
-// //             },
-// //             ImplIOTraitObject::ImplCollectionTraitOperative(item) => {
-// //                 ExecVal::CollectionTraitOperative {
-// //                     required_traits: item.get_requiredtraits_slot(),
-// //                 }
-// //             }
-// //             ImplIOTraitObject::ImplCollectionSingleOperative(item) => {
-// //                 ExecVal::CollectionSingleOperative {
-// //                     allowed_operative: item.get_allowedoperative_slot(),
-// //                 }
-// //             }
-// //             ImplIOTraitObject::ImplCollectionPrimitiveString(_) => ExecVal::CollectionString,
-// //             ImplIOTraitObject::ImplIntermediateTraitOperative(item) => ExecVal::TraitOperative {
-// //                 required_traits: item.get_requiredtraits_slot(),
-// //             },
-// //             ImplIOTraitObject::ImplCollectionPrimitiveBool(_) => ExecVal::CollectionBool,
-// //         }
-// //     }
-// // }
-
-// #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-// pub enum ExecValPrimitives {
-//     Bool,
-//     String,
-//     Int,
-// }
-
-// // impl From<ExecValPrimitives> for ExecVal {
-// //     fn from(value: ExecValPrimitives) -> Self {
-// //         match value {
-// //             ExecValPrimitives::Bool => ExecVal::Bool,
-// //             ExecValPrimitives::String => ExecVal::String,
-// //             ExecValPrimitives::Int => ExecVal::Int,
-// //         }
-// //     }
-// // }
-
-// // #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-// // pub enum ExecValCollections {
-// //     CollectionBool,
-// //     CollectionString,
-// //     CollectionInt,
-// //     CollectionSingleOperative {
-// //         allowed_operative: RGSOConcrete<OperativeConcrete, Schema>,
-// //     },
-// //     CollectionMultiOperative {
-// //         allowed_operatives: Vec<RGSOConcrete<OperativeConcrete, Schema>>,
-// //     },
-// //     CollectionTraitOperative {
-// //         required_traits: Vec<RGSOConcrete<TraitConcrete, Schema>>,
-// //     },
-// // }
-
-// // impl From<ExecValCollections> for ExecVal {
-// //     fn from(value: ExecValCollections) -> Self {
-// //         match value {
-// //             ExecValCollections::CollectionBool => ExecVal::CollectionBool,
-// //             ExecValCollections::CollectionString => ExecVal::CollectionString,
-// //             ExecValCollections::CollectionInt => ExecVal::CollectionInt,
-// //             ExecValCollections::CollectionSingleOperative { allowed_operative } => {
-// //                 ExecVal::CollectionSingleOperative { allowed_operative }
-// //             }
-// //             ExecValCollections::CollectionMultiOperative { allowed_operatives } => {
-// //                 ExecVal::CollectionMultiOperative { allowed_operatives }
-// //             }
-// //             ExecValCollections::CollectionTraitOperative { required_traits } => {
-// //                 ExecVal::CollectionTraitOperative { required_traits }
-// //             }
-// //         }
-// //     }
-// // }
-
-// fn map_fninput_to_impldata(
-//     input: FunctionInputVariantTraitObjectDiscriminants,
-// ) -> Option<ImplDataVariantTraitObjectDiscriminants> {
-//     match input {
-//         FunctionInputVariantTraitObjectDiscriminants::ImplDataMultiOperative => {
-//             Some(ImplDataVariantTraitObjectDiscriminants::ImplDataMultiOperative)
-//         }
-//         FunctionInputVariantTraitObjectDiscriminants::FunctionIOSelf => None,
-//         FunctionInputVariantTraitObjectDiscriminants::ImplDataBool => {
-//             Some(ImplDataVariantTraitObjectDiscriminants::ImplDataBool)
-//         }
-//         FunctionInputVariantTraitObjectDiscriminants::ImplDataInt => {
-//             Some(ImplDataVariantTraitObjectDiscriminants::ImplDataInt)
-//         }
-//         FunctionInputVariantTraitObjectDiscriminants::ImplDataString => {
-//             Some(ImplDataVariantTraitObjectDiscriminants::ImplDataString)
-//         }
-//         FunctionInputVariantTraitObjectDiscriminants::ImplDataCollection => {
-//             Some(ImplDataVariantTraitObjectDiscriminants::ImplDataCollection)
-//         }
-//         FunctionInputVariantTraitObjectDiscriminants::ImplDataSingleOperative => {
-//             Some(ImplDataVariantTraitObjectDiscriminants::ImplDataSingleOperative)
-//         }
-//         FunctionInputVariantTraitObjectDiscriminants::ImplDataTraitOperative => {
-//             Some(ImplDataVariantTraitObjectDiscriminants::ImplDataTraitOperative)
-//         }
-//     }
-// }
+pub(crate) fn rgso_operative_to_canvas_template(
+    item: &RGSOConcrete<OperativeConcrete, Schema>,
+) -> NodeTemplate {
+    let template_string_id = uuid::Uuid::from_u128(item.get_id().clone()).to_string();
+    NodeTemplate {
+        template_id: template_string_id,
+        name: item.get_name_field().clone(),
+        slot_templates: vec![],
+        ..NodeTemplate::new(&item.get_name_field())
+    }
+}
+pub(crate) fn rgso_trait_to_canvas_template(
+    item: &RGSOConcrete<TraitConcrete, Schema>,
+) -> NodeTemplate {
+    let template_string_id = uuid::Uuid::from_u128(item.get_id().clone()).to_string();
+    NodeTemplate {
+        template_id: template_string_id,
+        name: item.get_name_field().clone(),
+        slot_templates: vec![],
+        ..NodeTemplate::new(&item.get_name_field())
+    }
+}

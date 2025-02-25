@@ -45,27 +45,29 @@ impl Into<ImplDataVariantTraitObjectDiscriminants> for InputOutputOptions {
     }
 }
 
-fn into_most_generic(item: ImplDataVariantTraitObject) -> FunctionInputVariantTraitObject {
+fn into_most_generic(
+    item: ImplDataVariantMinusManualsTraitObject,
+) -> FunctionInputVariantTraitObject {
     match item {
-        ImplDataVariantTraitObject::ImplDataMultiOperative(item) => {
+        ImplDataVariantMinusManualsTraitObject::ImplDataMultiOperative(item) => {
             FunctionInputVariantTraitObject::ImplDataMultiOperative(item)
         }
-        ImplDataVariantTraitObject::ImplDataBool(item) => {
+        ImplDataVariantMinusManualsTraitObject::ImplDataBool(item) => {
             FunctionInputVariantTraitObject::ImplDataBool(item)
         }
-        ImplDataVariantTraitObject::ImplDataInt(item) => {
+        ImplDataVariantMinusManualsTraitObject::ImplDataInt(item) => {
             FunctionInputVariantTraitObject::ImplDataInt(item)
         }
-        ImplDataVariantTraitObject::ImplDataString(item) => {
+        ImplDataVariantMinusManualsTraitObject::ImplDataString(item) => {
             FunctionInputVariantTraitObject::ImplDataString(item)
         }
-        ImplDataVariantTraitObject::ImplDataSingleOperative(item) => {
+        ImplDataVariantMinusManualsTraitObject::ImplDataSingleOperative(item) => {
             FunctionInputVariantTraitObject::ImplDataSingleOperative(item)
         }
-        ImplDataVariantTraitObject::ImplDataTraitOperative(item) => {
+        ImplDataVariantMinusManualsTraitObject::ImplDataTraitOperative(item) => {
             FunctionInputVariantTraitObject::ImplDataTraitOperative(item)
         }
-        ImplDataVariantTraitObject::ImplDataCollection(item) => {
+        ImplDataVariantMinusManualsTraitObject::ImplDataCollection(item) => {
             FunctionInputVariantTraitObject::ImplDataCollection(item)
         }
     }
