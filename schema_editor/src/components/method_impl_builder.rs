@@ -1,6 +1,7 @@
 use crate::components::method_impl_utils::{
-    constraint_template_to_canvas_template, rgso_operative_to_canvas_template,
-    rgso_trait_to_canvas_template,
+    constraint_template_to_canvas_template, create_functioninput_complex,
+    create_functionoutput_complex, rgso_operative_to_canvas_template,
+    rgso_trait_to_canvas_template, setup_existing_fn_impl_in_canvas,
 };
 use crate::components::workspace::WorkspaceState;
 use crate::components::{common::*, graph_editor::GraphEditor};
@@ -28,7 +29,7 @@ pub fn MethodImplementationBuilder(
     on_cancel: Callback<()>,
     #[prop(optional)] initial_state: Option<RGSOConcrete<MethodImplementation, Schema>>,
 ) -> impl IntoView {
-    let WorkspaceState { schema, .. } = use_context::<WorkspaceState>().unwrap();
+    let WorkspaceState { .. } = use_context::<WorkspaceState>().unwrap();
     let ctx = use_context::<SharedGraph<Schema>>().unwrap();
     let ctx_clone = ctx.clone();
 
@@ -42,27 +43,11 @@ pub fn MethodImplementationBuilder(
             .set_temp_id("new_fn_impl")
             .add_existing_definition(fn_def_clone.get_id(), |na| na)
             .add_existing_implementor(operative_clone.get_id(), |na| na)
+            // .add_
             // .add_new_inititialsteps(|init_step| init_step.add_existing_input(existing_item_id, builder_closure))
             .set_name(func_impl_name.get());
         on_save.run(Box::new(hairy_boy));
     };
-
-    // let step_lists =
-    //     RwSignal::<Vec<RwSignal<Vec<ExecutionSteps>>>>::new(vec![RwSignal::new(vec![])]);
-
-    // If this is editing an existing impl, set the local signals to match the existing signal at the start
-    if let Some(initial_state) = initial_state {
-        func_impl_name.set(initial_state.get_name());
-    } else {
-        func_impl_name.set("testing here".to_string());
-        // todo!()
-        // let initial_steps = fn_def_clone
-        //     .get_inputs_slot()
-        //     .into_iter()
-        //     .map(|input| RwSignal::new(vec![ExecutionSteps::MapFromInput { input: input }]))
-        //     .collect::<Vec<_>>();
-        // step_lists.set(initial_steps);
-    }
 
     let canvas_config = {
         let mut all_templates = vec![];
@@ -106,7 +91,7 @@ pub fn MethodImplementationBuilder(
             .map(|step| {
                 let int_uid: u128 = u128::from_str(step.get_str("template_id").unwrap()).unwrap();
                 let template = CONSTRAINT_SCHEMA.template_library.get(&int_uid).unwrap();
-                constraint_template_to_canvas_template(template)
+                constraint_template_to_canvas_template(template, true)
             })
             .collect::<Vec<_>>();
         let step_template_names = step_templates
@@ -121,7 +106,7 @@ pub fn MethodImplementationBuilder(
                 let int_uid: u128 =
                     u128::from_str(impl_data.get_str("template_id").unwrap()).unwrap();
                 let template = CONSTRAINT_SCHEMA.template_library.get(&int_uid).unwrap();
-                let mut canvas_template = constraint_template_to_canvas_template(template);
+                let mut canvas_template = constraint_template_to_canvas_template(template, true);
                 match impl_data {
                     ImplDataVariantTraitObjectDiscriminants::ImplDataMultiOperative => {
                         canvas_template
@@ -160,7 +145,8 @@ pub fn MethodImplementationBuilder(
         let impl_data_constraint = CONSTRAINT_SCHEMA
             .get_template_by_operative_id(&ImplData::get_operative_id())
             .unwrap();
-        let mut impl_data_template = constraint_template_to_canvas_template(&impl_data_constraint);
+        let mut impl_data_template =
+            constraint_template_to_canvas_template(&impl_data_constraint, false);
         // Manually remove downstream and upstream slots so as to simplify interface
         impl_data_template
             .slot_templates
@@ -173,12 +159,14 @@ pub fn MethodImplementationBuilder(
             .unwrap();
         all_templates.push(constraint_template_to_canvas_template(
             &function_io_constraint,
+            false,
         ));
 
         let function_input_constraint = CONSTRAINT_SCHEMA
             .get_template_by_operative_id(&FunctionInput::get_operative_id())
             .unwrap();
-        let mut function_input = constraint_template_to_canvas_template(&function_input_constraint);
+        let mut function_input =
+            constraint_template_to_canvas_template(&function_input_constraint, false);
         function_input.can_create = false;
         function_input.can_modify_slots = false;
         function_input.can_delete = false;
@@ -188,7 +176,7 @@ pub fn MethodImplementationBuilder(
             .get_template_by_operative_id(&FunctionOutput::get_operative_id())
             .unwrap();
         let mut function_output =
-            constraint_template_to_canvas_template(&function_output_constraint);
+            constraint_template_to_canvas_template(&function_output_constraint, false);
         function_output.can_create = false;
         function_output.can_delete = false;
         function_output.can_modify_slots = false;
@@ -222,174 +210,154 @@ pub fn MethodImplementationBuilder(
         ];
 
         let mut initial_nodes = vec![];
-        fn_def
-            .get_inputs_slot()
-            .into_iter()
-            .enumerate()
-            .for_each(|(i, input)| {
-                let template_name = match input.get_type_slot() {
-                    FunctionInputVariantTraitObject::ImplDataMultiOperative(rgsoconcrete) => {
-                        rgsoconcrete.operative().tag.name.clone()
-                    }
-                    FunctionInputVariantTraitObject::FunctionIOSelf(_rgsoconcrete) => {
-                        operative.get_name().clone()
-                    }
-                    FunctionInputVariantTraitObject::ImplDataBool(rgsoconcrete) => {
-                        rgsoconcrete.operative().tag.name.clone()
-                    }
-                    FunctionInputVariantTraitObject::ImplDataInt(rgsoconcrete) => {
-                        rgsoconcrete.operative().tag.name.clone()
-                    }
-                    FunctionInputVariantTraitObject::ImplDataString(rgsoconcrete) => {
-                        rgsoconcrete.operative().tag.name.clone()
-                    }
-                    FunctionInputVariantTraitObject::ImplDataCollection(rgsoconcrete) => {
-                        rgsoconcrete.operative().tag.name.clone()
-                    }
-                    FunctionInputVariantTraitObject::ImplDataSingleOperative(rgsoconcrete) => {
-                        rgsoconcrete.operative().tag.name.clone()
-                    }
-                    FunctionInputVariantTraitObject::ImplDataTraitOperative(rgsoconcrete) => {
-                        rgsoconcrete.operative().tag.name.clone()
-                    }
-                };
-                let function_input_id = "FunctionInput".to_string() + &i.to_string();
-                let data_node_id = "DataNode".to_string() + &i.to_string();
-                let connection_node_id = "InputConnectionNode".to_string() + &i.to_string();
-                let type_id = "DataNodeType".to_string() + &i.to_string();
-                initial_nodes.push(InitialNode {
-                    template_name: CONSTRAINT_SCHEMA
-                        .get_operative_by_id(&FunctionInput::get_operative_id())
-                        .unwrap()
-                        .tag
-                        .name,
-                    x: 20.0,
-                    y: 20.0 + (40.0 * i as f64),
-                    can_delete: false,
-                    can_move: true,
-                    initial_connections: vec![],
-                    id: Some(function_input_id.clone()),
-                });
-                initial_nodes.push(InitialNode {
-                    template_name: CONSTRAINT_SCHEMA
-                        .get_operative_by_id(&ImplStepMapFromInput::get_operative_id())
-                        .unwrap()
-                        .tag
-                        .name,
-                    x: 60.0,
-                    y: 20.0 + (40.0 * i as f64),
-                    can_delete: false,
-                    can_move: true,
-                    initial_connections: vec![
-                        InitialConnection {
-                            host_slot_name: "Input".to_string(),
-                            target_instance_id: function_input_id.clone(),
-                            can_delete: false,
-                        },
-                        InitialConnection {
-                            host_slot_name: "Output".to_string(),
-                            target_instance_id: data_node_id.clone(),
-                            can_delete: false,
-                        },
-                    ],
-                    id: Some(connection_node_id.clone()),
-                });
-                initial_nodes.push(InitialNode {
-                    template_name: CONSTRAINT_SCHEMA
-                        .get_operative_by_id(&ImplData::get_operative_id())
-                        .unwrap()
-                        .tag
-                        .name,
-                    x: 100.0,
-                    y: 20.0 + (40.0 * i as f64),
-                    can_delete: false,
-                    can_move: true,
-                    initial_connections: vec![
-                        InitialConnection {
-                            host_slot_name: "UpstreamStep".to_string(),
-                            target_instance_id: connection_node_id.clone(),
-                            can_delete: false,
-                        },
-                        InitialConnection {
-                            host_slot_name: "DataType".to_string(),
-                            target_instance_id: type_id.clone(),
-                            can_delete: false,
-                        },
-                    ],
-                    id: Some(data_node_id.clone()),
-                });
-                initial_nodes.push(InitialNode {
-                    template_name,
-                    x: 140.0,
-                    y: 20.0 + (40.0 * i as f64),
-                    can_delete: false,
-                    can_move: true,
-                    initial_connections: vec![],
-                    id: Some(type_id.clone()),
-                });
-            });
+        // If this is editing an existing impl, set up the config to match the existing impl
+        if let Some(initial_state) = initial_state {
+            func_impl_name.set(initial_state.get_name());
+            initial_nodes = setup_existing_fn_impl_in_canvas(&initial_state);
+        }
+        // Otherwise set it up with just the inputs and outputs
+        else {
+            func_impl_name.set("testing here".to_string());
+            fn_def
+                .get_inputs_slot()
+                .into_iter()
+                .enumerate()
+                .for_each(|(i, input)| {
+                    let template_name = match input.get_type_slot() {
+                        FunctionInputVariantTraitObject::ImplDataMultiOperative(rgsoconcrete) => {
+                            rgsoconcrete.operative().tag.name.clone()
+                        }
+                        FunctionInputVariantTraitObject::FunctionIOSelf(_rgsoconcrete) => {
+                            operative.get_name().clone()
+                        }
+                        FunctionInputVariantTraitObject::ImplDataBool(rgsoconcrete) => {
+                            rgsoconcrete.operative().tag.name.clone()
+                        }
+                        FunctionInputVariantTraitObject::ImplDataInt(rgsoconcrete) => {
+                            rgsoconcrete.operative().tag.name.clone()
+                        }
+                        FunctionInputVariantTraitObject::ImplDataString(rgsoconcrete) => {
+                            rgsoconcrete.operative().tag.name.clone()
+                        }
+                        FunctionInputVariantTraitObject::ImplDataCollection(rgsoconcrete) => {
+                            rgsoconcrete.operative().tag.name.clone()
+                        }
+                        FunctionInputVariantTraitObject::ImplDataSingleOperative(rgsoconcrete) => {
+                            rgsoconcrete.operative().tag.name.clone()
+                        }
+                        FunctionInputVariantTraitObject::ImplDataTraitOperative(rgsoconcrete) => {
+                            rgsoconcrete.operative().tag.name.clone()
+                        }
+                    };
+                    let function_input_id = uuid::Uuid::from_u128(*input.get_id()).to_string();
+                    let data_node_id = "DataNode".to_string() + &i.to_string();
+                    let connection_node_id = "InputConnectionNode".to_string() + &i.to_string();
+                    let type_id = "DataNodeType".to_string() + &i.to_string();
 
-        fn_def
-            .get_outputs_slot()
-            .into_iter()
-            .enumerate()
-            .for_each(|(i, output)| {
-                // let template_name = match output.get_type_slot() {
-                //     ImplDataVariantTraitObject::ImplDataMultiOperative(rgsoconcrete) => {
-                //         rgsoconcrete.operative().tag.name.clone()
-                //     }
-                //     ImplDataVariantTraitObject::ImplDataBool(rgsoconcrete) => {
-                //         rgsoconcrete.operative().tag.name.clone()
-                //     }
-                //     ImplDataVariantTraitObject::ImplDataInt(rgsoconcrete) => {
-                //         rgsoconcrete.operative().tag.name.clone()
-                //     }
-                //     ImplDataVariantTraitObject::ImplDataString(rgsoconcrete) => {
-                //         rgsoconcrete.operative().tag.name.clone()
-                //     }
-                //     ImplDataVariantTraitObject::ImplDataCollection(rgsoconcrete) => {
-                //         rgsoconcrete.operative().tag.name.clone()
-                //     }
-                //     ImplDataVariantTraitObject::ImplDataSingleOperative(rgsoconcrete) => {
-                //         rgsoconcrete.operative().tag.name.clone()
-                //     }
-                //     ImplDataVariantTraitObject::ImplDataTraitOperative(rgsoconcrete) => {
-                //         rgsoconcrete.operative().tag.name.clone()
-                //     }
-                // };
-                let function_output_id = "FunctionOutput".to_string() + &i.to_string();
-                let connection_node_id = "OutputConnectionNode".to_string() + &i.to_string();
-                initial_nodes.push(InitialNode {
-                    template_name: CONSTRAINT_SCHEMA
-                        .get_operative_by_id(&FunctionOutput::get_operative_id())
-                        .unwrap()
-                        .tag
-                        .name,
-                    x: 20.0,
-                    y: 20.0 + (40.0 * i as f64),
-                    can_delete: false,
-                    can_move: true,
-                    initial_connections: vec![],
-                    id: Some(function_output_id.clone()),
-                });
-                initial_nodes.push(InitialNode {
-                    template_name: CONSTRAINT_SCHEMA
-                        .get_operative_by_id(&ImplStepMapToOutput::get_operative_id())
-                        .unwrap()
-                        .tag
-                        .name,
-                    x: 60.0,
-                    y: 20.0 + (40.0 * i as f64),
-                    can_delete: false,
-                    can_move: true,
-                    initial_connections: vec![InitialConnection {
-                        host_slot_name: "Output".to_string(),
-                        target_instance_id: function_output_id.clone(),
+                    let input_node_complex = create_functioninput_complex(input.clone());
+                    initial_nodes.extend(input_node_complex);
+                    initial_nodes.push(InitialNode {
+                        template_name: CONSTRAINT_SCHEMA
+                            .get_operative_by_id(&ImplStepMapFromInput::get_operative_id())
+                            .unwrap()
+                            .tag
+                            .name,
+                        x: 60.0,
+                        y: 20.0 + (40.0 * i as f64),
                         can_delete: false,
-                    }],
-                    id: Some(connection_node_id.clone()),
+                        can_move: true,
+                        initial_connections: vec![
+                            InitialConnection {
+                                host_slot_name: "Input".to_string(),
+                                target_instance_id: function_input_id.clone(),
+                                can_delete: false,
+                            },
+                            InitialConnection {
+                                host_slot_name: "Output".to_string(),
+                                target_instance_id: data_node_id.clone(),
+                                can_delete: false,
+                            },
+                        ],
+                        id: Some(connection_node_id.clone()),
+                        initial_field_values: vec![],
+                    });
+                    initial_nodes.push(InitialNode {
+                        template_name: CONSTRAINT_SCHEMA
+                            .get_operative_by_id(&ImplData::get_operative_id())
+                            .unwrap()
+                            .tag
+                            .name,
+                        x: 100.0,
+                        y: 20.0 + (40.0 * i as f64),
+                        can_delete: false,
+                        can_move: true,
+                        initial_connections: vec![
+                            InitialConnection {
+                                host_slot_name: "UpstreamStep".to_string(),
+                                target_instance_id: connection_node_id.clone(),
+                                can_delete: false,
+                            },
+                            InitialConnection {
+                                host_slot_name: "DataType".to_string(),
+                                target_instance_id: type_id.clone(),
+                                can_delete: false,
+                            },
+                        ],
+                        id: Some(data_node_id.clone()),
+                        initial_field_values: vec![],
+                    });
+                    initial_nodes.push(InitialNode {
+                        template_name,
+                        x: 140.0,
+                        y: 20.0 + (40.0 * i as f64),
+                        can_delete: false,
+                        can_move: true,
+                        initial_connections: vec![],
+                        id: Some(type_id.clone()),
+                        initial_field_values: vec![],
+                    });
                 });
-            });
+
+            fn_def
+                .get_outputs_slot()
+                .into_iter()
+                .enumerate()
+                .for_each(|(i, output)| {
+                    let function_output_id = uuid::Uuid::from_u128(*output.get_id()).to_string();
+                    let connection_node_id = "OutputConnectionNode".to_string() + &i.to_string();
+                    let output_node_complex = create_functionoutput_complex(output.clone());
+                    initial_nodes.extend(output_node_complex);
+                    initial_nodes.push(InitialNode {
+                        template_name: CONSTRAINT_SCHEMA
+                            .get_operative_by_id(&ImplStepMapToOutput::get_operative_id())
+                            .unwrap()
+                            .tag
+                            .name,
+                        x: 60.0,
+                        y: 20.0 + (40.0 * i as f64),
+                        can_delete: false,
+                        can_move: true,
+                        initial_connections: vec![InitialConnection {
+                            host_slot_name: "Output".to_string(),
+                            target_instance_id: function_output_id.clone(),
+                            can_delete: false,
+                        }],
+                        id: Some(connection_node_id.clone()),
+                        initial_field_values: vec![],
+                    });
+                });
+        }
+        leptos::logging::log!(
+            "{:#?}",
+            GraphCanvasConfig {
+                node_templates: all_templates.clone(),
+                initial_nodes: initial_nodes.clone(),
+                template_groups: template_groups.clone(),
+                ..GraphCanvasConfig::new()
+            }
+        );
+
+        // TODO: Make sure all nodes are correctly initialized for inputs and outputs when starting fresh (e.g. recursive collections)
 
         GraphCanvasConfig {
             node_templates: all_templates,
@@ -398,7 +366,6 @@ pub fn MethodImplementationBuilder(
             ..GraphCanvasConfig::new()
         }
     };
-
     let fn_def_clone = fn_def.clone();
     let operative_clone = operative.clone();
     view! {

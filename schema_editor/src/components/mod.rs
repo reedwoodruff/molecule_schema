@@ -8,6 +8,7 @@ pub mod instance_editor;
 pub mod main_list;
 pub mod method_impl_builder;
 pub mod method_impl_step_builder;
+pub mod method_impl_traversal_utils;
 pub mod method_impl_utils;
 pub mod operative_editor;
 pub mod operative_function_implementations;

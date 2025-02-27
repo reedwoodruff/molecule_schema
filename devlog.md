@@ -525,3 +525,6 @@ But as for this phase, it will make things a lot more ergonomic to just use the 
 - FalseBranch
 - Output
 All of them will connect normally to the wider graph. TrueBranch/FalseBranch slots just require a single node each of the same type as the Output, and it will poll normally through the data dependencies of the graph.
+
+## February 27, 2025
+Probably worth adding some explicit description/documentation fields for slots when building schemas
