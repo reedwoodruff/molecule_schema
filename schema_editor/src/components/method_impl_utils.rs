@@ -352,7 +352,8 @@ fn generate_impldata_complex(impl_data_node: &RGSOConcrete<ImplData, Schema>) ->
 
     let data_type = impl_data_node.get_datatype_slot();
 
-    let additional_nodes = generate_impldatavariant_complex(data_type, &mut data_node, "DataType");
+    let additional_nodes =
+        generate_impldatavariant_complex(data_type, &mut data_node, "DataType", false);
 
     initial_nodes.extend(additional_nodes);
     initial_nodes.push(data_node);
@@ -363,17 +364,26 @@ fn generate_impldatavariant_complex(
     impl_data_type: ImplDataVariantTraitObject,
     node_to_connect: &mut InitialNode,
     slot_name: &str,
+    use_new_ids: bool,
 ) -> Vec<InitialNode> {
     let mut initial_nodes = vec![];
 
     match impl_data_type {
         ImplDataVariantTraitObject::ImplDataMultiOperative(datatype) => {
             let mut data_type_node = InitialNode::new(datatype.operative().tag.name.clone());
-            data_type_node.id = Some(Uuid::from_u128(*datatype.get_id()).to_string());
+            data_type_node.id = if use_new_ids {
+                Some(Uuid::new_v4().to_string())
+            } else {
+                Some(Uuid::from_u128(*datatype.get_id()).to_string())
+            };
             let allowed_ops = datatype.get_allowedoperatives_slot();
             allowed_ops.iter().for_each(|allowed_op| {
-                let mut op_node = InitialNode::new(allowed_op.operative().tag.name.clone());
-                op_node.id = Some(Uuid::from_u128(*allowed_op.get_id()).to_string());
+                let mut op_node = InitialNode::new(allowed_op.get_name().clone());
+                op_node.id = if use_new_ids {
+                    Some(Uuid::new_v4().to_string())
+                } else {
+                    Some(Uuid::from_u128(*allowed_op.get_id()).to_string())
+                };
                 data_type_node.initial_connections.push(InitialConnection {
                     host_slot_name: "AllowedOperatives".to_string(),
                     target_instance_id: op_node.id.clone().unwrap(),
@@ -390,7 +400,11 @@ fn generate_impldatavariant_complex(
         }
         ImplDataVariantTraitObject::ImplDataBool(datatype) => {
             let mut data_type_node = InitialNode::new(datatype.operative().tag.name.clone());
-            data_type_node.id = Some(Uuid::from_u128(*datatype.get_id()).to_string());
+            data_type_node.id = if use_new_ids {
+                Some(Uuid::new_v4().to_string())
+            } else {
+                Some(Uuid::from_u128(*datatype.get_id()).to_string())
+            };
             node_to_connect.initial_connections.push(InitialConnection {
                 can_delete: true,
                 host_slot_name: slot_name.to_string(),
@@ -400,7 +414,11 @@ fn generate_impldatavariant_complex(
         }
         ImplDataVariantTraitObject::ImplDataInt(datatype) => {
             let mut data_type_node = InitialNode::new(datatype.operative().tag.name.clone());
-            data_type_node.id = Some(Uuid::from_u128(*datatype.get_id()).to_string());
+            data_type_node.id = if use_new_ids {
+                Some(Uuid::new_v4().to_string())
+            } else {
+                Some(Uuid::from_u128(*datatype.get_id()).to_string())
+            };
             node_to_connect.initial_connections.push(InitialConnection {
                 can_delete: true,
                 host_slot_name: slot_name.to_string(),
@@ -410,7 +428,11 @@ fn generate_impldatavariant_complex(
         }
         ImplDataVariantTraitObject::ImplDataString(datatype) => {
             let mut data_type_node = InitialNode::new(datatype.operative().tag.name.clone());
-            data_type_node.id = Some(Uuid::from_u128(*datatype.get_id()).to_string());
+            data_type_node.id = if use_new_ids {
+                Some(Uuid::new_v4().to_string())
+            } else {
+                Some(Uuid::from_u128(*datatype.get_id()).to_string())
+            };
             node_to_connect.initial_connections.push(InitialConnection {
                 can_delete: true,
                 host_slot_name: slot_name.to_string(),
@@ -420,7 +442,11 @@ fn generate_impldatavariant_complex(
         }
         ImplDataVariantTraitObject::ImplDataManualInt(datatype) => {
             let mut data_type_node = InitialNode::new(datatype.operative().tag.name.clone());
-            data_type_node.id = Some(Uuid::from_u128(*datatype.get_id()).to_string());
+            data_type_node.id = if use_new_ids {
+                Some(Uuid::new_v4().to_string())
+            } else {
+                Some(Uuid::from_u128(*datatype.get_id()).to_string())
+            };
             node_to_connect.initial_connections.push(InitialConnection {
                 can_delete: true,
                 host_slot_name: slot_name.to_string(),
@@ -444,7 +470,11 @@ fn generate_impldatavariant_complex(
         }
         ImplDataVariantTraitObject::ImplDataManualBool(datatype) => {
             let mut data_type_node = InitialNode::new(datatype.operative().tag.name.clone());
-            data_type_node.id = Some(Uuid::from_u128(*datatype.get_id()).to_string());
+            data_type_node.id = if use_new_ids {
+                Some(Uuid::new_v4().to_string())
+            } else {
+                Some(Uuid::from_u128(*datatype.get_id()).to_string())
+            };
             node_to_connect.initial_connections.push(InitialConnection {
                 can_delete: true,
                 host_slot_name: slot_name.to_string(),
@@ -468,48 +498,73 @@ fn generate_impldatavariant_complex(
         }
         ImplDataVariantTraitObject::ImplDataCollection(datatype) => {
             let mut data_type_node = InitialNode::new(datatype.operative().tag.name.clone());
-            data_type_node.id = Some(Uuid::from_u128(*datatype.get_id()).to_string());
+            data_type_node.id = if use_new_ids {
+                Some(Uuid::new_v4().to_string())
+            } else {
+                Some(Uuid::from_u128(*datatype.get_id()).to_string())
+            };
             node_to_connect.initial_connections.push(InitialConnection {
                 can_delete: true,
                 host_slot_name: slot_name.to_string(),
                 target_instance_id: data_type_node.id.clone().unwrap(),
             });
+            // let mut current_collection_node = data_type_node;
+            // let mut maybe_next_item = Some(datatype.get_collectiontype_slot());
+
+            // while let Some(next_item) = maybe_next_item {
+            // let mut next_item_node = InitialNode::new(next_item.operative().tag.name.clone());
+            let next_item_nodes = generate_impldatavariant_complex(
+                map_output_types_to_impldatavariant(datatype.get_collectiontype_slot()),
+                &mut data_type_node,
+                "CollectionType",
+                use_new_ids,
+            );
+
             initial_nodes.push(data_type_node.clone());
-            let mut current_collection_node = data_type_node;
-            let mut maybe_next_collection = Some(datatype.get_collectiontype_slot());
-            while let Some(next_collection) = maybe_next_collection {
-                let mut collection_type_node =
-                    InitialNode::new(next_collection.operative().tag.name.clone());
-                collection_type_node.id =
-                    Some(Uuid::from_u128(*next_collection.get_id()).to_string());
-                current_collection_node
-                    .initial_connections
-                    .push(InitialConnection {
-                        can_delete: true,
-                        host_slot_name: "CollectionType".to_string(),
-                        target_instance_id: collection_type_node.id.clone().unwrap(),
-                    });
-                initial_nodes.push(collection_type_node.clone());
-                match next_collection {
-                    ImplDataVariantMinusManualsTraitObject::ImplDataCollection(rgsoconcrete) => {
-                        maybe_next_collection =
-                            Some(ImplDataVariantMinusManualsTraitObject::ImplDataCollection(
-                                rgsoconcrete,
-                            ));
-                        current_collection_node = collection_type_node;
-                    }
-                    _ => maybe_next_collection = None,
-                }
-            }
+            initial_nodes.extend(next_item_nodes);
+            //     next_item_node.id = if use_new_ids {
+            //         Some(Uuid::new_v4().to_string())
+            //     } else {
+            //         Some(Uuid::from_u128(*next_item.get_id()).to_string())
+            //     };
+            //     initial_nodes
+            //         .iter_mut()
+            //         .find(|node| node.id == current_collection_node.id)
+            //         .expect("Just added node to initial_nodes")
+            //         .initial_connections
+            //         .push(InitialConnection {
+            //             can_delete: true,
+            //             host_slot_name: "CollectionType".to_string(),
+            //             target_instance_id: next_item_node.id.clone().unwrap(),
+            //         });
+            //     initial_nodes.push(next_item_node.clone());
+            //     match next_item {
+            //         ImplDataVariantMinusManualsTraitObject::ImplDataCollection(rgsoconcrete) => {
+            //             maybe_next_item = Some(rgsoconcrete.get_collectiontype_slot());
+            //             current_collection_node = next_item_node;
+            //         }
+            //         _ => {
+            //             maybe_next_item = None;
+            //         }
+            //     }
+            // }
         }
         ImplDataVariantTraitObject::ImplDataSingleOperative(datatype) => {
             let mut data_type_node = InitialNode::new(datatype.operative().tag.name.clone());
-            data_type_node.id = Some(Uuid::from_u128(*datatype.get_id()).to_string());
+            data_type_node.id = if use_new_ids {
+                Some(Uuid::new_v4().to_string())
+            } else {
+                Some(Uuid::from_u128(*datatype.get_id()).to_string())
+            };
             let allowed_op = datatype.get_allowedoperative_slot();
-            let mut op_node = InitialNode::new(allowed_op.operative().tag.name.clone());
-            op_node.id = Some(Uuid::from_u128(*allowed_op.get_id()).to_string());
+            let mut op_node = InitialNode::new(allowed_op.get_name().clone());
+            op_node.id = if use_new_ids {
+                Some(Uuid::new_v4().to_string())
+            } else {
+                Some(Uuid::from_u128(*allowed_op.get_id()).to_string())
+            };
             data_type_node.initial_connections.push(InitialConnection {
-                host_slot_name: "AllowedOperatives".to_string(),
+                host_slot_name: "AllowedOperative".to_string(),
                 target_instance_id: op_node.id.clone().unwrap(),
                 can_delete: true,
             });
@@ -523,7 +578,11 @@ fn generate_impldatavariant_complex(
         }
         ImplDataVariantTraitObject::ImplDataManualString(datatype) => {
             let mut data_type_node = InitialNode::new(datatype.operative().tag.name.clone());
-            data_type_node.id = Some(Uuid::from_u128(*datatype.get_id()).to_string());
+            data_type_node.id = if use_new_ids {
+                Some(Uuid::new_v4().to_string())
+            } else {
+                Some(Uuid::from_u128(*datatype.get_id()).to_string())
+            };
             node_to_connect.initial_connections.push(InitialConnection {
                 can_delete: true,
                 host_slot_name: slot_name.to_string(),
@@ -547,10 +606,14 @@ fn generate_impldatavariant_complex(
         }
         ImplDataVariantTraitObject::ImplDataTraitOperative(datatype) => {
             let mut data_type_node = InitialNode::new(datatype.operative().tag.name.clone());
-            data_type_node.id = Some(Uuid::from_u128(*datatype.get_id()).to_string());
+            data_type_node.id = if use_new_ids {
+                Some(Uuid::new_v4().to_string())
+            } else {
+                Some(Uuid::from_u128(*datatype.get_id()).to_string())
+            };
             let required_traits = datatype.get_requiredtraits_slot();
             required_traits.iter().for_each(|required_trait| {
-                let mut op_node = InitialNode::new(required_trait.operative().tag.name.clone());
+                let mut op_node = InitialNode::new(required_trait.get_name().clone());
                 op_node.id = Some(Uuid::from_u128(*required_trait.get_id()).to_string());
                 data_type_node.initial_connections.push(InitialConnection {
                     host_slot_name: "RequiredTraits".to_string(),
@@ -663,7 +726,7 @@ pub(crate) fn create_functioninput_complex(
     } else {
         let mapped_input = map_input_types_to_impldatavariant(fi_rgso_data_node);
         let mut data_complex_initial_nodes =
-            generate_impldatavariant_complex(mapped_input, &mut function_input_node, "Type");
+            generate_impldatavariant_complex(mapped_input, &mut function_input_node, "Type", false);
         data_complex_initial_nodes.iter_mut().for_each(|node| {
             node.can_delete = false;
         });
@@ -684,11 +747,193 @@ pub(crate) fn create_functionoutput_complex(
     let fo_rgso_data_node = function_output.get_type_slot();
     let mapped_input = map_output_types_to_impldatavariant(fo_rgso_data_node);
     let mut data_complex_initial_nodes =
-        generate_impldatavariant_complex(mapped_input, &mut function_output_node, "Type");
+        generate_impldatavariant_complex(mapped_input, &mut function_output_node, "Type", false);
     data_complex_initial_nodes.iter_mut().for_each(|node| {
         node.can_delete = false;
     });
     initial_nodes.push(function_output_node);
     initial_nodes.extend(data_complex_initial_nodes);
+    initial_nodes
+}
+
+pub(crate) fn generate_function_input_and_mapstep_complex(
+    input: &RGSOConcrete<FunctionInput, Schema>,
+    impling_operative: &RGSOConcrete<OperativeConcrete, Schema>,
+) -> Vec<InitialNode> {
+    let mut initial_nodes = vec![];
+    let function_input_id = uuid::Uuid::from_u128(*input.get_id()).to_string();
+    let data_node_id = uuid::Uuid::new_v4().to_string();
+
+    let function_input_complex = create_functioninput_complex(input.clone());
+    initial_nodes.extend(function_input_complex);
+
+    // Create map_from_input step
+    let mut map_step_node = InitialNode {
+        template_name: CONSTRAINT_SCHEMA
+            .get_operative_by_id(&ImplStepMapFromInput::get_operative_id())
+            .unwrap()
+            .tag
+            .name,
+        x: 0.0,
+        y: 0.0,
+        can_delete: false,
+        can_move: true,
+        initial_connections: vec![
+            InitialConnection {
+                host_slot_name: "Input".to_string(),
+                target_instance_id: function_input_id.clone(),
+                can_delete: false,
+            },
+            InitialConnection {
+                host_slot_name: "Output".to_string(),
+                target_instance_id: data_node_id.clone(),
+                can_delete: false,
+            },
+        ],
+        id: Some(Uuid::new_v4().to_string()),
+        initial_field_values: vec![],
+    };
+
+    // If it is a `self` input, handle separately
+    if matches!(
+        input.get_type_slot(),
+        FunctionInputVariantTraitObject::FunctionIOSelf(_)
+    ) {
+        let impl_data_node_id = data_node_id.clone();
+        let data_type_node_id = Uuid::new_v4().to_string();
+        let allowed_operative_node_id = Uuid::new_v4().to_string();
+        let impl_data_node = InitialNode {
+            template_name: CONSTRAINT_SCHEMA
+                .get_operative_by_id(&ImplData::get_operative_id())
+                .unwrap()
+                .tag
+                .name,
+            x: 0.0,
+            y: 0.0,
+            can_delete: false,
+            can_move: true,
+            initial_connections: vec![InitialConnection {
+                host_slot_name: "DataType".to_string(),
+                target_instance_id: data_type_node_id.clone(),
+                can_delete: false,
+            }],
+            id: Some(impl_data_node_id.clone()),
+            initial_field_values: vec![],
+        };
+
+        let data_type_node = InitialNode {
+            template_name: CONSTRAINT_SCHEMA
+                .get_operative_by_id(&ImplDataSingleOperative::get_operative_id())
+                .unwrap()
+                .tag
+                .name,
+            x: 0.0,
+            y: 0.0,
+            can_delete: false,
+            can_move: true,
+            initial_connections: vec![InitialConnection {
+                host_slot_name: "AllowedOperative".to_string(),
+                target_instance_id: allowed_operative_node_id.clone(),
+                can_delete: false,
+            }],
+            id: Some(data_type_node_id.clone()),
+            initial_field_values: vec![],
+        };
+        let allowed_op = impling_operative;
+        let mut op_node = InitialNode::new(allowed_op.get_name().clone());
+        op_node.id = Some(allowed_operative_node_id.clone());
+        map_step_node.initial_connections.push(InitialConnection {
+            can_delete: false,
+            host_slot_name: "Output".to_string(),
+            target_instance_id: impl_data_node_id.clone(),
+        });
+
+        initial_nodes.push(impl_data_node);
+        initial_nodes.push(data_type_node);
+        initial_nodes.push(op_node);
+    } else {
+        let mapped_type = map_input_types_to_impldatavariant(input.get_type_slot());
+
+        let mut data_node = InitialNode::new(
+            CONSTRAINT_SCHEMA
+                .get_operative_by_id(&ImplData::get_operative_id())
+                .unwrap()
+                .tag
+                .name,
+        );
+        data_node.id = Some(data_node_id.clone());
+        data_node.can_delete = false;
+
+        let additional_nodes =
+            generate_impldatavariant_complex(mapped_type, &mut data_node, "DataType", true);
+
+        initial_nodes.extend(additional_nodes);
+        initial_nodes.push(data_node);
+    }
+
+    initial_nodes.push(map_step_node);
+    initial_nodes
+}
+
+pub(crate) fn generate_function_output_and_mapstep_complex(
+    output: &RGSOConcrete<FunctionOutput, Schema>,
+) -> Vec<InitialNode> {
+    let mut initial_nodes = vec![];
+    let function_output_id = uuid::Uuid::from_u128(*output.get_id()).to_string();
+    let data_node_id = uuid::Uuid::new_v4().to_string();
+
+    let function_output_complex = create_functionoutput_complex(output.clone());
+    initial_nodes.extend(function_output_complex);
+
+    // Create map_from_input step
+    let mut map_step_node = InitialNode {
+        template_name: CONSTRAINT_SCHEMA
+            .get_operative_by_id(&ImplStepMapToOutput::get_operative_id())
+            .unwrap()
+            .tag
+            .name,
+        x: 0.0,
+        y: 0.0,
+        can_delete: false,
+        can_move: true,
+        initial_connections: vec![
+            InitialConnection {
+                host_slot_name: "Output".to_string(),
+                target_instance_id: function_output_id.clone(),
+                can_delete: false,
+            },
+            InitialConnection {
+                host_slot_name: "Input".to_string(),
+                target_instance_id: data_node_id.clone(),
+                can_delete: false,
+            },
+        ],
+        id: Some(Uuid::new_v4().to_string()),
+        initial_field_values: vec![],
+    };
+
+    let mapped_type = map_output_types_to_impldatavariant(output.get_type_slot());
+
+    let mut data_node = InitialNode::new(
+        CONSTRAINT_SCHEMA
+            .get_operative_by_id(&ImplData::get_operative_id())
+            .unwrap()
+            .tag
+            .name,
+    );
+    data_node.id = Some(data_node_id.clone());
+    data_node.can_delete = false;
+
+    let additional_nodes =
+        generate_impldatavariant_complex(mapped_type, &mut data_node, "DataType", true);
+
+    initial_nodes.extend(additional_nodes);
+    initial_nodes.push(data_node);
+
+    // let step_output_data_nodes =
+    //     generate_impldatavariant_complex(mapped_type, &mut map_step_node, "Input", true);
+    // initial_nodes.extend(step_output_data_nodes);
+
+    initial_nodes.push(map_step_node);
     initial_nodes
 }
