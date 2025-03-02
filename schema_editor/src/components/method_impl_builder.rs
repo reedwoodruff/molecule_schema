@@ -1,13 +1,13 @@
 use crate::components::method_impl_utils::{
-    constraint_template_to_canvas_template, create_functioninput_complex,
-    create_functionoutput_complex, generate_function_input_and_mapstep_complex,
-    generate_function_output_and_mapstep_complex, rgso_operative_to_canvas_template,
-    rgso_trait_to_canvas_template, setup_existing_fn_impl_in_canvas,
+    build_schemaful_representation_of_graph, constraint_template_to_canvas_template,
+    generate_function_input_and_mapstep_complex, generate_function_output_and_mapstep_complex,
+    rgso_operative_to_canvas_template, rgso_trait_to_canvas_template,
+    setup_existing_fn_impl_in_canvas,
 };
 use crate::components::workspace::WorkspaceState;
 use crate::components::{common::*, graph_editor::GraphEditor};
-use graph_canvas::TemplateGroup;
-use graph_canvas::{GraphCanvasConfig, InitialConnection, InitialNode};
+use graph_canvas::GraphCanvasConfig;
+use graph_canvas::{GraphCanvas, TemplateGroup};
 use leptos::context::Provider;
 use leptos::logging::log;
 use schema_editor_generated_toolkit::prelude::*;
@@ -26,7 +26,7 @@ pub fn MethodImplementationBuilder(
     operative: RGSOConcrete<OperativeConcrete, Schema>,
 
     // Will return an executable which contains the new MethodImplementation with a temp_id of "new_fn_impl"
-    on_save: Callback<Box<dyn Incorporatable<MethodImplementation, Schema>>>,
+    on_save: Callback<ExistingBuilder<OperativeConcrete, Schema>>,
     on_cancel: Callback<()>,
     #[prop(optional)] initial_state: Option<RGSOConcrete<MethodImplementation, Schema>>,
 ) -> impl IntoView {
@@ -39,15 +39,29 @@ pub fn MethodImplementationBuilder(
     let fn_def_clone = fn_def.clone();
     let operative_clone = operative.clone();
 
+    let graph_handle: RwSignal<Option<GraphCanvas>> = RwSignal::new(None);
+
     let inner_on_save = move |_| {
-        let hairy_boy = MethodImplementation::new(ctx_clone.clone())
-            .set_temp_id("new_fn_impl")
-            .add_existing_definition(fn_def_clone.get_id(), |na| na)
-            .add_existing_implementor(operative_clone.get_id(), |na| na)
-            // .add_
-            // .add_new_inititialsteps(|init_step| init_step.add_existing_input(existing_item_id, builder_closure))
-            .set_name(func_impl_name.get());
-        on_save.run(Box::new(hairy_boy));
+        if graph_handle.get().is_none() {
+            return;
+        }
+        let graph_state = graph_handle.get().unwrap().save();
+        // leptos::logging::log!("{:#?}", graph_state);
+        match graph_state {
+            Ok(graph) => {
+                let blueprint = build_schemaful_representation_of_graph(
+                    &graph,
+                    &fn_def_clone,
+                    &operative_clone,
+                    ctx_clone.clone(),
+                    func_impl_name.get(),
+                );
+                on_save.run(blueprint);
+            }
+            Err(err) => {
+                // Handle error
+            }
+        }
     };
 
     let canvas_config = {
@@ -272,7 +286,12 @@ pub fn MethodImplementationBuilder(
                 </LeafSection>
             </LeafSection>
             <LeafSection>
-                <GraphEditor config=canvas_config />
+                <GraphEditor
+                    config=canvas_config
+                    on_mount=Callback::new(move |graph| {
+                        graph_handle.set(Some(graph));
+                    })
+                />
             </LeafSection>
 
             <div>

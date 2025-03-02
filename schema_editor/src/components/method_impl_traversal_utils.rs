@@ -1,7 +1,6 @@
 use base_types::common::Uid;
 use schema_editor_generated_toolkit::prelude::*;
 use std::collections::{HashMap, HashSet, VecDeque};
-use strum::IntoEnumIterator;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExecutionNodeTerminal {

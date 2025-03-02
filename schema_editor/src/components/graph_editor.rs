@@ -2,21 +2,16 @@ use graph_canvas::prelude::*;
 use leptos::prelude::*;
 
 #[component]
-pub fn GraphEditor(config: GraphCanvasConfig) -> impl IntoView {
+pub fn GraphEditor(config: GraphCanvasConfig, on_mount: Callback<GraphCanvas>) -> impl IntoView {
     let container_ref: NodeRef<leptos::html::Div> = NodeRef::new();
 
     Effect::new(move |_| {
         let config = config.clone();
         if let Some(container) = container_ref.get() {
-            // Convert container to HtmlElement
-            // let html_element = container;
-
-            // Create your config
-
             // Initialize GraphCanvas
-            let _graph_canvas =
+            let graph_canvas =
                 GraphCanvas::new_rust(&container, config).expect("Failed to create GraphCanvas");
-            leptos::logging::log!("{:#?}", _graph_canvas)
+            on_mount.run(graph_canvas);
         }
     });
 

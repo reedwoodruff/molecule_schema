@@ -1,6 +1,5 @@
 use std::collections::BTreeSet;
 
-use graph_canvas::prelude::*;
 use schema_editor_generated_toolkit::prelude::*;
 
 pub fn get_all_descendent_operators(
