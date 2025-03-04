@@ -21,9 +21,18 @@ type Error = ElementCreationError;
 pub enum ElementCreationError {
     RequiredFieldIsEmpty,
     BoundCheckOutOfRange(String),
-    OutgoingElementIsWrongType { expected: String, recieved: String },
-    OutgoingElementDoesntExist { id: Uid },
-    NonexistentTempId { temp_id: String },
+    OutgoingElementIsWrongType {
+        host_element_name: String,
+        slot_name: String,
+        expected: String,
+        recieved: String,
+    },
+    OutgoingElementDoesntExist {
+        id: Uid,
+    },
+    NonexistentTempId {
+        temp_id: String,
+    },
     DeletionError,
     Stack(Vec<ElementCreationError>),
 }

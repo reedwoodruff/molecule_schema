@@ -331,9 +331,21 @@
         }
       },
       "operative_slots": {
+        "74898270268411989603858973733203834678": {
+          "tag": {
+            "name": "MapFromInputs",
+            "id": 74898270268411989603858973733203834678
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 267070416075091672235201398272027570796
+          },
+          "bounds": {
+            "LowerBound": 1
+          }
+        },
         "138013423506110932093787004824236104353": {
           "tag": {
-            "name": "ExecutionTerminals",
+            "name": "MapToOutputs",
             "id": 138013423506110932093787004824236104353
           },
           "operative_descriptor": {
@@ -1427,7 +1439,68 @@
         "id": 180026464601262542049166590468196453863
       },
       "field_constraints": {},
-      "operative_slots": {},
+      "operative_slots": {
+        "58552965102088101193822087678588447042": {
+          "tag": {
+            "name": "LoopStateStub",
+            "id": 58552965102088101193822087678588447042
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "161205508875553977223760448917862762288": {
+          "tag": {
+            "name": "ContinueWhileBool",
+            "id": 161205508875553977223760448917862762288
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "311990426183095699787179797001905047888": {
+          "tag": {
+            "name": "LoopExitState",
+            "id": 311990426183095699787179797001905047888
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "318121887695209963405639759239102258997": {
+          "tag": {
+            "name": "LoopStateIngestor",
+            "id": 318121887695209963405639759239102258997
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "336267337509489541234094986662696679019": {
+          "tag": {
+            "name": "Output",
+            "id": 336267337509489541234094986662696679019
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        },
+        "336872797702469989419856988457614506629": {
+          "tag": {
+            "name": "InitialState",
+            "id": 336872797702469989419856988457614506629
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        }
+      },
       "trait_impls": {
         "6112419245734111135111571810901799735": {}
       },

@@ -838,12 +838,18 @@ pub(crate) fn generate_operative_streams(
             let unacceptable_string_names = all_unacceptable_types.map(|op| op.tag.name.clone()).collect::<Vec<_>>();
             let acceptable_type_names = items.iter().map(|op| get_operative_variant_name(&op.tag.name)).collect::<Vec<_>>();
             let expected_type_names_string = items.iter().map(|op| op.tag.name.clone()).collect::<Vec<_>>().join(", ");
+            let operative_name = instantiable.get_tag().name.clone();
             let mismatch_error_handling = quote!{
                 let error = if let Some(existing_item) = self.inner_builder.get_graph().get(&existing_item_id) {
                     match existing_item {
                         #(Schema::#acceptable_type_names(_) => None,)*
                         #(Schema::#unacceptable_type_names(_) => {
-                            Some(base_types::post_generation::ElementCreationError::OutgoingElementIsWrongType{expected: #expected_type_names_string.to_string(), recieved: #unacceptable_string_names.to_string() })
+                            Some(base_types::post_generation::ElementCreationError::OutgoingElementIsWrongType{
+                                host_element_name: #operative_name.to_string(),
+                                slot_name: #slot_name.to_string(),
+                                expected: #expected_type_names_string.to_string(),
+                                recieved: #unacceptable_string_names.to_string()
+                            })
                         },)*
                     }
                 } else {
