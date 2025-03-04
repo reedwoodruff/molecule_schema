@@ -18,10 +18,16 @@ pub fn OperativeMethodImplementations(
     let operative_clone = operative.clone();
     let on_save_new_fn_impl = Callback::new(
         move |incorporatable: ExistingBuilder<OperativeConcrete, Schema>| {
-            let mut editor = operative_clone.edit(ctx_clone.clone());
-            editor.add_temp_functionimpls("new_fn_impl");
-            editor.incorporate(&incorporatable);
-            editor.execute().unwrap();
+            // let mut editor = operative_clone.edit(ctx_clone.clone());
+            // editor.add_temp_functionimpls("new_fn_impl");
+            // editor.incorporate(&incorporatable);
+            // editor.execute().unwrap();
+            leptos::logging::log!("about to execute blueprint");
+            match incorporatable.execute() {
+                Ok(_) => (),
+                Err(err) => leptos::logging::log!("Error executing blueprint: {:#?}", err),
+            };
+            leptos::logging::log!("executed blueprint");
 
             is_adding_impl.set(false);
         },
@@ -74,13 +80,30 @@ pub fn OperativeMethodImplementations(
                     let ctx_clone = ctx.clone();
                     let func_impl_clone = func_impl.clone();
                     let on_delete = move |_| {
-                        func_impl_clone
-                            .edit(ctx_clone.clone())
-                            .delete_recursive()
-                            .execute()
-                            .unwrap();
+                        let mut func_delete = func_impl_clone.edit(ctx_clone.clone());
+                        func_delete.delete_recursive();
+                        func_delete.execute().unwrap();
                     };
                     let func_impl_clone = func_impl.clone();
+                    // let output_terminals = func_impl_clone.get_maptooutputs_slot();
+                    // output_terminals
+                    // .iter()
+                    // .for_each(|terminal| {
+                    // func_delete
+                    // .incorporate(
+                    // terminal.edit(ctx_clone.clone()).delete_recursive(),
+                    // );
+                    // });
+                    // let input_terminals = func_impl_clone.get_mapfrominputs_slot();
+                    // input_terminals
+                    // .iter()
+                    // .for_each(|terminal| {
+                    // func_delete
+                    // .incorporate(
+                    // terminal.edit(ctx_clone.clone()).delete_recursive(),
+                    // );
+                    // });
+
                     view! {
                         <SubSection>
                             <div class="flex">

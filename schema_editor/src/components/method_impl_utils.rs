@@ -10,145 +10,192 @@ use super::method_impl_traversal_utils::{
     analyze_method_implementation, get_step_data_dependencies, ExecutionNode, ExecutionNodeTerminal,
 };
 
+macro_rules! get_field_id {
+    ($struct_name:ident, $field_name:expr) => {{
+        let operative = CONSTRAINT_SCHEMA
+            .operative_library
+            .get(&$struct_name::get_operative_id())
+            .unwrap();
+        let template = CONSTRAINT_SCHEMA
+            .template_library
+            .get(&operative.template_id)
+            .unwrap();
+        let field_id = Uuid::from_u128(
+            template
+                .field_constraints
+                .values()
+                .find(|field| field.tag.name.contains($field_name))
+                .unwrap()
+                .tag
+                .id,
+        )
+        .to_string();
+        field_id
+    }};
+}
+macro_rules! get_slot_id {
+    ($struct_name:ident, $slot_name:expr) => {{
+        let operative = CONSTRAINT_SCHEMA
+            .operative_library
+            .get(&$struct_name::get_operative_id())
+            .unwrap();
+        let template = CONSTRAINT_SCHEMA
+            .template_library
+            .get(&operative.template_id)
+            .unwrap();
+        let slot_id = Uuid::from_u128(
+            template
+                .operative_slots
+                .values()
+                .find(|slot| slot.tag.name.contains($slot_name))
+                .unwrap()
+                .tag
+                .id,
+        )
+        .to_string();
+        slot_id
+    }};
+}
+
 macro_rules! match_impl_step_template {
-    ($template_id:expr, $action:ident, $builder:expr, $step_temp_id:expr) => {{
+    ($template_id:expr, $action:ident, $editor:expr, $builder:expr, $step_temp_id:expr) => {{
         let u128 = Uuid::parse_str(&$template_id)
             .expect("Failed to parse UUID")
             .as_u128();
 
         match u128 {
             id if id == ImplStepBitAnd::get_operative_id() => {
-                $builder.incorporate($builder.clone().$action::<ImplStepBitAnd>($step_temp_id));
+                $editor.incorporate(&$builder.clone().$action::<ImplStepBitAnd>($step_temp_id));
             }
             id if id == ImplStepBitNot::get_operative_id() => {
-                $builder.incorporate($builder.clone().$action::<ImplStepBitNot>($step_temp_id));
+                $editor.incorporate(&$builder.clone().$action::<ImplStepBitNot>($step_temp_id));
             }
             id if id == ImplStepBitOr::get_operative_id() => {
-                $builder.incorporate($builder.clone().$action::<ImplStepBitOr>($step_temp_id));
+                $editor.incorporate(&$builder.clone().$action::<ImplStepBitOr>($step_temp_id));
             }
             id if id == ImplStepCompareEqual::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepCompareEqual>($step_temp_id),
                 );
             }
             id if id == ImplStepCompareGreaterThan::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepCompareGreaterThan>($step_temp_id),
                 );
             }
             id if id == ImplStepCompareLessThan::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepCompareLessThan>($step_temp_id),
                 );
             }
             id if id == ImplStepGetField::get_operative_id() => {
-                $builder.incorporate($builder.clone().$action::<ImplStepGetField>($step_temp_id));
+                $editor.incorporate(&$builder.clone().$action::<ImplStepGetField>($step_temp_id));
             }
             id if id == ImplStepIf::get_operative_id() => {
-                $builder.incorporate($builder.clone().$action::<ImplStepIf>($step_temp_id));
+                $editor.incorporate(&$builder.clone().$action::<ImplStepIf>($step_temp_id));
             }
             id if id == ImplStepIteratorFilter::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepIteratorFilter>($step_temp_id),
                 );
             }
             id if id == ImplStepIteratorMap::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepIteratorMap>($step_temp_id),
                 );
             }
             id if id == ImplStepMapFromInput::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepMapFromInput>($step_temp_id),
                 );
             }
             id if id == ImplStepMapToOutput::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepMapToOutput>($step_temp_id),
                 );
             }
             id if id == ImplStepMathAdd::get_operative_id() => {
-                $builder.incorporate($builder.clone().$action::<ImplStepMathAdd>($step_temp_id));
+                $editor.incorporate(&$builder.clone().$action::<ImplStepMathAdd>($step_temp_id));
             }
             id if id == ImplStepMathDivide::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepMathDivide>($step_temp_id),
                 );
             }
             id if id == ImplStepMathModulus::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepMathModulus>($step_temp_id),
                 );
             }
             id if id == ImplStepMathMultiply::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepMathMultiply>($step_temp_id),
                 );
             }
             id if id == ImplStepMathSubtract::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepMathSubtract>($step_temp_id),
                 );
             }
             id if id == ImplStepMultiTypeSplitter::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepMultiTypeSplitter>($step_temp_id),
                 );
             }
             id if id == ImplStepMutateField::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepMutateField>($step_temp_id),
                 );
             }
             id if id == ImplStepMutateSlot::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepMutateSlot>($step_temp_id),
                 );
             }
             id if id == ImplStepTraverseSlot::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplStepTraverseSlot>($step_temp_id),
                 );
             }
             id if id == ImplStepWhileLoop::get_operative_id() => {
-                $builder.incorporate($builder.clone().$action::<ImplStepWhileLoop>($step_temp_id));
+                $editor.incorporate(&$builder.clone().$action::<ImplStepWhileLoop>($step_temp_id));
             }
             _ => {}
         };
     }};
 }
 
-macro_rules! match_impl_data_template {
+macro_rules! match_impl_data_minus_manuals_template {
     ($template_id:expr, $action:ident, $builder:expr, $step_temp_id:expr) => {{
         let u128 = Uuid::parse_str(&$template_id)
             .expect("Failed to parse UUID")
@@ -198,6 +245,81 @@ macro_rules! match_impl_data_template {
             id if id == ImplDataTraitOperative::get_operative_id() => {
                 $builder.incorporate(
                     $builder
+                        .clone()
+                        .$action::<ImplDataTraitOperative>($step_temp_id),
+                );
+            }
+            _ => {}
+        };
+    }};
+}
+macro_rules! match_impl_data_template {
+    ($template_id:expr, $action:ident, $editor:expr, $builder:expr, $step_temp_id:expr) => {{
+        let u128 = Uuid::parse_str(&$template_id)
+            .expect("Failed to parse UUID")
+            .as_u128();
+
+        match u128 {
+            id if id == ImplDataBool::get_operative_id() => {
+                $editor.incorporate(&$builder.clone().$action::<ImplDataBool>($step_temp_id));
+            }
+            id if id == ImplDataManualBool::get_operative_id() => {
+                $editor.incorporate(
+                    &$builder
+                        .clone()
+                        .$action::<ImplDataManualBool>($step_temp_id),
+                );
+            }
+            id if id == ImplDataCollection::get_operative_id() => {
+                $editor.incorporate(
+                    &$builder
+                        .clone()
+                        .$action::<ImplDataCollection>($step_temp_id),
+                );
+            }
+            id if id == ImplDataInt::get_operative_id() => {
+                $editor.incorporate(&$builder.clone().$action::<ImplDataInt>($step_temp_id));
+            }
+            id if id == ImplDataManualInt::get_operative_id() => {
+                $editor.incorporate(&$builder.clone().$action::<ImplDataManualInt>($step_temp_id));
+            }
+            id if id == ImplDataInt::get_operative_id() => {
+                $editor.incorporate(&$builder.clone().$action::<ImplDataInt>($step_temp_id));
+            }
+            id if id == ImplDataMultiOperative::get_operative_id() => {
+                $editor.incorporate(
+                    &$builder
+                        .clone()
+                        .$action::<ImplDataMultiOperative>($step_temp_id),
+                );
+            }
+            id if id == ImplDataMultiOperative::get_operative_id() => {
+                $editor.incorporate(
+                    &$builder
+                        .clone()
+                        .$action::<ImplDataMultiOperative>($step_temp_id),
+                );
+            }
+            id if id == ImplDataSingleOperative::get_operative_id() => {
+                $editor.incorporate(
+                    &$builder
+                        .clone()
+                        .$action::<ImplDataSingleOperative>($step_temp_id),
+                );
+            }
+            id if id == ImplDataString::get_operative_id() => {
+                $editor.incorporate(&$builder.clone().$action::<ImplDataString>($step_temp_id));
+            }
+            id if id == ImplDataManualString::get_operative_id() => {
+                $editor.incorporate(
+                    &$builder
+                        .clone()
+                        .$action::<ImplDataManualString>($step_temp_id),
+                );
+            }
+            id if id == ImplDataTraitOperative::get_operative_id() => {
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplDataTraitOperative>($step_temp_id),
                 );
@@ -1085,663 +1207,6 @@ pub(crate) fn generate_function_output_and_mapstep_complex(
     initial_nodes
 }
 
-// pub(crate) fn build_schemaful_representation_of_graph(
-//     graph: &Graph,
-//     fn_def: &RGSOConcrete<FunctionDefinition, Schema>,
-//     operative: &RGSOConcrete<OperativeConcrete, Schema>,
-//     ctx: SharedGraph<Schema>,
-//     fn_impl_name: String,
-// ) -> Box<dyn Incorporatable<MethodImplementation, Schema>> {
-//     // Map from visual node IDs to schema node temp IDs
-//     let mut node_id_map = HashMap::new();
-
-//     // Create the method implementation builder
-//     let mut editor = MethodImplementation::new(ctx.clone())
-//         .set_temp_id("new_fn_impl")
-//         .add_existing_definition(fn_def.get_id(), |na| na)
-//         .add_existing_implementor(operative.get_id(), |na| na)
-//         .set_name(fn_impl_name);
-
-//     // 1. Process input map-from nodes
-//     let vis_impl_step_map_from_input_template = graph
-//         .get_node_template_by_identifier(&ImplStepMapFromInput::get_operative_id().into())
-//         .unwrap();
-
-//     let vis_function_input_template = graph
-//         .get_node_template_by_identifier(&FunctionInput::get_operative_id().into())
-//         .unwrap();
-
-//     let vis_function_input_nodes = graph
-//         .node_instances
-//         .values()
-//         .filter(|node| node.template_id == vis_function_input_template.template_id)
-//         .collect::<Vec<_>>();
-
-//     let vis_map_from_input_nodes = graph
-//         .node_instances
-//         .values()
-//         .filter(|node| node.template_id == vis_impl_step_map_from_input_template.template_id)
-//         .collect::<Vec<_>>();
-
-//     // Map function inputs to their corresponding nodes
-//     let input_pairs = fn_def
-//         .get_inputs_slot()
-//         .iter()
-//         .cloned()
-//         .map(|function_input| {
-//             let vis_node = vis_function_input_nodes
-//                 .iter()
-//                 .find(|vis_input| {
-//                     // Match by name field
-//                     vis_input
-//                         .fields
-//                         .iter()
-//                         .any(|field| field.value == function_input.get_name_field())
-//                 })
-//                 .unwrap();
-//             (*vis_node, function_input)
-//         })
-//         .collect::<Vec<_>>();
-
-//     // Create input terminals and map steps
-//     for (i, (vis_input_node, schema_input)) in input_pairs.iter().enumerate() {
-//         // Find the map-from-input step connected to this input
-//         let map_step = vis_map_from_input_nodes
-//             .iter()
-//             .find(|map_node| {
-//                 map_node.slots.iter().any(|slot| {
-//                     slot.connections
-//                         .iter()
-//                         .any(|conn| conn.target_node_id == vis_input_node.instance_id)
-//                 })
-//             })
-//             .unwrap();
-
-//         // Find the output data node from this map step
-//         let output_data_conn = map_step
-//             .slots
-//             .iter()
-//             .find(|slot| slot.slot_template_id.contains("Output"))
-//             .unwrap()
-//             .connections
-//             .first()
-//             .unwrap();
-
-//         // Create a temp ID for the new map step
-//         let map_step_temp_id = format!("map_from_input_{}", i);
-//         node_id_map.insert(map_step.instance_id.clone(), map_step_temp_id.clone());
-
-//         // Create a temp ID for the output data node
-//         let output_data_temp_id = format!("input_data_{}", i);
-//         node_id_map.insert(
-//             output_data_conn.target_node_id.clone(),
-//             output_data_temp_id.clone(),
-//         );
-
-//         // Add this input terminal to the method implementation
-//         let mut new_editor = editor.clone();
-//         new_editor.incorporate(editor.add_new_executionterminals(|terminal| {
-//             terminal
-//                 .set_temp_id(&map_step_temp_id)
-//                 .add_existing_input(schema_input.get_id(), |na| na)
-//                 .add_temp_output(&output_data_temp_id)
-//         }));
-//         editor = new_editor;
-
-//         // Now we need to recursively create all the data node structure connected to this map step
-//         let output_data_node = graph
-//             .node_instances
-//             .get(&output_data_conn.target_node_id)
-//             .unwrap();
-//         match  {
-
-//         };
-//         // (recursively build data node structure)
-//     }
-
-//     // 2. Process output map-to nodes (similar to input processing)
-
-//     // 3. Process all step nodes that aren't map-from or map-to
-
-//     // 4. Process all data nodes not already processed
-
-//     // 5. Establish connections between all steps and data nodes
-
-//     Box::new(editor)
-// }
-
-// pub(crate) fn build_schemaful_representation_of_graph(
-//     graph: &Graph,
-//     fn_def: &RGSOConcrete<FunctionDefinition, Schema>,
-//     operative: &RGSOConcrete<OperativeConcrete, Schema>,
-//     ctx: SharedGraph<Schema>,
-//     fn_impl_name: String,
-// ) -> Box<dyn Incorporatable<MethodImplementation, Schema>> {
-//     // Map from visual node IDs to schema node temp IDs
-//     let mut node_id_map = HashMap::new();
-
-//     // Create the method implementation builder
-//     let mut editor = MethodImplementation::new(ctx.clone())
-//         .set_temp_id("new_fn_impl")
-//         .add_existing_definition(fn_def.get_id(), |na| na)
-//         .add_existing_implementor(operative.get_id(), |na| na)
-//         .set_name(fn_impl_name);
-
-//     // First, analyze graph to identify all ImplStep nodes and ImplData nodes
-//     let mut step_nodes: HashMap<String, ImplStepVariantTraitObject> = HashMap::new();
-//     let mut data_nodes: HashMap<String, RGSOConcrete<ImplData, Schema>> = HashMap::new();
-//     let mut function_input_nodes: HashMap<String, RGSOConcrete<FunctionInput, Schema>> =
-//         HashMap::new();
-//     let mut function_output_nodes: HashMap<String, RGSOConcrete<FunctionOutput, Schema>> =
-//         HashMap::new();
-
-//     // Find all step, data, function input, and function output nodes in the graph
-//     let step_templates = get_impl_step_templates();
-//     let data_template_id: TemplateIdentifier = CONSTRAINT_SCHEMA
-//         .get_operative_by_id(&ImplData::get_operative_id())
-//         .unwrap()
-//         .tag
-//         .id
-//         .into();
-//     let function_input_template_id: TemplateIdentifier = CONSTRAINT_SCHEMA
-//         .get_operative_by_id(&FunctionInput::get_operative_id())
-//         .unwrap()
-//         .tag
-//         .id
-//         .into();
-//     let function_output_template_id: TemplateIdentifier = CONSTRAINT_SCHEMA
-//         .get_operative_by_id(&FunctionOutput::get_operative_id())
-//         .unwrap()
-//         .tag
-//         .id
-//         .into();
-
-//     // Gather all node instances by type
-//     for node in graph.node_instances.values() {
-//         if step_templates.contains(&node.template_id) {
-//             // This is an ImplStep node
-//             // We'll handle creating its schema representation later
-//             continue;
-//         } else if node.template_id == data_template_id.to_string() {
-//             // This is an ImplData node
-//             // We'll handle creating its schema representation later
-//             continue;
-//         } else if node.template_id == function_input_template_id.to_string() {
-//             // Find the corresponding schema FunctionInput
-//             let schema_input = fn_def
-//                 .get_inputs_slot()
-//                 .iter()
-//                 .find(|input| {
-//                     let name_field = node
-//                         .fields
-//                         .iter()
-//                         .find(|f| f.value == input.get_name_field());
-//                     if let Some(name_field) = name_field {
-//                         true
-//                     } else {
-//                         false
-//                     }
-//                 })
-//                 .unwrap();
-//             function_input_nodes.insert(node.instance_id.clone(), schema_input.clone());
-//         } else if node.template_id == function_output_template_id.to_string() {
-//             // Find the corresponding schema FunctionOutput
-//             let schema_output = fn_def
-//                 .get_outputs_slot()
-//                 .iter()
-//                 .find(|output| {
-//                     let name_field = node
-//                         .fields
-//                         .iter()
-//                         .find(|f| f.value == output.get_name_field());
-//                     if let Some(name_field) = name_field {
-//                         true
-//                     } else {
-//                         false
-//                     }
-//                 })
-//                 .unwrap();
-//             function_output_nodes.insert(node.instance_id.clone(), schema_output.clone());
-//         }
-//     }
-
-//     // Now process the graph starting from the ImplStepMapToOutput nodes (closest to outputs)
-//     let map_to_output_template_id: TemplateIdentifier = CONSTRAINT_SCHEMA
-//         .get_operative_by_id(&ImplStepMapToOutput::get_operative_id())
-//         .unwrap()
-//         .tag
-//         .id
-//         .into();
-
-//     let map_from_input_template_id: TemplateIdentifier = CONSTRAINT_SCHEMA
-//         .get_operative_by_id(&ImplStepMapFromInput::get_operative_id())
-//         .unwrap()
-//         .tag
-//         .id
-//         .into();
-
-//     // First pass - process terminal nodes (MapToOutput, MapFromInput)
-//     for node in graph.node_instances.values() {
-//         if node.template_id == map_to_output_template_id.to_string() {
-//             // This is a MapToOutput node
-//             // Get connected output node and data node
-//             let output_slot = node
-//                 .slots
-//                 .iter()
-//                 .find(|s| s.slot_template_id.contains("Output"))
-//                 .unwrap();
-//             let output_node_id = output_slot
-//                 .connections
-//                 .first()
-//                 .unwrap()
-//                 .target_node_id
-//                 .clone();
-//             let output_node = function_output_nodes.get(&output_node_id).unwrap();
-
-//             let input_slot = node
-//                 .slots
-//                 .iter()
-//                 .find(|s| s.slot_template_id.contains("Input"))
-//                 .unwrap();
-//             let data_node_id = input_slot
-//                 .connections
-//                 .first()
-//                 .unwrap()
-//                 .target_node_id
-//                 .clone();
-
-//             // Create a temp ID for the data node if it doesn't exist
-//             let data_temp_id = format!("data_output_{}", node.instance_id);
-//             node_id_map.insert(data_node_id.clone(), data_temp_id.clone());
-
-//             // Create terminal node for this output
-//             let terminal_temp_id = format!("terminal_output_{}", node.instance_id);
-//             node_id_map.insert(node.instance_id.clone(), terminal_temp_id.clone());
-
-//             // Add terminal to the method implementation
-//             let mut new_editor = editor.clone();
-//             new_editor.incorporate(editor.add_new_executionterminals(|terminal| {
-//                 terminal
-//                     .set_temp_id(&terminal_temp_id)
-//                     .add_existing_output(output_node.get_id(), |na| na)
-//                     .add_temp_input(&data_temp_id)
-//             }));
-//             editor = new_editor;
-//         } else if node.template_id == map_from_input_template_id.to_string() {
-//             // This is a MapFromInput node
-//             // Get connected input node and data node
-//             let input_slot = node
-//                 .slots
-//                 .iter()
-//                 .find(|s| s.slot_template_id.contains("Input"))
-//                 .unwrap();
-//             let input_node_id = input_slot
-//                 .connections
-//                 .first()
-//                 .unwrap()
-//                 .target_node_id
-//                 .clone();
-//             let input_node = function_input_nodes.get(&input_node_id).unwrap();
-
-//             let output_slot = node
-//                 .slots
-//                 .iter()
-//                 .find(|s| s.slot_template_id.contains("Output"))
-//                 .unwrap();
-//             let data_node_id = output_slot
-//                 .connections
-//                 .first()
-//                 .unwrap()
-//                 .target_node_id
-//                 .clone();
-
-//             // Create a temp ID for the data node if it doesn't exist
-//             let data_temp_id = format!("data_input_{}", node.instance_id);
-//             node_id_map.insert(data_node_id.clone(), data_temp_id.clone());
-
-//             // Create terminal node for this input
-//             let terminal_temp_id = format!("terminal_input_{}", node.instance_id);
-//             node_id_map.insert(node.instance_id.clone(), terminal_temp_id.clone());
-
-//             // Add terminal to the method implementation
-//             let mut new_editor = editor.clone();
-//             new_editor.incorporate(editor.add_new_executionterminals(|terminal| {
-//                 terminal
-//                     .set_temp_id(&terminal_temp_id)
-//                     .add_existing_input(input_node.get_id(), |na| na)
-//                     .add_temp_output(&data_temp_id)
-//             }));
-//             editor = new_editor;
-//         }
-//     }
-
-//     // Second pass - process all ImplStep nodes (that aren't terminals)
-//     for node in graph.node_instances.values() {
-//         if step_templates.contains(&node.template_id)
-//             && node.template_id != map_to_output_template_id.to_string()
-//             && node.template_id != map_from_input_template_id.to_string()
-//         {
-//             build_step_builder(node.template_id, Box::new(editor.clone()));
-//             // Generate a unique temp ID for this step
-//             let step_temp_id = format!("step_{}", node.instance_id);
-//             node_id_map.insert(node.instance_id.clone(), step_temp_id.clone());
-
-//             // Find the correct ImplStep type based on template_id
-//             let step_type = get_impl_step_type_from_template_id(&node.template_id);
-
-//             // Get data dependencies for this step
-//             let data_dependencies = collect_data_dependencies(node, graph, &mut node_id_map);
-
-//             // Add step to the method implementation with appropriate data dependencies
-//             let mut new_editor = editor.clone();
-//             new_editor.incorporate(editor.add_new_implstep(|step| {
-//                 let mut step_builder = step
-//                     .set_temp_id(&step_temp_id)
-//                     .set_impl_step_variant(step_type);
-
-//                 // Add data dependencies based on slot connections
-//                 for (slot_name, temp_id) in data_dependencies {
-//                     // Skip slot connections that don't have a corresponding data node
-//                     if temp_id.is_empty() {
-//                         continue;
-//                     }
-
-//                     // Add data dependency based on slot name
-//                     step_builder = match slot_name.as_str() {
-//                         "InputBool" => step_builder.add_temp_inputbool(&temp_id),
-//                         "OutputBool" => step_builder.add_temp_outputbool(&temp_id),
-//                         "ArgumentOne" => step_builder.add_temp_argumentone(&temp_id),
-//                         "ArgumentTwo" => step_builder.add_temp_argumenttwo(&temp_id),
-//                         "OutputInt" => step_builder.add_temp_outputint(&temp_id),
-//                         "Condition" => step_builder.add_temp_condition(&temp_id),
-//                         "TrueBranch" => step_builder.add_temp_truebranch(&temp_id),
-//                         "FalseBranch" => step_builder.add_temp_falsebranch(&temp_id),
-//                         "InputCollection" => step_builder.add_temp_inputcollection(&temp_id),
-//                         "OutputCollection" => step_builder.add_temp_outputcollection(&temp_id),
-//                         "IterationStartItem" => step_builder.add_temp_iterationstartitem(&temp_id),
-//                         "IterationEndItem" => step_builder.add_temp_iterationenditem(&temp_id),
-//                         "IterationEndBool" => step_builder.add_temp_iterationendbool(&temp_id),
-//                         "MutatedOperative" => step_builder.add_temp_mutatedoperative(&temp_id),
-//                         "NewValue" => step_builder.add_temp_newvalue(&temp_id),
-//                         "SlotName" => step_builder.add_temp_slotname(&temp_id),
-//                         "InputOperative" => step_builder.add_temp_inputoperative(&temp_id),
-//                         "OutputOperatives" => step_builder.add_temp_outputoperatives(&temp_id),
-//                         "FieldName" => step_builder.add_temp_fieldname(&temp_id),
-//                         "OutputField" => step_builder.add_temp_outputfield(&temp_id),
-//                         "InputMultiOperative" => {
-//                             step_builder.add_temp_inputmultioperative(&temp_id)
-//                         }
-//                         "Convergence" => step_builder.add_temp_convergence(&temp_id),
-//                         "DiscriminantStarts" => step_builder.add_temp_discriminantstarts(&temp_id),
-//                         "Output" => step_builder.add_temp_output(&temp_id),
-//                         _ => step_builder,
-//                     };
-//                 }
-
-//                 step_builder
-//             }));
-//             editor = new_editor;
-//         }
-//     }
-
-//     // Third pass - process all ImplData nodes
-//     process_data_nodes(graph, &mut Box::new(editor), &node_id_map);
-
-//     Box::new(editor)
-// }
-
-// fn build_step_builder(
-//     operative_id: Uid,
-//     editor: Box<dyn Incorporatable<MethodImplementation, Schema>>,
-// ) -> Box<dyn Incorporatable<MethodImplementation, Schema>> {
-// }
-
-// // Helper function to get all ImplStep template IDs
-// fn get_impl_step_templates() -> HashSet<String> {
-//     let mut templates = HashSet::new();
-
-//     // Add all ImplStep template IDs
-//     templates.insert(Uuid::from_u128(ImplStepBitNot::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepMathDivide::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepBitOr::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepCompareEqual::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepBitAnd::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepMathAdd::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepMathModulus::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepMathMultiply::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepMathSubtract::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepCompareGreaterThan::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepCompareLessThan::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepIf::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepIteratorFilter::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepMutateSlot::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepGetField::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepMutateField::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepMultiTypeSplitter::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepIteratorMap::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepTraverseSlot::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepWhileLoop::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepMapToOutput::get_operative_id()).to_string());
-//     templates.insert(Uuid::from_u128(ImplStepMapFromInput::get_operative_id()).to_string());
-
-//     templates
-// }
-
-// // Helper function to get the ImplStep type from template ID
-// fn get_impl_step_type_from_template_id(template_id: &str) -> &'static str {
-//     if template_id == ImplStepBitNot::get_operative_id().to_string() {
-//         "ImplStepBitNot"
-//     } else if template_id == ImplStepMathDivide::get_operative_id().to_string() {
-//         "ImplStepMathDivide"
-//     } else if template_id == ImplStepBitOr::get_operative_id().to_string() {
-//         "ImplStepBitOr"
-//     } else if template_id == ImplStepCompareEqual::get_operative_id().to_string() {
-//         "ImplStepCompareEqual"
-//     } else if template_id == ImplStepBitAnd::get_operative_id().to_string() {
-//         "ImplStepBitAnd"
-//     } else if template_id == ImplStepMathAdd::get_operative_id().to_string() {
-//         "ImplStepMathAdd"
-//     } else if template_id == ImplStepMathModulus::get_operative_id().to_string() {
-//         "ImplStepMathModulus"
-//     } else if template_id == ImplStepMathMultiply::get_operative_id().to_string() {
-//         "ImplStepMathMultiply"
-//     } else if template_id == ImplStepMathSubtract::get_operative_id().to_string() {
-//         "ImplStepMathSubtract"
-//     } else if template_id == ImplStepCompareGreaterThan::get_operative_id().to_string() {
-//         "ImplStepCompareGreaterThan"
-//     } else if template_id == ImplStepCompareLessThan::get_operative_id().to_string() {
-//         "ImplStepCompareLessThan"
-//     } else if template_id == ImplStepIf::get_operative_id().to_string() {
-//         "ImplStepIf"
-//     } else if template_id == ImplStepIteratorFilter::get_operative_id().to_string() {
-//         "ImplStepIteratorFilter"
-//     } else if template_id == ImplStepMutateSlot::get_operative_id().to_string() {
-//         "ImplStepMutateSlot"
-//     } else if template_id == ImplStepGetField::get_operative_id().to_string() {
-//         "ImplStepGetField"
-//     } else if template_id == ImplStepMutateField::get_operative_id().to_string() {
-//         "ImplStepMutateField"
-//     } else if template_id == ImplStepMultiTypeSplitter::get_operative_id().to_string() {
-//         "ImplStepMultiTypeSplitter"
-//     } else if template_id == ImplStepIteratorMap::get_operative_id().to_string() {
-//         "ImplStepIteratorMap"
-//     } else if template_id == ImplStepTraverseSlot::get_operative_id().to_string() {
-//         "ImplStepTraverseSlot"
-//     } else if template_id == ImplStepWhileLoop::get_operative_id().to_string() {
-//         "ImplStepWhileLoop"
-//     } else if template_id == ImplStepMapToOutput::get_operative_id().to_string() {
-//         "ImplStepMapToOutput"
-//     } else if template_id == ImplStepMapFromInput::get_operative_id().to_string() {
-//         "ImplStepMapFromInput"
-//     } else {
-//         panic!("Unknown ImplStep template ID: {}", template_id);
-//     }
-// }
-
-// // Helper function to collect data dependencies for a step node
-// fn collect_data_dependencies(
-//     node: &NodeInstance,
-//     graph: &Graph,
-//     node_id_map: &mut HashMap<String, String>,
-// ) -> HashMap<String, String> {
-//     let mut dependencies = HashMap::new();
-
-//     // Go through each slot and collect dependencies
-//     for slot in &node.slots {
-//         if slot.connections.is_empty() {
-//             continue;
-//         }
-
-//         let slot_name = graph
-//             .get_slot_template_by_id(&slot.slot_template_id)
-//             .name
-//             .clone();
-//         let target_node_id = &slot.connections[0].target_node_id;
-
-//         // If the target node is already in our map, use that temp ID
-//         if let Some(temp_id) = node_id_map.get(target_node_id) {
-//             dependencies.insert(slot_name, temp_id.clone());
-//             continue;
-//         }
-
-//         // Otherwise, create a new temp ID for the data node
-//         let data_temp_id = format!("data_{}_{}", node.instance_id, slot_name);
-//         node_id_map.insert(target_node_id.clone(), data_temp_id.clone());
-//         dependencies.insert(slot_name, data_temp_id);
-//     }
-
-//     dependencies
-// }
-
-// // Helper function to process data nodes
-// fn process_data_nodes(
-//     graph: &Graph,
-//     editor: Box<dyn Incorporatable<MethodImplementation, Schema>>,
-//     node_id_map: &HashMap<String, String>,
-// ) -> Box<dyn Incorporatable<MethodImplementation, Schema>> {
-//     let new_editor = editor;
-//     let data_template_id = ImplData::get_operative_id().to_string();
-
-//     // Find all ImplData nodes
-//     for node in graph.node_instances.values() {
-//         if node.template_id != data_template_id {
-//             continue;
-//         }
-
-//         // Check if this node is already in our map (should be)
-//         if let Some(temp_id) = node_id_map.get(&node.instance_id) {
-//             // Add this data node to the method implementation
-//             let mut new_editor = new_editor.clone();
-//             new_editor.incorporate(new_editor.add_new_impldata(|data| {
-//                 let mut data_builder = data.set_temp_id(temp_id);
-
-//                 // Determine the data type from slot connections
-//                 let data_type_slot = node
-//                     .slots
-//                     .iter()
-//                     .find(|s| s.slot_template_id.contains("DataType"))
-//                     .unwrap();
-//                 if !data_type_slot.connections.is_empty() {
-//                     let data_type_node_id = &data_type_slot.connections[0].target_node_id;
-//                     let data_type_node = graph.node_instances.get(data_type_node_id).unwrap();
-
-//                     // Set data type based on template ID
-//                     if data_type_node.template_id.contains("ImplDataBool") {
-//                         data_builder = data_builder.add_new_bool_data_type();
-//                     } else if data_type_node.template_id.contains("ImplDataInt") {
-//                         data_builder = data_builder.add_new_int_data_type();
-//                     } else if data_type_node.template_id.contains("ImplDataString") {
-//                         data_builder = data_builder.add_new_string_data_type();
-//                     } else if data_type_node.template_id.contains("ImplDataManualBool") {
-//                         let value_field = data_type_node
-//                             .fields
-//                             .iter()
-//                             .find(|f| f.id.contains("value"))
-//                             .map(|f| f.value == "true")
-//                             .unwrap_or(false);
-//                         data_builder = data_builder.add_new_manual_bool_data_type(value_field);
-//                     } else if data_type_node.template_id.contains("ImplDataManualInt") {
-//                         let value_field = data_type_node
-//                             .fields
-//                             .iter()
-//                             .find(|f| f.id.contains("value"))
-//                             .map(|f| f.value.parse::<i64>().unwrap_or(0))
-//                             .unwrap_or(0);
-//                         data_builder = data_builder.add_new_manual_int_data_type(value_field);
-//                     } else if data_type_node.template_id.contains("ImplDataManualString") {
-//                         let value_field = data_type_node
-//                             .fields
-//                             .iter()
-//                             .find(|f| f.id.contains("value"))
-//                             .map(|f| f.value.clone())
-//                             .unwrap_or_default();
-//                         data_builder = data_builder.add_new_manual_string_data_type(value_field);
-//                     } else if data_type_node.template_id.contains("ImplDataCollection") {
-//                         // Handle collection type (need to recursively process)
-//                         let collection_type_slot = data_type_node
-//                             .slots
-//                             .iter()
-//                             .find(|s| s.slot_template_id.contains("CollectionType"))
-//                             .unwrap();
-//                         if !collection_type_slot.connections.is_empty() {
-//                             let collection_type_node_id =
-//                                 &collection_type_slot.connections[0].target_node_id;
-//                             let collection_type_node =
-//                                 graph.node_instances.get(collection_type_node_id).unwrap();
-
-//                             // Process collection type (simplified for this example)
-//                             data_builder = data_builder.add_new_collection_data_type(|cdt| {
-//                                 // Simplified - would need to recursively process the collection type
-//                                 cdt
-//                             });
-//                         }
-//                     } else if data_type_node
-//                         .template_id
-//                         .contains("ImplDataSingleOperative")
-//                     {
-//                         // Handle single operative
-//                         let allowed_op_slot = data_type_node
-//                             .slots
-//                             .iter()
-//                             .find(|s| s.slot_template_id.contains("AllowedOperative"))
-//                             .unwrap();
-//                         if !allowed_op_slot.connections.is_empty() {
-//                             let allowed_op_id = &allowed_op_slot.connections[0].target_node_id;
-//                             // Would need to get operative ID and use it
-//                             data_builder =
-//                                 data_builder.add_new_single_operative_data_type(|sodt| {
-//                                     // Simplified - would need to get the actual operative
-//                                     sodt
-//                                 });
-//                         }
-//                     } else if data_type_node
-//                         .template_id
-//                         .contains("ImplDataMultiOperative")
-//                     {
-//                         // Handle multi operative
-//                         data_builder = data_builder.add_new_multi_operative_data_type(|modt| {
-//                             // Simplified - would need to get all allowed operatives
-//                             modt
-//                         });
-//                     } else if data_type_node
-//                         .template_id
-//                         .contains("ImplDataTraitOperative")
-//                     {
-//                         // Handle trait operative
-//                         data_builder = data_builder.add_new_trait_operative_data_type(|todt| {
-//                             // Simplified - would need to get all required traits
-//                             todt
-//                         });
-//                     }
-//                 }
-
-//                 data_builder
-//             }));
-//             *new_editor = new_editor;
-//         }
-//     }
-// }
-
 pub(crate) fn build_schemaful_representation_of_graph(
     graph: &Graph,
     fn_def: &RGSOConcrete<FunctionDefinition, Schema>,
@@ -1749,17 +1214,19 @@ pub(crate) fn build_schemaful_representation_of_graph(
     ctx: SharedGraph<Schema>,
     fn_impl_name: String,
 ) -> ExistingBuilder<OperativeConcrete, Schema> {
+    leptos::logging::log!("Building schemaful representation of graph");
     // Map from visual node IDs to schema node temp IDs
-    let mut node_id_map = HashMap::new();
 
     // Create the method implementation builder
     let mut operative_editor = operative.edit(ctx.clone());
     operative_editor.add_temp_functionimpls("new_fn_impl");
-    let mut editor = MethodImplementation::new(ctx.clone())
+    let mut method_impl_editor = MethodImplementation::new(ctx.clone())
         .set_temp_id("new_fn_impl")
         .add_existing_definition(fn_def.get_id(), |na| na)
         .add_existing_implementor(operative.get_id(), |na| na)
         .set_name(fn_impl_name);
+    operative_editor.incorporate(&method_impl_editor);
+    leptos::logging::log!("Spot 1");
 
     // Find all function input and output nodes in the graph
     let function_input_template_id = Uuid::from_u128(FunctionInput::get_operative_id()).to_string();
@@ -1807,11 +1274,15 @@ pub(crate) fn build_schemaful_representation_of_graph(
     // First pass - process terminals (inputs and outputs)
     for node in graph.node_instances.values() {
         if node.template_id == map_to_output_template_id {
+            leptos::logging::log!("processing output terminal");
             // This is a MapToOutput node
+            let constraint_input_slot_id = get_slot_id!(ImplStepMapToOutput, "Input");
+            let constraint_output_slot_id = get_slot_id!(ImplStepMapToOutput, "Output");
+
             let output_slot = node
                 .slots
                 .iter()
-                .find(|s| s.slot_template_id.contains("Output"))
+                .find(|s| s.slot_template_id == constraint_output_slot_id)
                 .unwrap();
             let output_node_id = output_slot
                 .connections
@@ -1824,7 +1295,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
             let input_slot = node
                 .slots
                 .iter()
-                .find(|s| s.slot_template_id.contains("Input"))
+                .find(|s| s.slot_template_id == constraint_input_slot_id)
                 .unwrap();
             let data_node_id = input_slot
                 .connections
@@ -1834,26 +1305,31 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .clone();
 
             // Create a temp ID for the data node
-            let data_temp_id = format!("data_output_{}", node.instance_id);
-            node_id_map.insert(data_node_id, data_temp_id.clone());
+            let data_temp_id = data_node_id.clone();
 
             // Create a temp ID for the terminal node
-            let terminal_temp_id = format!("terminal_output_{}", node.instance_id);
-            node_id_map.insert(node.instance_id.clone(), terminal_temp_id.clone());
+            let terminal_temp_id = node.instance_id.clone();
 
+            leptos::logging::log!("about to incorporate output");
             // Add terminal to editor
-            editor.incorporate(editor.clone().add_new_executionterminals(|terminal| {
-                terminal
-                    .set_temp_id(&terminal_temp_id)
-                    .add_existing_output(output_node.get_id(), |na| na)
-                    .add_temp_input(&data_temp_id)
-            }));
+            operative_editor.incorporate(&method_impl_editor.clone().add_new_maptooutputs(
+                |terminal| {
+                    terminal
+                        .set_temp_id(&terminal_temp_id)
+                        .add_existing_output(output_node.get_id(), |na| na)
+                        .add_temp_input(&data_temp_id)
+                },
+            ));
         } else if node.template_id == map_from_input_template_id {
+            leptos::logging::log!("processing input terminal");
             // This is a MapFromInput node
+            let constraint_input_slot_id = get_slot_id!(ImplStepMapFromInput, "Input");
+            let constraint_output_slot_id = get_slot_id!(ImplStepMapFromInput, "Output");
+
             let input_slot = node
                 .slots
                 .iter()
-                .find(|s| s.slot_template_id.contains("Input"))
+                .find(|s| s.slot_template_id == constraint_input_slot_id)
                 .unwrap();
             let input_node_id = input_slot
                 .connections
@@ -1866,7 +1342,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
             let output_slot = node
                 .slots
                 .iter()
-                .find(|s| s.slot_template_id.contains("Output"))
+                .find(|s| s.slot_template_id == constraint_output_slot_id)
                 .unwrap();
             let data_node_id = output_slot
                 .connections
@@ -1876,22 +1352,25 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .clone();
 
             // Create a temp ID for the data node
-            let data_temp_id = format!("data_input_{}", node.instance_id);
-            node_id_map.insert(data_node_id, data_temp_id.clone());
+            let data_temp_id = data_node_id.clone();
 
             // Create a temp ID for the terminal node
-            let terminal_temp_id = format!("terminal_input_{}", node.instance_id);
-            node_id_map.insert(node.instance_id.clone(), terminal_temp_id.clone());
+            let terminal_temp_id = node.instance_id.clone();
 
+            leptos::logging::log!("about to incorporate input");
             // Add terminal to editor
-            editor.incorporate(editor.clone().add_new_executionterminals(|terminal| {
-                terminal
-                    .set_temp_id(&terminal_temp_id)
-                    .add_existing_input(input_node.get_id(), |na| na)
-                    .add_temp_output(&data_temp_id)
-            }));
+
+            operative_editor.incorporate(&method_impl_editor.clone().add_new_mapfrominputs(
+                |terminal| {
+                    terminal
+                        .set_temp_id(&terminal_temp_id)
+                        .add_existing_input(input_node.get_id(), |na| na)
+                        .add_temp_output(&data_temp_id)
+                },
+            ));
         }
     }
+    leptos::logging::log!("Step 1 finished: Processing terminals");
 
     // Second pass - process all step nodes (that aren't terminals)
     for node in graph.node_instances.values() {
@@ -1908,8 +1387,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
         }
 
         // Generate a unique temp ID for this step
-        let step_temp_id = format!("step_{}", node.instance_id);
-        node_id_map.insert(node.instance_id.clone(), step_temp_id.clone());
+        let step_temp_id = node.instance_id.clone();
 
         // Collect data dependencies
         let mut data_deps = HashMap::new();
@@ -1921,15 +1399,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
             let slot_name = get_slot_name_from_id(&slot.slot_template_id, node, graph);
             let target_node_id = &slot.connections[0].target_node_id;
 
-            // If the target node is already in our map, use that temp ID
-            if let Some(temp_id) = node_id_map.get(target_node_id) {
-                data_deps.insert(slot_name.to_string(), temp_id.clone());
-            } else {
-                // Otherwise, create a new temp ID for this data node
-                let data_temp_id = format!("data_{}_{}", node.instance_id, slot_name);
-                node_id_map.insert(target_node_id.clone(), data_temp_id.clone());
-                data_deps.insert(slot_name.to_string(), data_temp_id);
-            }
+            data_deps.insert(slot_name.to_string(), target_node_id.clone());
         }
 
         // ImplStepBitNot
@@ -1940,7 +1410,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .set_temp_id(&step_temp_id)
                 .add_temp_inputbool(input_id)
                 .add_temp_outputbool(output_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepMathDivide
         else if node.template_id
@@ -1954,7 +1424,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_argumentone(arg1_id)
                 .add_temp_argumenttwo(arg2_id)
                 .add_temp_outputint(output_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepBitOr
         else if node.template_id == Uuid::from_u128(ImplStepBitOr::get_operative_id()).to_string()
@@ -1967,7 +1437,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_argumentone(arg1_id)
                 .add_temp_argumenttwo(arg2_id)
                 .add_temp_outputbool(output_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepCompareEqual
         else if node.template_id
@@ -1981,7 +1451,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_argumentone(arg1_id)
                 .add_temp_argumenttwo(arg2_id)
                 .add_temp_outputbool(output_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepBitAnd
         else if node.template_id
@@ -1995,7 +1465,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_argumentone(arg1_id)
                 .add_temp_argumenttwo(arg2_id)
                 .add_temp_outputbool(output_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepMathAdd
         else if node.template_id
@@ -2009,7 +1479,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_argumentone(arg1_id)
                 .add_temp_argumenttwo(arg2_id)
                 .add_temp_outputint(output_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepMathModulus
         else if node.template_id
@@ -2023,7 +1493,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_argumentone(arg1_id)
                 .add_temp_argumenttwo(arg2_id)
                 .add_temp_outputint(output_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepMathMultiply
         else if node.template_id
@@ -2037,7 +1507,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_argumentone(arg1_id)
                 .add_temp_argumenttwo(arg2_id)
                 .add_temp_outputint(output_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepMathSubtract
         else if node.template_id
@@ -2051,7 +1521,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_argumentone(arg1_id)
                 .add_temp_argumenttwo(arg2_id)
                 .add_temp_outputint(output_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepCompareGreaterThan
         else if node.template_id
@@ -2065,7 +1535,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_argumentone(arg1_id)
                 .add_temp_argumenttwo(arg2_id)
                 .add_temp_outputbool(output_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepCompareLessThan
         else if node.template_id
@@ -2079,7 +1549,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_argumentone(arg1_id)
                 .add_temp_argumenttwo(arg2_id)
                 .add_temp_outputbool(output_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepIf
         else if node.template_id == Uuid::from_u128(ImplStepIf::get_operative_id()).to_string() {
@@ -2097,7 +1567,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
             if data_deps.contains_key("Output") {
                 builder.incorporate(builder.clone().add_temp_output(output_id));
             }
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepIteratorFilter
         else if node.template_id
@@ -2113,7 +1583,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_iterationstartitem(iteration_start_item_id)
                 .add_temp_iterationendbool(iteration_end_bool_id)
                 .add_temp_outputcollection(output_collection_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepMutateSlot
         else if node.template_id
@@ -2127,7 +1597,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_mutatedoperative(mutated_operative_id)
                 .add_temp_slotname(slot_name_id)
                 .add_temp_newvalue(new_value_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepGetField
         else if node.template_id
@@ -2141,7 +1611,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_inputoperative(input_operative_id)
                 .add_temp_fieldname(field_name_id)
                 .add_temp_outputfield(output_field_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepMutateField
         else if node.template_id
@@ -2155,7 +1625,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_mutatedoperative(mutated_operative_id)
                 .add_temp_fieldname(field_name_id)
                 .add_temp_newvalue(new_value_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepMultiTypeSplitter
         else if node.template_id
@@ -2171,7 +1641,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_convergence(convergence_id)
                 .add_temp_discriminantstarts(discriminant_starts_id)
                 .add_temp_output(output_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepIteratorMap
         else if node.template_id
@@ -2187,7 +1657,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_iterationstartitem(iteration_start_item_id)
                 .add_temp_iterationenditem(iteration_end_item_id)
                 .add_temp_outputcollection(output_collection_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepTraverseSlot
         else if node.template_id
@@ -2201,7 +1671,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
                 .add_temp_inputoperative(input_operative_id)
                 .add_temp_slotname(slot_name_id)
                 .add_temp_outputoperatives(output_operatives_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
         // ImplStepWhileLoop
         else if node.template_id
@@ -2209,9 +1679,11 @@ pub(crate) fn build_schemaful_representation_of_graph(
         {
             // While loop has special handling that would depend on your specific implementation
             let builder = ImplStepWhileLoop::new(ctx.clone()).set_temp_id(&step_temp_id);
-            editor.incorporate(builder);
+            operative_editor.incorporate(&builder);
         }
     }
+
+    leptos::logging::log!("Step 2 finished: Processing Steps");
 
     // Third pass - process all data nodes and their types recursively
     let data_template_id = Uuid::from_u128(ImplData::get_operative_id()).to_string();
@@ -2224,7 +1696,6 @@ pub(crate) fn build_schemaful_representation_of_graph(
         if node.template_id == data_template_id {
             process_data_node(
                 &node.instance_id,
-                &node_id_map,
                 graph,
                 &ctx,
                 &mut operative_editor,
@@ -2232,8 +1703,8 @@ pub(crate) fn build_schemaful_representation_of_graph(
             );
         }
     }
+    leptos::logging::log!("Step 3 finished: Processing Data Nodes");
 
-    operative_editor.incorporate(&editor);
     operative_editor
 }
 
@@ -2285,12 +1756,12 @@ fn get_slot_name_from_id(slot_template_id: &str, node: &NodeInstance, graph: &Gr
 // Helper function to recursively process data nodes
 fn process_data_node(
     node_id: &str,
-    node_id_map: &HashMap<String, String>,
     graph: &Graph,
     ctx: &SharedGraph<Schema>,
     editor: &mut ExistingBuilder<OperativeConcrete, Schema>,
     processed_data_nodes: &mut HashSet<String>,
 ) {
+    leptos::logging::log!("Processing a data node");
     // Skip if already processed
     if processed_data_nodes.contains(node_id) {
         return;
@@ -2301,19 +1772,17 @@ fn process_data_node(
         None => return, // Node doesn't exist
     };
 
-    let temp_id = match node_id_map.get(node_id) {
-        Some(id) => id.clone(),
-        None => return, // No mapping for this node
-    };
-
+    let temp_id = node_id.clone();
     // Mark as processed
     processed_data_nodes.insert(node_id.to_string());
 
+    let constraint_datatype_slot_id = get_slot_id!(ImplData, "DataType");
     // Find the data type node
     let data_type_slot = node
         .slots
         .iter()
-        .find(|s| s.slot_template_id.contains("DataType"));
+        .find(|s| s.slot_template_id == constraint_datatype_slot_id);
+    let impl_data_builder = ImplData::new(ctx.clone()).set_temp_id(&temp_id);
 
     if let Some(slot) = data_type_slot {
         if slot.connections.is_empty() {
@@ -2326,53 +1795,52 @@ fn process_data_node(
             None => return, // Data type node doesn't exist
         };
 
-        // Process based on data type
-        process_data_type(
-            data_type_node,
-            &temp_id,
-            node_id_map,
-            graph,
-            ctx,
+        let data_type_template_id = data_type_node.template_id.clone();
+        match_impl_data_template!(
+            data_type_template_id,
+            add_temp_datatype,
             editor,
-            processed_data_nodes,
+            impl_data_builder,
+            data_type_node_id
         );
+        // Process based on data type
+        process_data_type(data_type_node, graph, ctx, editor, processed_data_nodes);
     }
 
     // Find upstream and downstream steps
-    let upstream_steps = find_upstream_steps(node_id, graph, node_id_map);
-    let downstream_steps = find_downstream_steps(node_id, graph, node_id_map);
+    let upstream_steps = find_upstream_steps(node_id, graph);
+    let downstream_steps = find_downstream_steps(node_id, graph);
 
     // Apply the upstream and downstream connections
-    let mut builder = ImplData::new(ctx.clone()).set_temp_id(&temp_id);
-
+    leptos::logging::log!("About to add upstream steps");
     // Add upstream steps
     for (step_temp_id, step_viz_template_id) in upstream_steps {
         match_impl_step_template!(
             step_viz_template_id,
             add_temp_upstreamstep,
-            builder,
+            editor,
+            impl_data_builder,
             &step_temp_id
         );
     }
 
+    leptos::logging::log!("About to add downstream steps");
     // Add downstream steps
     for (step_temp_id, step_viz_template_id) in downstream_steps {
         match_impl_step_template!(
             step_viz_template_id,
             add_temp_downstreamsteps,
-            builder,
+            editor,
+            impl_data_builder,
             &step_temp_id
         );
     }
-
-    editor.incorporate(&builder);
 }
 
 // Helper function to find upstream step IDs
 fn find_upstream_steps(
     data_node_id: &str,
     graph: &Graph,
-    node_id_map: &HashMap<String, String>,
     // (temp_id, viz_node_template_id)
 ) -> Vec<(String, String)> {
     let mut upstream_steps = Vec::new();
@@ -2399,10 +1867,8 @@ fn find_upstream_steps(
         {
             for connection in &slot.connections {
                 if connection.target_node_id == data_node_id {
-                    if let Some(step_temp_id) = node_id_map.get(&node.instance_id) {
-                        upstream_steps.push((step_temp_id.clone(), node.template_id.clone()));
-                        break;
-                    }
+                    upstream_steps.push((node.instance_id.clone(), node.template_id.clone()));
+                    break;
                 }
             }
         }
@@ -2415,7 +1881,6 @@ fn find_upstream_steps(
 fn find_downstream_steps(
     data_node_id: &str,
     graph: &Graph,
-    node_id_map: &HashMap<String, String>,
     // (temp_id, viz_node_template_id)
 ) -> Vec<(String, String)> {
     let mut downstream_steps = Vec::new();
@@ -2447,9 +1912,10 @@ fn find_downstream_steps(
 
             // Check if target is a step node
             if is_impl_step_template_id(&target_node.template_id) {
-                if let Some(step_temp_id) = node_id_map.get(&target_node.instance_id) {
-                    downstream_steps.push((step_temp_id.clone(), target_node.template_id.clone()));
-                }
+                downstream_steps.push((
+                    target_node.instance_id.clone(),
+                    target_node.template_id.clone(),
+                ));
             }
         }
     }
@@ -2460,84 +1926,92 @@ fn find_downstream_steps(
 // Helper function to process data type node
 fn process_data_type(
     data_type_node: &NodeInstance,
-    parent_data_temp_id: &str,
-    node_id_map: &HashMap<String, String>,
     graph: &Graph,
     ctx: &SharedGraph<Schema>,
     editor: &mut ExistingBuilder<OperativeConcrete, Schema>,
     processed_data_nodes: &mut HashSet<String>,
 ) {
+    leptos::logging::log!("Processing a data type");
+    let temp_id = &data_type_node.instance_id;
     // ImplDataBool
-    if data_type_node.template_id.contains("ImplDataBool") {
-        let builder = ImplData::new(ctx.clone())
-            .set_temp_id(parent_data_temp_id)
-            .add_new_datatype::<ImplDataBool, _>(|na| na);
-        editor.incorporate(&builder);
+    if data_type_node.template_id == Uuid::from_u128(ImplDataBool::get_operative_id()).to_string() {
+        editor.incorporate(&ImplDataBool::new(ctx.clone()).set_temp_id(temp_id));
     }
     // ImplDataInt
-    else if data_type_node.template_id.contains("ImplDataInt") {
-        let builder = ImplData::new(ctx.clone())
-            .set_temp_id(parent_data_temp_id)
-            .add_new_datatype::<ImplDataInt, _>(|na| na);
-        editor.incorporate(&builder);
+    else if data_type_node.template_id
+        == Uuid::from_u128(ImplDataInt::get_operative_id()).to_string()
+    {
+        editor.incorporate(&ImplDataInt::new(ctx.clone()).set_temp_id(temp_id));
     }
     // ImplDataString
-    else if data_type_node.template_id.contains("ImplDataString") {
-        let builder = ImplData::new(ctx.clone())
-            .set_temp_id(parent_data_temp_id)
-            .add_new_datatype::<ImplDataString, _>(|na| na);
-        editor.incorporate(&builder);
+    else if data_type_node.template_id
+        == Uuid::from_u128(ImplDataString::get_operative_id()).to_string()
+    {
+        editor.incorporate(&ImplDataString::new(ctx.clone()).set_temp_id(temp_id));
     }
     // ImplDataManualBool
-    else if data_type_node.template_id.contains("ImplDataManualBool") {
+    else if data_type_node.template_id
+        == Uuid::from_u128(ImplDataManualBool::get_operative_id()).to_string()
+    {
+        let constraint_field_value_id = get_field_id!(ImplDataManualBool, "value");
         let value = data_type_node
             .fields
             .iter()
-            .find(|f| f.field_template_id.contains("value"))
+            .find(|f| f.field_template_id == constraint_field_value_id)
             .map(|f| f.value == "true")
             .unwrap_or(false);
 
-        let builder = ImplData::new(ctx.clone())
-            .set_temp_id(parent_data_temp_id)
-            .add_new_datatype::<ImplDataManualBool, _>(|new_bool| new_bool.set_value(value));
-        editor.incorporate(&builder);
+        editor.incorporate(
+            &ImplDataManualBool::new(ctx.clone())
+                .set_temp_id(temp_id)
+                .set_value(value),
+        );
     }
     // ImplDataManualInt
-    else if data_type_node.template_id.contains("ImplDataManualInt") {
+    else if data_type_node.template_id
+        == Uuid::from_u128(ImplDataManualInt::get_operative_id()).to_string()
+    {
+        let constraint_field_value_id = get_field_id!(ImplDataManualInt, "value");
         let value = data_type_node
             .fields
             .iter()
-            .find(|f| f.field_template_id.contains("value"))
+            .find(|f| f.field_template_id == constraint_field_value_id)
             .map(|f| f.value.parse::<u32>().unwrap_or(0))
             .unwrap_or(0);
 
-        let builder = ImplData::new(ctx.clone())
-            .set_temp_id(parent_data_temp_id)
-            .add_new_datatype::<ImplDataManualInt, _>(|new_int| new_int.set_value(value));
-        editor.incorporate(&builder);
+        editor.incorporate(
+            &ImplDataManualInt::new(ctx.clone())
+                .set_temp_id(temp_id)
+                .set_value(value),
+        );
     }
     // ImplDataManualString
-    else if data_type_node.template_id.contains("ImplDataManualString") {
+    else if data_type_node.template_id
+        == Uuid::from_u128(ImplDataManualString::get_operative_id()).to_string()
+    {
+        let constraint_field_value_id = get_field_id!(ImplDataManualString, "value");
         let value = data_type_node
             .fields
             .iter()
-            .find(|f| f.field_template_id.contains("value"))
+            .find(|f| f.field_template_id == constraint_field_value_id)
             .map(|f| f.value.clone())
             .unwrap_or_default();
 
-        let builder = ImplData::new(ctx.clone())
-            .set_temp_id(parent_data_temp_id)
-            .add_new_datatype::<ImplDataManualString, _>(|new_string| {
-            new_string.set_value(value.clone())
-        });
-        editor.incorporate(&builder);
+        editor.incorporate(
+            &ImplDataManualString::new(ctx.clone())
+                .set_temp_id(temp_id)
+                .set_value(value),
+        );
     }
     // ImplDataCollection (recursive case)
-    else if data_type_node.template_id.contains("ImplDataCollection") {
+    else if data_type_node.template_id
+        == Uuid::from_u128(ImplDataCollection::get_operative_id()).to_string()
+    {
+        let constraint_collection_type_id = get_slot_id!(ImplDataCollection, "CollectionType");
         let collection_type_slot = data_type_node
             .slots
             .iter()
-            .find(|s| s.slot_template_id.contains("CollectionType"));
+            .find(|s| s.slot_template_id == constraint_collection_type_id);
 
         if let Some(slot) = collection_type_slot {
             if slot.connections.is_empty() {
@@ -2550,31 +2024,12 @@ fn process_data_type(
                 None => return, // Collection type node doesn't exist
             };
 
-            // Create a unique temp ID for the collection type
-            let collection_type_temp_id = format!("{}_collection_type", parent_data_temp_id);
+            let collection_type_temp_id = collection_type_node.instance_id.clone();
 
-            // Add this collection type to our map
-            // We're creating a new ID here because it might not be in the map yet
-            if !node_id_map.contains_key(collection_type_node_id) {
-                let mut new_map = node_id_map.clone();
-                new_map.insert(
-                    collection_type_node_id.clone(),
-                    collection_type_temp_id.clone(),
-                );
-            }
-
-            let builder = ImplData::new(ctx.clone())
-                .set_temp_id(parent_data_temp_id)
-                .add_temp_datatype::<ImplDataCollection>(collection_type_temp_id.clone());
-            editor.incorporate(&builder.clone());
-
-            let mut collection_builder =
-                ImplDataCollection::new(ctx.clone()).set_temp_id(&collection_type_temp_id);
+            let mut collection_builder = ImplDataCollection::new(ctx.clone()).set_temp_id(temp_id);
 
             process_data_type(
                 collection_type_node,
-                &collection_type_temp_id,
-                node_id_map,
                 graph,
                 ctx,
                 editor,
@@ -2582,26 +2037,25 @@ fn process_data_type(
             );
 
             let node_template_id = data_type_node.template_id.clone();
-            match_impl_data_template!(
+            match_impl_data_minus_manuals_template!(
                 node_template_id,
                 add_temp_collectiontype,
                 collection_builder,
                 &collection_type_temp_id
             );
             editor.incorporate(&collection_builder.clone());
-
-            editor.incorporate(&builder);
         }
     }
     // ImplDataSingleOperative
-    else if data_type_node
-        .template_id
-        .contains("ImplDataSingleOperative")
+    else if data_type_node.template_id
+        == Uuid::from_u128(ImplDataSingleOperative::get_operative_id()).to_string()
     {
+        let constraint_allowed_operative_id =
+            get_slot_id!(ImplDataSingleOperative, "AllowedOperative");
         let allowed_op_slot = data_type_node
             .slots
             .iter()
-            .find(|s| s.slot_template_id.contains("AllowedOperative"));
+            .find(|s| s.slot_template_id == constraint_allowed_operative_id);
 
         if let Some(slot) = allowed_op_slot {
             if slot.connections.is_empty() {
@@ -2619,34 +2073,27 @@ fn process_data_type(
                 .unwrap_or(Uuid::nil())
                 .as_u128();
 
-            let builder = ImplData::new(ctx.clone())
-                .set_temp_id(parent_data_temp_id)
-                .add_new_datatype::<ImplDataSingleOperative, _>(|sodt| {
-                sodt.add_existing_allowedoperative(&operative_id, |na| na)
-            });
-
-            editor.incorporate(&builder);
+            editor.incorporate(
+                &ImplDataSingleOperative::new(ctx.clone())
+                    .set_temp_id(temp_id)
+                    .add_existing_allowedoperative(&operative_id, |na| na),
+            );
         }
     }
     // ImplDataMultiOperative
-    else if data_type_node
-        .template_id
-        .contains("ImplDataMultiOperative")
+    else if data_type_node.template_id
+        == Uuid::from_u128(ImplDataMultiOperative::get_operative_id()).to_string()
     {
+        let constraint_allowed_operatives_id =
+            get_slot_id!(ImplDataMultiOperative, "AllowedOperatives");
         let allowed_ops_slot = data_type_node
             .slots
             .iter()
-            .find(|s| s.slot_template_id.contains("AllowedOperatives"));
+            .find(|s| s.slot_template_id == constraint_allowed_operatives_id);
 
         if let Some(slot) = allowed_ops_slot {
-            let temp_impl_data_multi_operative_id = Uuid::new_v4().to_string();
-            let mut builder = ImplData::new(ctx.clone())
-                .set_temp_id(parent_data_temp_id)
-                .add_temp_datatype::<ImplDataMultiOperative>(
-                temp_impl_data_multi_operative_id.clone(),
-            );
-            let impl_data_multi_operative = ImplDataMultiOperative::new(ctx.clone())
-                .set_temp_id(&temp_impl_data_multi_operative_id);
+            let impl_data_multi_operative =
+                ImplDataMultiOperative::new(ctx.clone()).set_temp_id(temp_id);
             // Add each connected operative
             for connection in &slot.connections {
                 let allowed_op_node_id = &connection.target_node_id;
@@ -2660,35 +2107,26 @@ fn process_data_type(
                     .unwrap_or(Uuid::nil())
                     .as_u128();
 
-                builder.incorporate(
+                editor.incorporate(
                     &impl_data_multi_operative
                         .clone()
                         .add_existing_allowedoperatives(&operative_id, |na| na),
                 );
             }
-
-            editor.incorporate(&builder);
         }
     }
     // ImplDataTraitOperative
-    else if data_type_node
-        .template_id
-        .contains("ImplDataTraitOperative")
+    else if data_type_node.template_id
+        == Uuid::from_u128(ImplDataTraitOperative::get_operative_id()).to_string()
     {
+        let constraint_required_traits_id = get_slot_id!(ImplDataTraitOperative, "RequiredTraits");
         let required_traits_slot = data_type_node
             .slots
             .iter()
-            .find(|s| s.slot_template_id.contains("RequiredTraits"));
+            .find(|s| s.slot_template_id == constraint_required_traits_id);
 
         if let Some(slot) = required_traits_slot {
-            let temp_impl_data_trait_operative_id = Uuid::new_v4().to_string();
-            let builder = ImplData::new(ctx.clone())
-                .set_temp_id(parent_data_temp_id)
-                .add_temp_datatype::<ImplDataTraitOperative>(
-                temp_impl_data_trait_operative_id.clone(),
-            );
-            let todt = ImplDataTraitOperative::new(ctx.clone())
-                .set_temp_id(&temp_impl_data_trait_operative_id);
+            let todt = ImplDataTraitOperative::new(ctx.clone()).set_temp_id(temp_id);
 
             // Add each connected trait
             for connection in &slot.connections {
@@ -2705,8 +2143,6 @@ fn process_data_type(
 
                 editor.incorporate(&todt.clone().add_existing_requiredtraits(&trait_id, |na| na));
             }
-
-            editor.incorporate(&builder);
         }
     }
 }
@@ -2739,6 +2175,10 @@ fn is_step_input_slot(slot: &SlotInstance, graph: &Graph) -> bool {
         || name.contains("IterationEndItem")
         || name.contains("Convergence")
         || name.contains("DiscriminantStarts")
+        || name.contains("ContinueWhileBool")
+        || name.contains("LoopExitState")
+        || name.contains("LoopStateIngestor")
+        || name.contains("LoopStateStub")
     {
         return false;
     }

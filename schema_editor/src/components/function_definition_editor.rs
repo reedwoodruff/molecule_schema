@@ -366,13 +366,12 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
                 );
             }
             InputOutputOptions::ImplDataInt => {
-                editor.incorporate(
-                    &ImplDataBool::new(ctx_clone.clone()).set_temp_id("new_data_node"),
-                );
+                editor
+                    .incorporate(&ImplDataInt::new(ctx_clone.clone()).set_temp_id("new_data_node"));
             }
             InputOutputOptions::ImplDataString => {
                 editor.incorporate(
-                    &ImplDataBool::new(ctx_clone.clone()).set_temp_id("new_data_node"),
+                    &ImplDataString::new(ctx_clone.clone()).set_temp_id("new_data_node"),
                 );
             }
             InputOutputOptions::ImplDataSingleOperative => editor.incorporate(

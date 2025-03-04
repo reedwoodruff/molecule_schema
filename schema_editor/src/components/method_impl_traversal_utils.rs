@@ -190,9 +190,9 @@ pub fn analyze_method_implementation(
     };
 
     // First, extract terminals (outputs) from the method implementation
-    let terminals = method_impl.get_executionterminals_slot();
+    let output_terminals = method_impl.get_maptooutputs_slot();
 
-    for terminal in terminals {
+    for terminal in output_terminals {
         graph.terminals.push(*terminal.get_id());
         graph.nodes.insert(
             *terminal.get_id(),
@@ -241,7 +241,7 @@ fn build_graph_from_terminal(
 
     queue.push_back(ExecutionNode::Terminal(ExecutionNodeTerminal::Output(
         method_impl
-            .get_executionterminals_slot()
+            .get_maptooutputs_slot()
             .iter()
             .find(|t| t.get_id() == &terminal_id)
             .unwrap()
@@ -249,7 +249,7 @@ fn build_graph_from_terminal(
     )));
     visited.insert(ExecutionNode::Terminal(ExecutionNodeTerminal::Output(
         method_impl
-            .get_executionterminals_slot()
+            .get_maptooutputs_slot()
             .iter()
             .find(|t| t.get_id() == &terminal_id)
             .unwrap()

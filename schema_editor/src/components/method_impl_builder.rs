@@ -42,6 +42,7 @@ pub fn MethodImplementationBuilder(
     let graph_handle: RwSignal<Option<GraphCanvas>> = RwSignal::new(None);
 
     let inner_on_save = move |_| {
+        leptos::logging::log!("Starting inner_on_save");
         if graph_handle.get().is_none() {
             return;
         }
@@ -55,6 +56,21 @@ pub fn MethodImplementationBuilder(
                     &operative_clone,
                     ctx_clone.clone(),
                     func_impl_name.get(),
+                );
+                let instantiables = blueprint
+                    .get_inner_builder()
+                    .instantiables
+                    .get()
+                    .iter()
+                    .map(|instantiable| {
+                        instantiable.lock().unwrap().get_template().tag.name.clone()
+                    })
+                    .collect::<Vec<String>>();
+                let outgoing = blueprint.get_inner_builder().add_outgoing_updates.get();
+                let incoming = blueprint.get_inner_builder().add_incoming_updates.get();
+                leptos::logging::log!(
+                    "Successful blueprint build. Instantiables: {:#?}, Outgoing Updates: {:#?}, Incoming Updates: {:#?}",
+                    instantiables, outgoing, incoming
                 );
                 on_save.run(blueprint);
             }
