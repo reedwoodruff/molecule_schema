@@ -17,7 +17,7 @@ use crate::post_generation::{
 };
 use leptos::prelude::*;
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, VecDeque},
     hash::Hash,
     marker::PhantomData,
     str::FromStr,
@@ -1017,6 +1017,7 @@ where
     // -------------
     // To be private
     // -------------
+
     pub fn delete_recursive_handler(&mut self, root_id: &Uid) {
         // First, find all nodes that would be unreachable from the rest of the graph
         // if we were to delete the root
@@ -1030,7 +1031,6 @@ where
             self.delete(&id);
         }
     }
-
     fn mark_nodes_for_deletion(&self, root_id: &Uid, to_delete: &mut HashSet<Uid>) {
         // Initial nodes we know we'll delete
         to_delete.insert(*root_id);
@@ -1040,207 +1040,56 @@ where
         while changed {
             changed = false;
 
-            // Find all nodes that are potentially reachable from our deletion set
-            let mut potentially_affected = HashSet::new();
-
-            // For each node in the deletion set, collect its outgoing connections
-            for &id in to_delete.iter() {
-                if let Some(item) = self.graph.get(&id) {
-                    for outgoing_id in item
-                        .outgoing_slots()
-                        .values()
-                        .flat_map(|slot| slot.slotted_instances.get())
-                    {
-                        potentially_affected.insert(outgoing_id);
+            // Find new candidates to consider - nodes reachable from our current deletion set
+            let candidates: HashSet<_> = to_delete
+                .iter()
+                .flat_map(|&id| {
+                    if let Some(item) = self.graph.get(&id) {
+                        item.outgoing_slots()
+                            .values()
+                            .flat_map(|slot| slot.slotted_instances.get())
+                            .collect::<Vec<_>>()
+                    } else {
+                        Vec::new()
                     }
-                }
-            }
+                })
+                .collect();
 
-            // Now check each potentially affected node
-            let mut nodes_to_add = Vec::new();
-            for &node_id in potentially_affected.iter() {
+            // Now check each candidate
+            for &node_id in &candidates {
                 if to_delete.contains(&node_id) {
                     continue; // Already marked for deletion
                 }
 
-                // Check if all of this node's incoming edges are from nodes in our deletion set
-                // or if it would be disconnected after deletion
-                if self.would_be_orphaned(&node_id, to_delete) {
-                    nodes_to_add.push(node_id);
+                // Check if all incoming edges come from the deletion set
+                let can_delete = if let Some(item) = self.graph.get(&node_id) {
+                    let incoming_edges = item.incoming_slots().get();
+
+                    // Check each incoming edge
+                    let all_incoming_from_deletion_set = incoming_edges
+                        .iter()
+                        .all(|slot_ref| to_delete.contains(&slot_ref.host_instance_id));
+
+                    // Check pending additions from outside deletion set
+                    let no_external_additions = self.add_incoming_updates.with(|add_updates| {
+                        !add_updates.iter().any(|update| {
+                            update.0 == node_id && !to_delete.contains(&update.1.host_instance_id)
+                        })
+                    });
+
+                    all_incoming_from_deletion_set && no_external_additions
+                } else {
+                    false
+                };
+
+                if can_delete {
+                    to_delete.insert(node_id);
                     changed = true;
                 }
             }
-
-            // Add the new nodes to our deletion set
-            for id in nodes_to_add {
-                to_delete.insert(id);
-            }
         }
     }
 
-    fn would_be_orphaned(&self, id: &Uid, deletion_set: &HashSet<Uid>) -> bool {
-        if let Some(item) = self.graph.get(id) {
-            // Get all incoming edges
-            let incoming_edges = item.incoming_slots().get();
-
-            // If this node has no incoming edges, it wouldn't be orphaned
-            if incoming_edges.is_empty() {
-                return false;
-            }
-
-            // Count incoming edges from nodes NOT in the deletion set
-            let non_deleted_incoming = incoming_edges
-                .iter()
-                .filter(|&slot_ref| !deletion_set.contains(&slot_ref.host_instance_id))
-                .count();
-
-            // Check pending additions from nodes NOT in the deletion set
-            let pending_non_deleted_additions = self.add_incoming_updates.with(|add_updates| {
-                add_updates
-                    .iter()
-                    .filter(|update| {
-                        update.0 == *id && !deletion_set.contains(&update.1.host_instance_id)
-                    })
-                    .count()
-            });
-
-            // Check pending removals from nodes that will remain
-            let pending_remaining_removals = self.remove_incoming_updates.with(|remove_updates| {
-                remove_updates
-                    .iter()
-                    .filter(|update| {
-                        update.0 == *id && !deletion_set.contains(&update.1.host_instance_id)
-                    })
-                    .count()
-            });
-
-            // Calculate total incoming edges after deletion
-            let total_remaining =
-                non_deleted_incoming + pending_non_deleted_additions - pending_remaining_removals;
-
-            // If there would be no remaining incoming edges, this node would be orphaned
-            return total_remaining == 0;
-        }
-        false
-    }
-    // pub fn delete_recursive_handler(&mut self, root_id: &Uid) {
-    //     let mut to_delete = HashSet::new();
-    //     to_delete.insert(*root_id); // Start with just the root
-
-    //     // Iteratively expand the deletion set until no more nodes can be added
-    //     let mut changed = true;
-    //     while changed {
-    //         changed = false;
-
-    //         // Find candidates for deletion: outgoing connections from our current deletion set
-    //         let mut candidates = HashSet::new();
-    //         for id in &to_delete {
-    //             if let Some(item) = self.graph.get(id) {
-    //                 for outgoing_id in item
-    //                     .outgoing_slots()
-    //                     .values()
-    //                     .flat_map(|slot| slot.slotted_instances.get())
-    //                 {
-    //                     if !to_delete.contains(&outgoing_id) {
-    //                         candidates.insert(outgoing_id);
-    //                     }
-    //                 }
-    //             }
-    //         }
-
-    //         // Check each candidate to see if all its incoming edges are from to_delete
-    //         for candidate_id in candidates {
-    //             if self.can_be_deleted(&candidate_id, &to_delete) {
-    //                 to_delete.insert(candidate_id);
-    //                 changed = true;
-    //             }
-    //         }
-    //     }
-
-    //     // Actually delete the nodes
-    //     for id in to_delete {
-    //         self.delete(&id);
-    //     }
-    // }
-
-    // fn can_be_deleted(&self, id: &Uid, deletion_set: &HashSet<Uid>) -> bool {
-    //     if let Some(item) = self.graph.get(id) {
-    //         // Check existing incoming edges (except those with pending removals)
-    //         let current_incoming = item.incoming_slots().get();
-
-    //         // Get pending removals for this node
-    //         let pending_removals = self.remove_incoming_updates.with(|remove_updates| {
-    //             remove_updates
-    //                 .iter()
-    //                 .filter(|update| update.0 == *id)
-    //                 .map(|update| update.1.clone())
-    //                 .collect::<HashSet<_>>()
-    //         });
-
-    //         // Check each current incoming edge
-    //         for slot_ref in &current_incoming {
-    //             if !deletion_set.contains(&slot_ref.host_instance_id)
-    //                 && !pending_removals.contains(&slot_ref)
-    //             {
-    //                 return false; // External dependency that's not being removed
-    //             }
-    //         }
-
-    //         // Check pending additions
-    //         let pending_additions = self.add_incoming_updates.with(|add_updates| {
-    //             add_updates
-    //                 .iter()
-    //                 .filter(|update| update.0 == *id)
-    //                 .map(|update| update.1.clone())
-    //                 .collect::<HashSet<_>>()
-    //         });
-
-    //         // Check if any pending additions are from outside the deletion set
-    //         for slot_ref in &pending_additions {
-    //             if !deletion_set.contains(&slot_ref.host_instance_id) {
-    //                 return false; // External pending addition
-    //             }
-    //         }
-
-    //         return true;
-    //     }
-    //     false
-    // }
-    // pub fn delete_recursive_handler(&mut self, id: &Uid, is_root_deletion: bool, visited_list: &mut Vec<Uid>, ) {
-    //     visited_list.push(*id);
-    //     let item = self.graph.get(id).unwrap();
-    //     let pending_incoming_removals = self.remove_incoming_updates.with(|remove_updates| {
-    //         remove_updates
-    //             .iter()
-    //             .filter(|update| update.0 == *id)
-    //             .collect::<std::collections::HashSet<_>>()
-    //             .len()
-    //     });
-    //     let pending_incoming_additions = self.add_incoming_updates.with(|add_updates| {
-    //         add_updates
-    //             .iter()
-    //             .filter(|update| update.0 == *id)
-    //             .collect::<std::collections::HashSet<_>>()
-    //             .len()
-    //     });
-    //     leptos::logging::log!("{}: \nIncoming Slots: {}\nPending incoming additions: {}\nPending incoming removals: {}", item.template().tag.name, item.incoming_slots().get().len(), pending_incoming_additions, pending_incoming_removals);
-    //     leptos::logging::log!("{:#?}", item.outgoing_slots().values());
-    //     let total_incoming = item.incoming_slots().get().len() + pending_incoming_additions;
-    //     if (total_incoming == pending_incoming_removals) || is_root_deletion {
-    //         self.delete(id);
-    //         let slotted_instances = item
-    //             .outgoing_slots()
-    //             .values()
-    //             .flat_map(|slot| slot.slotted_instances.get())
-    //             .for_each(|instance_id| {
-    //                 if !visited_list.contains(&instance_id) {
-    //                     self.delete_recursive_handler(&instance_id, false, visited_list);
-    //                 }
-    //             });
-    //         slotted_instances
-    //     }
-    // }
-    // Perform final calculations to gather all changes
     pub fn get_blueprint(
         mut self,
     ) -> Result<(Blueprint<TSchema>, ExecutionResult), ElementCreationError> {
@@ -1367,6 +1216,9 @@ where
         // Run through each node which was marked to be deleted recursively and add them to the delete list
         // Checks to see if slotted instances have any other references (incoming slots) and deletes them if no
         // and continues to check their children (and so on)
+        //
+        // Known shortcoming with strongly connected components within the potential deletion subgraph
+        // Sometimes it doesn't delete as much as it "could".
         self.to_delete_recursive
             .get()
             .iter()

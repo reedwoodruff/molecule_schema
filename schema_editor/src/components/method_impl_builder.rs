@@ -6,8 +6,8 @@ use crate::components::method_impl_utils::{
 };
 use crate::components::workspace::WorkspaceState;
 use crate::components::{common::*, graph_editor::GraphEditor};
-use graph_canvas::GraphCanvasConfig;
 use graph_canvas::{GraphCanvas, TemplateGroup};
+use graph_canvas::{GraphCanvasConfig, LayoutType};
 use leptos::context::Provider;
 use leptos::logging::log;
 use schema_editor_generated_toolkit::prelude::*;
@@ -40,6 +40,12 @@ pub fn MethodImplementationBuilder(
     let operative_clone = operative.clone();
 
     let graph_handle: RwSignal<Option<GraphCanvas>> = RwSignal::new(None);
+    Effect::new(move |_| match graph_handle.get() {
+        Some(mut graph) => {
+            graph.apply_layout(LayoutType::ForceDirected);
+        }
+        None => {}
+    });
 
     let inner_on_save = move |_| {
         leptos::logging::log!("Starting inner_on_save");

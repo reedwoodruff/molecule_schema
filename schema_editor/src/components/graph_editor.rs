@@ -9,7 +9,7 @@ pub fn GraphEditor(config: GraphCanvasConfig, on_mount: Callback<GraphCanvas>) -
         let config = config.clone();
         if let Some(container) = container_ref.get() {
             // Initialize GraphCanvas
-            let graph_canvas =
+            let mut graph_canvas =
                 GraphCanvas::new_rust(&container, config).expect("Failed to create GraphCanvas");
             on_mount.run(graph_canvas);
         }

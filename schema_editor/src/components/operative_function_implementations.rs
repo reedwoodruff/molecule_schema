@@ -81,28 +81,29 @@ pub fn OperativeMethodImplementations(
                     let func_impl_clone = func_impl.clone();
                     let on_delete = move |_| {
                         let mut func_delete = func_impl_clone.edit(ctx_clone.clone());
-                        func_delete.delete_recursive();
+                        func_delete.delete();
+                        let output_terminals = func_impl_clone.get_maptooutputs_slot();
+                        output_terminals
+                            .iter()
+                            .for_each(|terminal| {
+                                func_delete
+                                    .incorporate(
+                                        terminal.edit(ctx_clone.clone()).delete_recursive(),
+                                    );
+                            });
+                        let input_terminals = func_impl_clone.get_mapfrominputs_slot();
+                        input_terminals
+                            .iter()
+                            .for_each(|terminal| {
+                                func_delete
+                                    .incorporate(
+                                        terminal.edit(ctx_clone.clone()).delete_recursive(),
+                                    );
+                            });
                         func_delete.execute().unwrap();
                     };
                     let func_impl_clone = func_impl.clone();
-                    // let output_terminals = func_impl_clone.get_maptooutputs_slot();
-                    // output_terminals
-                    // .iter()
-                    // .for_each(|terminal| {
-                    // func_delete
-                    // .incorporate(
-                    // terminal.edit(ctx_clone.clone()).delete_recursive(),
-                    // );
-                    // });
-                    // let input_terminals = func_impl_clone.get_mapfrominputs_slot();
-                    // input_terminals
-                    // .iter()
-                    // .for_each(|terminal| {
-                    // func_delete
-                    // .incorporate(
-                    // terminal.edit(ctx_clone.clone()).delete_recursive(),
-                    // );
-                    // });
+                    // func_delete.execute().unwrap();
 
                     view! {
                         <SubSection>
