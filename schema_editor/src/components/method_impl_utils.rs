@@ -510,6 +510,7 @@ pub(crate) fn setup_existing_fn_impl_in_canvas(
     existing_impl: &RGSOConcrete<MethodImplementation, Schema>,
 ) -> Vec<InitialNode> {
     let execution_flow = analyze_method_implementation(existing_impl);
+    leptos::logging::log!("{:#?}", execution_flow);
 
     let mut initial_nodes = Vec::new();
 
@@ -779,12 +780,10 @@ fn generate_impldatavariant_complex(
                 .unwrap()
                 .tag
                 .id;
-            node_to_connect
-                .initial_field_values
-                .push(InitialFieldValue {
-                    field_id: Uuid::from_u128(field_id).to_string(),
-                    value: datatype.get_value_field().to_string(),
-                });
+            data_type_node.initial_field_values.push(InitialFieldValue {
+                field_template_id: Uuid::from_u128(field_id).to_string(),
+                value: datatype.get_value_field().to_string(),
+            });
             initial_nodes.push(data_type_node);
         }
         ImplDataVariantTraitObject::ImplDataManualBool(datatype) => {
@@ -807,12 +806,10 @@ fn generate_impldatavariant_complex(
                 .unwrap()
                 .tag
                 .id;
-            node_to_connect
-                .initial_field_values
-                .push(InitialFieldValue {
-                    field_id: Uuid::from_u128(field_id).to_string(),
-                    value: datatype.get_value_field().to_string(),
-                });
+            data_type_node.initial_field_values.push(InitialFieldValue {
+                field_template_id: Uuid::from_u128(field_id).to_string(),
+                value: datatype.get_value_field().to_string(),
+            });
             initial_nodes.push(data_type_node);
         }
         ImplDataVariantTraitObject::ImplDataCollection(datatype) => {
@@ -884,12 +881,11 @@ fn generate_impldatavariant_complex(
                 .unwrap()
                 .tag
                 .id;
-            node_to_connect
-                .initial_field_values
-                .push(InitialFieldValue {
-                    field_id: Uuid::from_u128(field_id).to_string(),
-                    value: datatype.get_value_field(),
-                });
+            let field_string_id = Uuid::from_u128(field_id).to_string();
+            data_type_node.initial_field_values.push(InitialFieldValue {
+                field_template_id: field_string_id,
+                value: datatype.get_value_field(),
+            });
             initial_nodes.push(data_type_node);
         }
         ImplDataVariantTraitObject::ImplDataTraitOperative(datatype) => {
@@ -988,6 +984,19 @@ pub(crate) fn create_functioninput_complex(
     let mut function_input_node =
         InitialNode::new(function_input.operative().tag.id.clone().into());
     function_input_node.id = Some(Uuid::from_u128(*function_input.get_id()).to_string());
+    let name_field_id = function_input
+        .template()
+        .field_constraints
+        .values()
+        .find(|field| field.tag.name.contains("name"))
+        .unwrap()
+        .tag
+        .id;
+    let name_field_id_string = Uuid::from_u128(name_field_id).to_string();
+    function_input_node.initial_field_values = vec![InitialFieldValue {
+        field_template_id: name_field_id_string,
+        value: function_input.get_name_field().clone(),
+    }];
 
     // Map input types to data types, handling the `self` case
     let fi_rgso_data_node = function_input.get_type_slot();
@@ -1032,6 +1041,20 @@ pub(crate) fn create_functionoutput_complex(
     let mut function_output_node =
         InitialNode::new(function_output.operative().tag.id.clone().into());
     function_output_node.id = Some(Uuid::from_u128(*function_output.get_id()).to_string());
+    function_output_node.id = Some(Uuid::from_u128(*function_output.get_id()).to_string());
+    let name_field_id = function_output
+        .template()
+        .field_constraints
+        .values()
+        .find(|field| field.tag.name.contains("name"))
+        .unwrap()
+        .tag
+        .id;
+    let name_field_id_string = Uuid::from_u128(name_field_id).to_string();
+    function_output_node.initial_field_values = vec![InitialFieldValue {
+        field_template_id: name_field_id_string,
+        value: function_output.get_name_field().clone(),
+    }];
 
     // Map output types to data types, handling the `self` case
     let fo_rgso_data_node = function_output.get_type_slot();
@@ -1857,7 +1880,7 @@ fn find_upstream_steps(
             .slots
             .iter()
             .filter_map(|slot| {
-                if is_step_input_slot(slot, graph) {
+                if is_step_output_slot(slot, graph) {
                     Some(slot)
                 } else {
                     None
@@ -1885,37 +1908,31 @@ fn find_downstream_steps(
 ) -> Vec<(String, String)> {
     let mut downstream_steps = Vec::new();
 
-    // Get the data node
-    let data_node = match graph.node_instances.get(data_node_id) {
-        Some(n) => n,
-        None => return downstream_steps, // Node doesn't exist
-    };
+    // Find all step nodes that connect their output to this data node
+    for node in graph.node_instances.values() {
+        // Skip if not a step node
+        if !is_impl_step_template_id(&node.template_id) {
+            continue;
+        }
 
-    // Check all slots for connections to step nodes
-    for slot in &data_node
-        .slots
-        .iter()
-        .filter_map(|slot| {
-            if is_step_output_slot(slot, graph) {
-                Some(slot)
-            } else {
-                None
-            }
-        })
-        .collect::<Vec<_>>()
-    {
-        for connection in &slot.connections {
-            let target_node = match graph.node_instances.get(&connection.target_node_id) {
-                Some(n) => n,
-                None => continue, // Target node doesn't exist
-            };
-
-            // Check if target is a step node
-            if is_impl_step_template_id(&target_node.template_id) {
-                downstream_steps.push((
-                    target_node.instance_id.clone(),
-                    target_node.template_id.clone(),
-                ));
+        // Check if any output slot connects to our data node
+        for slot in &node
+            .slots
+            .iter()
+            .filter_map(|slot| {
+                if is_step_input_slot(slot, graph) {
+                    Some(slot)
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>()
+        {
+            for connection in &slot.connections {
+                if connection.target_node_id == data_node_id {
+                    downstream_steps.push((node.instance_id.clone(), node.template_id.clone()));
+                    break;
+                }
             }
         }
     }
