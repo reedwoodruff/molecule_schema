@@ -1713,18 +1713,6 @@
         }
       },
       "operative_slots": {
-        "36382031176304953737155088011318229870": {
-          "tag": {
-            "name": "TraitImpls",
-            "id": 36382031176304953737155088011318229870
-          },
-          "operative_descriptor": {
-            "LibraryOperative": 88514864505434199223308527499153129389
-          },
-          "bounds": {
-            "LowerBound": 0
-          }
-        },
         "64179934365509561700059246928044589583": {
           "tag": {
             "name": "LockedFields",
@@ -1745,7 +1733,7 @@
         },
         "67319656346306673383294355975413164389": {
           "tag": {
-            "name": "FunctionImpls",
+            "name": "MethodImpls",
             "id": 67319656346306673383294355975413164389
           },
           "operative_descriptor": {
@@ -1777,6 +1765,18 @@
           },
           "bounds": {
             "UpperBound": 1
+          }
+        },
+        "302169566396737721940626101168927440772": {
+          "tag": {
+            "name": "TraitImpls",
+            "id": 302169566396737721940626101168927440772
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 224638844882786947996827946789333983414
+          },
+          "bounds": {
+            "LowerBound": 0
           }
         },
         "308485767197417231175928399636258622132": {
@@ -1938,7 +1938,20 @@
           "value_type": "String"
         }
       },
-      "operative_slots": {},
+      "operative_slots": {
+        "152792833696151240388792509247524811933": {
+          "tag": {
+            "name": "RequiredMethods",
+            "id": 152792833696151240388792509247524811933
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 230947098967319775504831279952691581797
+          },
+          "bounds": {
+            "LowerBound": 0
+          }
+        }
+      },
       "trait_impls": {
         "126831637068183444206449483546552649222": {
           "258380955653095608834384786163178087857": [
@@ -2141,6 +2154,49 @@
       "trait_impls": {
         "6112419245734111135111571810901799735": {}
       },
+      "instances": []
+    },
+    "244109046927207483832978040735680037328": {
+      "tag": {
+        "name": "TraitImplementation",
+        "id": 244109046927207483832978040735680037328
+      },
+      "field_constraints": {},
+      "operative_slots": {
+        "3259333238218818466252914262105703112": {
+          "tag": {
+            "name": "MethodImplementations",
+            "id": 3259333238218818466252914262105703112
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 287245525247588349653719087186295411443
+          },
+          "bounds": {
+            "LowerBound": 0
+          }
+        },
+        "169252266600900538900399544001759218323": {
+          "tag": {
+            "name": "TraitDefinition",
+            "id": 169252266600900538900399544001759218323
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 88514864505434199223308527499153129389
+          },
+          "bounds": "Single"
+        },
+        "328523960830265994901929532357519464419": {
+          "tag": {
+            "name": "ImplingOperative",
+            "id": 328523960830265994901929532357519464419
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 282754878768449679153758877317862393927
+          },
+          "bounds": "Single"
+        }
+      },
+      "trait_impls": {},
       "instances": []
     },
     "248195711708989095620850628223717230222": {
@@ -3446,6 +3502,18 @@
         "id": 219050946175467215490445130385990093622
       },
       "template_id": 191396018591140473765841446170967291052,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "224638844882786947996827946789333983414": {
+      "tag": {
+        "name": "TraitImplementation",
+        "id": 224638844882786947996827946789333983414
+      },
+      "template_id": 244109046927207483832978040735680037328,
       "parent_operative_id": null,
       "slotted_instances": {},
       "locked_fields": {},

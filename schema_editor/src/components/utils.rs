@@ -80,9 +80,11 @@ pub fn get_all_operatives_which_impl_trait_set(
     all_ops
         .into_iter()
         .filter(|op| {
-            traits
-                .iter()
-                .all(|inner_trait| op.get_traitimpls_slot().contains(inner_trait))
+            traits.iter().all(|inner_trait| {
+                op.get_traitimpls_slot().iter().any(|trait_impl| {
+                    trait_impl.get_traitdefinition_slot().get_id() == inner_trait.get_id()
+                })
+            })
         })
         .collect()
 }

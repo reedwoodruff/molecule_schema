@@ -1242,7 +1242,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
 
     // Create the method implementation builder
     let mut operative_editor = operative.edit(ctx.clone());
-    operative_editor.add_temp_functionimpls("new_fn_impl");
+    operative_editor.add_temp_methodimpls("new_fn_impl");
     let mut method_impl_editor = MethodImplementation::new(ctx.clone())
         .set_temp_id("new_fn_impl")
         .add_existing_definition(fn_def.get_id(), |na| na)

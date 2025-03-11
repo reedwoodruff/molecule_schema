@@ -73,7 +73,15 @@ pub fn SlotTypeSpecializationBuilder(
 
     let spec_target_clone = spec_target.clone();
     let schema_clone = schema.clone();
-    let selectable_options = Memo::new(move |_| {
+    let single_selectable_options = Memo::new(move |_| {
+        let schema_clone = schema_clone.clone();
+        let spec_target_clone = spec_target_clone.clone();
+        let mut ops =
+            get_all_operatives_which_satisfy_specializable(&schema_clone.get(), spec_target_clone);
+        ops.into_iter().collect::<Vec<_>>()
+    });
+    let spec_target_clone = spec_target.clone();
+    let multi_selectable_options = Memo::new(move |_| {
         let schema_clone = schema_clone.clone();
         let spec_target_clone = spec_target_clone.clone();
         let mut ops =
@@ -99,7 +107,7 @@ pub fn SlotTypeSpecializationBuilder(
         if let Some(trait_spec_target) = spec_target_clone {
             let mut next_item = trait_spec_target;
             let mut upstream_traits = BTreeSet::new();
-            let  reached_end = false;
+            let reached_end = false;
             while reached_end == false {
                 match next_item {
                     OperativeSlotTypeSpecializableTraitOperativeTraitObject::TemplateSlotTypeTraitOperative(item) => { upstream_traits.extend(item
@@ -131,7 +139,7 @@ pub fn SlotTypeSpecializationBuilder(
             view! {
                 <SignalSelectRGSOWithOptions
                     value=selected_single_op
-                    options=selectable_options
+                    options=single_selectable_options
                     empty_allowed=true
                 />
             }
@@ -161,7 +169,7 @@ pub fn SlotTypeSpecializationBuilder(
                 <div>
                     <SignalSelectRGSOWithOptions
                         value=selected_single_out_of_list_of_ops
-                        options=selectable_options
+                        options=multi_selectable_options
                         empty_allowed=true
                     />
                     <Button
@@ -280,7 +288,9 @@ pub fn SlotTypeSpecializationBuilder(
                     .map(|slint| slint.get_instance_slot().get_parentoperative_slot())
                     .any(|slotted_op|
                         slotted_op.get_traitimpls_slot().into_iter().any(|trait_impl|
-                            !selected_list_of_traits.get().contains(&trait_impl)
+                            !selected_list_of_traits.get().iter().any(
+                                |trait_item| trait_item.get_id() == trait_impl.get_traitdefinition_slot().get_id()
+                            )
                         )
                     )
             })

@@ -639,32 +639,40 @@ pub(crate) fn get_step_data_dependencies(step: &ImplStepVariantTraitObject) -> V
                 to: ExecutionNode::Data(rgsoconcrete.get_outputbool_slot()),
             },
         ],
-        ImplStepVariantTraitObject::ImplStepIf(rgsoconcrete) => vec![
-            ExecutionEdge {
-                slot_name: "Condition".to_string(),
-                slot_type: SlotType::Dependency,
-                from: ExecutionNode::Step(step.clone()),
-                to: ExecutionNode::Data(rgsoconcrete.get_condition_slot()),
-            },
-            ExecutionEdge {
-                slot_name: "TrueBranch".to_string(),
-                slot_type: SlotType::Internal,
-                from: ExecutionNode::Step(step.clone()),
-                to: ExecutionNode::Data(rgsoconcrete.get_truebranch_slot()),
-            },
-            ExecutionEdge {
-                slot_name: "FalseBranch".to_string(),
-                slot_type: SlotType::Internal,
-                from: ExecutionNode::Step(step.clone()),
-                to: ExecutionNode::Data(rgsoconcrete.get_falsebranch_slot()),
-            },
-            ExecutionEdge {
-                slot_name: "Output".to_string(),
-                slot_type: SlotType::Output,
-                from: ExecutionNode::Step(step.clone()),
-                to: ExecutionNode::Data(rgsoconcrete.get_output_slot().first().cloned().unwrap()),
-            },
-        ],
+        ImplStepVariantTraitObject::ImplStepIf(rgsoconcrete) => {
+            let mut initial_vec =
+                if let Some(output) = rgsoconcrete.get_output_slot().first().cloned() {
+                    vec![ExecutionEdge {
+                        slot_name: "Output".to_string(),
+                        slot_type: SlotType::Output,
+                        from: ExecutionNode::Step(step.clone()),
+                        to: ExecutionNode::Data(output),
+                    }]
+                } else {
+                    vec![]
+                };
+            initial_vec.extend(vec![
+                ExecutionEdge {
+                    slot_name: "Condition".to_string(),
+                    slot_type: SlotType::Dependency,
+                    from: ExecutionNode::Step(step.clone()),
+                    to: ExecutionNode::Data(rgsoconcrete.get_condition_slot()),
+                },
+                ExecutionEdge {
+                    slot_name: "TrueBranch".to_string(),
+                    slot_type: SlotType::Internal,
+                    from: ExecutionNode::Step(step.clone()),
+                    to: ExecutionNode::Data(rgsoconcrete.get_truebranch_slot()),
+                },
+                ExecutionEdge {
+                    slot_name: "FalseBranch".to_string(),
+                    slot_type: SlotType::Internal,
+                    from: ExecutionNode::Step(step.clone()),
+                    to: ExecutionNode::Data(rgsoconcrete.get_falsebranch_slot()),
+                },
+            ]);
+            initial_vec
+        }
         ImplStepVariantTraitObject::ImplStepIteratorFilter(rgsoconcrete) => vec![
             ExecutionEdge {
                 slot_name: "InputCollection".to_string(),

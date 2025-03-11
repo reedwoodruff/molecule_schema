@@ -1,8 +1,9 @@
 use crate::components::{
     common::*,
-    operative_function_implementations::OperativeMethodImplementations,
     operative_lineage::OperativeLineage,
+    operative_method_implementations::OperativeMethodImplementations,
     operative_slot_section::OperativeSlotSection,
+    operative_trait_implementations::OperativeTraitImplementations,
     workspace::{WorkspaceState, WorkspaceTab},
 };
 use leptos::either::EitherOf3;
@@ -397,6 +398,7 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
     let operative_clone_4 = operative.clone();
     let operative_clone_5 = operative.clone();
     let operative_clone_6 = operative.clone();
+    let operative_clone_7 = operative.clone();
     view! {
         <Section>
             <SectionHeader slot>Overview</SectionHeader>
@@ -539,8 +541,13 @@ pub fn OperativeEditor(operative: RGSOConcrete<OperativeConcrete, Schema>) -> im
         </Section>
 
         <Section>
-            <SectionHeader slot>Function Implementations</SectionHeader>
+            <SectionHeader slot>Method Implementations</SectionHeader>
             <OperativeMethodImplementations operative=operative_clone_5 />
+        </Section>
+
+        <Section>
+            <SectionHeader slot>Trait Implementations</SectionHeader>
+            <OperativeTraitImplementations operative=operative_clone_7 />
         </Section>
     }
 }
