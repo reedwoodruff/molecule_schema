@@ -74,7 +74,9 @@ fn into_most_generic(
 }
 
 #[component]
-pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>) -> impl IntoView {
+pub fn FunctionDefinitionEditor(
+    fn_def: RwSignal<RGSOConcrete<FunctionDefinition, Schema>>,
+) -> impl IntoView {
     let ctx = use_context::<SharedGraph<Schema>>().unwrap();
     let WorkspaceState {
         schema,
@@ -107,7 +109,7 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
 
     let fn_def_clone = fn_def.clone();
     let update_name = move |new_val: String| {
-        let mut editor = fn_def_clone.edit(ctx_clone.clone());
+        let mut editor = fn_def_clone.get().edit(ctx_clone.clone());
         editor.set_name(new_val).execute().unwrap();
     };
 
@@ -117,6 +119,7 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
     let delete_fn_def_recursive = move |_| {
         let ctx_clone = ctx_clone.clone();
         fn_def_clone
+            .get()
             .edit(ctx_clone)
             .delete_recursive()
             .execute()
@@ -151,13 +154,14 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
     let ctx_clone = ctx.clone();
     let fn_def_clone = fn_def.clone();
     let on_click_add_input = move |_| {
-        let mut editor = fn_def_clone.edit(ctx_clone.clone());
+        let mut editor = fn_def_clone.get().edit(ctx_clone.clone());
         let input_node = FunctionInput::new(ctx_clone.clone())
             .set_temp_id("new_input_node")
             .set_name(input_name.get());
         editor.incorporate(&input_node);
         editor.incorporate(
             fn_def_clone
+                .get()
                 .edit(ctx_clone.clone())
                 .add_temp_inputs("new_input_node"),
         );
@@ -333,13 +337,14 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
     let ctx_clone = ctx.clone();
     let fn_def_clone = fn_def.clone();
     let on_click_add_output = move |_| {
-        let mut editor = fn_def_clone.edit(ctx_clone.clone());
+        let mut editor = fn_def_clone.get().edit(ctx_clone.clone());
         let output_node = FunctionOutput::new(ctx_clone.clone())
             .set_temp_id("new_output_node")
             .set_name(output_name.get());
         editor.incorporate(&output_node);
         editor.incorporate(
             fn_def_clone
+                .get()
                 .edit(ctx_clone.clone())
                 .add_temp_outputs("new_output_node"),
         );
@@ -514,7 +519,7 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
                 <SubSection>
                     <SubSectionHeader>Name:</SubSectionHeader>
                     <ToggleManagedTextInput
-                        getter=move || fn_def_clone.get_name_field()
+                        getter=move || fn_def_clone.get().get_name_field()
                         setter=update_name
                     />
                 </SubSection>
@@ -556,7 +561,7 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
                                     <LeafSectionHeader>Is Self Input</LeafSectionHeader>
                                     <input
                                         type="checkbox"
-                                        value=move || is_self_input.get()
+                                        prop:value=move || is_self_input.get()
                                         on:change=move |_| {
                                             is_self_input.update(|prev| *prev = !*prev)
                                         }
@@ -613,7 +618,7 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
                 <SubSection>
                     <SubSectionHeader>Current Inputs</SubSectionHeader>
                     <For
-                        each=move || fn_def_clone_2.get_inputs_slot()
+                        each=move || fn_def_clone_2.get().get_inputs_slot()
                         key=|item| item.get_id().clone()
                         children=move |input| {
                             let ctx_clone = ctx_clone_2.clone();
@@ -627,11 +632,19 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
                             };
                             let input_clone = input.clone();
                             let io = input_clone.clone().get_type_slot();
+                            let ctx_clone = ctx_clone_2.clone();
+                            let update_input_name = move |new_val: String| {
+                                let mut editor = input_clone.edit(ctx_clone.clone());
+                                editor.set_name(new_val).execute().unwrap();
+                            };
 
                             view! {
                                 <LeafSection>
                                     <LeafSectionHeader>
-                                        {move || input.get_name_field()}
+                                        <ToggleManagedTextInput
+                                            getter=move || input.get_name_field()
+                                            setter=update_input_name
+                                        />
                                     </LeafSectionHeader>
                                     <LeafSection>
                                         <InputOutputDisplay value=io />
@@ -715,7 +728,7 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
                 <SubSection>
                     <SubSectionHeader>Current Outputs</SubSectionHeader>
                     <For
-                        each=move || fn_def_clone_3.get_outputs_slot()
+                        each=move || fn_def_clone_3.get().get_outputs_slot()
                         key=|item| item.get_id().clone()
                         children=move |output| {
                             let ctx_clone = ctx_clone_3.clone();
@@ -729,11 +742,19 @@ pub fn FunctionDefinitionEditor(fn_def: RGSOConcrete<FunctionDefinition, Schema>
                             };
                             let output_clone = output.clone();
                             let io = into_most_generic(output_clone.clone().get_type_slot());
+                            let ctx_clone = ctx_clone_3.clone();
+                            let update_output_name = move |new_val: String| {
+                                let mut editor = output_clone.edit(ctx_clone.clone());
+                                editor.set_name(new_val).execute().unwrap();
+                            };
 
                             view! {
                                 <LeafSection>
                                     <LeafSectionHeader>
-                                        {move || output.get_name_field()}
+                                        <ToggleManagedTextInput
+                                            getter=move || output.get_name_field()
+                                            setter=update_output_name
+                                        />
                                     </LeafSectionHeader>
                                     <LeafSection>
                                         <InputOutputDisplay value=io />

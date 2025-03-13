@@ -64,7 +64,7 @@ where
     view! {
         <select node_ref=select_ref prop:value=cur_value on:change=on_change>
             <For each=move || ordered_options.get() key=move |item| item.0.clone() let:item>
-                <option value=item.1.clone() selected=value.get() == item.0>
+                <option prop:value=item.1.clone() selected=value.get() == item.0>
                     {item.1.clone()}
                 </option>
             </For>
@@ -135,9 +135,9 @@ where
 
     view! {
         <select on:change=on_change prop:value=cur_value>
-            <option value="NoneOption" id="NoneOption"></option>
+            <option prop:value="NoneOption" id="NoneOption"></option>
             <For each=move || ordered_options.get() key=move |item| item.0.clone() let:item>
-                <option value=item.1.clone()>{item.1.clone()}</option>
+                <option prop:value=item.1.clone()>{item.1.clone()}</option>
             </For>
         // {move || options.get().into_iter().map(|item| {
         // view!{<option value=item.1.clone().into()>{item.1.into()}</option>}

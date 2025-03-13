@@ -1,7 +1,12 @@
 use std::{fmt::Display, str::FromStr};
 
-use leptos::{either::Either, prelude::*};
-use schema_editor_generated_toolkit::prelude::{GetName, RGSO};
+use leptos::{
+    either::{Either, EitherOf5},
+    prelude::*,
+};
+use schema_editor_generated_toolkit::prelude::{
+    GetName, TemplateSlotCardinalityVariantTraitObject, RGSO, *,
+};
 use web_sys::Event;
 
 #[component]
@@ -19,7 +24,7 @@ where
             Err(_) => (),
         };
     };
-    view! { <input value=move || value.get().to_string() on:input=on_input /> }
+    view! { <input prop:value=move || value.get().to_string() on:input=on_input /> }
 }
 
 #[component]
@@ -74,8 +79,8 @@ where
     let input_ref = NodeRef::<leptos::html::Input>::new();
 
     let toggle_text = move || match is_editing.get() {
-        true => "Finish",
-        false => "Edit",
+        true => "✔",
+        false => "✎",
     };
 
     let on_click_toggle = move |_| {
@@ -135,6 +140,34 @@ pub fn SubSectionHeader(children: Children) -> impl IntoView {
 pub struct SectionHeader {
     // #[prop(optional)]
     children: Children,
+}
+#[component]
+pub fn Collapsible(
+    #[prop(optional)] start_open: Option<bool>,
+    children: Children,
+) -> impl IntoView {
+    let is_collapsed = RwSignal::new(!start_open.unwrap_or(false));
+    let collapsed_class = move || match is_collapsed.get() {
+        true => "collapsed-children",
+        false => "",
+    };
+    let children_div_class = move || format!("{}", collapsed_class());
+    view! {
+        <div class="flex">
+            <div class="flex-grow">{move || if is_collapsed.get() { "..." } else { "" }}</div>
+            <div>
+                <Button on:click=move |_| {
+                    is_collapsed.update(|prev| *prev = !*prev)
+                }>
+                    {move || match is_collapsed.get() {
+                        true => "+".to_string(),
+                        false => "-".to_string(),
+                    }}
+                </Button>
+            </div>
+        </div>
+        <div class=children_div_class>{children()}</div>
+    }
 }
 #[component]
 pub fn Section(
@@ -480,5 +513,38 @@ where
                 </ul>
             </LeafSection>
         </LeafSection>
+    }
+}
+
+#[component]
+pub fn CardinalityView(cardinality: TemplateSlotCardinalityVariantTraitObject) -> impl IntoView {
+    match cardinality {
+        TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRangeOrZero(inner) => {
+            EitherOf5::B(move || {
+                format!(
+                    "Lower Bound: {}, Upper Bound: {}",
+                    inner.get_lower_bound_field(),
+                    inner.get_upper_bound_field()
+                )
+            })
+        }
+        TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBoundOrZero(
+            inner,
+        ) => EitherOf5::C(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),)),
+        TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRange(inner) => {
+            EitherOf5::D(move || {
+                format!(
+                    "Lower Bound: {}, Upper Bound: {}",
+                    inner.get_lower_bound_field(),
+                    inner.get_upper_bound_field()
+                )
+            })
+        }
+        TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBound(inner) => {
+            EitherOf5::E(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),))
+        }
+        TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalitySingle(_inner) => {
+            EitherOf5::A(move || "Exactly 1")
+        }
     }
 }

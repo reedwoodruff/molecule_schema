@@ -3,6 +3,7 @@ use std::str::FromStr;
 
 use graph_canvas::prelude::*;
 use graph_canvas::{NodeInstance, NodeTemplate, SlotInstance, SlotPosition, SlotType};
+use leptos::logging::log;
 use schema_editor_generated_toolkit::prelude::*;
 use uuid::Uuid;
 
@@ -196,55 +197,55 @@ macro_rules! match_impl_step_template {
 }
 
 macro_rules! match_impl_data_minus_manuals_template {
-    ($template_id:expr, $action:ident, $builder:expr, $step_temp_id:expr) => {{
+    ($template_id:expr, $action:ident, $editor:expr, $builder:expr, $step_temp_id:expr) => {{
         let u128 = Uuid::parse_str(&$template_id)
             .expect("Failed to parse UUID")
             .as_u128();
 
         match u128 {
             id if id == ImplDataBool::get_operative_id() => {
-                $builder.incorporate($builder.clone().$action::<ImplDataBool>($step_temp_id));
+                $editor.incorporate(&$builder.clone().$action::<ImplDataBool>($step_temp_id));
             }
             id if id == ImplDataCollection::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplDataCollection>($step_temp_id),
                 );
             }
             id if id == ImplDataInt::get_operative_id() => {
-                $builder.incorporate($builder.clone().$action::<ImplDataInt>($step_temp_id));
+                $editor.incorporate(&$builder.clone().$action::<ImplDataInt>($step_temp_id));
             }
             id if id == ImplDataInt::get_operative_id() => {
-                $builder.incorporate($builder.clone().$action::<ImplDataInt>($step_temp_id));
+                $editor.incorporate(&$builder.clone().$action::<ImplDataInt>($step_temp_id));
             }
             id if id == ImplDataMultiOperative::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplDataMultiOperative>($step_temp_id),
                 );
             }
             id if id == ImplDataMultiOperative::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplDataMultiOperative>($step_temp_id),
                 );
             }
             id if id == ImplDataSingleOperative::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplDataSingleOperative>($step_temp_id),
                 );
             }
             id if id == ImplDataString::get_operative_id() => {
-                $builder.incorporate($builder.clone().$action::<ImplDataString>($step_temp_id));
+                $editor.incorporate(&$builder.clone().$action::<ImplDataString>($step_temp_id));
             }
             id if id == ImplDataTraitOperative::get_operative_id() => {
-                $builder.incorporate(
-                    $builder
+                $editor.incorporate(
+                    &$builder
                         .clone()
                         .$action::<ImplDataTraitOperative>($step_temp_id),
                 );
@@ -2024,6 +2025,7 @@ fn process_data_type(
     else if data_type_node.template_id
         == Uuid::from_u128(ImplDataCollection::get_operative_id()).to_string()
     {
+        log!("Entering ImplDataCollection");
         let constraint_collection_type_id = get_slot_id!(ImplDataCollection, "CollectionType");
         let collection_type_slot = data_type_node
             .slots
@@ -2045,6 +2047,7 @@ fn process_data_type(
 
             let mut collection_builder = ImplDataCollection::new(ctx.clone()).set_temp_id(temp_id);
 
+            log!("About to recurse in ImplDataCollection");
             process_data_type(
                 collection_type_node,
                 graph,
@@ -2052,15 +2055,18 @@ fn process_data_type(
                 editor,
                 processed_data_nodes,
             );
+            log!("Finished ImplDataCollection Recursion");
 
             let node_template_id = data_type_node.template_id.clone();
             match_impl_data_minus_manuals_template!(
                 node_template_id,
                 add_temp_collectiontype,
+                editor,
                 collection_builder,
                 &collection_type_temp_id
             );
             editor.incorporate(&collection_builder.clone());
+            log!("Finished ImplDataCollection")
         }
     }
     // ImplDataSingleOperative
@@ -2141,7 +2147,6 @@ fn process_data_type(
             .slots
             .iter()
             .find(|s| s.slot_template_id == constraint_required_traits_id);
-
         if let Some(slot) = required_traits_slot {
             let todt = ImplDataTraitOperative::new(ctx.clone()).set_temp_id(temp_id);
 

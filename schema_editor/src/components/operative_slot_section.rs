@@ -56,13 +56,13 @@ pub fn OperativeSlotSection(
                     .collect::<Vec<_>>()
                     .join(", ")
             };
-            let view = move || format!("Trait-Bound Slot: [{}]", traits_string());
+            let view = move || format!("Trait-Operative: [{}]", traits_string());
             EitherOf3::A(view)
         }
         TemplateSlotTypeVariantTraitObject::TemplateSlotTypeSingleOperative(single_op) => {
             let view = move || {
                 format!(
-                    "Single Operative Slot: {}",
+                    "Operative: {}",
                     single_op.get_allowedoperative_slot().get_name()
                 )
             };
@@ -71,7 +71,7 @@ pub fn OperativeSlotSection(
         TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(multi_op) => {
             let view = move || {
                 format!(
-                    "Multiple Operative Slot: [{}]",
+                    "Multiple-Operative: [{}]",
                     multi_op
                         .get_allowedoperatives_slot()
                         .into_iter()
@@ -205,35 +205,8 @@ pub fn OperativeSlotSection(
     });
 
     let slot_clone = slot_item.clone();
-    let slot_bound_view = move || match slot_clone.get_slotcardinality_slot() {
-        TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRangeOrZero(inner) => {
-            EitherOf5::B(move || {
-                format!(
-                    "Lower Bound: {}, Upper Bound: {}",
-                    inner.get_lower_bound_field(),
-                    inner.get_upper_bound_field()
-                )
-            })
-        }
-        TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBoundOrZero(
-            inner,
-        ) => EitherOf5::C(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),)),
-        TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityRange(inner) => {
-            EitherOf5::D(move || {
-                format!(
-                    "Lower Bound: {}, Upper Bound: {}",
-                    inner.get_lower_bound_field(),
-                    inner.get_upper_bound_field()
-                )
-            })
-        }
-        TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalityLowerBound(inner) => {
-            EitherOf5::E(move || format!("Lower Bound: {}", inner.get_lower_bound_field(),))
-        }
-        TemplateSlotCardinalityVariantTraitObject::TemplateSlotCardinalitySingle(_inner) => {
-            EitherOf5::A(move || "Exactly 1")
-        }
-    };
+    let slot_bound_view =
+        move || view! { <CardinalityView cardinality=slot_clone.get_slotcardinality_slot() /> };
 
     let operative_clone = operative.clone();
     let ctx_clone = ctx.clone();
@@ -678,23 +651,33 @@ pub fn OperativeSlotSection(
                 <SubSection>
                     <SubSectionHeader>Slot Details</SubSectionHeader>
                     <SubSection attr:class="leafsection dependent">
-                        {slot_variant} <br /> "Required:" {slot_bound_view} <br />
-                        "Upstream (including this node) slotted instances:"
-                        {upstream_and_local_slotted_number} <br /> "Downstream slotted instances:"
-                        {move || {
-                            if downstream_slotted_number_clone.get()
-                                >= upstream_and_local_slotted_number()
-                            {
-                                Either::Left(
-                                    downstream_slotted_number_clone.get()
-                                        - upstream_and_local_slotted_number(),
-                                )
-                            } else {
-                                Either::Right("Something is funky")
-                            }
-                        }} <br /> "Is Fulfilled:" {is_fulfilled} <br /> "Is Maxed Independently:"
-                        {is_maxed_independently} <br /> "Is Maxed Considering Children:"
-                        {is_maxed_considering_children}
+                        <em>"Type: "</em>
+                        {slot_variant}
+                        <br />
+                        <em>"Cardinality: "</em>
+                        {slot_bound_view}
+                        <br />
+                        <Collapsible>
+                            <>
+                                "Upstream (including this node) slotted instances:"
+                                {upstream_and_local_slotted_number} <br />
+                                "Downstream slotted instances:"
+                                {move || {
+                                    if downstream_slotted_number_clone.get()
+                                        >= upstream_and_local_slotted_number()
+                                    {
+                                        Either::Left(
+                                            downstream_slotted_number_clone.get()
+                                                - upstream_and_local_slotted_number(),
+                                        )
+                                    } else {
+                                        Either::Right("Something is funky")
+                                    }
+                                }} <br /> "Is Fulfilled:" {is_fulfilled} <br />
+                                "Is Maxed Independently:" {is_maxed_independently} <br />
+                                "Is Maxed Considering Children:" {is_maxed_considering_children}
+                            </>
+                        </Collapsible>
                     </SubSection>
 
                 </SubSection>

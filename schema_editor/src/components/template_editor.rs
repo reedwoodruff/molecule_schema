@@ -3,16 +3,17 @@ use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::{
     common::{
-        Button, LeafSection, LeafSectionHeader, ManagedEnumSelect, Section, SectionHeader,
-        SignalTextInput, SubSection, SubSectionHeader, ToggleManagedTextInput,
+        Button, CardinalityView, LeafSection, LeafSectionHeader, ManagedEnumSelect, Section,
+        SectionHeader, SignalTextInput, SubSection, SubSectionHeader, ToggleManagedTextInput,
     },
     slot_builder::SlotBuilder,
     workspace::{WorkspaceState, WorkspaceTab},
 };
 
 #[component]
-pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl IntoView {
+pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>) -> impl IntoView {
     let ctx = use_context::<SharedGraph<Schema>>().unwrap();
+
     let WorkspaceState {
         schema,
         selected_tab,
@@ -21,12 +22,19 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
 
     let template_clone = template.clone();
     let update_name = move |new_val: String| {
-        let mut editor = template_clone.edit(ctx_clone.clone());
+        let mut editor = template_clone.get().edit(ctx_clone.clone());
         editor.set_name(new_val).execute().unwrap();
     };
 
     let ctx_clone = ctx.clone();
-    let derivative_operative_name = RwSignal::new(template.get_name_field());
+    let derivative_operative_name = RwSignal::new(template.get().get_name_field());
+    let template_clone = template.clone();
+
+    // Reset the name when changing to a new template
+    Effect::new(move |_| {
+        derivative_operative_name.set(template_clone.get().get_name_field());
+    });
+
     let template_clone = template.clone();
     let create_derivative_operative = move |_| {
         let derivative_operative_name = derivative_operative_name.clone().get();
@@ -35,7 +43,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
             .edit(ctx_clone.clone())
             .add_new_operatives(|op| {
                 op.set_name(derivative_operative_name.clone())
-                    .add_existing_roottemplate(template_clone.get_id(), |item| item)
+                    .add_existing_roottemplate(template_clone.get().get_id(), |item| item)
             })
             .execute()
             .unwrap();
@@ -47,6 +55,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     let delete_template_recursive = move |_| {
         let ctx_clone = ctx_clone.clone();
         template_clone
+            .get()
             .edit(ctx_clone)
             .delete_recursive()
             .execute()
@@ -58,6 +67,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     let template_clone = template.clone();
     let on_click_add_field = move |_| {
         template_clone
+            .get()
             .edit(ctx_clone.clone())
             .add_new_fields::<StringTemplateField, _>(|field| {
                 field.set_name("new_field".to_string())
@@ -73,37 +83,36 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
     let template_slot_view = move |template_slot: RGSOConcrete<TemplateSlot, Schema>| {
         let template_slot_clone = template_slot.clone();
         let selected_tab_clone = selected_tab.clone();
-        let details_view = move || match template_slot_clone.get_templateslotvariant_slot() {
+        let type_details_view = move || match template_slot_clone.get_templateslotvariant_slot() {
             TemplateSlotTypeVariantTraitObject::TemplateSlotTypeMultiOperative(conc_ops) => {
                 EitherOf3::A(view! {
-                    <div>
-                        "Operatives: ["
-                        <For
-                            each=move || conc_ops.get_allowedoperatives_slot()
-                            key=|op| op.get_id().clone()
-                            let:op
-                        >
-                            {
-                                let op_clone = op.clone();
-                                view! {
-                                    <a
-                                        class="clickable-list-item"
-                                        on:click=move |_| {
-                                            selected_tab_clone
-                                                .set(
-                                                    WorkspaceTab::Operative(
-                                                        RwSignal::new(Some(op_clone.clone())),
-                                                    ),
-                                                )
-                                        }
-                                    >
-                                        {move || op.get_name()}
-                                    </a>
-                                    ", "
-                                }
+                    "Operatives: ["
+                    <For
+                        each=move || conc_ops.get_allowedoperatives_slot()
+                        key=|op| op.get_id().clone()
+                        let:op
+                    >
+                        {
+                            let op_clone = op.clone();
+                            view! {
+                                <a
+                                    class="clickable-list-item"
+                                    on:click=move |_| {
+                                        selected_tab_clone
+                                            .set(
+                                                WorkspaceTab::Operative(
+                                                    RwSignal::new(Some(op_clone.clone())),
+                                                ),
+                                            )
+                                    }
+                                >
+                                    {move || op.get_name()}
+                                </a>
+                                ", "
                             }
-                        </For> "]"
-                    </div>
+                        }
+                    </For>
+                    "]"
                 })
             }
             TemplateSlotTypeVariantTraitObject::TemplateSlotTypeTraitOperative(
@@ -121,26 +130,25 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                 let op = conc_op.get_allowedoperative_slot();
                 let op_clone = op.clone();
                 EitherOf3::C(view! {
-                    <div>
-                        Operative:
-                        <a
-                            class="clickable-list-item"
-                            on:click=move |_| {
-                                selected_tab_clone
-                                    .set(
-                                        WorkspaceTab::Operative(
-                                            RwSignal::new(Some(op_clone.clone())),
-                                        ),
-                                    )
-                            }
-                        >
-                            {move || op.get_name()}
-                        </a>
-                    </div>
+                    "Operative: "
+                    <a
+                        class="clickable-list-item"
+                        on:click=move |_| {
+                            selected_tab_clone
+                                .set(WorkspaceTab::Operative(RwSignal::new(Some(op_clone.clone()))))
+                        }
+                    >
+                        {move || op.get_name()}
+                    </a>
                 })
             }
         };
-        let ctx_clone = ctx_clone.clone();
+        let template_slot_clone = template_slot.clone();
+        let cardinality_details_view = move || {
+            view! { <CardinalityView cardinality=template_slot_clone.get_slotcardinality_slot() /> }
+        };
+        let ctx = ctx_clone.clone();
+        let ctx_clone = ctx.clone();
         let template_slot_clone = template_slot.clone();
         let on_click_delete_slot = move |_| {
             template_slot_clone
@@ -149,15 +157,35 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                 .execute()
                 .unwrap();
         };
+        let template_slot_clone = template_slot.clone();
+        let ctx_clone = ctx.clone();
+        let update_slot_name = move |new_val: String| {
+            let mut editor = template_slot_clone.edit(ctx_clone.clone());
+            editor.set_name(new_val).execute().unwrap();
+        };
         view! {
             <LeafSection>
-                <LeafSectionHeader>{move || template_slot.get_name()}</LeafSectionHeader>
-                <div class="flex">
-                    <LeafSection>{details_view}</LeafSection>
-                </div>
-                <div class="align-right">
-                    <Button on:click=on_click_delete_slot>Delete Slot</Button>
-                </div>
+                <LeafSectionHeader>
+                    <div class="flex">
+                        <div>
+                            <ToggleManagedTextInput
+                                getter=move || template_slot.get_name_field()
+                                setter=update_slot_name
+                            />
+                        </div>
+                        <div class="align-right flex-grow">
+                            <Button on:click=on_click_delete_slot>Delete Slot</Button>
+                        </div>
+                    </div>
+                </LeafSectionHeader>
+                <LeafSection>
+                    <em>"Type: "</em>
+                    {type_details_view}
+                </LeafSection>
+                <LeafSection>
+                    <em>"Cardinality: "</em>
+                    {cardinality_details_view}
+                </LeafSection>
             </LeafSection>
         }
     };
@@ -206,6 +234,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                             GetNameTemplateFieldVariantTraitObjectDiscriminants::StringTemplateField => {
                                 edit.incorporate(
                                     template_clone
+                                        .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<StringTemplateField, _>(|new_field| {
                                             new_field.set_name(item.get_name())
@@ -215,6 +244,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                             GetNameTemplateFieldVariantTraitObjectDiscriminants::BoolTemplateField => edit
                                 .incorporate(
                                     template_clone
+                                        .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<BoolTemplateField, _>(|new_field| {
                                             new_field.set_name(item.get_name())
@@ -223,6 +253,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                             GetNameTemplateFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
                                 .incorporate(
                                     template_clone
+                                        .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<IntTemplateField, _>(|new_field| {
                                             new_field.set_name(item.get_name())
@@ -238,6 +269,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                             GetNameTemplateFieldVariantTraitObjectDiscriminants::StringTemplateField => {
                                 edit.incorporate(
                                     template_clone
+                                        .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<StringTemplateField, _>(|new_field| {
                                             new_field.set_name(item.get_name())
@@ -247,6 +279,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                             GetNameTemplateFieldVariantTraitObjectDiscriminants::BoolTemplateField => edit
                                 .incorporate(
                                     template_clone
+                                        .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<BoolTemplateField, _>(|new_field| {
                                             new_field.set_name(item.get_name())
@@ -255,6 +288,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                             GetNameTemplateFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
                                 .incorporate(
                                     template_clone
+                                        .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<IntTemplateField, _>(|new_field| {
                                             new_field.set_name(item.get_name())
@@ -270,6 +304,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                             GetNameTemplateFieldVariantTraitObjectDiscriminants::StringTemplateField => {
                                 edit.incorporate(
                                     template_clone
+                                        .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<StringTemplateField, _>(|new_field| {
                                             new_field.set_name(item.get_name())
@@ -279,6 +314,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                             GetNameTemplateFieldVariantTraitObjectDiscriminants::BoolTemplateField => edit
                                 .incorporate(
                                     template_clone
+                                        .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<BoolTemplateField, _>(|new_field| {
                                             new_field.set_name(item.get_name())
@@ -287,6 +323,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                             GetNameTemplateFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
                                 .incorporate(
                                     template_clone
+                                        .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<IntTemplateField, _>(|new_field| {
                                             new_field.set_name(item.get_name())
@@ -346,11 +383,13 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
             <Section>
                 <SectionHeader slot>Overview</SectionHeader>
                 <SubSection>
-                    <SubSectionHeader>Name:</SubSectionHeader>
-                    <ToggleManagedTextInput
-                        getter=move || template.get_name_field()
-                        setter=update_name
-                    />
+                    <SubSectionHeader>
+                        "Name: "
+                        <ToggleManagedTextInput
+                            getter=move || template.get().get_name_field()
+                            setter=update_name
+                        />
+                    </SubSectionHeader>
                 </SubSection>
                 <SubSection>
                     <Button on:click=delete_template_recursive>Delete Item</Button>
@@ -368,7 +407,7 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                 <Button on:click=on_click_add_field>Add Field</Button>
                 <SubSection>
                     <For
-                        each=move || template_clone_3.get_fields_slot()
+                        each=move || template_clone_3.get().get_fields_slot()
                         key=|item| item.get_id().clone()
                         children=template_field_view
                     />
@@ -382,14 +421,14 @@ pub fn TemplateEditor(template: RGSOConcrete<TemplateConcrete, Schema>) -> impl 
                 </Show>
                 <Show when=move || is_building_slot.get()>
                     <SlotBuilder
-                        template=template_clone.clone()
+                        template=template_clone.get().clone()
                         close_callback=close_building_interface_callback
                     />
                 </Show>
                 <SubSection>
                     <SubSectionHeader>Existing Slots</SubSectionHeader>
                     <For
-                        each=move || template_clone_2.get_templateslots_slot()
+                        each=move || template_clone_2.get().get_templateslots_slot()
                         key=|item| item.get_id().clone()
                         children=template_slot_view
                     />
