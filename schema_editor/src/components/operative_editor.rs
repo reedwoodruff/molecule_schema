@@ -49,6 +49,7 @@ pub fn OperativeEditor(
         let mut editor = schema_clone.get().edit(ctx_clone.clone());
         editor.add_new_operatives(|op| {
             op.set_name(derivative_operative_name.clone())
+                .set_documentation("".to_string())
                 .add_existing_roottemplate(
                     operative_clone.get().get_roottemplate_slot().get_id(),
                     |item| item,
@@ -111,6 +112,7 @@ pub fn OperativeEditor(
         editor.add_new_instances(|new_inst| {
             new_inst
                 .set_name(derivative_instance_name.clone())
+                .set_documentation("".to_string())
                 .add_existing_parentoperative(operative_clone.get().get_id(), |na| na)
                 .set_temp_id("new_inst")
         });
@@ -122,6 +124,12 @@ pub fn OperativeEditor(
     let update_name = move |new_val: String| {
         let mut editor = operative_clone.get().edit(ctx_clone.clone());
         editor.set_name(new_val).execute().unwrap();
+    };
+    let operative_clone = operative.clone();
+    let ctx_clone = ctx.clone();
+    let update_operative_documentation = move |new_val: String| {
+        let mut editor = operative_clone.get().edit(ctx_clone.clone());
+        editor.set_documentation(new_val).execute().unwrap();
     };
 
     let operative_clone = operative.clone();
@@ -417,10 +425,16 @@ pub fn OperativeEditor(
         <Section>
             <SectionHeader slot>Overview</SectionHeader>
             <SubSection>
-                <SubSectionHeader>Name:</SubSectionHeader>
-                <ToggleManagedTextInput
-                    getter=move || operative_clone.get().get_name_field()
-                    setter=update_name
+                <SubSectionHeader>
+                    "Name: "
+                    <ToggleManagedTextInput
+                        getter=move || operative_clone.get().get_name_field()
+                        setter=update_name
+                    />
+                </SubSectionHeader>
+                <ToggleManagedDocumentationInput
+                    getter=move || operative_clone.get().get_documentation_field()
+                    setter=update_operative_documentation
                 />
             </SubSection>
             <SubSection>

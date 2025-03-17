@@ -522,6 +522,16 @@ pub(crate) fn setup_existing_fn_impl_in_canvas(
         }
         ExecutionNode::Step(impl_step_variant_trait_object) => {
             let step_operative_id = match impl_step_variant_trait_object {
+                ImplStepVariantTraitObject::ImplStepIsType(step) => step.operative().tag.id.clone(),
+                ImplStepVariantTraitObject::ImplStepGetCollectionLength(step) => {
+                    step.operative().tag.id.clone()
+                }
+                ImplStepVariantTraitObject::ImplStepIdentity(step) => {
+                    step.operative().tag.id.clone()
+                }
+                ImplStepVariantTraitObject::ImplStepInvokeMethod(step) => {
+                    step.operative().tag.id.clone()
+                }
                 ImplStepVariantTraitObject::ImplStepBitNot(step) => step.operative().tag.id.clone(),
                 ImplStepVariantTraitObject::ImplStepMathDivide(step) => {
                     step.operative().tag.id.clone()
@@ -1237,6 +1247,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
     operative: &RGSOConcrete<OperativeConcrete, Schema>,
     ctx: SharedGraph<Schema>,
     fn_impl_name: String,
+    fn_impl_documentation: String,
 ) -> ExistingBuilder<OperativeConcrete, Schema> {
     leptos::logging::log!("Building schemaful representation of graph");
     // Map from visual node IDs to schema node temp IDs
@@ -1248,7 +1259,8 @@ pub(crate) fn build_schemaful_representation_of_graph(
         .set_temp_id("new_fn_impl")
         .add_existing_definition(fn_def.get_id(), |na| na)
         .add_existing_implementor(operative.get_id(), |na| na)
-        .set_name(fn_impl_name);
+        .set_name(fn_impl_name)
+        .set_documentation(fn_impl_documentation);
     operative_editor.incorporate(&method_impl_editor);
     leptos::logging::log!("Spot 1");
 

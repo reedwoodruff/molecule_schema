@@ -87,6 +87,7 @@ pub fn FunctionDefinitionEditor(
     let is_self_input = RwSignal::new(false);
     let input_select_value = RwSignal::new(InputOutputOptions::ImplDataSingleOperative);
     let input_name = RwSignal::new("new_input".to_string());
+    let input_documentation = RwSignal::new("".to_string());
     let input_selected_operative =
         RwSignal::<Option<RGSOConcrete<OperativeConcrete, Schema>>>::new(None);
     let input_selected_operative_list =
@@ -99,6 +100,7 @@ pub fn FunctionDefinitionEditor(
     let is_adding_output = RwSignal::new(false);
     let output_select_value = RwSignal::new(InputOutputOptions::ImplDataSingleOperative);
     let output_name = RwSignal::new("new_output".to_string());
+    let output_documentation = RwSignal::new("".to_string());
     let output_selected_operative =
         RwSignal::<Option<RGSOConcrete<OperativeConcrete, Schema>>>::new(None);
     let output_selected_operative_list =
@@ -157,7 +159,9 @@ pub fn FunctionDefinitionEditor(
         let mut editor = fn_def_clone.get().edit(ctx_clone.clone());
         let input_node = FunctionInput::new(ctx_clone.clone())
             .set_temp_id("new_input_node")
-            .set_name(input_name.get());
+            .set_name(input_name.get())
+            .set_documentation(input_documentation.get());
+
         editor.incorporate(&input_node);
         editor.incorporate(
             fn_def_clone
@@ -340,7 +344,8 @@ pub fn FunctionDefinitionEditor(
         let mut editor = fn_def_clone.get().edit(ctx_clone.clone());
         let output_node = FunctionOutput::new(ctx_clone.clone())
             .set_temp_id("new_output_node")
-            .set_name(output_name.get());
+            .set_name(output_name.get())
+            .set_documentation(output_documentation.get());
         editor.incorporate(&output_node);
         editor.incorporate(
             fn_def_clone
@@ -506,6 +511,13 @@ pub fn FunctionDefinitionEditor(
         output_collection_layers.set(0);
         is_adding_output.set(false);
     };
+
+    let fn_def_clone = fn_def.clone();
+    let ctx_clone = ctx.clone();
+    let update_function_documentation = move |new_val: String| {
+        let mut editor = fn_def_clone.get().edit(ctx_clone.clone());
+        editor.set_documentation(new_val).execute().unwrap();
+    };
     let fn_def_clone = fn_def.clone();
     let fn_def_clone_2 = fn_def.clone();
     let fn_def_clone_3 = fn_def.clone();
@@ -517,10 +529,16 @@ pub fn FunctionDefinitionEditor(
             <Section>
                 <SectionHeader slot>Overview</SectionHeader>
                 <SubSection>
-                    <SubSectionHeader>Name:</SubSectionHeader>
-                    <ToggleManagedTextInput
-                        getter=move || fn_def_clone.get().get_name_field()
-                        setter=update_name
+                    <SubSectionHeader>
+                        "Name: "
+                        <ToggleManagedTextInput
+                            getter=move || fn_def_clone.get().get_name_field()
+                            setter=update_name
+                        />
+                    </SubSectionHeader>
+                    <ToggleManagedDocumentationInput
+                        getter=move || fn_def.get().get_documentation_field()
+                        setter=update_function_documentation
                     />
                 </SubSection>
                 <SubSection>
@@ -547,6 +565,7 @@ pub fn FunctionDefinitionEditor(
                                     <LeafSection>
                                         <SignalTextInput value=input_name />
                                     </LeafSection>
+                                    <DocumentationInput value=input_documentation />
                                     <LeafSectionHeader>
                                         Number of collection layers
                                     </LeafSectionHeader>
@@ -637,6 +656,14 @@ pub fn FunctionDefinitionEditor(
                                 let mut editor = input_clone.edit(ctx_clone.clone());
                                 editor.set_name(new_val).execute().unwrap();
                             };
+                            let input_clone = input.clone();
+                            let ctx_clone = ctx_clone_2.clone();
+                            let ctx_clone = ctx_clone_2.clone();
+                            let update_input_documentation = move |new_val: String| {
+                                let mut editor = input_clone.edit(ctx_clone.clone());
+                                editor.set_documentation(new_val).execute().unwrap();
+                            };
+                            let input_clone = input.clone();
 
                             view! {
                                 <LeafSection>
@@ -646,6 +673,10 @@ pub fn FunctionDefinitionEditor(
                                             setter=update_input_name
                                         />
                                     </LeafSectionHeader>
+                                    <ToggleManagedDocumentationInput
+                                        getter=move || input_clone.get_documentation_field()
+                                        setter=update_input_documentation
+                                    />
                                     <LeafSection>
                                         <InputOutputDisplay value=io />
                                     </LeafSection>
@@ -677,6 +708,7 @@ pub fn FunctionDefinitionEditor(
                                     <LeafSection>
                                         <SignalTextInput value=output_name />
                                     </LeafSection>
+                                    <DocumentationInput value=output_documentation />
                                     <LeafSectionHeader>
                                         Number of collection layers
                                     </LeafSectionHeader>
@@ -747,6 +779,13 @@ pub fn FunctionDefinitionEditor(
                                 let mut editor = output_clone.edit(ctx_clone.clone());
                                 editor.set_name(new_val).execute().unwrap();
                             };
+                            let ctx_clone = ctx_clone_3.clone();
+                            let output_clone = output.clone();
+                            let update_output_documentation = move |new_val: String| {
+                                let mut editor = output_clone.edit(ctx_clone.clone());
+                                editor.set_documentation(new_val).execute().unwrap();
+                            };
+                            let output_clone = output.clone();
 
                             view! {
                                 <LeafSection>
@@ -756,6 +795,10 @@ pub fn FunctionDefinitionEditor(
                                             setter=update_output_name
                                         />
                                     </LeafSectionHeader>
+                                    <ToggleManagedDocumentationInput
+                                        getter=move || output_clone.get_documentation_field()
+                                        setter=update_output_documentation
+                                    />
                                     <LeafSection>
                                         <InputOutputDisplay value=io />
                                     </LeafSection>
@@ -829,7 +872,7 @@ fn DetailSelectionView(
         match selected_variant.get() {
             InputOutputOptions::ImplDataSingleOperative => EitherOf6::A(view! {
                 <LeafSection>
-                    <LeafSectionHeader>SelectedOperative:</LeafSectionHeader>
+                    <LeafSectionHeader>Selected Operative:</LeafSectionHeader>
                     <LeafSection>
                         <SignalSelectRGSOWithOptions
                             empty_allowed=true

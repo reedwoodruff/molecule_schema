@@ -35,6 +35,7 @@ pub fn MethodImplementationBuilder(
     let ctx_clone = ctx.clone();
 
     let func_impl_name = RwSignal::new(fn_def.get_name() + "_impl");
+    let func_impl_documentation = RwSignal::new(fn_def.get_name() + "_impl");
 
     let fn_def_clone = fn_def.clone();
     let operative_clone = operative.clone();
@@ -62,6 +63,7 @@ pub fn MethodImplementationBuilder(
                     &operative_clone,
                     ctx_clone.clone(),
                     func_impl_name.get(),
+                    func_impl_documentation.get(),
                 );
                 let instantiables = blueprint
                     .get_inner_builder()
@@ -86,6 +88,7 @@ pub fn MethodImplementationBuilder(
         }
     };
 
+    let operative_clone = operative.clone();
     let canvas_config = {
         let mut all_templates = vec![];
 
@@ -257,7 +260,7 @@ pub fn MethodImplementationBuilder(
         }
         // Otherwise set it up with just the inputs and outputs
         else {
-            func_impl_name.set("testing here".to_string());
+            func_impl_name.set(operative_clone.get_name() + &fn_def.get_name());
             fn_def
                 .get_inputs_slot()
                 .into_iter()
@@ -305,7 +308,8 @@ pub fn MethodImplementationBuilder(
                 Implementation name: <SignalTextInput value=func_impl_name />
                 <LeafSection>
                     "Implementation of " <strong>{move || fn_def_clone.get_name()}</strong>
-                </LeafSection>
+                </LeafSection> <DocumentationInput value=func_impl_documentation />
+
             </LeafSection>
             <LeafSection>
                 <GraphEditor

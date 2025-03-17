@@ -3,8 +3,8 @@ use schema_editor_generated_toolkit::prelude::*;
 
 use crate::components::{
     common::{
-        Button, LeafSection, LeafSectionHeader, SignalEnumSelect, SignalSelectRGSOWithOptions,
-        SignalTextInput, SubSection, SubSectionHeader,
+        Button, DocumentationInput, LeafSection, LeafSectionHeader, SignalEnumSelect,
+        SignalSelectRGSOWithOptions, SignalTextInput, SubSection, SubSectionHeader,
     },
     workspace::WorkspaceState,
 };
@@ -20,6 +20,7 @@ pub fn SlotBuilder(
     let schema_clone = schema.clone();
 
     let name = RwSignal::new("new_slot".to_string());
+    let documentation = RwSignal::new("".to_string());
     let slot_type = RwSignal::new(
         TemplateSlotTypeVariantTraitObjectDiscriminants::TemplateSlotTypeSingleOperative,
     );
@@ -58,6 +59,7 @@ pub fn SlotBuilder(
                                     new_template_slot
                                         .set_temp_id("template_slot")
                                         .set_name(name.get())
+                                        .set_documentation(documentation.get())
                                         .add_new_templateslotvariant::<TemplateSlotTypeTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
@@ -85,6 +87,7 @@ pub fn SlotBuilder(
                                 .add_new_templateslots(|new_template_slot| {
                                     new_template_slot
                                         .set_temp_id("template_slot")
+                                        .set_documentation(documentation.get())
                                         .set_name(name.get())
                                         .add_new_templateslotvariant::<TemplateSlotTypeTraitOperative, _>(
                                             |new_op_var| {
@@ -111,6 +114,7 @@ pub fn SlotBuilder(
                                 new_template_slot
                                     .set_temp_id("template_slot")
                                     .set_name(name.get())
+                                    .set_documentation(documentation.get())
                                     .add_new_templateslotvariant::<TemplateSlotTypeTraitOperative, _>(
                                         |new_op_var| {
                                             new_op_var
@@ -136,6 +140,7 @@ pub fn SlotBuilder(
                                     new_template_slot
                                         .set_temp_id("template_slot")
                                         .set_name(name.get())
+                                        .set_documentation(documentation.get())
                                         .add_new_templateslotvariant::<TemplateSlotTypeTraitOperative, _>(
                                             |new_op_var| {
                                                 new_op_var
@@ -159,6 +164,7 @@ pub fn SlotBuilder(
                                 new_template_slot
                                     .set_temp_id("template_slot")
                                     .set_name(name.get())
+                                    .set_documentation(documentation.get())
                                     .add_new_templateslotvariant::<TemplateSlotTypeTraitOperative, _>(
                                         |new_op_var| {
                                             new_op_var
@@ -416,6 +422,7 @@ pub fn SlotBuilder(
                     .edit(ctx_clone.clone())
                     .add_new_templateslots(|new_template_slot| {
                         new_template_slot
+                            .set_documentation(documentation.get())
                             .set_name(name.get())
                             .set_temp_id("new_templateslot")
                             .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
@@ -441,6 +448,7 @@ pub fn SlotBuilder(
                 .add_new_templateslots(|new_template_slot| {
                     new_template_slot
                         .set_temp_id("new_templateslot")
+                        .set_documentation(documentation.get())
                         .set_name(name.get())
                         .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
                             |new_op_var| {
@@ -460,6 +468,7 @@ pub fn SlotBuilder(
                     new_template_slot
                         .set_temp_id("new_templateslot")
                         .set_name(name.get())
+                        .set_documentation(documentation.get())
                         .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
                             |new_op_var| {
                                 new_op_var
@@ -480,6 +489,7 @@ pub fn SlotBuilder(
                     new_template_slot
                         .set_temp_id("new_templateslot")
                         .set_name(name.get())
+                        .set_documentation(documentation.get())
                         .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
                             |new_op_var| {
                                 new_op_var
@@ -498,6 +508,7 @@ pub fn SlotBuilder(
                     new_template_slot
                         .set_temp_id("new_templateslot")
                         .set_name(name.get())
+                        .set_documentation(documentation.get())
                         .add_new_templateslotvariant::<TemplateSlotTypeSingleOperative, _>(
                             |new_op_var| {
                                 new_op_var
@@ -592,6 +603,7 @@ pub fn SlotBuilder(
             <LeafSection>
                 <LeafSectionHeader>Slot Name</LeafSectionHeader>
                 <SignalTextInput value=name />
+                <DocumentationInput value=documentation />
             </LeafSection>
             <LeafSection>
                 <LeafSectionHeader>Slot Bounds</LeafSectionHeader>

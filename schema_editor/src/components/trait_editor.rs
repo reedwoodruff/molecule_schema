@@ -30,6 +30,12 @@ pub fn TraitEditor(trait_concrete: RwSignal<RGSOConcrete<TraitConcrete, Schema>>
         let mut editor = trait_concrete_clone.get().edit(ctx_clone.clone());
         editor.set_name(new_val).execute().unwrap();
     };
+    let trait_concrete_clone = trait_concrete.clone();
+    let ctx_clone = ctx.clone();
+    let update_documentation = move |new_val: String| {
+        let mut editor = trait_concrete_clone.get().edit(ctx_clone.clone());
+        editor.set_documentation(new_val).execute().unwrap();
+    };
     let schema_clone = schema.clone();
     let trait_concrete_clone = trait_concrete.clone();
     let selected_fn_def = RwSignal::<Option<RGSOConcrete<FunctionDefinition, Schema>>>::new(None);
@@ -62,11 +68,22 @@ pub fn TraitEditor(trait_concrete: RwSignal<RGSOConcrete<TraitConcrete, Schema>>
         <div>
             <Section>
                 <SectionHeader slot>Overview</SectionHeader>
-                <ToggleManagedTextInput
-                    getter=move || trait_concrete.get().get_name_field()
-                    setter=update_name
-                />
-                <Button on:click=delete_trait_concrete>Delete Item</Button>
+                <SubSection>
+                    <SubSectionHeader>
+                        "Name: "
+                        <ToggleManagedTextInput
+                            getter=move || trait_concrete.get().get_name_field()
+                            setter=update_name
+                        />
+                    </SubSectionHeader>
+                    <ToggleManagedDocumentationInput
+                        getter=move || trait_concrete.get().get_documentation_field()
+                        setter=update_documentation
+                    />
+                </SubSection>
+                <SubSection>
+                    <Button on:click=delete_trait_concrete>Delete Item</Button>
+                </SubSection>
             </Section>
             <Section>
                 <SectionHeader slot>Required Methods</SectionHeader>

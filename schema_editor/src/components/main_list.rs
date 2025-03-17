@@ -54,19 +54,31 @@ pub fn MainList() -> impl IntoView {
                 SchemaConcreteAllSlots::Templates => schema_clone
                     .get()
                     .edit(ctx.clone())
-                    .add_new_templates(|new_template| new_template.set_name("new".to_string()))
+                    .add_new_templates(|new_template| {
+                        new_template
+                            .set_name("new".to_string())
+                            .set_documentation("".to_string())
+                    })
                     .execute()
                     .unwrap(),
                 SchemaConcreteAllSlots::Traits => schema_clone
                     .get()
                     .edit(ctx.clone())
-                    .add_new_traits(|new_trait| new_trait.set_name("new".to_string()))
+                    .add_new_traits(|new_trait| {
+                        new_trait
+                            .set_name("new".to_string())
+                            .set_documentation("".to_string())
+                    })
                     .execute()
                     .unwrap(),
                 SchemaConcreteAllSlots::Functions => schema_clone
                     .get()
                     .edit(ctx.clone())
-                    .add_new_functions(|new_fn_def| new_fn_def.set_name("new".to_string()))
+                    .add_new_functions(|new_fn_def| {
+                        new_fn_def
+                            .set_name("new".to_string())
+                            .set_documentation("".to_string())
+                    })
                     .execute()
                     .unwrap(),
             };

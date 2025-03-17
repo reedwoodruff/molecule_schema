@@ -10,8 +10,78 @@ use schema_editor_generated_toolkit::prelude::{
 use web_sys::Event;
 
 #[component]
+pub fn DocumentationInput(value: RwSignal<String>) -> impl IntoView {
+    view! {
+        <LeafSection>
+            <LeafSectionHeader>Documentation</LeafSectionHeader>
+            <SignalTextInput value=value textarea=true />
+        </LeafSection>
+    }
+}
+#[component]
+pub fn ToggleManagedDocumentationInput<F, G>(getter: F, setter: G) -> impl IntoView
+where
+    F: Fn() -> String + Send + Sync + Clone + 'static,
+    G: Fn(String) + Send + Sync + Clone + 'static,
+{
+    let is_editing = RwSignal::new(false);
+    let input_ref = NodeRef::<leptos::html::Input>::new();
+
+    let toggle_text = move || match is_editing.get() {
+        true => "✔",
+        false => "✎",
+    };
+
+    let on_click_toggle = move |_| {
+        is_editing.update(|prev| {
+            *prev = !*prev;
+        });
+    };
+
+    Effect::new(move || {
+        if let Some(input_ref) = input_ref.get() {
+            input_ref.focus().unwrap();
+        }
+    });
+
+    let view = move || {
+        let getter = getter.clone();
+        let setter = setter.clone();
+        let toggle_button = view! {
+            <Button attr:class="edit-toggle-button" on:click=on_click_toggle>
+                {toggle_text}
+            </Button>
+        };
+        match is_editing.get() {
+            true => Either::Left(view! {
+                <LeafSection>
+                    <em>Documentation</em>
+                    <LeafSection attr:class="leafsection dependent width-100">
+                        <ManagedTextInput textarea=true getter setter input_ref>
+                            {toggle_button}
+                        </ManagedTextInput>
+                    </LeafSection>
+                </LeafSection>
+            }),
+            false => Either::Right(view! {
+                <LeafSection>
+                    <em>"Documentation "</em>
+                    <span style="width: 15px; display: inline-block"></span>
+                    {toggle_button}
+                    <LeafSection attr:class="leafsection dependent width-100">
+                        <span>{getter.clone()}</span>
+                    </LeafSection>
+                </LeafSection>
+            }),
+        }
+    };
+    view
+}
+
+#[component]
 pub fn SignalTextInput<T>(
     value: RwSignal<T>,
+    #[prop(optional)] textarea: Option<bool>,
     // #[prop(optional)] show_save_button: Option<bool>,
     // on_save: F,
 ) -> impl IntoView
@@ -24,7 +94,21 @@ where
             Err(_) => (),
         };
     };
-    view! { <input prop:value=move || value.get().to_string() on:input=on_input /> }
+    move || {
+        if textarea.is_some_and(|textarea| textarea == true) {
+            view! {
+                <textarea
+                    prop:value=move || value.get().to_string()
+                    on:input=on_input
+                    class="width-100"
+                />
+            }
+            .into_any()
+        } else {
+            view! { <input prop:value=move || value.get().to_string() on:input=on_input /> }
+                .into_any()
+        }
+    }
 }
 
 #[component]
@@ -32,40 +116,69 @@ pub fn ManagedTextInput<F, G>(
     getter: F,
     setter: G,
     #[prop(optional)] children: Option<Children>,
-    #[prop(optional)] input_ref: Option<NodeRef<leptos::html::Input>>, // children: Option<Children>,
+    #[prop(optional)] input_ref: Option<NodeRef<leptos::html::Input>>,
+    #[prop(optional)] textarea: Option<bool>,
 ) -> impl IntoView
 where
-    F: Fn() -> String + Send + Sync + 'static,
-    G: Fn(String) + Send + Sync + 'static,
+    F: Fn() -> String + Send + Sync + Clone + 'static,
+    G: Fn(String) + Send + Sync + Clone + 'static,
 {
-    let final_postfix = move || {
-        if let Some(children) = children {
-            Either::Left(children())
-        } else {
-            Either::Right(view! {})
-        }
-    };
+    let children_view = children.map(|children_fn| children_fn().into_any());
+
+    let getter_clone = getter.clone();
+    let setter_clone = setter.clone();
+
+    let is_textarea = textarea.is_some_and(|t| t == true);
 
     if let Some(input_ref) = input_ref {
-        // let the_input = input().node_ref(input_ref);
-        Either::Left(view! {
-            <input
-                node_ref=input_ref
-                class="inner-text-input"
-                prop:value=getter
-                on:input=move |e| setter(event_target_value(&e))
-            />
-            {final_postfix()}
-        })
+        if is_textarea {
+            view! {
+                <textarea
+                    class="inner-textarea"
+                    prop:value=getter_clone.clone()
+                    on:input=move |e| setter_clone.clone()(event_target_value(&e))
+                />
+
+                {children_view.unwrap_or_else(|| view! {}.into_any())}
+            }
+            .into_any()
+        } else {
+            view! {
+                <input
+                    node_ref=input_ref.clone()
+                    class="inner-text-input"
+                    prop:value=getter.clone()
+                    on:input=move |e| setter.clone()(event_target_value(&e))
+                />
+
+                {children_view.unwrap_or_else(|| view! {}.into_any())}
+            }
+            .into_any()
+        }
     } else {
-        Either::Right(view! {
-            <input
-                class="inner-text-input"
-                prop:value=getter
-                on:input=move |e| setter(event_target_value(&e))
-            />
-            {final_postfix()}
-        })
+        if is_textarea {
+            view! {
+                <textarea
+                    class="inner-textarea"
+                    prop:value=getter_clone.clone()
+                    on:input=move |e| setter_clone.clone()(event_target_value(&e))
+                />
+
+                {children_view.unwrap_or_else(|| view! {}.into_any())}
+            }
+            .into_any()
+        } else {
+            view! {
+                <input
+                    class="inner-text-input"
+                    prop:value=getter.clone()
+                    on:input=move |e| setter.clone()(event_target_value(&e))
+                />
+
+                {children_view.unwrap_or_else(|| view! {}.into_any())}
+            }
+            .into_any()
+        }
     }
 }
 

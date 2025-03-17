@@ -14,6 +14,8 @@ pub fn App() -> impl IntoView {
     let schema_id = RwSignal::new(Some(
         SchemaConcrete::new(shared_graph.clone())
             .set_temp_id("main_template")
+            .set_name("NewTemplate".to_string())
+            .set_documentation("".to_string())
             .execute()
             .unwrap()
             .get_final_id("main_template")

@@ -105,6 +105,10 @@ pub fn OperativeTraitImplementations(
                     let is_trait_fulfilled_clone = is_trait_fulfilled.clone();
                     let trait_def_clone = trait_def.clone();
                     let required_method_defs_clone = required_method_defs.clone();
+                    let trait_impl_name = RwSignal::new(
+                        operative_clone_9.get_name() + &trait_def_clone.get_name(),
+                    );
+                    let trait_impl_documentation = RwSignal::new(String::new());
                     let on_save = move || {
                         if !is_trait_fulfilled() {
                             return;
@@ -113,6 +117,8 @@ pub fn OperativeTraitImplementations(
                         editor.add_temp_traitimpls("new_trait_impl");
                         let new_trait_impl = TraitImplementation::new(ctx_clone.clone())
                             .set_temp_id("new_trait_impl")
+                            .set_name(trait_impl_name.get())
+                            .set_documentation(trait_impl_documentation.get())
                             .add_existing_traitdefinition(trait_def_clone.get_id(), |na| na)
                             .add_existing_implingoperative(operative_clone_10.get_id(), |na| na);
                         required_method_defs_clone
@@ -139,89 +145,91 @@ pub fn OperativeTraitImplementations(
                     };
 
                     view! {
-                        <ul>
-                            <For
-                                each=move || {
-                                    trait_def.get_requiredmethods_slot().into_iter().enumerate()
-                                }
-                                key=move |item| item.1.get_id().clone()
-                                let:method_def
-                            >
-                                {
-                                    let operative_clone_9 = operative_clone_9.clone();
-                                    let select_signal = RwSignal::<
-                                        Option<RGSOConcrete<MethodImplementation, Schema>>,
-                                    >::new(None);
-                                    let method_def_clone = method_def.1.clone();
-                                    let method_def_clone_2 = method_def.1.clone();
-                                    trait_impl_method_impl_selections
-                                        .update(|prev| {
-                                            prev.insert(method_def.1.get_id().clone(), select_signal);
-                                        });
-                                    let method_impl_options = Memo::new(move |_| {
-                                        let mut method_impl_options = vec![];
-                                        let local_impl = operative_clone_9
-                                            .get_methodimpls_slot()
-                                            .iter()
-                                            .find(|method_impl| {
-                                                method_impl.get_definition_slot().get_id().clone()
-                                                    == method_def_clone_2.get_id().clone()
-                                            })
-                                            .cloned();
-                                        if let Some(local_impl) = local_impl {
-                                            method_impl_options.push(local_impl.clone());
-                                        }
-                                        let mut ancestor_impls = vec![];
-                                        let mut current_op = operative_clone_9
-                                            .get_parentoperative_slot()
-                                            .first()
-                                            .cloned();
-                                        while let Some(parent) = current_op {
-                                            let parent_impl = parent
+                        <LeafSection>
+                            "Implementation Name: " <SignalTextInput value=trait_impl_name /> <ul>
+                                <For
+                                    each=move || {
+                                        trait_def.get_requiredmethods_slot().into_iter().enumerate()
+                                    }
+                                    key=move |item| item.1.get_id().clone()
+                                    let:method_def
+                                >
+                                    {
+                                        let operative_clone_9 = operative_clone_9.clone();
+                                        let select_signal = RwSignal::<
+                                            Option<RGSOConcrete<MethodImplementation, Schema>>,
+                                        >::new(None);
+                                        let method_def_clone = method_def.1.clone();
+                                        let method_def_clone_2 = method_def.1.clone();
+                                        trait_impl_method_impl_selections
+                                            .update(|prev| {
+                                                prev.insert(method_def.1.get_id().clone(), select_signal);
+                                            });
+                                        let method_impl_options = Memo::new(move |_| {
+                                            let mut method_impl_options = vec![];
+                                            let local_impl = operative_clone_9
                                                 .get_methodimpls_slot()
                                                 .iter()
                                                 .find(|method_impl| {
                                                     method_impl.get_definition_slot().get_id().clone()
-                                                        == method_def.1.get_id().clone()
+                                                        == method_def_clone_2.get_id().clone()
                                                 })
                                                 .cloned();
-                                            if let Some(parent_impl) = parent_impl {
-                                                ancestor_impls.push(parent_impl.clone());
+                                            if let Some(local_impl) = local_impl {
+                                                method_impl_options.push(local_impl.clone());
                                             }
-                                            current_op = parent
+                                            let mut ancestor_impls = vec![];
+                                            let mut current_op = operative_clone_9
                                                 .get_parentoperative_slot()
                                                 .first()
                                                 .cloned();
+                                            while let Some(parent) = current_op {
+                                                let parent_impl = parent
+                                                    .get_methodimpls_slot()
+                                                    .iter()
+                                                    .find(|method_impl| {
+                                                        method_impl.get_definition_slot().get_id().clone()
+                                                            == method_def.1.get_id().clone()
+                                                    })
+                                                    .cloned();
+                                                if let Some(parent_impl) = parent_impl {
+                                                    ancestor_impls.push(parent_impl.clone());
+                                                }
+                                                current_op = parent
+                                                    .get_parentoperative_slot()
+                                                    .first()
+                                                    .cloned();
+                                            }
+                                            method_impl_options.extend(ancestor_impls);
+                                            method_impl_options
+                                        });
+                                        view! {
+                                            <li>
+                                                <span>{method_def_clone.get_name()}</span>
+                                                <SignalSelectRGSOWithOptions
+                                                    options=method_impl_options
+                                                    value=select_signal
+                                                    empty_allowed=true
+                                                />
+                                                " "
+                                                {move || {
+                                                    if select_signal.get().is_some() { "✅" } else { "☒" }
+                                                }}
+                                            </li>
                                         }
-                                        method_impl_options.extend(ancestor_impls);
-                                        method_impl_options
-                                    });
-                                    view! {
-                                        <li>
-                                            <span>{method_def_clone.get_name()}</span>
-                                            <SignalSelectRGSOWithOptions
-                                                options=method_impl_options
-                                                value=select_signal
-                                                empty_allowed=true
-                                            />
-                                            " "
-                                            {move || {
-                                                if select_signal.get().is_some() { "✅" } else { "☒" }
-                                            }}
-                                        </li>
                                     }
-                                }
-                            </For>
-                        </ul>
-                        <Button
-                            on:click=move |_| { on_save() }
-                            prop:disabled=move || !is_trait_fulfilled_clone()
-                        >
-                            Save
-                        </Button>
-                        <Button on:click=move |_| {
-                            currently_impling_trait.set(None);
-                        }>"Cancel"</Button>
+                                </For>
+                            </ul>
+                            <Button
+                                on:click=move |_| { on_save() }
+                                prop:disabled=move || !is_trait_fulfilled_clone()
+                            >
+                                Save
+                            </Button>
+                            <Button on:click=move |_| {
+                                currently_impling_trait.set(None);
+                            }>"Cancel"</Button>
+                        </LeafSection>
                     }
                 }
             </Show>

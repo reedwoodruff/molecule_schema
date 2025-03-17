@@ -19,7 +19,10 @@ pub type LibTemplate = LibraryTemplate<PrimitiveTypes, PrimitiveValues>;
 type Error = ElementCreationError;
 #[derive(Debug, Display, Clone)]
 pub enum ElementCreationError {
-    RequiredFieldIsEmpty,
+    RequiredFieldIsEmpty {
+        host_element_name: String,
+        field_name: String,
+    },
     BoundCheckOutOfRange(String),
     OutgoingElementIsWrongType {
         host_element_name: String,

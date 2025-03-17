@@ -17,7 +17,7 @@ use crate::post_generation::{
 };
 use leptos::prelude::*;
 use std::{
-    collections::{HashMap, HashSet, VecDeque},
+    collections::{HashMap, HashSet},
     hash::Hash,
     marker::PhantomData,
     str::FromStr,
@@ -795,10 +795,21 @@ impl<T: HasSlotEnum, TSchema> Verifiable for RGSOConcreteBuilder<T, TSchema> {
     fn verify(&self) -> Result<(), crate::post_generation::ElementCreationError> {
         let field_errors = self
             .data
-            .values()
-            .filter_map(|field_val| {
+            .iter()
+            .filter_map(|(id, field_val)| {
                 if field_val.with(|field_val| field_val.is_none()) {
-                    return Some(ElementCreationError::RequiredFieldIsEmpty);
+                    let field_name = self
+                        .template
+                        .field_constraints
+                        .get(id)
+                        .unwrap()
+                        .tag
+                        .name
+                        .clone();
+                    return Some(ElementCreationError::RequiredFieldIsEmpty {
+                        host_element_name: self.operative.tag.name.clone(),
+                        field_name,
+                    });
                 }
                 None
             })

@@ -4,7 +4,8 @@ use schema_editor_generated_toolkit::prelude::*;
 use crate::components::{
     common::{
         Button, CardinalityView, LeafSection, LeafSectionHeader, ManagedEnumSelect, Section,
-        SectionHeader, SignalTextInput, SubSection, SubSectionHeader, ToggleManagedTextInput,
+        SectionHeader, SignalTextInput, SubSection, SubSectionHeader,
+        ToggleManagedDocumentationInput, ToggleManagedTextInput,
     },
     slot_builder::SlotBuilder,
     workspace::{WorkspaceState, WorkspaceTab},
@@ -25,6 +26,12 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
         let mut editor = template_clone.get().edit(ctx_clone.clone());
         editor.set_name(new_val).execute().unwrap();
     };
+    let template_clone = template.clone();
+    let ctx_clone = ctx.clone();
+    let update_template_documentation = move |new_val: String| {
+        let mut editor = template_clone.get().edit(ctx_clone.clone());
+        editor.set_documentation(new_val).execute().unwrap();
+    };
 
     let ctx_clone = ctx.clone();
     let derivative_operative_name = RwSignal::new(template.get().get_name_field());
@@ -43,6 +50,7 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
             .edit(ctx_clone.clone())
             .add_new_operatives(|op| {
                 op.set_name(derivative_operative_name.clone())
+                    .set_documentation("".to_string())
                     .add_existing_roottemplate(template_clone.get().get_id(), |item| item)
             })
             .execute()
@@ -70,7 +78,9 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
             .get()
             .edit(ctx_clone.clone())
             .add_new_fields::<StringTemplateField, _>(|field| {
-                field.set_name("new_field".to_string())
+                field
+                    .set_name("new_field".to_string())
+                    .set_documentation("".to_string())
             })
             .execute()
             .unwrap();
@@ -163,6 +173,13 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
             let mut editor = template_slot_clone.edit(ctx_clone.clone());
             editor.set_name(new_val).execute().unwrap();
         };
+        let template_slot_clone = template_slot.clone();
+        let ctx_clone = ctx.clone();
+        let update_slot_documentation = move |new_val: String| {
+            let mut editor = template_slot_clone.edit(ctx_clone.clone());
+            editor.set_documentation(new_val).execute().unwrap();
+        };
+        let template_slot_clone = template_slot.clone();
         view! {
             <LeafSection>
                 <LeafSectionHeader>
@@ -178,6 +195,10 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                         </div>
                     </div>
                 </LeafSectionHeader>
+                <ToggleManagedDocumentationInput
+                    getter=move || template_slot_clone.get_documentation_field()
+                    setter=update_slot_documentation
+                />
                 <LeafSection>
                     <em>"Type: "</em>
                     {type_details_view}
@@ -222,6 +243,7 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
             GetNameTemplateFieldVariantTraitObjectDiscriminants,
         >::new(field.clone().into());
         let ctx_clone_2 = ctx_clone.clone();
+        let ctx_clone_3 = ctx_clone.clone();
         let template_clone = template_clone.clone();
         let on_change_field = Callback::new(
             move |new_value: GetNameTemplateFieldVariantTraitObjectDiscriminants| {
@@ -237,7 +259,7 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                                         .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<StringTemplateField, _>(|new_field| {
-                                            new_field.set_name(item.get_name())
+                                            new_field.set_name(item.get_name()).set_documentation(item.get_documentation())
                                         }),
                                 )
                             }
@@ -247,7 +269,7 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                                         .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<BoolTemplateField, _>(|new_field| {
-                                            new_field.set_name(item.get_name())
+                                            new_field.set_name(item.get_name()).set_documentation(item.get_documentation())
                                         }),
                                 ),
                             GetNameTemplateFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
@@ -256,7 +278,7 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                                         .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<IntTemplateField, _>(|new_field| {
-                                            new_field.set_name(item.get_name())
+                                            new_field.set_name(item.get_name()).set_documentation(item.get_documentation())
                                         }),
                                 ),
                         };
@@ -272,7 +294,7 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                                         .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<StringTemplateField, _>(|new_field| {
-                                            new_field.set_name(item.get_name())
+                                            new_field.set_name(item.get_name()).set_documentation(item.get_documentation())
                                         }),
                                 )
                             }
@@ -282,7 +304,7 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                                         .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<BoolTemplateField, _>(|new_field| {
-                                            new_field.set_name(item.get_name())
+                                            new_field.set_name(item.get_name()).set_documentation(item.get_documentation())
                                         }),
                                 ),
                             GetNameTemplateFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
@@ -291,7 +313,7 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                                         .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<IntTemplateField, _>(|new_field| {
-                                            new_field.set_name(item.get_name())
+                                            new_field.set_name(item.get_name()).set_documentation(item.get_documentation())
                                         }),
                                 ),
                         };
@@ -307,7 +329,7 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                                         .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<StringTemplateField, _>(|new_field| {
-                                            new_field.set_name(item.get_name())
+                                            new_field.set_name(item.get_name()).set_documentation(item.get_documentation())
                                         }),
                                 )
                             }
@@ -317,7 +339,7 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                                         .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<BoolTemplateField, _>(|new_field| {
-                                            new_field.set_name(item.get_name())
+                                            new_field.set_name(item.get_name()).set_documentation(item.get_documentation())
                                         }),
                                 ),
                             GetNameTemplateFieldVariantTraitObjectDiscriminants::IntTemplateField => edit
@@ -326,7 +348,7 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                                         .get()
                                         .edit(ctx_clone_2.clone())
                                         .add_new_fields::<IntTemplateField, _>(|new_field| {
-                                            new_field.set_name(item.get_name())
+                                            new_field.set_name(item.get_name()).set_documentation(item.get_documentation())
                                         }),
                                 ),
                         };
@@ -348,7 +370,40 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                 inner.edit(ctx_clone.clone()).delete().execute().unwrap();
             }
         };
+
         let field_clone_inner = field_clone.clone();
+        let documentation_setter = move |new_val: String| {
+            match field_clone_inner.clone() {
+                GetNameTemplateFieldVariantTraitObject::StringTemplateField(field) => field
+                    .edit(ctx_clone_3.clone())
+                    .set_documentation(new_val)
+                    .execute()
+                    .unwrap(),
+                GetNameTemplateFieldVariantTraitObject::BoolTemplateField(field) => field
+                    .edit(ctx_clone_3.clone())
+                    .set_documentation(new_val)
+                    .execute()
+                    .unwrap(),
+                GetNameTemplateFieldVariantTraitObject::IntTemplateField(field) => field
+                    .edit(ctx_clone_3.clone())
+                    .set_documentation(new_val)
+                    .execute()
+                    .unwrap(),
+            };
+        };
+        let field_clone = field.clone();
+        let documentation_getter = move || match &field_clone {
+            GetNameTemplateFieldVariantTraitObject::StringTemplateField(rgsoconcrete) => {
+                rgsoconcrete.get_documentation_field()
+            }
+            GetNameTemplateFieldVariantTraitObject::BoolTemplateField(rgsoconcrete) => {
+                rgsoconcrete.get_documentation_field()
+            }
+            GetNameTemplateFieldVariantTraitObject::IntTemplateField(rgsoconcrete) => {
+                rgsoconcrete.get_documentation_field()
+            }
+        };
+        let field_clone_inner = field.clone();
         view! {
             <LeafSection>
                 <div class="flex">
@@ -359,6 +414,10 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                                 setter=name_setter
                             />
                         </LeafSectionHeader>
+                        <ToggleManagedDocumentationInput
+                            getter=documentation_getter
+                            setter=documentation_setter
+                        />
                         <LeafSection attr:class="leafsection dependent">
                             <ManagedEnumSelect
                                 getter=move || field_clone_inner.clone().into()
@@ -390,6 +449,10 @@ pub fn TemplateEditor(template: RwSignal<RGSOConcrete<TemplateConcrete, Schema>>
                             setter=update_name
                         />
                     </SubSectionHeader>
+                    <ToggleManagedDocumentationInput
+                        getter=move || template.get().get_documentation_field()
+                        setter=update_template_documentation
+                    />
                 </SubSection>
                 <SubSection>
                     <Button on:click=delete_template_recursive>Delete Item</Button>

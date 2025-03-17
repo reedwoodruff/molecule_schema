@@ -152,3 +152,11 @@
     top: 2%;
     left: 2%;
 }
+
+.width-100 {
+    width: 100%;
+}
+
+.inner-textarea {
+    width: 100%;
+}

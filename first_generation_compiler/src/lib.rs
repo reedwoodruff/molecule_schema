@@ -705,10 +705,6 @@ pub fn generate_concrete_schema_reactive(
         #(#slot_trait_enums_stream)*
         #(#trait_definition_streams)*
 
-        fn validate_signal_is_some<T: Send + Sync + 'static>(signal: &leptos::prelude::RwSignal<Option<T>>) -> Result<(), base_types::post_generation::ElementCreationError> {
-            signal.with(|val| {if val.is_some() {return Ok(())} return Err(ElementCreationError::RequiredFieldIsEmpty);})
-        }
-
         lazy_static::lazy_static!{
             pub static ref CONSTRAINT_SCHEMA: base_types::constraint_schema::ConstraintSchema<PrimitiveTypes, PrimitiveValues>
             = serde_json::from_str::<base_types::constraint_schema::ConstraintSchema<PrimitiveTypes, PrimitiveValues>>(#raw_json_schema).expect("Schema formatted incorrectly");
