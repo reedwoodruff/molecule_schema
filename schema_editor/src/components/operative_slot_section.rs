@@ -16,7 +16,7 @@ use crate::components::{
 
 use leptos::{
     context::Provider,
-    either::{Either, EitherOf3, EitherOf5},
+    either::{Either, EitherOf3},
 };
 use schema_editor_generated_toolkit::prelude::*;
 

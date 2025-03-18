@@ -258,6 +258,36 @@ fn follow_and_delete_downstream(
 ) {
     for step in steps {
         match step {
+            ImplStepVariantTraitObject::ImplStepCollectionIsEmpty(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                editor.incorporate(
+                    rgsoconcrete
+                        .get_outputbool_slot()
+                        .edit(ctx.clone())
+                        .delete_recursive(),
+                );
+                follow_and_delete_downstream(
+                    &rgsoconcrete
+                        .get_outputbool_slot()
+                        .get_downstreamsteps_slot(),
+                    editor,
+                    ctx.clone(),
+                );
+            }
+            ImplStepVariantTraitObject::ImplStepCollectionGetNextItem(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                editor.incorporate(
+                    rgsoconcrete
+                        .get_output_slot()
+                        .edit(ctx.clone())
+                        .delete_recursive(),
+                );
+                follow_and_delete_downstream(
+                    &rgsoconcrete.get_output_slot().get_downstreamsteps_slot(),
+                    editor,
+                    ctx.clone(),
+                );
+            }
             ImplStepVariantTraitObject::ImplStepInvokeMethod(rgsoconcrete) => {
                 editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
                 let outputs = rgsoconcrete.get_methodoutputs_slot();
@@ -300,7 +330,7 @@ fn follow_and_delete_downstream(
                     ctx.clone(),
                 );
             }
-            ImplStepVariantTraitObject::ImplStepGetCollectionLength(rgsoconcrete) => {
+            ImplStepVariantTraitObject::ImplStepCollectionGetLength(rgsoconcrete) => {
                 editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
                 editor.incorporate(
                     rgsoconcrete
@@ -443,7 +473,7 @@ fn follow_and_delete_downstream(
                     ctx.clone(),
                 );
             }
-            ImplStepVariantTraitObject::ImplStepIteratorFilter(rgsoconcrete) => {
+            ImplStepVariantTraitObject::ImplStepCollectionFilter(rgsoconcrete) => {
                 editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
                 editor.incorporate(
                     rgsoconcrete
@@ -530,7 +560,7 @@ fn follow_and_delete_downstream(
                     ctx.clone(),
                 );
             }
-            ImplStepVariantTraitObject::ImplStepIteratorMap(rgsoconcrete) => {
+            ImplStepVariantTraitObject::ImplStepCollectionMap(rgsoconcrete) => {
                 editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
                 editor.incorporate(
                     rgsoconcrete

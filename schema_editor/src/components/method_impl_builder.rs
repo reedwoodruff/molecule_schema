@@ -43,7 +43,14 @@ pub fn MethodImplementationBuilder(
     let graph_handle: RwSignal<Option<GraphCanvas>> = RwSignal::new(None);
     Effect::new(move |_| match graph_handle.get() {
         Some(mut graph) => {
-            graph.apply_layout(LayoutType::ForceDirected);
+            match graph.apply_layout(LayoutType::ForceDirected) {
+                Ok(_) => {
+                    // Layout applied successfully
+                }
+                Err(err) => {
+                    leptos::logging::log!("Error applying layout: {}", err);
+                }
+            }
         }
         None => {}
     });
@@ -82,7 +89,7 @@ pub fn MethodImplementationBuilder(
                 );
                 on_save.run(blueprint);
             }
-            Err(err) => {
+            Err(_err) => {
                 // Handle error
             }
         }

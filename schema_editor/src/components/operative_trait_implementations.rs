@@ -244,7 +244,6 @@ pub fn OperativeTraitImplementations(
                     key=|item| item.get_id().clone()
                     children=move |trait_impl| {
                         let trait_impl_clone = trait_impl.clone();
-                        let operative_clone_7 = operative_clone_7.clone();
                         let ctx_clone_2 = ctx_clone_2.clone();
                         view! {
                             <li>

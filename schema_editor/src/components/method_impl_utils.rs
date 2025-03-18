@@ -5,6 +5,8 @@ use graph_canvas::prelude::*;
 use graph_canvas::{NodeInstance, NodeTemplate, SlotInstance, SlotPosition, SlotType};
 use leptos::logging::log;
 use schema_editor_generated_toolkit::prelude::*;
+use serde_json::from_str;
+use strum::{EnumIter, EnumProperty, IntoEnumIterator};
 use uuid::Uuid;
 
 use super::method_impl_traversal_utils::{
@@ -60,190 +62,220 @@ macro_rules! get_slot_id {
 
 macro_rules! match_impl_step_template {
     ($template_id:expr, $action:ident, $editor:expr, $builder:expr, $step_temp_id:expr) => {{
-        let u128 = Uuid::parse_str(&$template_id)
-            .expect("Failed to parse UUID")
-            .as_u128();
+        let discriminant = ImplStepVariantTraitObjectDiscriminants::iter()
+            .find(|step| {
+                let num_uid: u128 = from_str(step.get_str("operative_id").unwrap()).unwrap();
+                let str_id = Uuid::from_u128(num_uid).to_string();
+                str_id == $template_id
+            })
+            .expect("Unknown step operative");
 
-        match u128 {
-            id if id == ImplStepBitAnd::get_operative_id() => {
+        match discriminant {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepBitAnd => {
                 $editor.incorporate(&$builder.clone().$action::<ImplStepBitAnd>($step_temp_id));
             }
-            id if id == ImplStepBitNot::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepBitNot => {
                 $editor.incorporate(&$builder.clone().$action::<ImplStepBitNot>($step_temp_id));
             }
-            id if id == ImplStepBitOr::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepBitOr => {
                 $editor.incorporate(&$builder.clone().$action::<ImplStepBitOr>($step_temp_id));
             }
-            id if id == ImplStepCompareEqual::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCompareEqual => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepCompareEqual>($step_temp_id),
                 );
             }
-            id if id == ImplStepCompareGreaterThan::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCompareGreaterThan => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepCompareGreaterThan>($step_temp_id),
                 );
             }
-            id if id == ImplStepCompareLessThan::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCompareLessThan => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepCompareLessThan>($step_temp_id),
                 );
             }
-            id if id == ImplStepGetField::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepGetField => {
                 $editor.incorporate(&$builder.clone().$action::<ImplStepGetField>($step_temp_id));
             }
-            id if id == ImplStepIf::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepIf => {
                 $editor.incorporate(&$builder.clone().$action::<ImplStepIf>($step_temp_id));
             }
-            id if id == ImplStepIteratorFilter::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCollectionFilter => {
                 $editor.incorporate(
                     &$builder
                         .clone()
-                        .$action::<ImplStepIteratorFilter>($step_temp_id),
+                        .$action::<ImplStepCollectionFilter>($step_temp_id),
                 );
             }
-            id if id == ImplStepIteratorMap::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCollectionMap => {
                 $editor.incorporate(
                     &$builder
                         .clone()
-                        .$action::<ImplStepIteratorMap>($step_temp_id),
+                        .$action::<ImplStepCollectionMap>($step_temp_id),
                 );
             }
-            id if id == ImplStepMapFromInput::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMapFromInput => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepMapFromInput>($step_temp_id),
                 );
             }
-            id if id == ImplStepMapToOutput::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMapToOutput => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepMapToOutput>($step_temp_id),
                 );
             }
-            id if id == ImplStepMathAdd::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMathAdd => {
                 $editor.incorporate(&$builder.clone().$action::<ImplStepMathAdd>($step_temp_id));
             }
-            id if id == ImplStepMathDivide::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMathDivide => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepMathDivide>($step_temp_id),
                 );
             }
-            id if id == ImplStepMathModulus::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMathModulus => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepMathModulus>($step_temp_id),
                 );
             }
-            id if id == ImplStepMathMultiply::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMathMultiply => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepMathMultiply>($step_temp_id),
                 );
             }
-            id if id == ImplStepMathSubtract::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMathSubtract => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepMathSubtract>($step_temp_id),
                 );
             }
-            id if id == ImplStepMultiTypeSplitter::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMultiTypeSplitter => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepMultiTypeSplitter>($step_temp_id),
                 );
             }
-            id if id == ImplStepMutateField::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMutateField => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepMutateField>($step_temp_id),
                 );
             }
-            id if id == ImplStepMutateSlot::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMutateSlot => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepMutateSlot>($step_temp_id),
                 );
             }
-            id if id == ImplStepTraverseSlot::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepTraverseSlot => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplStepTraverseSlot>($step_temp_id),
                 );
             }
-            id if id == ImplStepWhileLoop::get_operative_id() => {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepWhileLoop => {
                 $editor.incorporate(&$builder.clone().$action::<ImplStepWhileLoop>($step_temp_id));
             }
-            _ => {}
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCollectionIsEmpty => {
+                $editor.incorporate(
+                    &$builder
+                        .clone()
+                        .$action::<ImplStepCollectionIsEmpty>($step_temp_id),
+                );
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCollectionGetLength => {
+                $editor.incorporate(
+                    &$builder
+                        .clone()
+                        .$action::<ImplStepCollectionGetLength>($step_temp_id),
+                );
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCollectionGetNextItem => {
+                $editor.incorporate(
+                    &$builder
+                        .clone()
+                        .$action::<ImplStepCollectionGetNextItem>($step_temp_id),
+                );
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepIsType => {
+                $editor.incorporate(&$builder.clone().$action::<ImplStepIsType>($step_temp_id));
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepIdentity => {
+                $editor.incorporate(&$builder.clone().$action::<ImplStepIdentity>($step_temp_id));
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepInvokeMethod => {
+                $editor.incorporate(
+                    &$builder
+                        .clone()
+                        .$action::<ImplStepInvokeMethod>($step_temp_id),
+                );
+            }
         };
     }};
 }
 
 macro_rules! match_impl_data_minus_manuals_template {
     ($template_id:expr, $action:ident, $editor:expr, $builder:expr, $step_temp_id:expr) => {{
-        let u128 = Uuid::parse_str(&$template_id)
-            .expect("Failed to parse UUID")
-            .as_u128();
-
-        match u128 {
-            id if id == ImplDataBool::get_operative_id() => {
+        let discriminant = ImplDataVariantMinusManualsTraitObjectDiscriminants::iter()
+            .find(|step| {
+                let num_uid: u128 = from_str(step.get_str("operative_id").unwrap()).unwrap();
+                let str_id = Uuid::from_u128(num_uid).to_string();
+                str_id == $template_id
+            })
+            .expect("Unknown step operative");
+        match discriminant {
+            ImplDataVariantMinusManualsTraitObjectDiscriminants::ImplDataBool => {
                 $editor.incorporate(&$builder.clone().$action::<ImplDataBool>($step_temp_id));
             }
-            id if id == ImplDataCollection::get_operative_id() => {
+            ImplDataVariantMinusManualsTraitObjectDiscriminants::ImplDataCollection => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplDataCollection>($step_temp_id),
                 );
             }
-            id if id == ImplDataInt::get_operative_id() => {
+            ImplDataVariantMinusManualsTraitObjectDiscriminants::ImplDataInt => {
                 $editor.incorporate(&$builder.clone().$action::<ImplDataInt>($step_temp_id));
             }
-            id if id == ImplDataInt::get_operative_id() => {
-                $editor.incorporate(&$builder.clone().$action::<ImplDataInt>($step_temp_id));
-            }
-            id if id == ImplDataMultiOperative::get_operative_id() => {
+            ImplDataVariantMinusManualsTraitObjectDiscriminants::ImplDataMultiOperative => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplDataMultiOperative>($step_temp_id),
                 );
             }
-            id if id == ImplDataMultiOperative::get_operative_id() => {
-                $editor.incorporate(
-                    &$builder
-                        .clone()
-                        .$action::<ImplDataMultiOperative>($step_temp_id),
-                );
-            }
-            id if id == ImplDataSingleOperative::get_operative_id() => {
+            ImplDataVariantMinusManualsTraitObjectDiscriminants::ImplDataSingleOperative => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplDataSingleOperative>($step_temp_id),
                 );
             }
-            id if id == ImplDataString::get_operative_id() => {
+            ImplDataVariantMinusManualsTraitObjectDiscriminants::ImplDataString => {
                 $editor.incorporate(&$builder.clone().$action::<ImplDataString>($step_temp_id));
             }
-            id if id == ImplDataTraitOperative::get_operative_id() => {
+            ImplDataVariantMinusManualsTraitObjectDiscriminants::ImplDataTraitOperative => {
                 $editor.incorporate(
                     &$builder
                         .clone()
@@ -256,69 +288,63 @@ macro_rules! match_impl_data_minus_manuals_template {
 }
 macro_rules! match_impl_data_template {
     ($template_id:expr, $action:ident, $editor:expr, $builder:expr, $step_temp_id:expr) => {{
-        let u128 = Uuid::parse_str(&$template_id)
-            .expect("Failed to parse UUID")
-            .as_u128();
+        let discriminant = ImplDataVariantTraitObjectDiscriminants::iter()
+            .find(|step| {
+                let num_uid: u128 = from_str(step.get_str("operative_id").unwrap()).unwrap();
+                let str_id = Uuid::from_u128(num_uid).to_string();
+                str_id == $template_id
+            })
+            .expect("Unknown step operative");
 
-        match u128 {
-            id if id == ImplDataBool::get_operative_id() => {
+        match discriminant {
+            ImplDataVariantTraitObjectDiscriminants::ImplDataBool => {
                 $editor.incorporate(&$builder.clone().$action::<ImplDataBool>($step_temp_id));
             }
-            id if id == ImplDataManualBool::get_operative_id() => {
+            ImplDataVariantTraitObjectDiscriminants::ImplDataManualBool => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplDataManualBool>($step_temp_id),
                 );
             }
-            id if id == ImplDataCollection::get_operative_id() => {
+            ImplDataVariantTraitObjectDiscriminants::ImplDataCollection => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplDataCollection>($step_temp_id),
                 );
             }
-            id if id == ImplDataInt::get_operative_id() => {
+            ImplDataVariantTraitObjectDiscriminants::ImplDataInt => {
                 $editor.incorporate(&$builder.clone().$action::<ImplDataInt>($step_temp_id));
             }
-            id if id == ImplDataManualInt::get_operative_id() => {
+            ImplDataVariantTraitObjectDiscriminants::ImplDataManualInt => {
                 $editor.incorporate(&$builder.clone().$action::<ImplDataManualInt>($step_temp_id));
             }
-            id if id == ImplDataInt::get_operative_id() => {
-                $editor.incorporate(&$builder.clone().$action::<ImplDataInt>($step_temp_id));
-            }
-            id if id == ImplDataMultiOperative::get_operative_id() => {
+            ImplDataVariantTraitObjectDiscriminants::ImplDataMultiOperative => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplDataMultiOperative>($step_temp_id),
                 );
             }
-            id if id == ImplDataMultiOperative::get_operative_id() => {
-                $editor.incorporate(
-                    &$builder
-                        .clone()
-                        .$action::<ImplDataMultiOperative>($step_temp_id),
-                );
-            }
-            id if id == ImplDataSingleOperative::get_operative_id() => {
+            ImplDataVariantTraitObjectDiscriminants::ImplDataSingleOperative => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplDataSingleOperative>($step_temp_id),
                 );
             }
-            id if id == ImplDataString::get_operative_id() => {
+            ImplDataVariantTraitObjectDiscriminants::ImplDataString => {
                 $editor.incorporate(&$builder.clone().$action::<ImplDataString>($step_temp_id));
             }
-            id if id == ImplDataManualString::get_operative_id() => {
+            ImplDataVariantTraitObjectDiscriminants::ImplDataManualString => {
                 $editor.incorporate(
                     &$builder
                         .clone()
                         .$action::<ImplDataManualString>($step_temp_id),
                 );
             }
-            id if id == ImplDataTraitOperative::get_operative_id() => {
+            ImplDataVariantTraitObjectDiscriminants::ImplDataTraitOperative => {
                 $editor.incorporate(
                     &$builder
                         .clone()
@@ -522,8 +548,14 @@ pub(crate) fn setup_existing_fn_impl_in_canvas(
         }
         ExecutionNode::Step(impl_step_variant_trait_object) => {
             let step_operative_id = match impl_step_variant_trait_object {
+                ImplStepVariantTraitObject::ImplStepCollectionIsEmpty(step) => {
+                    step.operative().tag.id.clone()
+                }
+                ImplStepVariantTraitObject::ImplStepCollectionGetNextItem(step) => {
+                    step.operative().tag.id.clone()
+                }
                 ImplStepVariantTraitObject::ImplStepIsType(step) => step.operative().tag.id.clone(),
-                ImplStepVariantTraitObject::ImplStepGetCollectionLength(step) => {
+                ImplStepVariantTraitObject::ImplStepCollectionGetLength(step) => {
                     step.operative().tag.id.clone()
                 }
                 ImplStepVariantTraitObject::ImplStepIdentity(step) => {
@@ -560,7 +592,7 @@ pub(crate) fn setup_existing_fn_impl_in_canvas(
                     step.operative().tag.id.clone()
                 }
                 ImplStepVariantTraitObject::ImplStepIf(step) => step.operative().tag.id.clone(),
-                ImplStepVariantTraitObject::ImplStepIteratorFilter(step) => {
+                ImplStepVariantTraitObject::ImplStepCollectionFilter(step) => {
                     step.operative().tag.id.clone()
                 }
                 ImplStepVariantTraitObject::ImplStepMutateSlot(step) => {
@@ -575,7 +607,7 @@ pub(crate) fn setup_existing_fn_impl_in_canvas(
                 ImplStepVariantTraitObject::ImplStepMultiTypeSplitter(step) => {
                     step.operative().tag.id.clone()
                 }
-                ImplStepVariantTraitObject::ImplStepIteratorMap(step) => {
+                ImplStepVariantTraitObject::ImplStepCollectionMap(step) => {
                     step.operative().tag.id.clone()
                 }
                 ImplStepVariantTraitObject::ImplStepTraverseSlot(step) => {
@@ -1255,7 +1287,7 @@ pub(crate) fn build_schemaful_representation_of_graph(
     // Create the method implementation builder
     let mut operative_editor = operative.edit(ctx.clone());
     operative_editor.add_temp_methodimpls("new_fn_impl");
-    let mut method_impl_editor = MethodImplementation::new(ctx.clone())
+    let method_impl_editor = MethodImplementation::new(ctx.clone())
         .set_temp_id("new_fn_impl")
         .add_existing_definition(fn_def.get_id(), |na| na)
         .add_existing_implementor(operative.get_id(), |na| na)
@@ -1438,284 +1470,347 @@ pub(crate) fn build_schemaful_representation_of_graph(
             data_deps.insert(slot_name.to_string(), target_node_id.clone());
         }
 
-        // ImplStepBitNot
-        if node.template_id == Uuid::from_u128(ImplStepBitNot::get_operative_id()).to_string() {
-            let input_id = data_deps.get("InputBool").unwrap();
-            let output_id = data_deps.get("OutputBool").unwrap();
-            let builder = ImplStepBitNot::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_inputbool(input_id)
-                .add_temp_outputbool(output_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepMathDivide
-        else if node.template_id
-            == Uuid::from_u128(ImplStepMathDivide::get_operative_id()).to_string()
-        {
-            let arg1_id = data_deps.get("ArgumentOne").unwrap();
-            let arg2_id = data_deps.get("ArgumentTwo").unwrap();
-            let output_id = data_deps.get("OutputInt").unwrap();
-            let builder = ImplStepMathDivide::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_argumentone(arg1_id)
-                .add_temp_argumenttwo(arg2_id)
-                .add_temp_outputint(output_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepBitOr
-        else if node.template_id == Uuid::from_u128(ImplStepBitOr::get_operative_id()).to_string()
-        {
-            let arg1_id = data_deps.get("ArgumentOne").unwrap();
-            let arg2_id = data_deps.get("ArgumentTwo").unwrap();
-            let output_id = data_deps.get("OutputBool").unwrap();
-            let builder = ImplStepBitOr::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_argumentone(arg1_id)
-                .add_temp_argumenttwo(arg2_id)
-                .add_temp_outputbool(output_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepCompareEqual
-        else if node.template_id
-            == Uuid::from_u128(ImplStepCompareEqual::get_operative_id()).to_string()
-        {
-            let arg1_id = data_deps.get("ArgumentOne").unwrap();
-            let arg2_id = data_deps.get("ArgumentTwo").unwrap();
-            let output_id = data_deps.get("OutputBool").unwrap();
-            let builder = ImplStepCompareEqual::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_argumentone(arg1_id)
-                .add_temp_argumenttwo(arg2_id)
-                .add_temp_outputbool(output_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepBitAnd
-        else if node.template_id
-            == Uuid::from_u128(ImplStepBitAnd::get_operative_id()).to_string()
-        {
-            let arg1_id = data_deps.get("ArgumentOne").unwrap();
-            let arg2_id = data_deps.get("ArgumentTwo").unwrap();
-            let output_id = data_deps.get("OutputBool").unwrap();
-            let builder = ImplStepBitAnd::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_argumentone(arg1_id)
-                .add_temp_argumenttwo(arg2_id)
-                .add_temp_outputbool(output_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepMathAdd
-        else if node.template_id
-            == Uuid::from_u128(ImplStepMathAdd::get_operative_id()).to_string()
-        {
-            let arg1_id = data_deps.get("ArgumentOne").unwrap();
-            let arg2_id = data_deps.get("ArgumentTwo").unwrap();
-            let output_id = data_deps.get("OutputInt").unwrap();
-            let builder = ImplStepMathAdd::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_argumentone(arg1_id)
-                .add_temp_argumenttwo(arg2_id)
-                .add_temp_outputint(output_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepMathModulus
-        else if node.template_id
-            == Uuid::from_u128(ImplStepMathModulus::get_operative_id()).to_string()
-        {
-            let arg1_id = data_deps.get("ArgumentOne").unwrap();
-            let arg2_id = data_deps.get("ArgumentTwo").unwrap();
-            let output_id = data_deps.get("OutputInt").unwrap();
-            let builder = ImplStepMathModulus::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_argumentone(arg1_id)
-                .add_temp_argumenttwo(arg2_id)
-                .add_temp_outputint(output_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepMathMultiply
-        else if node.template_id
-            == Uuid::from_u128(ImplStepMathMultiply::get_operative_id()).to_string()
-        {
-            let arg1_id = data_deps.get("ArgumentOne").unwrap();
-            let arg2_id = data_deps.get("ArgumentTwo").unwrap();
-            let output_id = data_deps.get("OutputInt").unwrap();
-            let builder = ImplStepMathMultiply::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_argumentone(arg1_id)
-                .add_temp_argumenttwo(arg2_id)
-                .add_temp_outputint(output_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepMathSubtract
-        else if node.template_id
-            == Uuid::from_u128(ImplStepMathSubtract::get_operative_id()).to_string()
-        {
-            let arg1_id = data_deps.get("ArgumentOne").unwrap();
-            let arg2_id = data_deps.get("ArgumentTwo").unwrap();
-            let output_id = data_deps.get("OutputInt").unwrap();
-            let builder = ImplStepMathSubtract::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_argumentone(arg1_id)
-                .add_temp_argumenttwo(arg2_id)
-                .add_temp_outputint(output_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepCompareGreaterThan
-        else if node.template_id
-            == Uuid::from_u128(ImplStepCompareGreaterThan::get_operative_id()).to_string()
-        {
-            let arg1_id = data_deps.get("ArgumentOne").unwrap();
-            let arg2_id = data_deps.get("ArgumentTwo").unwrap();
-            let output_id = data_deps.get("OutputBool").unwrap();
-            let builder = ImplStepCompareGreaterThan::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_argumentone(arg1_id)
-                .add_temp_argumenttwo(arg2_id)
-                .add_temp_outputbool(output_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepCompareLessThan
-        else if node.template_id
-            == Uuid::from_u128(ImplStepCompareLessThan::get_operative_id()).to_string()
-        {
-            let arg1_id = data_deps.get("ArgumentOne").unwrap();
-            let arg2_id = data_deps.get("ArgumentTwo").unwrap();
-            let output_id = data_deps.get("OutputBool").unwrap();
-            let builder = ImplStepCompareLessThan::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_argumentone(arg1_id)
-                .add_temp_argumenttwo(arg2_id)
-                .add_temp_outputbool(output_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepIf
-        else if node.template_id == Uuid::from_u128(ImplStepIf::get_operative_id()).to_string() {
-            let condition_id = data_deps.get("Condition").unwrap();
-            let true_branch_id = data_deps.get("TrueBranch").unwrap();
-            let false_branch_id = data_deps.get("FalseBranch").unwrap();
-            let output_id = data_deps.get("Output").unwrap_or(&step_temp_id); // Optional output
-            let mut builder = ImplStepIf::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_condition(condition_id)
-                .add_temp_truebranch(true_branch_id)
-                .add_temp_falsebranch(false_branch_id);
+        let discriminant = ImplStepVariantTraitObjectDiscriminants::iter()
+            .find(|step| {
+                let num_uid: u128 = from_str(step.get_str("operative_id").unwrap()).unwrap();
+                let str_id = Uuid::from_u128(num_uid).to_string();
+                str_id == node.template_id
+            })
+            .expect("Unknown step operative");
 
-            // Add output if available
-            if data_deps.contains_key("Output") {
-                builder.incorporate(builder.clone().add_temp_output(output_id));
+        leptos::logging::log!("Discriminant: {:?}", discriminant);
+
+        match discriminant {
+            // ImplStepBitNot
+            ImplStepVariantTraitObjectDiscriminants::ImplStepBitNot => {
+                let input_id = data_deps.get("InputBool").unwrap();
+                let output_id = data_deps.get("OutputBool").unwrap();
+                let builder = ImplStepBitNot::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_inputbool(input_id)
+                    .add_temp_outputbool(output_id);
+                operative_editor.incorporate(&builder);
             }
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepIteratorFilter
-        else if node.template_id
-            == Uuid::from_u128(ImplStepIteratorFilter::get_operative_id()).to_string()
-        {
-            let input_collection_id = data_deps.get("InputCollection").unwrap();
-            let iteration_start_item_id = data_deps.get("IterationStartItem").unwrap();
-            let iteration_end_bool_id = data_deps.get("IterationEndBool").unwrap();
-            let output_collection_id = data_deps.get("OutputCollection").unwrap();
-            let builder = ImplStepIteratorFilter::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_inputcollection(input_collection_id)
-                .add_temp_iterationstartitem(iteration_start_item_id)
-                .add_temp_iterationendbool(iteration_end_bool_id)
-                .add_temp_outputcollection(output_collection_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepMutateSlot
-        else if node.template_id
-            == Uuid::from_u128(ImplStepMutateSlot::get_operative_id()).to_string()
-        {
-            let mutated_operative_id = data_deps.get("MutatedOperative").unwrap();
-            let slot_name_id = data_deps.get("SlotName").unwrap();
-            let new_value_id = data_deps.get("NewValue").unwrap();
-            let builder = ImplStepMutateSlot::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_mutatedoperative(mutated_operative_id)
-                .add_temp_slotname(slot_name_id)
-                .add_temp_newvalue(new_value_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepGetField
-        else if node.template_id
-            == Uuid::from_u128(ImplStepGetField::get_operative_id()).to_string()
-        {
-            let input_operative_id = data_deps.get("InputOperative").unwrap();
-            let field_name_id = data_deps.get("FieldName").unwrap();
-            let output_field_id = data_deps.get("OutputField").unwrap();
-            let builder = ImplStepGetField::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_inputoperative(input_operative_id)
-                .add_temp_fieldname(field_name_id)
-                .add_temp_outputfield(output_field_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepMutateField
-        else if node.template_id
-            == Uuid::from_u128(ImplStepMutateField::get_operative_id()).to_string()
-        {
-            let mutated_operative_id = data_deps.get("MutatedOperative").unwrap();
-            let field_name_id = data_deps.get("FieldName").unwrap();
-            let new_value_id = data_deps.get("NewValue").unwrap();
-            let builder = ImplStepMutateField::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_mutatedoperative(mutated_operative_id)
-                .add_temp_fieldname(field_name_id)
-                .add_temp_newvalue(new_value_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepMultiTypeSplitter
-        else if node.template_id
-            == Uuid::from_u128(ImplStepMultiTypeSplitter::get_operative_id()).to_string()
-        {
-            let input_multi_operative_id = data_deps.get("InputMultiOperative").unwrap();
-            let convergence_id = data_deps.get("Convergence").unwrap();
-            let discriminant_starts_id = data_deps.get("DiscriminantStarts").unwrap();
-            let output_id = data_deps.get("Output").unwrap();
-            let builder = ImplStepMultiTypeSplitter::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_inputmultioperative(input_multi_operative_id)
-                .add_temp_convergence(convergence_id)
-                .add_temp_discriminantstarts(discriminant_starts_id)
-                .add_temp_output(output_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepIteratorMap
-        else if node.template_id
-            == Uuid::from_u128(ImplStepIteratorMap::get_operative_id()).to_string()
-        {
-            let input_collection_id = data_deps.get("InputCollection").unwrap();
-            let iteration_start_item_id = data_deps.get("IterationStartItem").unwrap();
-            let iteration_end_item_id = data_deps.get("IterationEndItem").unwrap();
-            let output_collection_id = data_deps.get("OutputCollection").unwrap();
-            let builder = ImplStepIteratorMap::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_inputcollection(input_collection_id)
-                .add_temp_iterationstartitem(iteration_start_item_id)
-                .add_temp_iterationenditem(iteration_end_item_id)
-                .add_temp_outputcollection(output_collection_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepTraverseSlot
-        else if node.template_id
-            == Uuid::from_u128(ImplStepTraverseSlot::get_operative_id()).to_string()
-        {
-            let input_operative_id = data_deps.get("InputOperative").unwrap();
-            let slot_name_id = data_deps.get("SlotName").unwrap();
-            let output_operatives_id = data_deps.get("OutputOperatives").unwrap();
-            let builder = ImplStepTraverseSlot::new(ctx.clone())
-                .set_temp_id(&step_temp_id)
-                .add_temp_inputoperative(input_operative_id)
-                .add_temp_slotname(slot_name_id)
-                .add_temp_outputoperatives(output_operatives_id);
-            operative_editor.incorporate(&builder);
-        }
-        // ImplStepWhileLoop
-        else if node.template_id
-            == Uuid::from_u128(ImplStepWhileLoop::get_operative_id()).to_string()
-        {
-            // While loop has special handling that would depend on your specific implementation
-            let builder = ImplStepWhileLoop::new(ctx.clone()).set_temp_id(&step_temp_id);
-            operative_editor.incorporate(&builder);
+            // ImplStepMathDivide
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMathDivide => {
+                let arg1_id = data_deps.get("ArgumentOne").unwrap();
+                let arg2_id = data_deps.get("ArgumentTwo").unwrap();
+                let output_id = data_deps.get("OutputInt").unwrap();
+                let builder = ImplStepMathDivide::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_argumentone(arg1_id)
+                    .add_temp_argumenttwo(arg2_id)
+                    .add_temp_outputint(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepBitOr
+            ImplStepVariantTraitObjectDiscriminants::ImplStepBitOr => {
+                let arg1_id = data_deps.get("ArgumentOne").unwrap();
+                let arg2_id = data_deps.get("ArgumentTwo").unwrap();
+                let output_id = data_deps.get("OutputBool").unwrap();
+                let builder = ImplStepBitOr::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_argumentone(arg1_id)
+                    .add_temp_argumenttwo(arg2_id)
+                    .add_temp_outputbool(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepCompareEqual
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCompareEqual => {
+                let arg1_id = data_deps.get("ArgumentOne").unwrap();
+                let arg2_id = data_deps.get("ArgumentTwo").unwrap();
+                let output_id = data_deps.get("OutputBool").unwrap();
+                let builder = ImplStepCompareEqual::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_argumentone(arg1_id)
+                    .add_temp_argumenttwo(arg2_id)
+                    .add_temp_outputbool(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepBitAnd
+            ImplStepVariantTraitObjectDiscriminants::ImplStepBitAnd => {
+                let arg1_id = data_deps.get("ArgumentOne").unwrap();
+                let arg2_id = data_deps.get("ArgumentTwo").unwrap();
+                let output_id = data_deps.get("OutputBool").unwrap();
+                let builder = ImplStepBitAnd::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_argumentone(arg1_id)
+                    .add_temp_argumenttwo(arg2_id)
+                    .add_temp_outputbool(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepMathAdd
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMathAdd => {
+                let arg1_id = data_deps.get("ArgumentOne").unwrap();
+                let arg2_id = data_deps.get("ArgumentTwo").unwrap();
+                let output_id = data_deps.get("OutputInt").unwrap();
+                let builder = ImplStepMathAdd::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_argumentone(arg1_id)
+                    .add_temp_argumenttwo(arg2_id)
+                    .add_temp_outputint(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepMathModulus
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMathModulus => {
+                let arg1_id = data_deps.get("ArgumentOne").unwrap();
+                let arg2_id = data_deps.get("ArgumentTwo").unwrap();
+                let output_id = data_deps.get("OutputInt").unwrap();
+                let builder = ImplStepMathModulus::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_argumentone(arg1_id)
+                    .add_temp_argumenttwo(arg2_id)
+                    .add_temp_outputint(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepMathMultiply
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMathMultiply => {
+                let arg1_id = data_deps.get("ArgumentOne").unwrap();
+                let arg2_id = data_deps.get("ArgumentTwo").unwrap();
+                let output_id = data_deps.get("OutputInt").unwrap();
+                let builder = ImplStepMathMultiply::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_argumentone(arg1_id)
+                    .add_temp_argumenttwo(arg2_id)
+                    .add_temp_outputint(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepMathSubtract
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMathSubtract => {
+                let arg1_id = data_deps.get("ArgumentOne").unwrap();
+                let arg2_id = data_deps.get("ArgumentTwo").unwrap();
+                let output_id = data_deps.get("OutputInt").unwrap();
+                let builder = ImplStepMathSubtract::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_argumentone(arg1_id)
+                    .add_temp_argumenttwo(arg2_id)
+                    .add_temp_outputint(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepCompareGreaterThan
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCompareGreaterThan => {
+                let arg1_id = data_deps.get("ArgumentOne").unwrap();
+                let arg2_id = data_deps.get("ArgumentTwo").unwrap();
+                let output_id = data_deps.get("OutputBool").unwrap();
+                let builder = ImplStepCompareGreaterThan::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_argumentone(arg1_id)
+                    .add_temp_argumenttwo(arg2_id)
+                    .add_temp_outputbool(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepCompareLessThan
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCompareLessThan => {
+                let arg1_id = data_deps.get("ArgumentOne").unwrap();
+                let arg2_id = data_deps.get("ArgumentTwo").unwrap();
+                let output_id = data_deps.get("OutputBool").unwrap();
+                let builder = ImplStepCompareLessThan::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_argumentone(arg1_id)
+                    .add_temp_argumenttwo(arg2_id)
+                    .add_temp_outputbool(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepIf
+            ImplStepVariantTraitObjectDiscriminants::ImplStepIf => {
+                let condition_id = data_deps.get("Condition").unwrap();
+                let true_branch_id = data_deps.get("TrueBranch").unwrap();
+                let false_branch_id = data_deps.get("FalseBranch").unwrap();
+                let output_id = data_deps.get("Output").unwrap_or(&step_temp_id); // Optional output
+                let builder = ImplStepIf::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_condition(condition_id)
+                    .add_temp_truebranch(true_branch_id)
+                    .add_temp_falsebranch(false_branch_id);
+
+                operative_editor.incorporate(&builder);
+                // Add output if available
+                if data_deps.contains_key("Output") {
+                    operative_editor.incorporate(&builder.clone().add_temp_output(output_id));
+                }
+            }
+            // ImplStepCollectionFilter
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCollectionFilter => {
+                let input_collection_id = data_deps.get("InputCollection").unwrap();
+                let iteration_start_item_id = data_deps.get("IterationStartItem").unwrap();
+                let iteration_end_bool_id = data_deps.get("IterationEndBool").unwrap();
+                let output_collection_id = data_deps.get("OutputCollection").unwrap();
+                let builder = ImplStepCollectionFilter::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_inputcollection(input_collection_id)
+                    .add_temp_iterationstartitem(iteration_start_item_id)
+                    .add_temp_iterationendbool(iteration_end_bool_id)
+                    .add_temp_outputcollection(output_collection_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepMutateSlot
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMutateSlot => {
+                let mutated_operative_id = data_deps.get("MutatedOperative").unwrap();
+                let slot_name_id = data_deps.get("SlotName").unwrap();
+                let new_value_id = data_deps.get("NewValue").unwrap();
+                let builder = ImplStepMutateSlot::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_mutatedoperative(mutated_operative_id)
+                    .add_temp_slotname(slot_name_id)
+                    .add_temp_newvalue(new_value_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepGetField
+            ImplStepVariantTraitObjectDiscriminants::ImplStepGetField => {
+                let input_operative_id = data_deps.get("InputOperative").unwrap();
+                let field_name_id = data_deps.get("FieldName").unwrap();
+                let output_field_id = data_deps.get("OutputField").unwrap();
+                let builder = ImplStepGetField::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_inputoperative(input_operative_id)
+                    .add_temp_fieldname(field_name_id)
+                    .add_temp_outputfield(output_field_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepMutateField
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMutateField => {
+                let mutated_operative_id = data_deps.get("MutatedOperative").unwrap();
+                let field_name_id = data_deps.get("FieldName").unwrap();
+                let new_value_id = data_deps.get("NewValue").unwrap();
+                let builder = ImplStepMutateField::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_mutatedoperative(mutated_operative_id)
+                    .add_temp_fieldname(field_name_id)
+                    .add_temp_newvalue(new_value_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepMultiTypeSplitter
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMultiTypeSplitter => {
+                let input_multi_operative_id = data_deps.get("InputMultiOperative").unwrap();
+                let convergence_id = data_deps.get("Convergence").unwrap();
+                let discriminant_starts_id = data_deps.get("DiscriminantStarts").unwrap();
+                let output_id = data_deps.get("Output").unwrap();
+                let builder = ImplStepMultiTypeSplitter::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_inputmultioperative(input_multi_operative_id)
+                    .add_temp_convergence(convergence_id)
+                    .add_temp_discriminantstarts(discriminant_starts_id)
+                    .add_temp_output(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepCollectionMap
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCollectionMap => {
+                let input_collection_id = data_deps.get("InputCollection").unwrap();
+                let iteration_start_item_id = data_deps.get("IterationStartItem").unwrap();
+                let iteration_end_item_id = data_deps.get("IterationEndItem").unwrap();
+                let output_collection_id = data_deps.get("OutputCollection").unwrap();
+                let builder = ImplStepCollectionMap::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_inputcollection(input_collection_id)
+                    .add_temp_iterationstartitem(iteration_start_item_id)
+                    .add_temp_iterationenditem(iteration_end_item_id)
+                    .add_temp_outputcollection(output_collection_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepTraverseSlot
+            ImplStepVariantTraitObjectDiscriminants::ImplStepTraverseSlot => {
+                let input_operative_id = data_deps.get("InputOperative").unwrap();
+                let slot_name_id = data_deps.get("SlotName").unwrap();
+                let output_operatives_id = data_deps.get("OutputOperatives").unwrap();
+                let builder = ImplStepTraverseSlot::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_inputoperative(input_operative_id)
+                    .add_temp_slotname(slot_name_id)
+                    .add_temp_outputoperatives(output_operatives_id);
+                operative_editor.incorporate(&builder);
+            }
+            // ImplStepWhileLoop
+            ImplStepVariantTraitObjectDiscriminants::ImplStepWhileLoop => {
+                let initial_state_id = data_deps.get("InitialState").unwrap();
+                let loop_state_stub_id = data_deps.get("LoopStateStub").unwrap();
+                let continue_while_bool_id = data_deps.get("ContinueWhileBool").unwrap();
+                let loop_exit_state_id = data_deps.get("LoopExitState").unwrap();
+                let output_id = data_deps.get("Output").unwrap();
+                let loop_state_ingestor_id = data_deps.get("LoopStateIngestor").unwrap();
+                let builder = ImplStepWhileLoop::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_initialstate(initial_state_id)
+                    .add_temp_continuewhilebool(continue_while_bool_id)
+                    .add_temp_loopstateingestor(loop_state_ingestor_id)
+                    .add_temp_loopstatestub(loop_state_stub_id)
+                    .add_temp_loopexitstate(loop_exit_state_id)
+                    .add_temp_output(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCollectionIsEmpty => {
+                let input_collection_id = data_deps.get("InputCollection").unwrap();
+                let output_bool_id = data_deps.get("OutputBool").unwrap();
+                let builder = ImplStepCollectionIsEmpty::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_inputcollection(input_collection_id)
+                    .add_temp_outputbool(output_bool_id);
+                operative_editor.incorporate(&builder);
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepIsType => {
+                let input_operative_id = data_deps.get("InputOperative").unwrap();
+                let typecheck_operative_id = data_deps.get("TypeCheckOperative").unwrap();
+                let output_bool_id = data_deps.get("OutputBool").unwrap();
+                let builder = ImplStepIsType::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_inputoperative(input_operative_id)
+                    .add_temp_typecheckoperative(typecheck_operative_id)
+                    .add_temp_outputbool(output_bool_id);
+                operative_editor.incorporate(&builder);
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCollectionGetLength => {
+                let input_collection_id = data_deps.get("InputCollection").unwrap();
+                let output_int_id = data_deps.get("OutputInt").unwrap();
+                let builder = ImplStepCollectionGetLength::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_inputcollection(input_collection_id)
+                    .add_temp_outputint(output_int_id);
+                operative_editor.incorporate(&builder);
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMapToOutput => {
+                // Terminal node should be handled differently
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepCollectionGetNextItem => {
+                let input_collection_id = data_deps.get("InputCollection").unwrap();
+                let output_id = data_deps.get("Output").unwrap();
+                let builder = ImplStepCollectionGetNextItem::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_inputcollection(input_collection_id)
+                    .add_temp_output(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepIdentity => {
+                let input_id = data_deps.get("Input").unwrap();
+                let output_id = data_deps.get("Output").unwrap();
+                let builder = ImplStepIdentity::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_input(input_id)
+                    .add_temp_output(output_id);
+                operative_editor.incorporate(&builder);
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMapFromInput => {
+                // Terminal node should be handled differently
+            }
+            ImplStepVariantTraitObjectDiscriminants::ImplStepInvokeMethod => {
+                let calling_operative_id = data_deps.get("CallingOperative").unwrap();
+                let method_name_id = data_deps.get("MethodName").unwrap();
+                let builder = ImplStepInvokeMethod::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_callingoperative(calling_operative_id)
+                    .add_temp_methodname(method_name_id);
+
+                operative_editor.incorporate(&builder);
+
+                let method_outputs_id = data_deps.get("MethodOutputs");
+                let method_inputs_id = data_deps.get("MethodInputs");
+                if let Some(method_inputs_id) = method_inputs_id {
+                    operative_editor
+                        .incorporate(&builder.clone().add_temp_methodinputs(method_inputs_id));
+                }
+                if let Some(method_outputs_id) = method_outputs_id {
+                    operative_editor
+                        .incorporate(&builder.clone().add_temp_methodoutputs(method_outputs_id));
+                }
+            }
         }
     }
 
@@ -1747,30 +1842,12 @@ pub(crate) fn build_schemaful_representation_of_graph(
 // Helper function to check if a template ID belongs to an ImplStep
 fn is_impl_step_template_id(template_id: &str) -> bool {
     // Create a set of ImplStep template IDs
-    let step_ids = [
-        ImplStepBitNot::get_operative_id(),
-        ImplStepMathDivide::get_operative_id(),
-        ImplStepBitOr::get_operative_id(),
-        ImplStepCompareEqual::get_operative_id(),
-        ImplStepBitAnd::get_operative_id(),
-        ImplStepMathAdd::get_operative_id(),
-        ImplStepMathModulus::get_operative_id(),
-        ImplStepMathMultiply::get_operative_id(),
-        ImplStepMathSubtract::get_operative_id(),
-        ImplStepCompareGreaterThan::get_operative_id(),
-        ImplStepCompareLessThan::get_operative_id(),
-        ImplStepIf::get_operative_id(),
-        ImplStepIteratorFilter::get_operative_id(),
-        ImplStepMutateSlot::get_operative_id(),
-        ImplStepGetField::get_operative_id(),
-        ImplStepMutateField::get_operative_id(),
-        ImplStepMultiTypeSplitter::get_operative_id(),
-        ImplStepIteratorMap::get_operative_id(),
-        ImplStepTraverseSlot::get_operative_id(),
-        ImplStepWhileLoop::get_operative_id(),
-        ImplStepMapToOutput::get_operative_id(),
-        ImplStepMapFromInput::get_operative_id(),
-    ];
+    let step_ids = ImplStepVariantTraitObjectDiscriminants::iter()
+        .map(|step| {
+            let int_op_id: u128 = u128::from_str(step.get_str("operative_id").unwrap()).unwrap();
+            int_op_id
+        })
+        .collect::<Vec<_>>();
 
     step_ids
         .iter()
@@ -1808,7 +1885,7 @@ fn process_data_node(
         None => return, // Node doesn't exist
     };
 
-    let temp_id = node_id.clone();
+    let temp_id = node_id;
     // Mark as processed
     processed_data_nodes.insert(node_id.to_string());
 
@@ -1963,6 +2040,7 @@ fn process_data_type(
 ) {
     leptos::logging::log!("Processing a data type");
     let temp_id = &data_type_node.instance_id;
+
     // ImplDataBool
     if data_type_node.template_id == Uuid::from_u128(ImplDataBool::get_operative_id()).to_string() {
         editor.incorporate(&ImplDataBool::new(ctx.clone()).set_temp_id(temp_id));
@@ -2057,7 +2135,7 @@ fn process_data_type(
 
             let collection_type_temp_id = collection_type_node.instance_id.clone();
 
-            let mut collection_builder = ImplDataCollection::new(ctx.clone()).set_temp_id(temp_id);
+            let collection_builder = ImplDataCollection::new(ctx.clone()).set_temp_id(temp_id);
 
             log!("About to recurse in ImplDataCollection");
             process_data_type(
@@ -2213,6 +2291,9 @@ fn is_step_input_slot(slot: &SlotInstance, graph: &Graph) -> bool {
         || name.contains("LoopExitState")
         || name.contains("LoopStateIngestor")
         || name.contains("LoopStateStub")
+        || name.contains("TypeCheckOperative")
+        || name.contains("TrueBranch")
+        || name.contains("FalseBranch")
     {
         return false;
     }

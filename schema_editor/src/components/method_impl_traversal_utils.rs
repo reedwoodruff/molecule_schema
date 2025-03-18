@@ -423,6 +423,39 @@ fn get_data_step_dependencies(
 /// Helper function to get data dependencies for a step node
 pub(crate) fn get_step_data_dependencies(step: &ImplStepVariantTraitObject) -> Vec<ExecutionEdge> {
     match step {
+        ImplStepVariantTraitObject::ImplStepCollectionIsEmpty(rgsoconcrete) => {
+            vec![
+                ExecutionEdge {
+                    slot_name: "InputCollection".to_string(),
+                    slot_type: SlotType::Dependency,
+                    from: ExecutionNode::Step(step.clone()),
+                    to: ExecutionNode::Data(rgsoconcrete.get_inputcollection_slot()),
+                },
+                ExecutionEdge {
+                    slot_name: "OutputBool".to_string(),
+                    slot_type: SlotType::Output,
+                    from: ExecutionNode::Step(step.clone()),
+                    to: ExecutionNode::Data(rgsoconcrete.get_outputbool_slot()),
+                },
+            ]
+        }
+        ImplStepVariantTraitObject::ImplStepCollectionGetNextItem(rgsoconcrete) => {
+            vec![
+                ExecutionEdge {
+                    slot_name: "InputCollection".to_string(),
+                    slot_type: SlotType::Dependency,
+                    from: ExecutionNode::Step(step.clone()),
+                    to: ExecutionNode::Data(rgsoconcrete.get_inputcollection_slot()),
+                },
+                ExecutionEdge {
+                    slot_name: "Output".to_string(),
+                    slot_type: SlotType::Output,
+                    from: ExecutionNode::Step(step.clone()),
+                    to: ExecutionNode::Data(rgsoconcrete.get_output_slot()),
+                },
+            ]
+        }
+
         ImplStepVariantTraitObject::ImplStepIsType(rgsoconcrete) => {
             vec![
                 ExecutionEdge {
@@ -445,7 +478,7 @@ pub(crate) fn get_step_data_dependencies(step: &ImplStepVariantTraitObject) -> V
                 },
             ]
         }
-        ImplStepVariantTraitObject::ImplStepGetCollectionLength(rgsoconcrete) => {
+        ImplStepVariantTraitObject::ImplStepCollectionGetLength(rgsoconcrete) => {
             vec![
                 ExecutionEdge {
                     slot_name: "InputCollection".to_string(),
@@ -766,7 +799,7 @@ pub(crate) fn get_step_data_dependencies(step: &ImplStepVariantTraitObject) -> V
             ]);
             initial_vec
         }
-        ImplStepVariantTraitObject::ImplStepIteratorFilter(rgsoconcrete) => vec![
+        ImplStepVariantTraitObject::ImplStepCollectionFilter(rgsoconcrete) => vec![
             ExecutionEdge {
                 slot_name: "InputCollection".to_string(),
                 slot_type: SlotType::Dependency,
@@ -801,7 +834,7 @@ pub(crate) fn get_step_data_dependencies(step: &ImplStepVariantTraitObject) -> V
             },
             ExecutionEdge {
                 slot_name: "NewValue".to_string(),
-                slot_type: SlotType::Internal,
+                slot_type: SlotType::Dependency,
                 from: ExecutionNode::Step(step.clone()),
                 to: ExecutionNode::Data(rgsoconcrete.get_newvalue_slot()),
             },
@@ -835,7 +868,7 @@ pub(crate) fn get_step_data_dependencies(step: &ImplStepVariantTraitObject) -> V
             },
             ExecutionEdge {
                 slot_name: "NewValue".to_string(),
-                slot_type: SlotType::Internal,
+                slot_type: SlotType::Dependency,
                 from: ExecutionNode::Step(step.clone()),
                 to: ExecutionNode::Data(rgsoconcrete.get_newvalue_slot()),
             },
@@ -866,7 +899,7 @@ pub(crate) fn get_step_data_dependencies(step: &ImplStepVariantTraitObject) -> V
                 to: ExecutionNode::Data(rgsoconcrete.get_output_slot()),
             },
         ],
-        ImplStepVariantTraitObject::ImplStepIteratorMap(rgsoconcrete) => vec![
+        ImplStepVariantTraitObject::ImplStepCollectionMap(rgsoconcrete) => vec![
             ExecutionEdge {
                 slot_name: "InputCollection".to_string(),
                 slot_type: SlotType::Dependency,
@@ -901,7 +934,7 @@ pub(crate) fn get_step_data_dependencies(step: &ImplStepVariantTraitObject) -> V
             },
             ExecutionEdge {
                 slot_name: "SlotName".to_string(),
-                slot_type: SlotType::Internal,
+                slot_type: SlotType::Dependency,
                 from: ExecutionNode::Step(step.clone()),
                 to: ExecutionNode::Data(rgsoconcrete.get_slotname_slot()),
             },
@@ -950,10 +983,10 @@ pub(crate) fn get_step_data_dependencies(step: &ImplStepVariantTraitObject) -> V
                 to: ExecutionNode::Data(rgsoconcrete.get_output_slot()),
             },
         ],
-        ImplStepVariantTraitObject::ImplStepMapToOutput(rgsoconcrete) => {
+        ImplStepVariantTraitObject::ImplStepMapToOutput(_rgsoconcrete) => {
             panic!("Should be marked as a terminal, not a step")
         }
-        ImplStepVariantTraitObject::ImplStepMapFromInput(rgsoconcrete) => {
+        ImplStepVariantTraitObject::ImplStepMapFromInput(_rgsoconcrete) => {
             panic!("Should be marked as a terminal, not a step")
         }
     }

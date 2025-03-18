@@ -658,7 +658,6 @@ pub fn FunctionDefinitionEditor(
                             };
                             let input_clone = input.clone();
                             let ctx_clone = ctx_clone_2.clone();
-                            let ctx_clone = ctx_clone_2.clone();
                             let update_input_documentation = move |new_val: String| {
                                 let mut editor = input_clone.edit(ctx_clone.clone());
                                 editor.set_documentation(new_val).execute().unwrap();

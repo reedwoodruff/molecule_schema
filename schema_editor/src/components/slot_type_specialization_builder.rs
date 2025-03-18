@@ -76,7 +76,7 @@ pub fn SlotTypeSpecializationBuilder(
     let single_selectable_options = Memo::new(move |_| {
         let schema_clone = schema_clone.clone();
         let spec_target_clone = spec_target_clone.clone();
-        let mut ops =
+        let ops =
             get_all_operatives_which_satisfy_specializable(&schema_clone.get(), spec_target_clone);
         ops.into_iter().collect::<Vec<_>>()
     });
