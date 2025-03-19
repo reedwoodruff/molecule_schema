@@ -35,7 +35,7 @@ pub fn MethodImplementationBuilder(
     let ctx_clone = ctx.clone();
 
     let func_impl_name = RwSignal::new(fn_def.get_name() + "_impl");
-    let func_impl_documentation = RwSignal::new(fn_def.get_name() + "_impl");
+    let func_impl_documentation = RwSignal::new("".to_string());
 
     let fn_def_clone = fn_def.clone();
     let operative_clone = operative.clone();
@@ -139,7 +139,20 @@ pub fn MethodImplementationBuilder(
                 let int_op_id: u128 =
                     u128::from_str(step.get_str("operative_id").unwrap()).unwrap();
                 let operative = CONSTRAINT_SCHEMA.operative_library.get(&int_op_id).unwrap();
-                constraint_template_to_canvas_template(operative, true)
+                let mut template = constraint_template_to_canvas_template(operative, true);
+                // Manually change the default color of map_to_output and map_from_input
+                match step {
+                    ImplStepVariantTraitObjectDiscriminants::ImplStepMapFromInput => {
+                        template.default_color = "#7BA7E1".to_string();
+                    }
+                    ImplStepVariantTraitObjectDiscriminants::ImplStepMapToOutput => {
+                        template.default_color = "#B88CD1".to_string();
+                    }
+                    _ => {
+                        template.default_color = "#FF8C42".to_string();
+                    }
+                }
+                template
             })
             .collect::<Vec<_>>();
         let step_template_names = step_templates
@@ -155,6 +168,8 @@ pub fn MethodImplementationBuilder(
                     u128::from_str(impl_data.get_str("operative_id").unwrap()).unwrap();
                 let operative = CONSTRAINT_SCHEMA.operative_library.get(&op_int_id).unwrap();
                 let mut canvas_template = constraint_template_to_canvas_template(operative, true);
+                canvas_template.default_color = "#D0D3D9".to_string();
+
                 match impl_data {
                     ImplDataVariantTraitObjectDiscriminants::ImplDataMultiOperative => {
                         canvas_template
@@ -190,6 +205,7 @@ pub fn MethodImplementationBuilder(
             .map(|template| template.name.clone())
             .collect::<Vec<_>>();
         all_templates.extend(impl_data_templates);
+
         let impl_data_constraint = CONSTRAINT_SCHEMA
             .get_operative_by_id(&ImplData::get_operative_id())
             .unwrap();
@@ -199,6 +215,7 @@ pub fn MethodImplementationBuilder(
         impl_data_template
             .slot_templates
             .retain(|slot| slot.name != "DownstreamSteps" && slot.name != "UpstreamStep");
+        impl_data_template.default_color = "#36B37E".to_string();
         all_templates.push(impl_data_template);
         impl_data_template_names.insert(0, impl_data_constraint.tag.name.clone());
 
@@ -219,6 +236,7 @@ pub fn MethodImplementationBuilder(
         function_input.can_modify_slots = false;
         function_input.can_delete = false;
         function_input.can_modify_fields = false;
+        function_input.default_color = "#4285F4".to_string();
         all_templates.push(function_input);
 
         let function_output_constraint = CONSTRAINT_SCHEMA
@@ -230,6 +248,7 @@ pub fn MethodImplementationBuilder(
         function_output.can_delete = false;
         function_output.can_modify_slots = false;
         function_output.can_modify_fields = false;
+        function_output.default_color = "#9C27B0".to_string();
         all_templates.push(function_output);
 
         let template_groups = vec![
