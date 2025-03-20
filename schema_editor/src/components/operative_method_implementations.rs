@@ -138,6 +138,8 @@ pub fn OperativeMethodImplementations(
                         output_terminals
                             .iter()
                             .for_each(|terminal| {
+                                let steps = terminal.get_input_slot().get_upstreamstep_slot();
+                                follow_and_delete_upstream(&steps, &mut func_delete, ctx.clone());
                                 func_delete
                                     .incorporate(
                                         terminal.edit(ctx_clone.clone()).delete_recursive(),
@@ -635,6 +637,720 @@ fn follow_and_delete_downstream(
                     editor,
                     ctx.clone(),
                 );
+            }
+        }
+    }
+}
+
+fn follow_and_delete_upstream(
+    steps: &Vec<ImplStepVariantTraitObject>,
+    editor: &mut ExistingBuilder<MethodImplementation, Schema>,
+    ctx: SharedGraph<Schema>,
+) {
+    for step in steps {
+        match step {
+            ImplStepVariantTraitObject::ImplStepWhileLoop(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepWhileLoopAllSlots::Output => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepMathDivide(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepMathDivideAllSlots::OutputInt => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepCollectionIsEmpty(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepCollectionIsEmptyAllSlots::OutputBool => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepBitNot(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepBitNotAllSlots::OutputBool => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepIsType(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepIsTypeAllSlots::OutputBool => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepCompareEqual(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepCompareEqualAllSlots::OutputBool => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepBitAnd(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepBitAndAllSlots::OutputBool => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepMathAdd(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepMathAddAllSlots::OutputInt => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepMathModulus(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepMathModulusAllSlots::OutputInt => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepIf(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepIfAllSlots::Output => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepMathSubtract(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepMathSubtractAllSlots::OutputInt => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepCollectionFilter(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepCollectionFilterAllSlots::OutputCollection => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepMutateSlot(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepCollectionGetLength(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepCollectionGetLengthAllSlots::OutputInt => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepMapToOutput(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepMapToOutputAllSlots::Output => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepCompareGreaterThan(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepCompareGreaterThanAllSlots::OutputBool => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepGetField(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepGetFieldAllSlots::OutputField => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepCollectionGetNextItem(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepCollectionGetNextItemAllSlots::Output => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepMutateField(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepMultiTypeSplitter(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepMultiTypeSplitterAllSlots::Output => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepIdentity(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepIdentityAllSlots::Output => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepCompareLessThan(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepCompareLessThanAllSlots::OutputBool => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepCollectionMap(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepCollectionMapAllSlots::OutputCollection => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepMapFromInput(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+            }
+            ImplStepVariantTraitObject::ImplStepMathMultiply(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepMathMultiplyAllSlots::OutputInt => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepInvokeMethod(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepInvokeMethodAllSlots::MethodOutputs => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepTraverseSlot(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepTraverseSlotAllSlots::OutputOperatives => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
+            ImplStepVariantTraitObject::ImplStepBitOr(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        ImplStepBitOrAllSlots::OutputBool => {}
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    })
             }
         }
     }
