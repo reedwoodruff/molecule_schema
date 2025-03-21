@@ -111,7 +111,7 @@ pub fn MethodImplementationBuilder(
         created_operatives.iter().for_each(|instance| {
             all_templates.push(rgso_operative_to_canvas_template(instance));
         });
-        let created_instance_names = created_operatives
+        let mut created_instance_names = created_operatives
             .iter()
             .map(|instance| instance.get_name().clone())
             .collect::<Vec<String>>();
@@ -129,7 +129,7 @@ pub fn MethodImplementationBuilder(
             log!("{:?}", instance);
             all_templates.push(rgso_trait_to_canvas_template(instance));
         });
-        let created_trait_names = created_traits
+        let mut created_trait_names = created_traits
             .iter()
             .map(|instance| instance.get_name().clone())
             .collect::<Vec<String>>();
@@ -155,7 +155,7 @@ pub fn MethodImplementationBuilder(
                 template
             })
             .collect::<Vec<_>>();
-        let step_template_names = step_templates
+        let mut step_template_names = step_templates
             .iter()
             .map(|step| step.name.clone())
             .collect::<Vec<_>>();
@@ -222,10 +222,10 @@ pub fn MethodImplementationBuilder(
         let function_io_constraint = CONSTRAINT_SCHEMA
             .get_operative_by_id(&FunctionIOSelf::get_operative_id())
             .unwrap();
-        all_templates.push(constraint_template_to_canvas_template(
-            &function_io_constraint,
-            false,
-        ));
+        let mut function_io_canvas_template =
+            constraint_template_to_canvas_template(&function_io_constraint, false);
+        function_io_canvas_template.can_create = false;
+        all_templates.push(function_io_canvas_template);
 
         let function_input_constraint = CONSTRAINT_SCHEMA
             .get_operative_by_id(&FunctionInput::get_operative_id())
@@ -251,6 +251,10 @@ pub fn MethodImplementationBuilder(
         function_output.default_color = "#9C27B0".to_string();
         all_templates.push(function_output);
 
+        step_template_names.sort();
+        impl_data_template_names.sort();
+        created_instance_names.sort();
+        created_trait_names.sort();
         let template_groups = vec![
             TemplateGroup {
                 description: None,

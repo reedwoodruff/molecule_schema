@@ -1357,6 +1357,37 @@
       },
       "instances": []
     },
+    "139528785615503516500334277592752022676": {
+      "tag": {
+        "name": "ImplStepMutateDelete",
+        "id": 139528785615503516500334277592752022676
+      },
+      "field_constraints": {
+        "337666339421441210898723370931433820935": {
+          "tag": {
+            "name": "is_recursive_delete",
+            "id": 337666339421441210898723370931433820935
+          },
+          "value_type": "Bool"
+        }
+      },
+      "operative_slots": {
+        "16889527741821493683320041807969237412": {
+          "tag": {
+            "name": "OperativeToDelete",
+            "id": 16889527741821493683320041807969237412
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": "Single"
+        }
+      },
+      "trait_impls": {
+        "6112419245734111135111571810901799735": {}
+      },
+      "instances": []
+    },
     "146910277006494757734988710479236987524": {
       "tag": {
         "name": "ImplDataMultiOperative",
@@ -2341,15 +2372,29 @@
           },
           "bounds": "Single"
         },
-        "294931785269323788325302324991484373940": {
+        "200922423317990668681777726337528631073": {
           "tag": {
-            "name": "NewValue",
-            "id": 294931785269323788325302324991484373940
+            "name": "RemoveFromSlotOperatives",
+            "id": 200922423317990668681777726337528631073
           },
           "operative_descriptor": {
             "LibraryOperative": 125161999025549239112329875205728146845
           },
-          "bounds": "Single"
+          "bounds": {
+            "LowerBound": 0
+          }
+        },
+        "204547734905385746476955580405689219115": {
+          "tag": {
+            "name": "AddToSlotOperatives",
+            "id": 204547734905385746476955580405689219115
+          },
+          "operative_descriptor": {
+            "LibraryOperative": 125161999025549239112329875205728146845
+          },
+          "bounds": {
+            "LowerBound": 0
+          }
         }
       },
       "trait_impls": {
@@ -4050,6 +4095,18 @@
         "id": 224638844882786947996827946789333983414
       },
       "template_id": 244109046927207483832978040735680037328,
+      "parent_operative_id": null,
+      "slotted_instances": {},
+      "locked_fields": {},
+      "trait_impls": {},
+      "_phantom": null
+    },
+    "227457449528560758202383924691817918548": {
+      "tag": {
+        "name": "ImplStepMutateDelete",
+        "id": 227457449528560758202383924691817918548
+      },
+      "template_id": 139528785615503516500334277592752022676,
       "parent_operative_id": null,
       "slotted_instances": {},
       "locked_fields": {},

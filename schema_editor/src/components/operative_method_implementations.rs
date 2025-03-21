@@ -260,6 +260,9 @@ fn follow_and_delete_downstream(
 ) {
     for step in steps {
         match step {
+            ImplStepVariantTraitObject::ImplStepMutateDelete(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+            }
             ImplStepVariantTraitObject::ImplStepCollectionIsEmpty(rgsoconcrete) => {
                 editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
                 editor.incorporate(
@@ -649,6 +652,31 @@ fn follow_and_delete_upstream(
 ) {
     for step in steps {
         match step {
+            ImplStepVariantTraitObject::ImplStepMutateDelete(rgsoconcrete) => {
+                editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
+                rgsoconcrete
+                    .outgoing_slots_with_enum()
+                    .values()
+                    .for_each(|slot| match slot.slot_enum {
+                        _ => slot
+                            .slotted_instances
+                            .get()
+                            .iter()
+                            .for_each(|impl_data_id| match ctx.get(impl_data_id).unwrap() {
+                                Schema::ImplData(impl_data_node) => {
+                                    editor.incorporate(
+                                        impl_data_node.edit(ctx.clone()).delete_recursive(),
+                                    );
+                                    follow_and_delete_upstream(
+                                        &impl_data_node.get_upstreamstep_slot(),
+                                        editor,
+                                        ctx.clone(),
+                                    );
+                                }
+                                _ => {}
+                            }),
+                    });
+            }
             ImplStepVariantTraitObject::ImplStepWhileLoop(rgsoconcrete) => {
                 editor.incorporate(rgsoconcrete.edit(ctx.clone()).delete_recursive());
                 rgsoconcrete

@@ -528,3 +528,6 @@ All of them will connect normally to the wider graph. TrueBranch/FalseBranch slo
 
 ## February 27, 2025
 Probably worth adding some explicit description/documentation fields for slots when building schemas
+
+## March 21, 2025
+Trying to work through mutations and whether there needs to be some kind of "draft" concept of operatives baked into the primitives schema. Longer term (maybe this generation or next generation), it seems valuable to be able to explicitly model the "staging" process of building nodes piecemeal before they necessarily have to have all of their constraints fulfilled.

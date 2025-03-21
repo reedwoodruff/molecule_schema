@@ -423,6 +423,14 @@ fn get_data_step_dependencies(
 /// Helper function to get data dependencies for a step node
 pub(crate) fn get_step_data_dependencies(step: &ImplStepVariantTraitObject) -> Vec<ExecutionEdge> {
     match step {
+        ImplStepVariantTraitObject::ImplStepMutateDelete(rgsoconcrete) => {
+            vec![ExecutionEdge {
+                slot_name: "OperativeToDelete".to_string(),
+                slot_type: SlotType::Dependency,
+                from: ExecutionNode::Step(step.clone()),
+                to: ExecutionNode::Data(rgsoconcrete.get_operativetodelete_slot()),
+            }]
+        }
         ImplStepVariantTraitObject::ImplStepCollectionIsEmpty(rgsoconcrete) => {
             vec![
                 ExecutionEdge {
@@ -825,20 +833,37 @@ pub(crate) fn get_step_data_dependencies(step: &ImplStepVariantTraitObject) -> V
                 to: ExecutionNode::Data(rgsoconcrete.get_outputcollection_slot()),
             },
         ],
-        ImplStepVariantTraitObject::ImplStepMutateSlot(rgsoconcrete) => vec![
-            ExecutionEdge {
+        ImplStepVariantTraitObject::ImplStepMutateSlot(rgsoconcrete) => {
+            let removals = rgsoconcrete
+                .get_removefromslotoperatives_slot()
+                .iter()
+                .map(|removal| ExecutionEdge {
+                    slot_name: "RemoveFromSlotOperatives".to_string(),
+                    slot_type: SlotType::Dependency,
+                    from: ExecutionNode::Step(step.clone()),
+                    to: ExecutionNode::Data(removal.clone()),
+                })
+                .collect::<Vec<_>>();
+            let additions = rgsoconcrete
+                .get_addtoslotoperatives_slot()
+                .iter()
+                .map(|addition| ExecutionEdge {
+                    slot_name: "AddToSlotOperatives".to_string(),
+                    slot_type: SlotType::Dependency,
+                    from: ExecutionNode::Step(step.clone()),
+                    to: ExecutionNode::Data(addition.clone()),
+                })
+                .collect::<Vec<_>>();
+            let mut edges = vec![ExecutionEdge {
                 slot_name: "MutatedOperative".to_string(),
                 slot_type: SlotType::Dependency,
                 from: ExecutionNode::Step(step.clone()),
                 to: ExecutionNode::Data(rgsoconcrete.get_mutatedoperative_slot()),
-            },
-            ExecutionEdge {
-                slot_name: "NewValue".to_string(),
-                slot_type: SlotType::Dependency,
-                from: ExecutionNode::Step(step.clone()),
-                to: ExecutionNode::Data(rgsoconcrete.get_newvalue_slot()),
-            },
-        ],
+            }];
+            edges.extend(additions);
+            edges.extend(removals);
+            edges
+        }
         ImplStepVariantTraitObject::ImplStepGetField(rgsoconcrete) => vec![
             ExecutionEdge {
                 slot_name: "InputOperative".to_string(),

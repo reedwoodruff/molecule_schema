@@ -6,7 +6,7 @@ use graph_canvas::{NodeInstance, NodeTemplate, SlotInstance, SlotPosition, SlotT
 use leptos::logging::log;
 use schema_editor_generated_toolkit::prelude::*;
 use serde_json::from_str;
-use strum::{EnumIter, EnumProperty, IntoEnumIterator};
+use strum::{EnumProperty, IntoEnumIterator};
 use uuid::Uuid;
 
 use super::method_impl_traversal_utils::{
@@ -71,6 +71,13 @@ macro_rules! match_impl_step_template {
             .expect("Unknown step operative");
 
         match discriminant {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMutateDelete => {
+                $editor.incorporate(
+                    &$builder
+                        .clone()
+                        .$action::<ImplStepMutateDelete>($step_temp_id),
+                );
+            }
             ImplStepVariantTraitObjectDiscriminants::ImplStepBitAnd => {
                 $editor.incorporate(&$builder.clone().$action::<ImplStepBitAnd>($step_temp_id));
             }
@@ -282,7 +289,6 @@ macro_rules! match_impl_data_minus_manuals_template {
                         .$action::<ImplDataTraitOperative>($step_temp_id),
                 );
             }
-            _ => {}
         };
     }};
 }
@@ -351,7 +357,6 @@ macro_rules! match_impl_data_template {
                         .$action::<ImplDataTraitOperative>($step_temp_id),
                 );
             }
-            _ => {}
         };
     }};
 }
@@ -548,6 +553,9 @@ pub(crate) fn setup_existing_fn_impl_in_canvas(
         }
         ExecutionNode::Step(impl_step_variant_trait_object) => {
             let step_operative_id = match impl_step_variant_trait_object {
+                ImplStepVariantTraitObject::ImplStepMutateDelete(step) => {
+                    step.operative().tag.id.clone()
+                }
                 ImplStepVariantTraitObject::ImplStepCollectionIsEmpty(step) => {
                     step.operative().tag.id.clone()
                 }
@@ -1481,6 +1489,13 @@ pub(crate) fn build_schemaful_representation_of_graph(
         leptos::logging::log!("Discriminant: {:?}", discriminant);
 
         match discriminant {
+            ImplStepVariantTraitObjectDiscriminants::ImplStepMutateDelete => {
+                let operative_to_delete_id = data_deps.get("OperativeToDelete").unwrap();
+                let builder = ImplStepMutateDelete::new(ctx.clone())
+                    .set_temp_id(&step_temp_id)
+                    .add_temp_operativetodelete(operative_to_delete_id);
+                operative_editor.incorporate(&builder);
+            }
             // ImplStepBitNot
             ImplStepVariantTraitObjectDiscriminants::ImplStepBitNot => {
                 let input_id = data_deps.get("InputBool").unwrap();
@@ -1647,12 +1662,15 @@ pub(crate) fn build_schemaful_representation_of_graph(
             ImplStepVariantTraitObjectDiscriminants::ImplStepMutateSlot => {
                 let mutated_operative_id = data_deps.get("MutatedOperative").unwrap();
                 let slot_name_id = data_deps.get("SlotName").unwrap();
-                let new_value_id = data_deps.get("NewValue").unwrap();
+                let remove_from_slot_operatives_id =
+                    data_deps.get("RemoveFromSlotOperatives").unwrap();
+                let add_to_slot_operatives_id = data_deps.get("AddToSlotOperatives").unwrap();
                 let builder = ImplStepMutateSlot::new(ctx.clone())
                     .set_temp_id(&step_temp_id)
                     .add_temp_mutatedoperative(mutated_operative_id)
                     .add_temp_slotname(slot_name_id)
-                    .add_temp_newvalue(new_value_id);
+                    .add_temp_removefromslotoperatives(remove_from_slot_operatives_id)
+                    .add_temp_addtoslotoperatives(add_to_slot_operatives_id);
                 operative_editor.incorporate(&builder);
             }
             // ImplStepGetField
