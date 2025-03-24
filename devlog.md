@@ -531,3 +531,6 @@ Probably worth adding some explicit description/documentation fields for slots w
 
 ## March 21, 2025
 Trying to work through mutations and whether there needs to be some kind of "draft" concept of operatives baked into the primitives schema. Longer term (maybe this generation or next generation), it seems valuable to be able to explicitly model the "staging" process of building nodes piecemeal before they necessarily have to have all of their constraints fulfilled.
+
+## March 24, 2025
+Strongly considering the possibility of refactoring the recursive_schema to make better use of the "Instances" feature (which is currently a stub and would need to be fleshed out at the first_gen_compiler level). This would allow me to define a single `ImplStepConcrete` and `EffectChannelConcrete`, and then ship a sort of standard library of steps as *instances* of these generic primitives. This would let users build user-defined steps and effects which seems quite powerful, rather than being hard-limited to the baked in steps. This would require a relatively significant overhaul, but it might be worthwhile. Might give it a shot.
