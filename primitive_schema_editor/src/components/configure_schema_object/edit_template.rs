@@ -7,17 +7,23 @@ use base_types::{
 use leptos::web_sys::MouseEvent;
 use leptos::{logging::log, prelude::*};
 
-use crate::components::{
-    app::{SchemaContext, TreeTypes},
-    common::{
-        select_input::{SelectInput, SelectInputEnum, SelectInputOptional},
-        text_input::{NumberInput2, TextInput},
+use crate::reactive_types::{
+    reactive_item::RConstraintSchemaItem,
+    reactive_types::{
+        RFieldConstraint, RLibraryOperative, ROperativeSlot, ROperativeVariants, RSlotBounds, RTag,
+        RTraitMethodImplPath, RTraitOperative,
     },
-    tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
 };
-use crate::reactive_types::reactive_types::{
-    RFieldConstraint, RLibraryOperative, ROperativeSlot, ROperativeVariants, RSlotBounds, RTag,
-    RTraitMethodImplPath, RTraitOperative,
+use crate::{
+    components::{
+        app::{SchemaContext, TreeTypes},
+        common::{
+            select_input::{SelectInput, SelectInputEnum, SelectInputOptional},
+            text_input::{NumberInput2, TextInput},
+        },
+        tree_view::{TreeNodeDataSelectionType, TreeRef, TreeView},
+    },
+    reactive_types::reactive_types::RLibraryTemplate,
 };
 
 #[component]
@@ -91,6 +97,35 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             .collect::<Vec<_>>()
     };
 
+    let schema_clone = ctx.schema.clone();
+    let dependencies = {
+        let templates_containing_operative: Vec<RLibraryTemplate<PrimitiveTypes, PrimitiveValues>> =
+            vec![];
+        let operatives_containing_operative = schema_clone
+            .operative_library
+            .get()
+            .values()
+            .filter(|operative| {
+                operative.check_ancestry(&schema_clone, &active_object.get().tag.id.get())
+                    && operative.tag.id.get() != active_object.get().tag.id.get()
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let instances_containing_operative = schema_clone
+            .instance_library
+            .get()
+            .values()
+            .filter(|instance| {
+                instance.check_ancestry(&schema_clone, &active_object.get().tag.id.get())
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        (
+            templates_containing_operative,
+            operatives_containing_operative,
+            instances_containing_operative,
+        )
+    };
     let operative_slot_view = view! {};
 
     let new_operative_name = RwSignal::new("new_operative".to_string());
@@ -377,6 +412,34 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                 }>delete element</button>
                 <br />
                 <br />
+
+                <strong>
+                    "Dependencies (Don't delete until these dependencies are addressed):"
+                </strong>
+                <br />
+                <div class="large-margin">
+                    {dependencies
+                        .0
+                        .into_iter()
+                        .map(|template| {
+                            view! { <div>"Template Dependency: " {template.tag.name}</div> }
+                        })
+                        .collect::<Vec<_>>()}
+                    {dependencies
+                        .1
+                        .into_iter()
+                        .map(|operative| {
+                            view! { <div>"Operative Dependency: " {operative.tag.name}</div> }
+                        })
+                        .collect::<Vec<_>>()}
+                    {dependencies
+                        .2
+                        .into_iter()
+                        .map(|instance| {
+                            view! { <div>"Instance Dependency: " {instance.tag.name}</div> }
+                        })
+                        .collect::<Vec<_>>()}
+                </div>
 
                 <strong>Name</strong>
                 <div class="flex">

@@ -68,6 +68,49 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
             .unwrap()
     });
 
+    let dependencies = {
+        let templates_containing_operative = schema_clone_9
+            .template_library
+            .get()
+            .values()
+            .filter(|template| {
+                template.operative_slots.get().values().any(|slot| {
+                    match &slot.operative_descriptor {
+                        ROperativeVariants::LibraryOperative(rw_signal) => {
+                            rw_signal.get() == active_object.get().tag.id.get()
+                        }
+                        ROperativeVariants::TraitOperative(_rtrait_operative) => false,
+                    }
+                })
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let operatives_containing_operative = schema_clone_9
+            .operative_library
+            .get()
+            .values()
+            .filter(|operative| {
+                operative.check_ancestry(&schema_clone_9, &active_object.get().tag.id.get())
+                    && operative.tag.id.get() != active_object.get().tag.id.get()
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let instances_containing_operative = schema_clone_9
+            .instance_library
+            .get()
+            .values()
+            .filter(|instance| {
+                instance.check_ancestry(&schema_clone_9, &active_object.get().tag.id.get())
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        (
+            templates_containing_operative,
+            operatives_containing_operative,
+            instances_containing_operative,
+        )
+    };
+
     let all_field_constraints = move || associated_template.get().field_constraints.get();
     let unfulfilled_field_constraints = create_memo(move |_| {
         active_object
@@ -335,9 +378,9 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                 }>delete element</button>
                 <br />
                 <br />
-                Ancestry:
+                <strong>Ancestry:</strong>
                 <br />
-                <div class="flex">
+                <div class="flex large-margin">
                     {ancestry_breadcrumb
                         .into_iter()
                         .map(|(ancestor_id, ancestor_name, item_type)| {
@@ -350,6 +393,34 @@ pub fn EditOperative(element: TreeRef) -> impl IntoView {
                         .collect::<Vec<_>>()}
 
                 </div>
+                <strong>
+                    "Dependencies (Don't delete until these dependencies are addressed):"
+                </strong>
+                <br />
+                <div class="large-margin">
+                    {dependencies
+                        .0
+                        .into_iter()
+                        .map(|template| {
+                            view! { <div>"Template Dependency: " {template.tag.name}</div> }
+                        })
+                        .collect::<Vec<_>>()}
+                    {dependencies
+                        .1
+                        .into_iter()
+                        .map(|operative| {
+                            view! { <div>"Operative Dependency: " {operative.tag.name}</div> }
+                        })
+                        .collect::<Vec<_>>()}
+                    {dependencies
+                        .2
+                        .into_iter()
+                        .map(|instance| {
+                            view! { <div>"Instance Dependency: " {instance.tag.name}</div> }
+                        })
+                        .collect::<Vec<_>>()}
+                </div>
+                <strong>Name</strong>
                 <strong>Name</strong>
                 <br />
                 <div class="flex">

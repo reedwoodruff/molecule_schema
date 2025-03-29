@@ -259,6 +259,61 @@ pub fn EditInstance(element: TreeRef) -> impl IntoView {
             }
         }
     };
+    let dependencies = {
+        let templates_containing_instance = schema_clone_7
+            .template_library
+            .get()
+            .values()
+            .filter(|template| {
+                template
+                    .instances
+                    .get()
+                    .contains(&active_object.get().tag.id.get())
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let operatives_containing_instance = schema_clone_7
+            .operative_library
+            .get()
+            .values()
+            .filter(|operative| {
+                operative
+                    .slotted_instances
+                    .get()
+                    .values()
+                    .any(|slotted_instance_info| {
+                        slotted_instance_info
+                            .fulfilling_instance_ids
+                            .get()
+                            .contains(&active_object.get().tag.id.get())
+                    })
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        let instances_containing_instance = schema_clone_7
+            .instance_library
+            .get()
+            .values()
+            .filter(|instance| {
+                instance
+                    .slotted_instances
+                    .get()
+                    .values()
+                    .any(|slotted_instance_info| {
+                        slotted_instance_info
+                            .fulfilling_instance_ids
+                            .get()
+                            .contains(&active_object.get().tag.id.get())
+                    })
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        (
+            templates_containing_instance,
+            operatives_containing_instance,
+            instances_containing_instance,
+        )
+    };
     let ancestry_breadcrumb = {
         let mut next_parent = active_object.get().parent_operative_id.get();
         let mut breadcrumb = Vec::new();
@@ -311,9 +366,9 @@ pub fn EditInstance(element: TreeRef) -> impl IntoView {
                 }>delete element</button>
                 <br />
                 <br />
-                Ancestry:
+                <strong>Ancestry:</strong>
                 <br />
-                <div class="flex">
+                <div class="flex large-margin">
                     {ancestry_breadcrumb
                         .into_iter()
                         .map(|(ancestor_id, ancestor_name, item_type)| {
@@ -325,6 +380,33 @@ pub fn EditInstance(element: TreeRef) -> impl IntoView {
                         })
                         .collect::<Vec<_>>()}
 
+                </div>
+                <strong>
+                    "Dependencies (Don't delete until these dependencies are addressed):"
+                </strong>
+                <br />
+                <div class="large-margin">
+                    {dependencies
+                        .0
+                        .into_iter()
+                        .map(|template| {
+                            view! { <div>"Template Dependency: " {template.tag.name}</div> }
+                        })
+                        .collect::<Vec<_>>()}
+                    {dependencies
+                        .1
+                        .into_iter()
+                        .map(|operative| {
+                            view! { <div>"Operative Dependency: " {operative.tag.name}</div> }
+                        })
+                        .collect::<Vec<_>>()}
+                    {dependencies
+                        .2
+                        .into_iter()
+                        .map(|instance| {
+                            view! { <div>"Instance Dependency: " {instance.tag.name}</div> }
+                        })
+                        .collect::<Vec<_>>()}
                 </div>
                 <strong>Name</strong>
                 <br />

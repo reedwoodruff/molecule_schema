@@ -561,3 +561,29 @@ Additional insights from Claude:
 5. For event-driven systems like UIs, the event loop itself becomes part of the graph structure, with each event initiating new polling traces through the system
 
 This model elegantly bridges the gap between theoretical concepts like algebraic effects and practical implementation patterns, all within a unified execution framework.
+
+## April 12, 2025
+I seem to have gotten ahead of myself, and likely am still so in some aspects. There are elements of the model proposed above which are conceptually helpful, but the concept of looping as a kind of "trigger" for effects doesn't seem particularly helpful. Instead it seems like looping should be constrained to explicit control-flow representation and not be any kind of magical trigger. Things are still evolving. Currently they look more like modeling different outcome channels explicitly as their own outputs from functions, and allowing particular contexts to wire up the channels as they see fit in a sort of superposition. Then when calling a function with multiple output channels from userland, the engine behind the scenes would be polling each channel individually and then returning a collapsed union to the observer (e.g. Result<T,E>).
+
+## April 28, 2025
+Have been exploring more fundamental models. It seems that there are some more elegant ways to arrange things, but perhaps going forward with things as they stand now and implementing the improved model in the next generation is the path forward at this time. Hard to say. For example, it seems that there is a waiting conceptual merger between operatives and functions (or, more expressively, logical expressions -- i.e. rather than having explicit inputs and outputs, an operative would represent a sort of constraint or truth statement which could then be solved when necessary, and "instances" could be used as truisms/data-constructs), which would position the whole system more firmly on prior art in the form of functional languages, category theory, and logic.
+
+Still having trouble nailing down some thoughts which start to resemble dependent types. If every operative represents some type-space or potential, then you could also model other types (like a u8) as similar (a typespace with 2^8 discrete possibilities). If you think of creating a separate "instance" of every discrete possibility, you could then imagine constraining types in a similar way to dependent types. But in this realm, what then is an instance? In other words, the definitional space where you are creating your "types" or "type-space containers" also necessarily contains these discrete quanta (which I've been calling instances to this point).
+
+Still haven't decided if it's the best course to continue trying to create a more coherent framework or to move forward with practical next steps toward building the next-gen primitives as they are.
+More abstractly, have been playing with the idea of
+  1. Discrimination, and
+  2. Grouping
+
+as potentially core primitives from which to build all other abstractions. Discrimination would represent the ability to create the quanta mentioned above. It seems like cardinality can be derived from groupings, as well as the ability to create abstractions. Pretty out of depth here, though, still exploring.
+
+The concept of merging the typespace graph and the execution graph and allowing it to mutate itself has been growing in mind. Attempting to take inspiration from biological processes, such as DNA as the execution graph and RNA transcriptions as sort of "polls" which can return values/proteins which influence the context. Still incubating some of these things.
+
+## April 29, 2025
+Upon reflection today with AI, it seems like it might be better to think about the core primitives as **capabilities** or **actions** rather than as objects. Also currently thinking that the primitives might not map directly to logic, but that logic would be constructed from the primitives.
+
+Additionally, it seems that there is some primitive of *choice* which would be necessary to represent typespaces (another view of this is essentially sum types to "Grouping"'s product types). Additionally, it might be valuable to split the choice function into **Suspension** and **Decision**. This would lend itself to more naturally expressing both the possibility space and the collapsing/execution of it in the same graph.
+
+Also considering a **Transcendence** primitive which would enable tetralemma-compatible logic. Instead of just *Is* or *Is Not*, it seems like it would be valuable in knowledge-representing systems to be able to express *Both Is And Is Not* and *Neither Is Nor Is Not*
+
+Quite unsure how or if these primitives map to logic or types at this point.
