@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::Arc;
 
 use base_types::{
@@ -208,7 +208,7 @@ where
                 template_level_instances: vec![],
                 operative_digest: create_memo(move |_| ROperativeDigest {
                     digest_object_id: cloned_id,
-                    operative_slots: HashMap::new(),
+                    operative_slots: BTreeMap::new(),
                 }),
             }
         }
@@ -422,7 +422,7 @@ where
         // key=move |item| item.tag.id.get()
         // let:child
         // >
-        // 
+        //
         // {
         // let on_click_tree_data_3 = on_click_tree_data_3.clone();
         // view! {
@@ -433,13 +433,13 @@ where
         // TreeTypes::TraitOperative(child.clone()),
         // child.tag.id.get(),
         // )
-        // 
+        //
         // path=new_path_3.clone()
         // />
         // </div>
         // }
         // }
-        // 
+        //
         // </For>
         </div>
     }

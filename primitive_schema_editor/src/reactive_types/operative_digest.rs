@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use leptos::prelude::*;
 
@@ -9,7 +9,7 @@ use super::reactive_types::{ROperativeSlot, RSlotBounds};
 #[derive(Clone, Debug, PartialEq)]
 pub struct ROperativeDigest {
     pub digest_object_id: Uid,
-    pub operative_slots: HashMap<Uid, ROperativeSlotDigest>,
+    pub operative_slots: BTreeMap<Uid, ROperativeSlotDigest>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]

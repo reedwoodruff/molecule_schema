@@ -534,3 +534,30 @@ Trying to work through mutations and whether there needs to be some kind of "dra
 
 ## March 24, 2025
 Strongly considering the possibility of refactoring the recursive_schema to make better use of the "Instances" feature (which is currently a stub and would need to be fleshed out at the first_gen_compiler level). This would allow me to define a single `ImplStepConcrete` and `EffectChannelConcrete`, and then ship a sort of standard library of steps as *instances* of these generic primitives. This would let users build user-defined steps and effects which seems quite powerful, rather than being hard-limited to the baked in steps. This would require a relatively significant overhaul, but it might be worthwhile. Might give it a shot.
+
+## March 29, 2025
+Believe that we've reached a consistent model for understanding and implementing execution graphs with a concept similar to algebraic effects. "Effects" are a bit of a misnomer in this model. We just have data nodes and function nodes. Function nodes have inputs and outputs which are always data nodes. The program can be thought of as a single large graph, and any activities manifest as polling traces through this graph. When a data node is polled, it in turn polls any function node of which it is an output. The function node in turn can continue polling any of its inputs. The insight Claude and I came to was that you can model complex control flows and "handle effects" by allowing these poll chains to loop in the graph structure.
+
+Take the example of exception-handling. You are deep in a poll context (i.e. your program has requested some data, and the execution has followed a chain of polling steps to arrive at some location) when there is an error in a function node. Your `GetDataFromNetwork` function, for example, polled the internet and received an error. Instead of terminating and returning a value up the poll chain (as it would if it successfully retrieved data), it instead begins to poll its `ExceptionHandler` input, which loops up to some "higher" level in the execution graph ("above" the request which wanted data from the network) where it can "graft" back into the execution flow by re-polling at some juncture (we'll call it CatchNode) which is prepared to handle errors. At this point the poll chain conceptually intersects or crosses itself. The poll-chain continues a little farther until it terminates in some Error data, and pops links from the poll chain until it returns that error value to CatchNode (the intersection point). The interesting thing is that at this juncture you still have access to the entire poll-chain which led to this outcome, and can handle it appropriately.
+
+Similarly, various control flows can be modeled by allowing the execution graph to loop back on itself (which allows the poll chains to take looping paths through the execution graph).
+
+
+Additional insights from Claude:
+
+1. This model unifies normal program flow and effect handling under a single conceptual framework, without requiring separate mechanisms for different types of effects (exceptions, async, state, IO, etc.)
+2. Beyond exceptions, other control flows fit the same pattern:
+  - Retry: Poll a RetryHandler input that loops back to the original operation
+  - Timeout: Poll a TimeoutHandler that may terminate or reschedule execution
+  - State manipulation: Poll a StateHandler that updates global state before continuing
+
+
+3. The preserved poll chain offers rich possibilities including:
+  - Resource cleanup by traversing acquisition nodes in the chain
+  - Resumable computation by storing and later reactivating chains
+  - Debugging through "time travel" by examining or rewinding the chain
+
+4. Type safety can be maintained across effect boundaries by ensuring handlers return appropriate types to match what was originally being polled for
+5. For event-driven systems like UIs, the event loop itself becomes part of the graph structure, with each event initiating new polling traces through the system
+
+This model elegantly bridges the gap between theoretical concepts like algebraic effects and practical implementation patterns, all within a unified execution framework.
