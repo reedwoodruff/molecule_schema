@@ -71,7 +71,7 @@ pub fn print_schema_reactive(reactive_schema: &RConstraintSchema<PrimitiveTypes,
 pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl IntoView {
     let reactive_schema: RConstraintSchema<PrimitiveTypes, PrimitiveValues> = schema.into();
     let constraint_objects = reactive_schema.template_library;
-    let sorted_constraint_objects = create_memo(move |_| {
+    let sorted_constraint_objects = Memo::new(move |_| {
         let mut values = reactive_schema
             .template_library
             .get()
@@ -81,8 +81,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
         values.sort_by(|a, b| a.tag.name.get().cmp(&b.tag.name.get()));
         values
     });
-    let instances = reactive_schema.instance_library;
-    let sorted_instances = create_memo(move |_| {
+    let sorted_instances = Memo::new(move |_| {
         let mut values = reactive_schema
             .instance_library
             .get()
@@ -92,8 +91,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
         values.sort_by(|a, b| a.tag.name.get().cmp(&b.tag.name.get()));
         values
     });
-    let operatives = reactive_schema.operative_library;
-    let sorted_operatives = create_memo(move |_| {
+    let sorted_operatives = Memo::new(move |_| {
         let mut values = reactive_schema
             .operative_library
             .get()
@@ -104,7 +102,7 @@ pub fn App(schema: ConstraintSchema<PrimitiveTypes, PrimitiveValues>) -> impl In
         values
     });
     let traits = reactive_schema.traits;
-    let sorted_traits = create_memo(move |_| {
+    let sorted_traits = Memo::new(move |_| {
         let mut values = reactive_schema
             .traits
             .get()
@@ -286,7 +284,7 @@ where
 {
     let ctx = use_context::<SchemaContext>().unwrap();
 
-    let class = create_memo(move |_| {
+    let class = Memo::new(move |_| {
         if ctx
             .selected_element
             .get()

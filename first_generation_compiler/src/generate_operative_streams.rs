@@ -103,7 +103,7 @@ pub(crate) fn generate_operative_streams(
                 SpecializedRActiveSlot {
                     base: RActiveSlot {
                         slot: &CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap().operative_slots.get(&#slot_id).unwrap(),
-                        slotted_instances: leptos::prelude::RwSignal::new(vec![#(#slotted_instances,)*]),
+                        slotted_instances: leptos::prelude::RwSignal::<Vec<u128>>::new(vec![#(#slotted_instances,)*]),
                     },
                     slot_enum: #slot_enum_name::#slot_enum_variant
                 }
@@ -1147,7 +1147,7 @@ pub(crate) fn generate_operative_streams(
                     let template_ref = CONSTRAINT_SCHEMA.template_library.get(&#reference_template_id).unwrap();
                     let operative_ref = CONSTRAINT_SCHEMA.operative_library.get(&#operative_id).unwrap();
                     #[allow(unused_mut)]
-                    let mut field_hashmap = std::collections::HashMap::new();
+                    let mut field_hashmap = std::collections::HashMap::<u128, RwSignal<Option<RwSignal<PrimitiveValues>>>>::new();
                     #(field_hashmap.insert(#unfulfilled_field_ids, RwSignal::new(None));)*
                     let graph: std::sync::Arc<RBaseGraphEnvironment<Self::Schema>> = graph.into();
                     let wrapper_builder = RGSOConcreteBuilder::new(

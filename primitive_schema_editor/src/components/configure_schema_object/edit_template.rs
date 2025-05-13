@@ -30,7 +30,7 @@ use crate::{
 pub fn EditTemplate(element: TreeRef) -> impl IntoView {
     let ctx = use_context::<SchemaContext>().unwrap();
 
-    let active_object = create_memo(move |_| {
+    let active_object = Memo::new(move |_| {
         ctx.schema
             .template_library
             .with(|co| co.get(&element.1).cloned())
@@ -126,7 +126,6 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
             instances_containing_operative,
         )
     };
-    let operative_slot_view = view! {};
 
     let new_operative_name = RwSignal::new("new_operative".to_string());
     let new_instance_name = RwSignal::new("new_instance".to_string());
@@ -189,8 +188,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         }
     };
 
-    let schema_clone = ctx.schema.clone();
-    let select_operative_options = create_memo(move |_| {
+    let select_operative_options = Memo::new(move |_| {
         ctx.schema.operative_library.with(|lib| {
             lib.iter()
                 .filter_map(|(id, lib_item)| {
@@ -227,7 +225,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         }
     };
 
-    let select_trait_operative_options = create_memo(move |_| {
+    let select_trait_operative_options = Memo::new(move |_| {
         ctx.schema.traits.with(|lib| {
             lib.iter()
                 .map(|(id, lib_item)| (*id, lib_item.tag.name.get()))
@@ -263,7 +261,6 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
     let add_trait_impl_id = RwSignal::new(None);
     let TypedSelectInputTraitImplSelection = SelectInputOptional::<Uid, String, _, _>;
 
-    let adding_trait_impl = RwSignal::new(false);
     let selecting_trait_impl_path = RwSignal::<Option<u128>>::new(None);
     let active_trait_impl_method_paths = RwSignal::new(HashMap::<
         Uid,
@@ -363,7 +360,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
         }
     };
 
-    let is_trait_impl_complete = create_memo(move |_| {
+    let is_trait_impl_complete = Memo::new(move |_| {
         if add_trait_impl_id.get().is_none() {
             return false;
         }
@@ -499,7 +496,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                 <h4>Instances</h4>
 
                 <TypedSelectInputInstanceSelection
-                    options=select_instance_options.into()
+                    options=Signal::derive(move || select_instance_options.clone())
                     value=add_instance_id
                     on_select=move |instance_id| add_instance_id.set(instance_id)
                 />
@@ -576,7 +573,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                                 }
                                     .into_any()
                             }
-                            ROperativeVariants::LibraryOperative(op_id) => view! {}.into_any(),
+                            ROperativeVariants::LibraryOperative(_op_id) => view! {}.into_any(),
                         }} <br />Slot Range: <br /> <SelectInputEnum value=op_slot.1.bounds />
                         <br />
                         {move || match op_slot.1.bounds.get() {
@@ -637,7 +634,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     let casted_options = <Memo<
                         Vec<(u128, std::string::String)>,
                     > as Into<
-                        MaybeSignal<Vec<(u128, std::string::String)>>,
+                        Signal<Vec<(u128, std::string::String)>>,
                     >>::into(select_operative_options);
                     view! {
                         <TypedSelectInputOperativeSelection
@@ -664,7 +661,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                     let casted_options = <Memo<
                         Vec<(u128, std::string::String)>,
                     > as Into<
-                        MaybeSignal<Vec<(u128, std::string::String)>>,
+                        Signal<Vec<(u128, std::string::String)>>,
                     >>::into(select_trait_operative_options);
                     view! {
                         <TypedSelectInputTraitOperativeSelection
@@ -724,7 +721,7 @@ pub fn EditTemplate(element: TreeRef) -> impl IntoView {
                 <br />
                 trait:
                 <TypedSelectInputTraitImplSelection
-                    options=select_trait_impl_options.into()
+                    options=Signal::derive(move || select_trait_impl_options.clone())
                     value=add_trait_impl_id
                     on_select=on_select_trait_impl
                 />

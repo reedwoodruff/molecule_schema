@@ -14,9 +14,7 @@ use crate::components::{
 };
 use crate::reactive_types::{
     reactive_item::RConstraintSchemaItem,
-    reactive_types::{
-        RLibraryOperative, ROperativeVariants, RSlottedInstances, RTraitMethodImplPath,
-    },
+    reactive_types::{ROperativeVariants, RSlottedInstances, RTraitMethodImplPath},
 };
 
 #[component]
@@ -31,7 +29,6 @@ pub fn EditInstance(element: TreeRef) -> impl IntoView {
     let schema_clone_6 = schema_clone.clone();
     let schema_clone_7 = schema_clone.clone();
     let schema_clone_8 = schema_clone.clone();
-    let schema_clone_9 = schema_clone.clone();
     let schema_clone_10 = schema_clone.clone();
     let schema_clone_11 = schema_clone.clone();
     let schema_clone_12 = schema_clone.clone();
@@ -39,37 +36,17 @@ pub fn EditInstance(element: TreeRef) -> impl IntoView {
     let schema_clone_14 = schema_clone.clone();
     let schema_clone_15 = schema_clone.clone();
     let schema_clone_16 = schema_clone.clone();
-    let schema_clone_17 = schema_clone.clone();
-    let schema_clone_18 = schema_clone.clone();
     let schema_clone_19 = schema_clone.clone();
-    let schema_clone_20 = schema_clone.clone();
-    let schema_clone_21 = schema_clone.clone();
     let schema_clone_22 = schema_clone.clone();
-    let schema_clone_23 = schema_clone.clone();
-    let schema_clone_24 = schema_clone.clone();
-    let schema_clone_25 = schema_clone.clone();
-    let schema_clone_26 = schema_clone.clone();
-    let schema_clone_27 = schema_clone.clone();
 
-    let active_object = create_memo(move |_| {
+    let active_object = Memo::new(move |_| {
         schema_clone_16
             .instance_library
             .with(|instances| instances.get(&element.1).cloned())
             .unwrap()
     });
-    let associated_template = create_memo(move |_| {
-        schema_clone_20
-            .template_library
-            .with(|templates| {
-                templates
-                    .get(&active_object.get().template_id.get())
-                    .cloned()
-            })
-            .unwrap()
-    });
 
-    let all_field_constraints = move || associated_template.get().field_constraints.get();
-    let unfulfilled_field_constraints = create_memo(move |_| {
+    let unfulfilled_field_constraints = Memo::new(move |_| {
         active_object
             .get()
             .get_locked_fields_digest(&schema_clone)
@@ -84,7 +61,7 @@ pub fn EditInstance(element: TreeRef) -> impl IntoView {
             .cloned()
             .collect::<Vec<_>>()
     };
-    let ancestors_fulfilled_field_constraints = create_memo(move |_| {
+    let ancestors_fulfilled_field_constraints = Memo::new(move |_| {
         active_object
             .get()
             .get_locked_fields_digest(&schema_clone_2)
@@ -129,7 +106,6 @@ pub fn EditInstance(element: TreeRef) -> impl IntoView {
     let add_trait_impl_id = RwSignal::new(None);
     let TypedSelectInputTraitImplSelection = SelectInputOptional::<Uid, String, _, _>;
 
-    let adding_trait_impl = RwSignal::new(false);
     let selecting_trait_impl_path = RwSignal::<Option<u128>>::new(None);
     let active_trait_impl_method_paths = RwSignal::new(HashMap::<
         Uid,
@@ -225,7 +201,7 @@ pub fn EditInstance(element: TreeRef) -> impl IntoView {
         }
     };
 
-    let is_trait_impl_complete = create_memo(move |_| {
+    let is_trait_impl_complete = Memo::new(move |_| {
         if add_trait_impl_id.get().is_none() {
             return false;
         }
@@ -371,7 +347,7 @@ pub fn EditInstance(element: TreeRef) -> impl IntoView {
                 <div class="flex large-margin">
                     {ancestry_breadcrumb
                         .into_iter()
-                        .map(|(ancestor_id, ancestor_name, item_type)| {
+                        .map(|(_ancestor_id, ancestor_name, item_type)| {
                             view! {
                                 <div on:click=move |_| on_click_ancestor_breadcrumb(
                                     item_type.clone(),
@@ -698,7 +674,9 @@ pub fn EditInstance(element: TreeRef) -> impl IntoView {
                                     };
                                     view! {
                                         <TypedSelectInputFulfillingInstanceSelection
-                                            options=select_fulfilling_instance_options.into()
+                                            options=Signal::derive(move || {
+                                                select_fulfilling_instance_options.clone()
+                                            })
                                             value=add_trait_impl_id
                                             on_select=move |return_val| {
                                                 selected_instance_id.set(return_val)
@@ -757,7 +735,7 @@ pub fn EditInstance(element: TreeRef) -> impl IntoView {
                 <br />
                 trait:
                 <TypedSelectInputTraitImplSelection
-                    options=select_trait_impl_options.into()
+                    options=Signal::derive(move || select_trait_impl_options.clone())
                     value=add_trait_impl_id
                     on_select=on_select_trait_impl
                 />
@@ -805,7 +783,6 @@ pub fn EditInstance(element: TreeRef) -> impl IntoView {
 
                     key=move |(_methods, trait_def)| trait_def.tag.id
                     children=move |(methods, trait_def)| {
-                        let trait_id = trait_def.tag.id.get();
                         view! {
                             <div>
                                 trait name: {trait_def.tag.name} <br />trait methods:

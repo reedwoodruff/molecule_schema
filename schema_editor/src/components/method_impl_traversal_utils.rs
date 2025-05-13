@@ -71,6 +71,7 @@ pub struct ExecutionGraph {
     pub inputs: Vec<Uid>,
 }
 
+#[allow(dead_code)]
 impl ExecutionGraph {
     /// Get all data dependencies for a specific step
     pub fn get_data_dependencies(&self, step_id: &Uid) -> Vec<&ExecutionNode> {

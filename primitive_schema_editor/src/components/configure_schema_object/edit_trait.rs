@@ -13,12 +13,12 @@ pub fn EditTrait(id: RwSignal<Uid>) -> impl IntoView {
     let ctx = use_context::<SchemaContext>().unwrap();
     let schema_clone_1 = ctx.schema.clone();
 
-    let trait_info = create_memo(move |_| {
+    let trait_info = Memo::new(move |_| {
         ctx.schema
             .traits
             .with(|traits| traits.get(&id.get()).unwrap().clone())
     });
-    let templates_which_impl = create_memo(move |_| {
+    let templates_which_impl = Memo::new(move |_| {
         ctx.schema.template_library.with(|templates| {
             templates
                 .values()
@@ -28,7 +28,7 @@ pub fn EditTrait(id: RwSignal<Uid>) -> impl IntoView {
                 .collect::<Vec<_>>()
         })
     });
-    let operatives_which_impl = create_memo(move |_| {
+    let operatives_which_impl = Memo::new(move |_| {
         ctx.schema.operative_library.with(|operatives| {
             operatives
                 .values()

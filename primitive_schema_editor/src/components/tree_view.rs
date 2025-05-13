@@ -1,5 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
 use base_types::{
     common::{ConstraintTraits, Uid},
@@ -156,12 +155,11 @@ where
     }
 
     let on_click_tree_data_1 = on_click_tree_data.clone();
-    let on_click_tree_data_2 = on_click_tree_data_1.clone();
     let on_click_tree_data_3 = on_click_tree_data_1.clone();
     let on_click_tree_data_4 = on_click_tree_data_1.clone();
     let on_click_tree_data_5 = on_click_tree_data_1.clone();
 
-    let tree_element = create_memo(move |_| match &element {
+    let tree_element = Memo::new(move |_| match &element {
         TreeRef(TreeTypes::Template, id) => {
             let element = move || {
                 ctx.schema
@@ -206,7 +204,7 @@ where
                 fields: vec![],
                 trait_impls,
                 template_level_instances: vec![],
-                operative_digest: create_memo(move |_| ROperativeDigest {
+                operative_digest: Memo::new(move |_| ROperativeDigest {
                     digest_object_id: cloned_id,
                     operative_slots: BTreeMap::new(),
                 }),
@@ -219,11 +217,10 @@ where
     new_path.push(element_clone);
     let new_path = Arc::new(new_path);
     let new_path_2 = new_path.clone();
-    let new_path_3 = new_path.clone();
     let new_path_4 = new_path.clone();
     let new_path_5 = new_path.clone();
 
-    let all_slots = create_memo(move |_| {
+    let all_slots = Memo::new(move |_| {
         tree_element
             .get()
             .operative_digest
@@ -329,11 +326,11 @@ where
             <For
                 each=move || tree_element.get().operative_digest.get().operative_slots
                 key=move |(slot_id, _slot)| (*slot_id, _slot.clone())
-                let:slot_info
+                let:_slot_info
             >
 
                 {
-                    let on_click_tree_data_2 = on_click_tree_data_2.clone();
+                    // let on_click_tree_data_2 = on_click_tree_data_2.clone();
                     view! { <div></div> }
                 }
 

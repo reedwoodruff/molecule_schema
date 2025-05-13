@@ -26,7 +26,7 @@ pub async fn save_graph(payload: Vec<StandaloneRGSOConcrete>) {
         query.push_str(&format!("{}: ${}, ", "template_id", "template_id"));
         query.push_str(&format!("{}: ${}, ", "operative_id", "operative_id"));
 
-        for (key, value) in &node.fields {
+        for (key, _value) in &node.fields {
             let string_id = base_types::common::u128_to_string(*key);
             let replaced_id = string_id.replace("-", "_" );
             query.push_str(&format!("`{}`: $value_{}, ", string_id, replaced_id));
@@ -77,7 +77,7 @@ pub async fn save_graph(payload: Vec<StandaloneRGSOConcrete>) {
                     }
 
                 }
-                PrimitiveValues::List(val) => {
+                PrimitiveValues::List(_val) => {
                 }
             }
         }

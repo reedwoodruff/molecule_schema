@@ -14,9 +14,7 @@ members = [
 
 [workspace.dependencies]
 # leptos = {version = "0.7.0-rc0", features= ["csr"] }
-leptos = { git = "https://github.com/leptos-rs/leptos", branch = "main", features = [
-    "csr",
-] }
+leptos = { version = "0.8", features = ["csr"] }
 
 
 [workspace.dependencies.uuid]

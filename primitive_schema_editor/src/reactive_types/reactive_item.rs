@@ -105,7 +105,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
         _schema: &RConstraintSchema<TTypes, TValues>,
     ) -> Memo<ROperativeDigest> {
         let self_clone = self.clone();
-        create_memo(move |_| {
+        Memo::new(move |_| {
             let slot_digest_hashmap = self_clone.operative_slots.with(|operative_slot| {
                 operative_slot
                     .iter()
@@ -186,7 +186,7 @@ impl<TTypes: ConstraintTraits, TValues: ConstraintTraits> RConstraintSchemaItem
         let self_clone = self.clone();
         let schema_clone = schema.clone();
 
-        create_memo(move |_| {
+        Memo::new(move |_| {
             let related_template = schema_clone.template_library.with(|template_library| {
                 template_library
                     .get(&self_clone.get_template_id())

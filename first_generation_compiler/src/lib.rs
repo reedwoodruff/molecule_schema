@@ -899,7 +899,7 @@ pub fn generate_crate(
                     strum_macros = "0.26.1"
                     serde = {{ version = "1", features = ["derive"] }}
                     serde_json = "1"
-                    leptos = {{git = "https://github.com/leptos-rs/leptos", branch="main", features=["csr"]}}
+                    leptos = {{version="0.8", features=["csr"]}}
 
                     [dependencies.uuid]
                     version = "1.4.1"

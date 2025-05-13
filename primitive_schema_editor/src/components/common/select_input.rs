@@ -8,7 +8,7 @@ use leptos::prelude::*;
 
 #[component]
 pub fn SelectInput<K: Send + Sync, V: Send + Sync, F, I: Send + Sync>(
-    options: MaybeSignal<I>,
+    options: Signal<I>,
     on_select: F,
     #[prop(into)] value: Signal<K>,
 ) -> impl IntoView
@@ -22,8 +22,7 @@ where
     // let cloned_options = options.into_iter().cloned().collect::<Vec<(K, V)>>();
     // let map: HashMap<K, V> = HashMap::from(options.into_iter().collect::<Vec<_>>());
     let select_ref = NodeRef::new();
-    let options2 = options.clone();
-    let map = create_memo(move |_| {
+    let map = Memo::new(move |_| {
         options.clone().with(|options| {
             options
                 .clone()
@@ -77,7 +76,7 @@ where
 
 #[component]
 pub fn SelectInputOptional<K: Send + Sync, V: Send + Sync, F, I: Send + Sync>(
-    options: MaybeSignal<I>,
+    options: Signal<I>,
     on_select: F,
     #[prop(into)] value: Signal<Option<K>>,
 ) -> impl IntoView
@@ -88,8 +87,7 @@ where
     F: Fn(Option<K>) + 'static,
     I: IntoIterator<Item = (K, V)> + Clone + 'static,
 {
-    let options2 = options.clone();
-    let map = create_memo(move |_| {
+    let map = Memo::new(move |_| {
         options.clone().with(|options| {
             options
                 .clone()
@@ -154,9 +152,6 @@ where
     <T as std::str::FromStr>::Err: std::fmt::Debug,
     <T as IntoEnumIterator>::Iterator: Send,
 {
-    let options = T::iter()
-        .map(|item| (item.clone(), item.to_string()))
-        .collect::<Vec<_>>();
     view! {
         <select on:change=move |e| {
             let return_val = event_target_value(&e);
