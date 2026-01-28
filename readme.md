@@ -1,7 +1,9 @@
+**Note**: Work continues over at [Codeberg](https://codeberg.org/reedwoodruff/constraint_algebra)
+
 # Molecule Schema
 ## Purpose
 This project is meant to facilitate the creation and use of a schema for highly contextual data. The assumption is that most or all data can fall into this category of "highly contextual", and would benefit from an explicit modeling in these terms.
-For more on purpose, see [a blog post](https://blog.equalityofthought.org/posts/2023-12-06-Starting-A-Devlog)
+For more on purpose, see [a blog post](https://blog.equalityofthought.org/html/2023-12-06-Starting-A-Devlog.html)
 
 ## Usage Steps
 ### Create the schema
